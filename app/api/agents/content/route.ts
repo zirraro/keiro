@@ -6177,6 +6177,16 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
     }
   }
 
+  // 2026-06-23 — Personal branding : si activé dans le brand kit (stocké dans
+  // org_agent_configs → clientSettings), on active le playbook marque
+  // personnelle de Léna + on injecte le brief riche du client (histoire,
+  // valeurs, univers) pour nourrir le storytelling.
+  let personalBrandingBlock = '';
+  if ((clientSettings as any)?.personal_branding === true) {
+    const pbBrief = String((clientSettings as any)?.personal_branding_brief || '').slice(0, 1500);
+    personalBrandingBlock = `\n━━━ PERSONAL BRANDING ACTIVÉ ━━━\nCe client met SA personne en avant : applique le PLAYBOOK PERSONAL BRANDING (storytelling, origin story, coulisses, expertise, POV, séries récurrentes) et adapte/crée une stratégie propre selon son objectif. Priorise le média RÉEL de la personne ; l'IA déclarée sert au décor/B-roll, jamais à fabriquer son visage.${pbBrief ? `\nBRIEF DU CLIENT (histoire, valeurs, univers — sers-t'en comme matière première du storytelling) : ${pbBrief}` : `\n(Pas de brief détaillé encore — reste fidèle à ce qu'on sait du client et invite-le à enrichir son histoire.)`}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  }
+
   // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG
   // captions ("algo LinkedIn", "B2B", "decision-makers") or talks
   // about FYP on a LinkedIn post. Each platform has its own voice.
@@ -6330,7 +6340,7 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
   }
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
-${trendsContext}${eventContext}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
+${trendsContext}${eventContext}${personalBrandingBlock}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}

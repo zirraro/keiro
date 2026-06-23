@@ -43,6 +43,10 @@ export async function GET() {
     supabase.from('brand_kit_offers').select('*').eq('brand_kit_id', kit.id),
     supabase.from('brand_kit_forbidden_topics').select('topic').eq('brand_kit_id', kit.id),
   ]);
+  // Personal branding vit dans org_agent_configs (content) — jsonb, pas de DDL.
+  const { data: pbCfg } = await supabase.from('org_agent_configs')
+    .select('config').eq('user_id', user.id).eq('agent_id', 'content')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
   return NextResponse.json({
     ok: true,
     kit,
@@ -50,6 +54,8 @@ export async function GET() {
     hours: hours || [],
     offers: offers || [],
     forbidden_topics: (topics || []).map((t: any) => t.topic),
+    personal_branding: !!(pbCfg?.config as any)?.personal_branding,
+    personal_branding_brief: (pbCfg?.config as any)?.personal_branding_brief || '',
     confirmed: !!kit.confirmed_at,
     completeness: kit.completeness,
   });
@@ -119,6 +125,18 @@ export async function POST(req: NextRequest) {
     await supabase.from('brand_kit_forbidden_topics').delete().eq('brand_kit_id', kitId);
     const rows = body.forbidden_topics.filter((t: any) => t && String(t).trim()).map((t: any) => ({ brand_kit_id: kitId, topic: String(t).trim().slice(0, 80) }));
     if (rows.length) await supabase.from('brand_kit_forbidden_topics').insert(rows);
+  }
+
+  // 2bis) Personal branding → org_agent_configs (content) config JSON (pas de
+  // DDL). Léna lit ce flag pour activer son playbook de marque personnelle.
+  if (body.personal_branding !== undefined) {
+    const { data: cfgRow } = await supabase.from('org_agent_configs')
+      .select('id, config').eq('user_id', user.id).eq('agent_id', 'content')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const cfg = (cfgRow?.config as any) || {};
+    const nextCfg = { ...cfg, personal_branding: body.personal_branding === true, personal_branding_brief: String(body.personal_branding_brief || '').slice(0, 2000) };
+    if (cfgRow?.id) await supabase.from('org_agent_configs').update({ config: nextCfg }).eq('id', cfgRow.id);
+    else await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: 'content', config: nextCfg });
   }
 
   // 3) Recompute completeness + confirmed_at.

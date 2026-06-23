@@ -35,6 +35,11 @@ export default function BrandKitOnboarding() {
   const [hours, setHours] = useState<Hour[]>(DAYS.map((_, i) => ({ weekday: i, open_time: '09:00', close_time: '18:00', closed: i === 0 })));
   const [topics, setTopics] = useState<string[]>(['politique', 'religion']);
   const [forbiddenConfirmed, setForbiddenConfirmed] = useState(true);
+  // Personal branding (founder 2026-06-23) : si activé, on travaille la marque
+  // PERSONNELLE du client → exige du média réel de la personne + un brief riche
+  // (histoire, valeurs, environnement) qui nourrit les générations de Léna.
+  const [personalBranding, setPersonalBranding] = useState(false);
+  const [personalBrandingBrief, setPersonalBrandingBrief] = useState('');
 
   useEffect(() => {
     fetch('/api/brand-kit', { credentials: 'include' })
@@ -47,6 +52,8 @@ export default function BrandKitOnboarding() {
           if (d.prices?.length) setPrices(d.prices.map((p: any) => ({ service_name: p.service_name, amount_eur: String(p.amount_eur), no_discount: p.no_discount })));
           if (d.hours?.length) setHours(DAYS.map((_, i) => d.hours.find((h: any) => h.weekday === i) || { weekday: i, open_time: '09:00', close_time: '18:00', closed: i === 0 }));
           if (d.forbidden_topics) setTopics(d.forbidden_topics);
+          if (d.personal_branding != null) setPersonalBranding(!!d.personal_branding);
+          if (d.personal_branding_brief) setPersonalBrandingBrief(d.personal_branding_brief);
           setConfirmed(!!d.confirmed);
           setCompleteness(d.completeness || 0);
         }
@@ -69,6 +76,8 @@ export default function BrandKitOnboarding() {
           offers: [],
           forbidden_topics: topics,
           forbidden_confirmed: forbiddenConfirmed,
+          personal_branding: personalBranding,
+          personal_branding_brief: personalBranding ? personalBrandingBrief.slice(0, 2000) : '',
         }),
       });
       const d = await r.json();
@@ -150,6 +159,30 @@ export default function BrandKitOnboarding() {
             return <button key={t} onClick={() => setTopics(ts => on ? ts.filter(x => x !== t) : [...ts, t])} className={`text-xs px-3 py-1.5 rounded-full border ${on ? 'border-red-500/50 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/[0.03] text-white/60'}`}>{on ? '🚫 ' : '+ '}{t}</button>;
           })}
         </div>
+      </section>
+
+      {/* Personal branding */}
+      <section className="mb-6 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={personalBranding} onChange={e => setPersonalBranding(e.target.checked)} />
+          🎯 Personal branding — je mets MA personne en avant (fondateur·rice / expert·e / visage de la marque)
+        </label>
+        {personalBranding && (
+          <div className="mt-3 space-y-2">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-200">
+              ⚠️ Pour un personal branding crédible, on a besoin de <strong>vraies photos/vidéos de toi</strong> (ton visage, ton lieu, tes gestes). On ne fabrique pas un visage en IA — l'IA sert au décor / B-roll. Dépose tes médias dans ton espace (Fichiers) : non retouchés pour l'authenticité, ou retravaillés/inspirés selon ce qui sert le mieux.
+            </div>
+            <label className="block text-sm font-medium">Ton histoire & ton univers (nourrit tes contenus)</label>
+            <textarea
+              value={personalBrandingBrief}
+              onChange={e => setPersonalBrandingBrief(e.target.value)}
+              rows={5}
+              placeholder="Qui es-tu, pourquoi tu fais ça (le déclic), tes valeurs, ce qui te rend unique, ton environnement/lieu de travail, le ton qui te ressemble, les sujets dont tu veux parler. Plus c'est riche, plus tes contenus seront percutants et viraux."
+              className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-white/40">Léna s'en sert pour construire ton storytelling (origin story, coulisses, expertise, POV…) et adapter une vraie stratégie de marque personnelle.</p>
+          </div>
+        )}
       </section>
 
       <button onClick={save} disabled={saving || !businessName} className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 font-bold disabled:opacity-50">
