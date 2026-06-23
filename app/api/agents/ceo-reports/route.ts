@@ -1421,6 +1421,23 @@ async function handleClientBrief(
         achievements.push(streakLines[dayKey % streakLines.length]);
       }
 
+      // 2026-06-23 — Founder : une phrase de RÉTENTION dans le mail du soir
+      // (style "bravo" OK, MAIS varier — d'autres phrases aussi) et SANS se
+      // tromper sur les infos. Ces lignes ne citent AUCUN chiffre → jamais
+      // d'info fausse, juste de la motivation/lien, tournée par jour.
+      if (isEvening) {
+        const dayKeyR = Number(new Date().toISOString().slice(8, 10));
+        const retentionLines = [
+          `👏 Bravo pour la régularité — c'est exactement ce qui finit par tout changer. On garde le cap ensemble.`,
+          `💪 Chaque contenu posté aujourd'hui, c'est une brique de plus pour ta visibilité. On construit, tranquillement mais sûrement.`,
+          `🙌 Tu n'as rien eu à gérer et ta présence a avancé — c'est précisément le but. On continue demain.`,
+          `🔁 La présence en ligne, c'est un marathon : ce qui paie, c'est l'accumulation. Et là, ça s'accumule dans le bon sens.`,
+          `✨ Pendant que d'autres oublient de poster, ton compte avance tous les jours. C'est ça qui crée la différence.`,
+          `🤝 On est dans la durée avec toi : présence soignée, rythme tenu. Les résultats suivent ceux qui tiennent.`,
+        ];
+        achievements.push(retentionLines[dayKeyR % retentionLines.length]);
+      }
+
       // Week-over-week hot prospects
       const thisW = thisWeekHotRes.count || 0;
       const prevW = prevWeekHotRes.count || 0;

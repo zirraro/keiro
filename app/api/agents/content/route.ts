@@ -120,16 +120,19 @@ function sanitizePlatformMentions(caption: string, targetPlatform: 'tiktok' | 'i
     ],
   };
 
+  // 2026-06-23 — Founder : dans les descriptions, NE PAS dire "ici" — nommer le
+  // BON réseau (sans se tromper). Donc une mention du MAUVAIS réseau est
+  // remplacée par le nom du réseau CIBLE, jamais par "ici".
+  const targetName = targetPlatform === 'tiktok' ? 'TikTok' : targetPlatform === 'instagram' ? 'Instagram' : 'LinkedIn';
   const platformsToScrub = Object.keys(forbidden).filter(p => p !== targetPlatform);
   for (const p of platformsToScrub) {
     for (const re of forbidden[p]) {
       out = out.replace(re, (match) => {
-        // Pick a neutral replacement based on context
-        if (/^(IG|TT|FB)$/i.test(match)) return 'ici';
-        if (/algo/i.test(match)) return "l'algo";
-        if (/feed/i.test(match)) return 'le feed';
-        if (/reel/i.test(match)) return 'les vidéos';
-        return 'ici';
+        if (/algo/i.test(match)) return `l'algo ${targetName}`;
+        if (/feed/i.test(match)) return `ton ${targetName}`;
+        if (/reel/i.test(match)) return targetPlatform === 'instagram' ? 'tes reels' : 'tes vidéos';
+        // nom de réseau ou abréviation (IG/TT/FB) → le BON réseau
+        return targetName;
       });
     }
   }
