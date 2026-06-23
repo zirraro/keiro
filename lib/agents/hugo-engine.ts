@@ -477,18 +477,24 @@ export async function isBlacklisted(supabase: SupabaseClient, clientId: string, 
 // Un domaine brûlé est irrécupérable. Au-delà de 3 % de hard bounce sur 7 jours
 // glissants (avec un volume minimal pour éviter le bruit), on STOPPE les envois
 // du client (pas juste un allongement de warmup) jusqu'à reprise manuelle.
-const BOUNCE_HARD_PAUSE_RATE = 0.03;
+const BOUNCE_HARD_PAUSE_RATE = 0.03; // seuil d'ALERTE bounce (plus de pause — founder 2026-06-23)
 const BOUNCE_MIN_VOLUME = 20;
-const HUGO_PAUSE_HOURS = 48;
 
-export async function isHugoPaused(supabase: SupabaseClient, clientId: string): Promise<boolean> {
-  if (!clientId) return false;
-  const { data } = await supabase.from('profiles').select('hugo_paused_until').eq('id', clientId).maybeSingle();
-  return !!((data as any)?.hugo_paused_until && new Date((data as any).hugo_paused_until) > new Date());
+export async function isHugoPaused(_supabase: SupabaseClient, _clientId: string): Promise<boolean> {
+  // 2026-06-23 — Founder : "faut JAMAIS mettre en pause". Stopper les envois
+  // tue la conversion. La délivrabilité est protégée par la VALIDATION email
+  // (format + MX à l'insertion CRM par Léo ET avant chaque envoi par Hugo) +
+  // le flag email_invalid/bounced qui écarte les non-délivrables. On ne bloque
+  // donc PLUS JAMAIS ici. (La fonction reste pour compat des appelants.)
+  return false;
 }
 
-/** Recompute the client's 7-day hard-bounce rate; pause sends if it crosses the
- *  threshold. Call after each hard bounce. Returns whether a pause was set. */
+/**
+ * Surveille le taux de hard-bounce 7j. NE MET JAMAIS EN PAUSE (founder
+ * 2026-06-23) : à la place, alerte + apprend (RAG) + auto-lève toute pause
+ * héritée. La vraie protection = la validation email en amont (cf. isHugoPaused
+ * + lib/agents/email-validation). Retourne toujours paused:false.
+ */
 export async function checkAndPauseOnBounce(supabase: SupabaseClient, clientId: string): Promise<{ paused: boolean; rate: number }> {
   if (!clientId) return { paused: false, rate: 0 };
   const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
@@ -503,49 +509,51 @@ export async function checkAndPauseOnBounce(supabase: SupabaseClient, clientId: 
     .gte('updated_at', since);
   const total = sent || 0;
   const rate = total > 0 ? (bounced || 0) / total : 0;
+
+  // Auto-lève toute pause héritée (on ne pause plus jamais).
+  try {
+    const { data: prof } = await supabase.from('profiles').select('hugo_paused_until').eq('id', clientId).maybeSingle();
+    if ((prof as any)?.hugo_paused_until) {
+      await supabase.from('profiles').update({ hugo_paused_until: null, hugo_pause_reason: null }).eq('id', clientId);
+    }
+  } catch { /* best-effort */ }
+
   if (total >= BOUNCE_MIN_VOLUME && rate >= BOUNCE_HARD_PAUSE_RATE) {
-    // 2026-06-22 — Digest fix #3 : n'alerter qu'à la TRANSITION (pas
-    // déjà en pause). checkAndPauseOnBounce est appelée après chaque
-    // hard bounce → sans ce garde, on spammerait admin+client à chaque
-    // bounce tant que le taux reste haut.
-    const { data: prof } = await supabase.from('profiles')
-      .select('hugo_paused_until, email, full_name').eq('id', clientId).maybeSingle();
-    const wasAlreadyPaused = !!((prof as any)?.hugo_paused_until && new Date((prof as any).hugo_paused_until) > new Date());
-    const until = new Date(Date.now() + HUGO_PAUSE_HOURS * 3600 * 1000).toISOString();
-    await supabase.from('profiles').update({
-      hugo_paused_until: until,
-      hugo_pause_reason: `Bounce ${(rate * 100).toFixed(1)}% ≥ 3% (${bounced}/${total} sur 7j) — envois Hugo en pause, vérifier le domaine/la liste`,
-    }).eq('id', clientId);
-    await supabase.from('agent_logs').insert({
-      agent: 'email', action: 'hugo_bounce_pause', status: 'error', user_id: clientId,
-      error_message: `Hugo paused: bounce ${(rate * 100).toFixed(1)}% (${bounced}/${total})`,
-      data: { severity: 'critical', rate, sent: total, bounced, paused_until: until, transition: !wasAlreadyPaused },
-      created_at: new Date().toISOString(),
-    });
-    if (!wasAlreadyPaused) {
-      // Alerte admin (une seule fois par épisode de pause)
+    // Alerte + apprentissage RAG, dédupliqués 1×/24h (pas de spam, pas de pause).
+    const since24 = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data: recent } = await supabase.from('agent_logs')
+      .select('id').eq('agent', 'email').eq('action', 'hugo_bounce_high').eq('user_id', clientId)
+      .gte('created_at', since24).limit(1);
+    if (!recent || recent.length === 0) {
+      await supabase.from('agent_logs').insert({
+        agent: 'email', action: 'hugo_bounce_high', status: 'warning', user_id: clientId,
+        error_message: `Bounce élevé ${(rate * 100).toFixed(1)}% (${bounced}/${total}) — validation renforcée, PAS de pause`,
+        data: { severity: 'warning', rate, sent: total, bounced, action_taken: 'no_pause_validation_enforced' },
+        created_at: new Date().toISOString(),
+      });
+      // Partage RAG — tous les agents apprennent la règle (founder).
       try {
+        await supabase.from('agent_knowledge').insert({
+          content: `BOUNCE EMAIL ÉLEVÉ (${(rate * 100).toFixed(1)}%, ${bounced}/${total} sur 7j). Cause = adresses invalides encore en base. RÈGLE KEIRO : valider format+MX AVANT insertion CRM (Léo) ET avant envoi (Hugo), flaguer email_invalid les non-délivrables, et purger régulièrement la base. NE JAMAIS mettre Hugo en pause (ça tue la conversion) — la délivrabilité se protège par la validation en amont, pas par l'arrêt des envois.`,
+          summary: `Bounce élevé → renforcer validation, jamais de pause Hugo`,
+          agent: 'email', category: 'learning', confidence: 0.85, source: 'bounce_monitor', created_by: 'system',
+        });
+      } catch { /* RAG best-effort */ }
+      // Alerte admin (informative, pas alarmiste — aucune pause)
+      try {
+        const { data: prof2 } = await supabase.from('profiles').select('email, full_name').eq('id', clientId).maybeSingle();
         const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
         await sendEmailWithFallback({
-          to: 'contact@keiroai.com',
-          toName: 'Admin KeiroAI',
-          subject: `🔴 Hugo en pause — bounce ${(rate * 100).toFixed(1)}% (${(prof as any)?.email || clientId})`,
-          html: `<p>Les envois Hugo sont <strong>mis en pause</strong> pour <strong>${(prof as any)?.full_name || (prof as any)?.email || clientId}</strong>.</p>
-            <p>Taux de hard bounce 7j : <strong>${(rate * 100).toFixed(1)}%</strong> (${bounced}/${total}) — seuil ${(BOUNCE_HARD_PAUSE_RATE * 100).toFixed(0)}%.</p>
-            <p>Pause jusqu'au ${new Date(until).toLocaleString('fr-FR')}. Action : nettoyer la liste (emails invalides) + vérifier l'auth domaine (SPF/DKIM/DMARC) avant reprise.</p>`,
-          textContent: `Hugo en pause pour ${(prof as any)?.email || clientId} — bounce ${(rate * 100).toFixed(1)}% (${bounced}/${total}). Nettoyer la liste + vérifier le domaine.`,
-          fromName: 'KeiroAI Ops', fromEmail: 'contact@keiroai.com', tags: ['hugo_bounce_pause'],
-        });
-      } catch { /* alerte best-effort */ }
-      // Notif in-app client (le digest CEO du soir reprendra le contexte)
-      try {
-        await notifyClient(supabase, clientId, {
-          type: 'hugo_paused_bounce',
-          urgency: 'high',
+          to: 'contact@keiroai.com', toName: 'Admin KeiroAI',
+          subject: `⚠️ Bounce élevé ${(rate * 100).toFixed(1)}% (${(prof2 as any)?.email || clientId}) — validation renforcée, PAS de pause`,
+          html: `<p>Bounce 7j à <strong>${(rate * 100).toFixed(1)}%</strong> (${bounced}/${total}) pour <strong>${(prof2 as any)?.full_name || (prof2 as any)?.email || clientId}</strong>.</p>
+            <p>Conformément à la règle, <strong>les envois ne sont PAS mis en pause</strong>. La validation amont (format + MX à l'insert et à l'envoi) écarte les adresses invalides → le taux doit retomber à mesure que la base nettoyée roule sur la fenêtre 7j.</p>
+            <p>Si ça persiste : vérifier l'auth domaine (SPF/DKIM/DMARC) + relancer le backfill de validation.</p>`,
+          textContent: `Bounce ${(rate * 100).toFixed(1)}% (${bounced}/${total}) — PAS de pause, validation renforcée.`,
+          fromName: 'KeiroAI Ops', fromEmail: 'contact@keiroai.com', tags: ['hugo_bounce_high'],
         });
       } catch { /* best-effort */ }
     }
-    return { paused: true, rate };
   }
   return { paused: false, rate };
 }
