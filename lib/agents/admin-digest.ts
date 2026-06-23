@@ -463,10 +463,12 @@ export async function autoRemediateIssues(
 
   // Trace + partage RAG (toujours) — tous les agents apprennent du self-heal.
   if (fixed.length) {
-    await supabase.from('agent_logs').insert({
-      agent: 'ceo', action: 'auto_remediated', status: 'ok',
-      data: { fixed, at: nowIso }, created_at: nowIso,
-    }).catch(() => {});
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'ceo', action: 'auto_remediated', status: 'ok',
+        data: { fixed, at: nowIso }, created_at: nowIso,
+      });
+    } catch { /* non-fatal */ }
     for (const f of fixed) {
       await saveKnowledge(supabase, {
         content: `AUTO-REMÉDIATION ${nowIso.slice(0, 10)} : "${f.issue}" → ${f.action} (${f.count} élément(s)). Réglé en autonomie avant le digest admin.`,
