@@ -126,6 +126,21 @@ function StudioContent() {
   // video. Pre-populated with the founder's My Videos so they can
   // reuse a previously uploaded clip instead of re-uploading.
   const [showGalleryPicker, setShowGalleryPicker] = useState(false);
+  // Banque de clips TREND / inspiration (2026-06-23) — parcourir des clips
+  // tendance pour s'inspirer du hook/format + en ajouter (source d'idées
+  // pour des reels qui captent l'attention). Miroir de /library côté Léna.
+  const [showTrendPicker, setShowTrendPicker] = useState(false);
+  const [trendClips, setTrendClips] = useState<Array<{ id: string; title?: string; video_url: string; thumbnail_url?: string }>>([]);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [trendAdding, setTrendAdding] = useState(false);
+  const loadTrendClips = useCallback(async () => {
+    setTrendLoading(true);
+    try {
+      const r = await fetch('/api/library/trend-clips', { credentials: 'include' });
+      const j = await r.json();
+      setTrendClips(Array.isArray(j.clips) ? j.clips : []);
+    } catch {} finally { setTrendLoading(false); }
+  }, []);
   const [galleryVideos, setGalleryVideos] = useState<Array<{ id: string; title?: string; video_url: string; thumbnail_url?: string; created_at?: string; source_type?: string }>>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   // Image-side variant for the Image tab: pick a previously saved image.
@@ -1783,6 +1798,17 @@ function StudioContent() {
                             Choisir une vidéo dans ma galerie
                           </button>
                         )}
+                        {/* Banque de clips TREND — s'inspirer d'un hook/format
+                            tendance avant de créer (founder 2026-06-23). */}
+                        {!hookUploading && (
+                          <button
+                            type="button"
+                            onClick={() => { setShowTrendPicker(true); if (trendClips.length === 0) loadTrendClips(); }}
+                            className="block w-full text-center px-4 py-2.5 min-h-[44px] rounded-xl border-2 border-orange-200 bg-orange-50/50 text-sm font-semibold text-orange-700 hover:border-orange-400 transition"
+                          >
+                            🔥 Banque de clips trend — s&apos;inspirer d&apos;un hook qui cartonne
+                          </button>
+                        )}
 
                         {/* PROGRESS STEPPER — always visible while Léna runs the
                             auto pipeline so the client never wonders if anything
@@ -2574,6 +2600,80 @@ function StudioContent() {
           <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
             <div className="text-white text-xs mb-2 font-bold">Vidéo originale (avant traitement)</div>
             <video src={hookSourceUrl} controls className="w-full rounded-xl shadow-2xl max-h-[80vh] bg-black" />
+          </div>
+        </div>
+      )}
+
+      {/* Banque de clips TREND / inspiration (2026-06-23) — parcourir des
+          clips tendance pour s'inspirer du hook/format + en ajouter un. */}
+      {showTrendPicker && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setShowTrendPicker(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-3xl w-full max-h-[82vh] overflow-hidden flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-neutral-200">
+              <div>
+                <div className="font-bold text-neutral-900">🔥 Banque de clips trend</div>
+                <div className="text-xs text-neutral-500">Inspire-toi d&apos;un hook / format qui cartonne avant de créer ton reel</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={trendAdding}
+                  onClick={async () => {
+                    const url = window.prompt("Colle l'URL d'un clip trend (mp4) à ajouter à la banque d'inspiration :");
+                    if (!url || !/^https?:\/\//.test(url)) return;
+                    const title = window.prompt('Titre / note (ex: hook tourbillon resto, transition trendy) :') || "Clip d'inspiration";
+                    setTrendAdding(true);
+                    try {
+                      const r = await fetch('/api/library/trend-clips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ videoUrl: url, title }) });
+                      const j = await r.json();
+                      if (j.ok && j.clip) setTrendClips(prev => [j.clip, ...prev]);
+                      else alert(j.error || 'Ajout impossible');
+                    } catch { alert('Ajout impossible'); } finally { setTrendAdding(false); }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-orange-600 text-white text-xs font-semibold hover:bg-orange-700 transition disabled:opacity-50"
+                >
+                  {trendAdding ? '⏳ Ajout…' : '+ Ajouter un clip'}
+                </button>
+                <button onClick={() => setShowTrendPicker(false)} className="p-1.5 rounded hover:bg-neutral-100" aria-label="Fermer">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {trendLoading ? (
+                <div className="text-center py-10 text-sm text-neutral-500">Chargement de la banque…</div>
+              ) : trendClips.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="text-4xl mb-2">🔥</div>
+                  <div className="text-sm font-semibold text-neutral-700">Banque d&apos;inspiration vide</div>
+                  <div className="text-xs text-neutral-500 mt-1">Ajoute un clip trend via «&nbsp;+ Ajouter un clip&nbsp;» pour t&apos;en inspirer.</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {trendClips.map(c => (
+                    <div key={c.id} className="rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50">
+                      <video src={c.video_url} controls playsInline className="w-full aspect-[9/16] object-cover bg-black" preload="metadata" />
+                      <div className="p-2">
+                        <div className="text-[11px] font-medium text-neutral-700 line-clamp-2">{c.title || "Clip d'inspiration"}</div>
+                        <button
+                          type="button"
+                          onClick={() => { setHookSourceUrl(c.video_url); setShowTrendPicker(false); }}
+                          className="mt-1.5 w-full text-center px-2 py-1.5 rounded-md bg-violet-600 text-white text-[11px] font-semibold hover:bg-violet-700 transition"
+                        >
+                          Utiliser comme source
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
