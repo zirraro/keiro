@@ -284,7 +284,12 @@ export async function kenBurnsClip(photoUrl: string, postId: string, idx: number
     // Rich, varied camera-move repertoire (founder: "toujours le même zoom" →
     // diversifier beaucoup plus). 11 distinct moves: zoom in/out, traverses,
     // diagonals, drifts, corner pulls. v0 = safe centered zoom for single-image.
-    const variants = [
+    // `rot` (optionnel) = expression d'angle (radians, var `t`=temps) appliquée
+    // APRÈS le zoompan via le filtre rotate. Pour ces mouvements, le zoompan
+    // rend sur un canvas plus grand (1.3×) puis on recadre au centre → la
+    // rotation ne révèle jamais de bords noirs.
+    const D = Math.max(0.1, durationSec);
+    const variants: Array<{ z: string; x: string; y: string; rot?: string }> = [
       { z: zin, x: cx, y: cy },                                                          // 0 centered zoom-in (safe default)
       { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*on/${frames}`, y: cy },        // 1 traverse L→R
       { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*(1-on/${frames})`, y: cy },    // 2 traverse R→L
@@ -296,15 +301,20 @@ export async function kenBurnsClip(photoUrl: string, postId: string, idx: number
       { z: zin, x: `(iw-iw/zoom)*0.15`, y: cy },                                          // 8 zoom into left
       { z: zin, x: `(iw-iw/zoom)*0.85`, y: cy },                                          // 9 zoom into right
       { z: `min(zoom+${zStepSlow},1.22)`, x: cx, y: `(ih-ih/zoom)*(1-on/${frames})` },    // 10 rise bottom→top
+      // ── Mouvements DYNAMIQUES (founder: "tourbillon", pas que du zoom) ──
+      { z: zin, x: cx, y: cy, rot: `(1-min(t/${D},1))*0.13` },                            // 11 whirl-in horaire (spin qui se stabilise) = HOOK tourbillon
+      { z: zin, x: cx, y: cy, rot: `-(1-min(t/${D},1))*0.13` },                           // 12 whirl-in anti-horaire
+      { z: `min(zoom+${zStepSlow},1.24)`, x: cx, y: cy, rot: `sin(t/${D}*3.14159)*0.05` },// 13 swirl / balancé doux continu
     ];
     const v = variants[((variant % variants.length) + variants.length) % variants.length];
     // Normalize to a 2160x3840 (9:16) canvas first so the pan/zoom never
-    // letterboxes, then zoompan to 1080x1920.
+    // letterboxes, then zoompan. Rotation moves render 1.3× larger then crop.
     // Uniform cinematic GRADE on every clip (QC: real-business photos mix warm
     // interior / cold exterior → continuity breaks; "étalonnage" unifies them).
-    // Gentle contrast + saturation + warm push → one cohesive look across shots.
     const grade = `eq=contrast=1.06:saturation=1.08:brightness=0.01,colorbalance=rm=0.04:gm=0.01:bm=-0.04`;
-    const vf = `scale=2160:3840:force_original_aspect_ratio=increase,crop=2160:3840,zoompan=z='${v.z}':d=${frames}:x='${v.x}':y='${v.y}':s=1080x1920:fps=${fps},${grade},format=yuv420p`;
+    const zpSize = v.rot ? '1404x2496' : '1080x1920';
+    const rotPart = v.rot ? `,rotate=a='${v.rot}':ow=1404:oh=2496:c=black,crop=1080:1920` : '';
+    const vf = `scale=2160:3840:force_original_aspect_ratio=increase,crop=2160:3840,zoompan=z='${v.z}':d=${frames}:x='${v.x}':y='${v.y}':s=${zpSize}:fps=${fps}${rotPart},${grade},format=yuv420p`;
     const cmd = `"${ff}" -y -loop 1 -i "${img}" -vf "${vf}" -t ${durationSec} -c:v libx264 -pix_fmt yuv420p -preset fast -crf 22 "${out}"`;
     await execPromise(cmd, { timeout: 120_000, maxBuffer: 1024 * 1024 * 80 });
     const outBuf = await fs.readFile(out).catch(() => null);
@@ -341,15 +351,20 @@ export async function runKenBurnsMontage(opts: {
     // Randomize the camera move per clip so reels don't all feel identical
     // (founder). Single-image reel keeps the safe centered zoom (variant 0);
     // multi-clip spreads varied moves (i*3 keeps consecutive clips distinct).
-    const moveBase = Math.floor(Math.random() * 11);
-    // Founder: vary the hook — NOT always a centered zoom. Even a single-image
-    // reel gets a RANDOM move (zoom in/out, traverse, drift, rise) so every reel
-    // opens differently. Safe subset (keeps the subject framed on one continuous move).
-    const SAFE_SINGLE = [0, 1, 2, 3, 10];
+    const VARIANT_COUNT = 14; // doit suivre la longueur du tableau variants[] de kenBurnsClip
+    const moveBase = Math.floor(Math.random() * VARIANT_COUNT);
+    // Founder: varier le HOOK — pas toujours un zoom. On ouvre souvent sur un
+    // mouvement DYNAMIQUE qui capte l'œil (tourbillon 11/12, swirl 13, push 0)
+    // puis on enchaîne des moves distincts. Single-image : répertoire élargi
+    // incluant les tourbillons (un seul move continu reste propre).
+    const HOOK_DYNAMIC = [11, 12, 13, 0, 3]; // whirl CW/CCW, swirl, push-in, reveal
+    const SAFE_SINGLE = [0, 1, 2, 3, 10, 11, 12, 13];
     for (let i = 0; i < opts.sceneCount; i++) {
       const variant = opts.sceneCount === 1
         ? SAFE_SINGLE[Math.floor(Math.random() * SAFE_SINGLE.length)]
-        : (moveBase + i * 3) % 11;
+        : i === 0
+          ? HOOK_DYNAMIC[Math.floor(Math.random() * HOOK_DYNAMIC.length)] // 1er plan = hook accrocheur
+          : (moveBase + i * 3) % VARIANT_COUNT;
       const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, opts.perClipSec, variant);
       if (clip) clipUrls.push(clip);
     }
