@@ -56,6 +56,7 @@ export async function GET() {
     forbidden_topics: (topics || []).map((t: any) => t.topic),
     personal_branding: !!(pbCfg?.config as any)?.personal_branding,
     personal_branding_brief: (pbCfg?.config as any)?.personal_branding_brief || '',
+    personal_branding_profile: (pbCfg?.config as any)?.personal_branding_profile || null,
     confirmed: !!kit.confirmed_at,
     completeness: kit.completeness,
   });
@@ -134,7 +135,12 @@ export async function POST(req: NextRequest) {
       .select('id, config').eq('user_id', user.id).eq('agent_id', 'content')
       .order('created_at', { ascending: false }).limit(1).maybeSingle();
     const cfg = (cfgRow?.config as any) || {};
-    const nextCfg = { ...cfg, personal_branding: body.personal_branding === true, personal_branding_brief: String(body.personal_branding_brief || '').slice(0, 2000) };
+    const nextCfg = {
+      ...cfg,
+      personal_branding: body.personal_branding === true,
+      personal_branding_brief: String(body.personal_branding_brief || '').slice(0, 2000),
+      personal_branding_profile: (body.personal_branding === true && body.personal_branding_profile && typeof body.personal_branding_profile === 'object') ? body.personal_branding_profile : null,
+    };
     if (cfgRow?.id) await supabase.from('org_agent_configs').update({ config: nextCfg }).eq('id', cfgRow.id);
     else await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: 'content', config: nextCfg });
   }

@@ -19,6 +19,24 @@ const VERTICALS = [
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const TOPIC_SUGGESTIONS = ['politique', 'religion', 'régime médical', 'promesses santé', 'comparaison concurrents'];
 
+// Questionnaire PERSONAL BRANDING — conçu comme l'intake d'un stratège marketing
+// de marque personnelle. Plus c'est riche, plus Léna produit du contenu
+// percutant, cohérent et viral (storytelling ancré). (founder 2026-06-23)
+const PB_QUESTIONS: { key: string; label: string; ph: string; big?: boolean }[] = [
+  { key: 'role', label: 'Ton rôle / ton expertise en une phrase', ph: "Ex : Coach business pour artisans · Cheffe pâtissière · Fondateur d'agence" },
+  { key: 'mission', label: 'Ta mission & ton déclic — le POURQUOI', ph: "Pourquoi tu fais ça, l'élément déclencheur, ce qui te porte (matière de ton origin story)", big: true },
+  { key: 'audience', label: 'Ton audience idéale (à qui tu parles vraiment)', ph: "Ex : artisans 30-50 ans débordés qui veulent déléguer leur com" },
+  { key: 'promise', label: 'La transformation que tu apportes (avant → après)', ph: 'Ex : de "invisible en ligne" à "booké 3 semaines à l\'avance"' },
+  { key: 'unique', label: 'Ton angle unique — ce qui te différencie', ph: "Ton approche, ton histoire, ta méthode que personne d'autre n'a" },
+  { key: 'values', label: 'Tes convictions / opinions tranchées (tes POV)', ph: "Ce que tu défends, ce qui t'agace dans ton secteur — pour des prises de position qui font réagir", big: true },
+  { key: 'pillars', label: 'Tes 3 à 5 thèmes de contenu récurrents', ph: "Ex : coulisses atelier · conseils business · avant/après · ta vie d'entrepreneur" },
+  { key: 'proof', label: 'Tes preuves / résultats (crédibilité)', ph: "Réalisations, chiffres, années d'expérience, clients marquants, prix" },
+  { key: 'signature', label: 'Tes signatures (catchphrase, rituel, format récurrent)', ph: "Une phrase qui te colle, un format récurrent, un rituel reconnaissable" },
+  { key: 'avoid', label: 'Ce que tu ne veux PAS montrer / dire', ph: "Sujets perso à éviter, ton à proscrire, sujets sensibles" },
+];
+const PB_TONES = ['drôle', 'cash / direct', 'expert / pédago', 'inspirant', 'premium / élégant', 'proche / authentique', 'provocateur'];
+const PB_OBJECTIVES = ['Notoriété', 'Clients / leads', 'Communauté', 'Autorité / expert', 'Recrutement'];
+
 type Price = { service_name: string; amount_eur: string; no_discount: boolean };
 type Hour = { weekday: number; open_time: string; close_time: string; closed: boolean };
 
@@ -40,6 +58,9 @@ export default function BrandKitOnboarding() {
   // (histoire, valeurs, environnement) qui nourrit les générations de Léna.
   const [personalBranding, setPersonalBranding] = useState(false);
   const [personalBrandingBrief, setPersonalBrandingBrief] = useState('');
+  const [pbProfile, setPbProfile] = useState<Record<string, string>>({});
+  const [pbTones, setPbTones] = useState<string[]>([]);
+  const [pbObjective, setPbObjective] = useState('');
 
   useEffect(() => {
     fetch('/api/brand-kit', { credentials: 'include' })
@@ -54,6 +75,12 @@ export default function BrandKitOnboarding() {
           if (d.forbidden_topics) setTopics(d.forbidden_topics);
           if (d.personal_branding != null) setPersonalBranding(!!d.personal_branding);
           if (d.personal_branding_brief) setPersonalBrandingBrief(d.personal_branding_brief);
+          if (d.personal_branding_profile && typeof d.personal_branding_profile === 'object') {
+            const pp = d.personal_branding_profile;
+            setPbProfile(pp.fields || {});
+            setPbTones(Array.isArray(pp.tones) ? pp.tones : []);
+            setPbObjective(pp.objective || '');
+          }
           setConfirmed(!!d.confirmed);
           setCompleteness(d.completeness || 0);
         }
@@ -78,6 +105,7 @@ export default function BrandKitOnboarding() {
           forbidden_confirmed: forbiddenConfirmed,
           personal_branding: personalBranding,
           personal_branding_brief: personalBranding ? personalBrandingBrief.slice(0, 2000) : '',
+          personal_branding_profile: personalBranding ? { fields: pbProfile, tones: pbTones, objective: pbObjective } : null,
         }),
       });
       const d = await r.json();
@@ -168,19 +196,60 @@ export default function BrandKitOnboarding() {
           🎯 Personal branding — je mets MA personne en avant (fondateur·rice / expert·e / visage de la marque)
         </label>
         {personalBranding && (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 space-y-3">
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-200">
               ⚠️ Pour un personal branding crédible, on a besoin de <strong>vraies photos/vidéos de toi</strong> (ton visage, ton lieu, tes gestes). On ne fabrique pas un visage en IA — l'IA sert au décor / B-roll. Dépose tes médias dans ton espace (Fichiers) : non retouchés pour l'authenticité, ou retravaillés/inspirés selon ce qui sert le mieux.
             </div>
-            <label className="block text-sm font-medium">Ton histoire & ton univers (nourrit tes contenus)</label>
-            <textarea
-              value={personalBrandingBrief}
-              onChange={e => setPersonalBrandingBrief(e.target.value)}
-              rows={5}
-              placeholder="Qui es-tu, pourquoi tu fais ça (le déclic), tes valeurs, ce qui te rend unique, ton environnement/lieu de travail, le ton qui te ressemble, les sujets dont tu veux parler. Plus c'est riche, plus tes contenus seront percutants et viraux."
-              className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm"
-            />
-            <p className="text-xs text-white/40">Léna s'en sert pour construire ton storytelling (origin story, coulisses, expertise, POV…) et adapter une vraie stratégie de marque personnelle.</p>
+            <p className="text-xs text-white/50">📋 Plus tu remplis, plus ta marque sera percutante. Léna construit ton storytelling (origin story, coulisses, expertise, POV, séries) à partir de ça.</p>
+
+            {/* Objectif #1 */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Ton objectif n°1</label>
+              <div className="flex flex-wrap gap-2">
+                {PB_OBJECTIVES.map(o => (
+                  <button key={o} type="button" onClick={() => setPbObjective(pbObjective === o ? '' : o)}
+                    className={`text-xs px-3 py-1.5 rounded-full border ${pbObjective === o ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-white/10 bg-white/[0.03] text-white/60'}`}>{o}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Ton / personnalité */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Ton ton / ta personnalité (plusieurs possibles)</label>
+              <div className="flex flex-wrap gap-2">
+                {PB_TONES.map(t => {
+                  const on = pbTones.includes(t);
+                  return <button key={t} type="button" onClick={() => setPbTones(ts => on ? ts.filter(x => x !== t) : [...ts, t])}
+                    className={`text-xs px-3 py-1.5 rounded-full border ${on ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-white/10 bg-white/[0.03] text-white/60'}`}>{on ? '✓ ' : ''}{t}</button>;
+                })}
+              </div>
+            </div>
+
+            {/* Questions expertes */}
+            {PB_QUESTIONS.map(q => (
+              <div key={q.key}>
+                <label className="block text-sm font-medium mb-1">{q.label}</label>
+                <textarea
+                  value={pbProfile[q.key] || ''}
+                  onChange={e => setPbProfile(p => ({ ...p, [q.key]: e.target.value }))}
+                  rows={q.big ? 3 : 2}
+                  placeholder={q.ph}
+                  className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm"
+                />
+              </div>
+            ))}
+
+            {/* Notes libres */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Autre chose à savoir (libre)</label>
+              <textarea
+                value={personalBrandingBrief}
+                onChange={e => setPersonalBrandingBrief(e.target.value)}
+                rows={2}
+                placeholder="Tout ce qui peut aider Léna à te représenter fidèlement."
+                className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm"
+              />
+            </div>
           </div>
         )}
       </section>

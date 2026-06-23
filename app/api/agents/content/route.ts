@@ -6183,8 +6183,28 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
   // valeurs, univers) pour nourrir le storytelling.
   let personalBrandingBlock = '';
   if ((clientSettings as any)?.personal_branding === true) {
-    const pbBrief = String((clientSettings as any)?.personal_branding_brief || '').slice(0, 1500);
-    personalBrandingBlock = `\n━━━ PERSONAL BRANDING ACTIVÉ ━━━\nCe client met SA personne en avant : applique le PLAYBOOK PERSONAL BRANDING (storytelling, origin story, coulisses, expertise, POV, séries récurrentes) et adapte/crée une stratégie propre selon son objectif. Priorise le média RÉEL de la personne ; l'IA déclarée sert au décor/B-roll, jamais à fabriquer son visage.${pbBrief ? `\nBRIEF DU CLIENT (histoire, valeurs, univers — sers-t'en comme matière première du storytelling) : ${pbBrief}` : `\n(Pas de brief détaillé encore — reste fidèle à ce qu'on sait du client et invite-le à enrichir son histoire.)`}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    const pbBrief = String((clientSettings as any)?.personal_branding_brief || '').slice(0, 1000);
+    const pbProf = (clientSettings as any)?.personal_branding_profile || null;
+    const PB_LABELS: Record<string, string> = {
+      role: 'Rôle / expertise', mission: 'Mission & déclic (origin story)', audience: 'Audience cible',
+      promise: 'Transformation apportée (avant→après)', unique: 'Angle unique / différenciant',
+      values: 'Convictions / POV tranchés', pillars: 'Piliers de contenu', proof: 'Preuves / crédibilité',
+      signature: 'Signatures (catchphrase / format récurrent)', avoid: 'À ÉVITER (perso)',
+    };
+    const profLines: string[] = [];
+    if (pbProf?.objective) profLines.push(`Objectif n°1 : ${pbProf.objective}`);
+    if (Array.isArray(pbProf?.tones) && pbProf.tones.length) profLines.push(`Ton / personnalité : ${pbProf.tones.join(', ')}`);
+    if (pbProf?.fields && typeof pbProf.fields === 'object') {
+      for (const [k, label] of Object.entries(PB_LABELS)) {
+        const v = String(pbProf.fields[k] || '').trim();
+        if (v) profLines.push(`${label} : ${v.slice(0, 400)}`);
+      }
+    }
+    if (pbBrief) profLines.push(`Autre : ${pbBrief}`);
+    const profileBlock = profLines.length
+      ? `\nPROFIL DE MARQUE PERSONNELLE (matière première — utilise CES éléments pour le storytelling, le ton, les angles) :\n- ${profLines.join('\n- ')}`
+      : `\n(Profil pas encore rempli — reste fidèle à ce qu'on sait et invite le client à compléter son histoire pour des contenus plus percutants.)`;
+    personalBrandingBlock = `\n━━━ PERSONAL BRANDING ACTIVÉ ━━━\nCe client met SA personne en avant : applique le PLAYBOOK PERSONAL BRANDING (storytelling, origin story, coulisses, expertise, POV, séries récurrentes) et adapte/crée une stratégie propre selon son objectif. Priorise le média RÉEL de la personne ; l'IA déclarée sert au décor/B-roll, jamais à fabriquer son visage. Respecte son ton et ses piliers, exploite ses convictions pour des prises de position qui font réagir, et n'aborde JAMAIS ce qu'il veut éviter.${profileBlock}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   }
 
   // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG

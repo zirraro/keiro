@@ -26,38 +26,46 @@ export function getAccountStage(publishedCount: number): AccountStage {
 export interface ReachPlan {
   stage: AccountStage;
   dailyCap: number;              // publications/jour conseillées sur la plateforme
-  preferPrepareMode: boolean;    // TikTok: déposer en brouillon (inbox) → le client
-                                 // ajoute un SON TENDANCE in-app (top facteur de reach)
+  postDirect: boolean;          // TOUJOURS true : on publie en DIRECT (public). Jamais
+                                // de draft par défaut (le draft/SELF_ONLY tuerait la portée).
+  adviseTrendingSound: boolean; // conseiller AU CLIENT (optionnel) de poster un EXTRA en
+                                // mode draft pour ajouter un son tendance qu'on a repéré.
+                                // = posts supplémentaires, comptés dans le plan (marges).
   preferRealMedia: boolean;      // prioriser le média réel client (authenticité)
   notes: string;                 // garde-fous appliqués
 }
 
 /**
- * Plan de portée par étape + plateforme. Compte neuf = lent + natif + son
- * tendance ; compte établi = cadence normale, l'algo nous connaît.
+ * Plan de portée par étape + plateforme. On publie TOUJOURS en DIRECT (public) :
+ * le contenu IA déclaré (AIGC) ne pénalise pas la portée, il la propulse. Le
+ * draft n'est qu'un CONSEIL optionnel au client pour ajouter un son tendance
+ * repéré (extra, intégré au plan pour maîtriser les marges).
  */
 export function reachPlan(stage: AccountStage, platform: 'tiktok' | 'instagram'): ReachPlan {
   if (stage === 'fresh') {
     return {
       stage, dailyCap: 1,
-      preferPrepareMode: platform === 'tiktok',   // son tendance ajouté par le client
+      postDirect: true,
+      adviseTrendingSound: platform === 'tiktok',
       preferRealMedia: true,
-      notes: 'Compte neuf : 1 post/jour, feel natif, son tendance (TikTok prepare), média réel prioritaire, AUCUN hashtag reach-bait (#fyp/#pourtoi), niche constante pour que l\'algo classe le compte.',
+      notes: 'Compte neuf : 1 post/jour EN DIRECT (public), feel natif, média réel prioritaire (sinon IA déclarée qui propulse), AUCUN hashtag reach-bait (#fyp/#pourtoi), niche constante. Optionnel : conseiller un EXTRA en draft pour qu\'il colle un son tendance repéré.',
     };
   }
   if (stage === 'warming') {
     return {
       stage, dailyCap: platform === 'tiktok' ? 1 : 2,
-      preferPrepareMode: platform === 'tiktok',
+      postDirect: true,
+      adviseTrendingSound: platform === 'tiktok',
       preferRealMedia: true,
-      notes: 'Montée progressive : on garde le son tendance + média réel, on densifie doucement, on double sur les formats qui ont déjà capté des vues.',
+      notes: 'Montée progressive : on publie en DIRECT, média réel + IA déclarée, on densifie doucement, on double sur les formats qui ont déjà capté des vues. Son tendance proposé en extra (draft) si pertinent.',
     };
   }
   return {
     stage, dailyCap: platform === 'tiktok' ? 2 : 2,
-    preferPrepareMode: false,
+    postDirect: true,
+    adviseTrendingSound: false,
     preferRealMedia: false,   // mix libre média réel / IA déclarée
-    notes: 'Compte établi : cadence normale selon le plan, mix média réel + IA déclarée, on optimise sur la rétention et l\'engagement (commentaires).',
+    notes: 'Compte établi : cadence normale selon le plan, EN DIRECT, mix média réel + IA déclarée, on optimise sur la rétention et l\'engagement (commentaires).',
   };
 }
 
@@ -82,11 +90,13 @@ export function buildReachStrategyBlock(stage: AccountStage, platform: 'tiktok' 
   return [
     `STRATÉGIE DE PORTÉE (compte ${stage} sur ${platform}) :`,
     `- Source de contenu : ${contentSourcePriority(hasClientMedia, stage)}`,
+    `- Publication EN DIRECT (public), jamais en draft par défaut. Le contenu IA est TOUJOURS déclaré (AIGC) — ça NE réduit PAS la portée, c'est neutre et ça protège/propulse le compte.`,
     `- Cadence : ${p.dailyCap} post(s)/jour. ${p.notes}`,
+    p.adviseTrendingSound ? `- Optionnel : si on repère un son tendant, CONSEILLER au client un post EXTRA en draft pour qu'il colle ce son in-app (booster). Ces extras sont comptés dans le plan (marges maîtrisées).` : '',
     `- Hook dans la 1ère seconde (rétention = clé du reach). Sous-titres lisibles, vertical plein cadre.`,
     `- Déclencher l'engagement (question, avis clivant) = signal de portée fort.`,
     `- Jamais le mot "IA" dans la légende. Jamais #fyp/#pourtoi (reach-bait pénalisé).`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 /** Note de cadrage des attentes pour le brief client d'un compte neuf (le
