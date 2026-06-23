@@ -67,8 +67,22 @@ async function run() {
       } catch { /* best-effort */ }
     };
 
+    // 2026-06-23 — Fenêtre de GRÂCE après une reprise (manuelle ou auto). Quand
+    // on relance TikTok (ex: après le fix AIGC), les posts tout neufs sont
+    // naturellement à 0 vue + les anciens posts throttlés restent dans la liste
+    // → le streak re-déclenche la pause AVANT que le nouveau contenu ait pu
+    // gagner de la portée. On laisse 5 jours au contenu pour faire ses preuves
+    // avant de pouvoir re-pauser. (Founder: "post direct pour voir l'impact".)
+    const resumedAt = cfg.tiktok_health_resumed_at ? new Date(cfg.tiktok_health_resumed_at).getTime() : 0;
+    const GRACE_DAYS = 5;
+    const inGrace = resumedAt > 0 && (Date.now() - resumedAt) < GRACE_DAYS * 86400000;
+
     let transition: string | null = null;
-    if (suspected && !wasPaused) {
+    if (suspected && !wasPaused && inGrace) {
+      // En période de grâce : on OBSERVE sans re-pauser.
+      transition = 'grace_no_pause';
+      await supabase.from('agent_logs').insert({ agent: 'content', action: 'tiktok_health_grace', status: 'info', data: { user_id: c.id, zero_streak: streak, note: `relance récente (<${GRACE_DAYS}j) — on laisse le contenu faire ses preuves avant toute re-pause` }, created_at: new Date().toISOString() }).then(() => {}, () => {});
+    } else if (suspected && !wasPaused) {
       // New suppression → protective pause + alert (brief will notify + 100% the %).
       await writeCfg({ ...cfg, tiktok_health_paused: true, tiktok_health_paused_at: new Date().toISOString(), tiktok_zero_streak: streak });
       await supabase.from('agent_logs').insert({ agent: 'content', action: 'tiktok_suppression_suspected', status: 'error', data: { user_id: c.id, zero_streak: streak, severity: 'warning', note: 'pause protectrice TikTok auto — cooldown + contenu natif' }, created_at: new Date().toISOString() }).then(() => {}, () => {});
