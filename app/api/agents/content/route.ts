@@ -2070,15 +2070,21 @@ async function publishToTikTok(
     const visualUrl = post.visual_url;
     const format = (post.format || '').toLowerCase();
 
-    // 2026-06-22 — Déclaration AIGC obligatoire + bénéfique (cf. lib/tiktok.ts).
-    // Notre pipeline est IA par défaut (Seedream hero, montages générés, slides
-    // companion IA) → is_aigc=true. On NE déclare PAS comme IA uniquement le
-    // média RÉEL fourni par le client / ses vraies photos Google (Ken Burns sur
-    // photo réelle = pas une génération IA). Sur-déclarer est sans coût (le label
-    // n'affecte pas la portée) ; sous-déclarer est ce qui causait les 0 vues.
-    const REAL_MEDIA_SOURCES = ['client_footage', 'client_video', 'client_photos', 'real_footage', 'real_business_photos'];
-    const isAigc = !REAL_MEDIA_SOURCES.includes(String((post as any).visual_source || 'ai_generated'));
-    console.log(`[Content] TikTok AIGC disclosure: is_aigc=${isAigc} (visual_source=${(post as any).visual_source || 'ai_generated'})`);
+    // 2026-06-24 — Déclaration AIGC UNIQUEMENT si vraiment généré par IA
+    // (founder !!!). La provenance réelle est posée par i2v-montage dans
+    // engagement_data.is_aigc : false = média RÉEL (footage client, vraies
+    // photos Google/business, stock), true = génération IA (Seedream/i2v/dual).
+    // Défaut = true (notre pipeline est IA par défaut) ; on NE passe false que
+    // si la provenance dit explicitement "média réel". On relit en DB pour
+    // fiabilité (l'objet post en mémoire peut ne pas porter engagement_data).
+    let isAigc = true;
+    if (post.id) {
+      try {
+        const { data: prov } = await supabase.from('content_calendar').select('engagement_data').eq('id', post.id).maybeSingle();
+        if ((prov as any)?.engagement_data?.is_aigc === false) isAigc = false;
+      } catch { /* défaut IA */ }
+    }
+    console.log(`[Content] TikTok AIGC disclosure: is_aigc=${isAigc}`);
 
     // Decide: photo or video?
     // Video formats always get video; photo/carousel/static formats can use photo

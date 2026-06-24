@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       if (fin) finalUrl = fin;
     } catch { /* keep silent composed on finalize failure */ }
     if (body.postId) {
-      await sb().from('content_calendar').update({ video_url: finalUrl, updated_at: new Date().toISOString() }).eq('id', body.postId);
+      await sb().from('content_calendar').update({ video_url: finalUrl, engagement_data: { visual_provenance: 'dual', is_aigc: true }, updated_at: new Date().toISOString() }).eq('id', body.postId);
     }
     return NextResponse.json({ ok: true, url: finalUrl });
   }
@@ -281,8 +281,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'montage_failed', method, plan, pixabayQuery, sceneCount: sceneN, attempts });
   }
 
-  // Persist the montage video + QC.
-  await supabase.from('content_calendar').update({ video_url: finalUrl, format: 'reel', updated_at: new Date().toISOString() }).eq('id', post.id);
+  // Persist the montage video + QC + PROVENANCE (founder 2026-06-24 : AIGC
+  // déclaré UNIQUEMENT si vraiment généré par IA). is_aigc=false pour du média
+  // RÉEL (footage client, vraies photos Google/business, stock), true seulement
+  // pour la génération IA (Seedream hero, i2v). publishToTikTok lit ce flag.
+  const REAL_MEDIA_METHODS = ['client_footage', 'client_photos', 'real_business_photos', 'stock_kenburns'];
+  const isAigcMethod = !REAL_MEDIA_METHODS.includes(method);
+  await supabase.from('content_calendar').update({ video_url: finalUrl, format: 'reel', engagement_data: { visual_provenance: method, is_aigc: isAigcMethod }, updated_at: new Date().toISOString() }).eq('id', post.id);
   if (qc) {
     await supabase.from('content_calendar').update({
       qa_quality_score: qc.score, qa_severity: qc.pass ? 'ok' : 'low',
