@@ -32,6 +32,9 @@ export interface ReachPlan {
                                 // mode draft pour ajouter un son tendance qu'on a repéré.
                                 // = posts supplémentaires, comptés dans le plan (marges).
   preferRealMedia: boolean;      // prioriser le média réel client (authenticité)
+  postsPerWeek: number;          // cadence HEBDO conseillée (algo 2026 : 4-5/sem compte neuf, pas du daily-burst)
+  preferShortReels: boolean;     // compte neuf : reels COURTS (7-12s) → meilleur taux de complétion
+  completionTarget: number;      // taux de complétion cible (0.70 = LE signal viral 2026)
   notes: string;                 // garde-fous appliqués
 }
 
@@ -44,29 +47,53 @@ export interface ReachPlan {
 export function reachPlan(stage: AccountStage, platform: 'tiktok' | 'instagram'): ReachPlan {
   if (stage === 'fresh') {
     return {
-      stage, dailyCap: 1,
+      stage, dailyCap: 1, postsPerWeek: 5, preferShortReels: true, completionTarget: 0.70,
       postDirect: true,
       adviseTrendingSound: platform === 'tiktok',
       preferRealMedia: true,
-      notes: 'Compte neuf : 1 post/jour EN DIRECT (public), feel natif, média réel prioritaire (sinon IA déclarée qui propulse), AUCUN hashtag reach-bait (#fyp/#pourtoi), niche constante. Optionnel : conseiller un EXTRA en draft pour qu\'il colle un son tendance repéré.',
+      notes: 'Compte neuf (algo 2026) : 4-5 posts/SEMAINE, JAMAIS en rafale (le burst sur compte froid tue la portée). Reels COURTS (7-12s) = meilleur taux de complétion (LE signal viral, cible 70%+). Hook dans les 3 premières secondes. EN DIRECT (public), feel natif, média réel prioritaire (sinon IA déclarée), niche CONSTANTE (l\'algo classe le compte), AUCUN #fyp/#pourtoi. Prérequis : compte RÉCHAUFFÉ avant (cf. accountWarmingSteps). Optionnel : son tendance en draft.',
     };
   }
   if (stage === 'warming') {
     return {
-      stage, dailyCap: platform === 'tiktok' ? 1 : 2,
+      stage, dailyCap: 1, postsPerWeek: 6, preferShortReels: true, completionTarget: 0.65,
       postDirect: true,
       adviseTrendingSound: platform === 'tiktok',
       preferRealMedia: true,
-      notes: 'Montée progressive : on publie en DIRECT, média réel + IA déclarée, on densifie doucement, on double sur les formats qui ont déjà capté des vues. Son tendance proposé en extra (draft) si pertinent.',
+      notes: 'Montée progressive : ~1/jour max, reels encore courts, on double sur les formats qui ont DÉJÀ capté des vues. EN DIRECT, média réel + IA déclarée. Engagement (réponses aux commentaires) = signal fort.',
     };
   }
   return {
-    stage, dailyCap: platform === 'tiktok' ? 2 : 2,
+    stage, dailyCap: platform === 'tiktok' ? 2 : 2, postsPerWeek: 10, preferShortReels: false, completionTarget: 0.55,
     postDirect: true,
     adviseTrendingSound: false,
     preferRealMedia: false,   // mix libre média réel / IA déclarée
-    notes: 'Compte établi : cadence normale selon le plan, EN DIRECT, mix média réel + IA déclarée, on optimise sur la rétention et l\'engagement (commentaires).',
+    notes: 'Compte établi : cadence normale selon le plan, EN DIRECT, mix média réel + IA déclarée, durées variées, on optimise sur la rétention et l\'engagement (commentaires).',
   };
+}
+
+/**
+ * COMPORTEMENT DU COMPTE — warming (founder : "comportement du compte" pour
+ * propulser un compte neuf). L'algo 2026 montre d'abord un compte FROID à la
+ * plus petite audience-test ; un compte RÉCHAUFFÉ (interactions niche) obtient
+ * une bien meilleure portée initiale. On ne peut PAS le faire via API (signal
+ * comportemental) → c'est une routine côté CLIENT, qu'on lui présente.
+ */
+export function accountWarmingSteps(platform: 'tiktok' | 'instagram'): string[] {
+  const net = platform === 'tiktok' ? 'TikTok' : 'Instagram';
+  return [
+    `Avant de publier en force, "réchauffe" le compte 5-7 jours : ouvre ${net} 20-30 min/jour et scrolle ta niche.`,
+    'Like 10-15 vidéos/posts de ta niche par session, commente 2-3 fois sincèrement.',
+    'Suis 5-8 comptes pertinents de ta niche/zone (voir "Comptes à suivre" dans Jade).',
+    'Reste sur TA thématique en scrollant : l\'algo construit le profil d\'intérêt du compte → il te montrera ensuite à la bonne audience-test.',
+    'Publie 4-5 fois/semaine (pas en rafale), reels courts, hook dès la 1ère seconde, regarde le taux de complétion grimper.',
+  ];
+}
+
+/** Bloc comportement/warming prêt à afficher au client (compte neuf/warming). */
+export function accountBehaviorBlock(stage: AccountStage, platform: 'tiktok' | 'instagram'): string | null {
+  if (stage === 'established') return null;
+  return `🔥 PROPULSER TON COMPTE ${platform === 'tiktok' ? 'TIKTOK' : 'INSTAGRAM'} (compte ${stage}) :\n- ` + accountWarmingSteps(platform).join('\n- ');
 }
 
 /**
@@ -91,9 +118,10 @@ export function buildReachStrategyBlock(stage: AccountStage, platform: 'tiktok' 
     `STRATÉGIE DE PORTÉE (compte ${stage} sur ${platform}) :`,
     `- Source de contenu : ${contentSourcePriority(hasClientMedia, stage)}`,
     `- Publication EN DIRECT (public), jamais en draft par défaut. Le contenu IA est TOUJOURS déclaré (AIGC) — ça NE réduit PAS la portée, c'est neutre et ça protège/propulse le compte.`,
-    `- Cadence : ${p.dailyCap} post(s)/jour. ${p.notes}`,
+    `- Cadence : ~${p.postsPerWeek} posts/SEMAINE (max ${p.dailyCap}/jour, JAMAIS en rafale). ${p.notes}`,
+    p.preferShortReels ? `- DURÉE : privilégie des reels COURTS (7-12s) — le taux de COMPLÉTION (cible ${Math.round(p.completionTarget * 100)}%+) est LE signal viral 2026. Une vidéo courte vue en entier > une longue lâchée.` : `- Durées variées, mais surveille le taux de complétion (cible ${Math.round(p.completionTarget * 100)}%+).`,
     p.adviseTrendingSound ? `- Optionnel : si on repère un son tendant, CONSEILLER au client un post EXTRA en draft pour qu'il colle ce son in-app (booster). Ces extras sont comptés dans le plan (marges maîtrisées).` : '',
-    `- Hook dans la 1ère seconde (rétention = clé du reach). Sous-titres lisibles, vertical plein cadre.`,
+    `- Hook dans les 3 PREMIÈRES SECONDES (71% décident en 3s). Sous-titres lisibles, vertical plein cadre, re-watch = boost massif.`,
     `- Déclencher l'engagement (question, avis clivant) = signal de portée fort.`,
     `- Jamais le mot "IA" dans la légende. Jamais #fyp/#pourtoi (reach-bait pénalisé).`,
   ].filter(Boolean).join('\n');

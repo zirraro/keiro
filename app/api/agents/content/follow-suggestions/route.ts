@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { detectSector, SECTORS } from '@/lib/agents/sales-playbook';
+import { getAccountStage, accountWarmingSteps } from '@/lib/agents/reach-strategy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -121,6 +122,18 @@ export async function GET(req: NextRequest) {
     { label: 'Tendances du moment', why: 'Suivre les comptes tendance te branche sur les sons/formats viraux.', url: searchUrl(platform, 'tendance 2026') },
   ];
 
+  // Comportement / warming du compte (algo 2026) : un compte réchauffé obtient
+  // une bien meilleure portée initiale. On calcule l'étape du compte (nb de
+  // posts publiés) et on renvoie la routine de warming si pas encore établi.
+  let warmingSteps: string[] = [];
+  try {
+    const { count } = await supabase.from('content_calendar')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('platform', platform).eq('status', 'published');
+    const stage = getAccountStage(count || 0);
+    if (stage !== 'established') warmingSteps = accountWarmingSteps(platform as 'tiktok' | 'instagram');
+  } catch { /* best-effort */ }
+
   return NextResponse.json({
     ok: true,
     platform,
@@ -128,6 +141,7 @@ export async function GET(req: NextRequest) {
     city: city || null,
     realHandles,
     categories,
+    warmingSteps,
     note: 'Suivre 5-10 comptes pertinents rend ton compte actif et crédible. L\'app ne peut pas suivre à ta place (les réseaux l\'interdisent) — un tap sur chaque suggestion et c\'est fait.',
   });
 }

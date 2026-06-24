@@ -34,6 +34,16 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
       {open && (
         <div className="mt-2 space-y-3">
           <p className="text-[10px] text-white/40">{data.note}</p>
+          {Array.isArray(data.warmingSteps) && data.warmingSteps.length > 0 && (
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-2.5">
+              <div className="text-[11px] font-semibold text-amber-200 mb-1">{en ? '🔥 Warm up your account (max reach)' : '🔥 Réchauffe ton compte (portée max)'}</div>
+              <ul className="space-y-1">
+                {data.warmingSteps.map((s: string, i: number) => (
+                  <li key={i} className="text-[10px] text-white/55 flex gap-1.5"><span className="text-amber-300">{i + 1}.</span><span>{s}</span></li>
+                ))}
+              </ul>
+            </div>
+          )}
           {data.realHandles?.length > 0 && (
             <div>
               <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Peers / local' : 'Confrères / locaux'} ({data.sector})</div>
