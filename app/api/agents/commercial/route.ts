@@ -889,7 +889,7 @@ IMPORTANT POUR LES AUTRES AGENTS :
 - L'agent Hugo (email) a besoin de l'EMAIL pour envoyer des sequences
 - L'agent Jade (DM) a besoin de l'INSTAGRAM pour envoyer des DMs
 - L'agent Jade (DM TikTok) a besoin du TIKTOK_HANDLE
-- L'agent Emma (LinkedIn) a besoin du LINKEDIN_URL
+- L'agent Lena (LinkedIn) a besoin du LINKEDIN_URL
 - REMPLIS UN MAXIMUM de champs pour que chaque agent puisse travailler
 
 RETOURNE UNIQUEMENT un tableau JSON, PAS de markdown :

@@ -17,7 +17,9 @@ const AGENT_SETUP_ORDER = [
   { id: 'gmaps', name: 'Theo', icon: '\u2B50', role: 'Expert Avis Google & Reputation', desc: 'Repond a tous tes avis Google avec des reponses IA personnalisees. Ameliore ta note et ta visibilite locale.', benefit: 'Chaque avis repondu en 30 sec', connectUrl: '/api/auth/google-oauth', connectLabel: 'Connecter Google Business', needsConnect: 'google' },
   { id: 'commercial', name: 'Leo', icon: '\u{1F91D}', role: 'Assistant Prospection & CRM', desc: 'Prospecte sur Google Maps dans ta zone, qualifie les leads, gere ton pipeline commercial et relance automatiquement.', benefit: 'Pipeline commercial automatise', connectUrl: null, connectLabel: null, needsConnect: null },
   { id: 'seo', name: 'Oscar', icon: '\u{1F50D}', role: 'Expert SEO & Visibilite', desc: 'Analyse ton site, suit tes positions Google, identifie les opportunites de mots-cles et te donne des recommandations concretes.', benefit: 'Monte dans les resultats Google', connectUrl: null, connectLabel: null, needsConnect: null },
-  { id: 'linkedin', name: 'Emma', icon: '\u{1F4BC}', role: 'Experte LinkedIn & Reseau Pro', desc: 'Publie du contenu optimise sur LinkedIn, commente et engage ton reseau professionnel pour generer des leads B2B.', benefit: 'Leads B2B automatises', connectUrl: '/api/auth/linkedin-oauth', connectLabel: 'Connecter LinkedIn', needsConnect: 'linkedin' },
+  // 2026-06-24 — Emma (LinkedIn) n'existe plus : LinkedIn est désormais géré par
+  // LÉNA (agent contenu, cf. entrée 'content' ci-dessus qui publie IG+TikTok+
+  // LinkedIn). La connexion LinkedIn se fait depuis l'onglet réseau de Léna.
 ];
 
 export default function ClaraHelper() {

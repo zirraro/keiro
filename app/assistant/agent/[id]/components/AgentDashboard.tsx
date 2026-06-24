@@ -193,7 +193,7 @@ const ADMIN_NAMES: Record<string, { name: string; subtitle: string }> = {
   onboarding: { name: 'Clara Onboarding Group', subtitle: 'Supervision Onboarding — Tous clients' },
   tiktok_comments: { name: 'Jade TikTok Group', subtitle: 'Supervision TikTok — Tous clients' },
   instagram_comments: { name: 'Commentaires IG Group', subtitle: 'Supervision Commentaires — Tous clients' },
-  linkedin: { name: 'Emma LinkedIn Group', subtitle: 'Supervision LinkedIn — Tous clients' },
+  linkedin: { name: 'Lena LinkedIn Group', subtitle: 'Supervision LinkedIn — Tous clients' },
   rh: { name: 'Sara RH Group', subtitle: 'Supervision Juridique — Tous clients' },
   finance: { name: 'Louis Finance Group', subtitle: 'Supervision Finance — Tous clients' },
 };

@@ -71,7 +71,7 @@ function useAgentTours(): Record<string, TourStep[]> {
         { target: 'agent-dashboard', title: 'TikTok (coming soon)', description: 'Axel will engage your TikTok community by commenting and interacting automatically. Coming soon.', position: 'bottom' },
       ],
       linkedin: [
-        { target: 'agent-dashboard', title: 'LinkedIn (coming soon)', description: 'Emma will publish optimised LinkedIn content and engage your pro network. Coming soon.', position: 'bottom' },
+        { target: 'agent-dashboard', title: 'LinkedIn (coming soon)', description: 'Lena will publish optimised LinkedIn content and engage your pro network. Coming soon.', position: 'bottom' },
       ],
       instagram_comments: [
         { target: 'agent-dashboard', title: 'Instagram comments', description: 'Automatic, personalised replies to every comment on your Instagram posts.', position: 'bottom' },
@@ -129,7 +129,7 @@ function useAgentTours(): Record<string, TourStep[]> {
       { target: 'agent-dashboard', title: 'TikTok (bientot)', description: 'Axel engagera ta communaute TikTok en commentant et interagissant automatiquement. Arrive bientot.', position: 'bottom' },
     ],
     linkedin: [
-      { target: 'agent-dashboard', title: 'LinkedIn (bientot)', description: 'Emma publiera du contenu optimise sur LinkedIn et engagera ton reseau pro. Arrive bientot.', position: 'bottom' },
+      { target: 'agent-dashboard', title: 'LinkedIn (bientot)', description: 'Lena publiera du contenu optimise sur LinkedIn et engagera ton reseau pro. Arrive bientot.', position: 'bottom' },
     ],
     instagram_comments: [
       { target: 'agent-dashboard', title: 'Commentaires Instagram', description: 'Reponses automatiques et personnalisees a tous les commentaires sur tes posts Instagram.', position: 'bottom' },
@@ -256,7 +256,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
     content: 'Lena', dm_instagram: 'Jade', email: 'Hugo', gmaps: 'Theo',
     commercial: 'Leo', seo: 'Oscar', marketing: 'AMI', ads: 'Felix',
     chatbot: 'Clara', whatsapp: 'Stella', tiktok_comments: 'Axel',
-    instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara', linkedin: 'Emma',
+    instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara', linkedin: 'Lena',
   };
 
   // Next agent popup — Clara presents the next agent
@@ -277,7 +277,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
       ads: 'Felix cree et optimise tes campagnes Meta Ads et Google Ads.',
       rh: 'Sara genere tes documents juridiques : CGV, RGPD, contrats.',
       comptable: 'Louis suit tes revenus, depenses et marge automatiquement.',
-      linkedin: 'Emma publie sur LinkedIn, commente et engage ton reseau pro pour generer des leads B2B.',
+      linkedin: 'Lena publie sur LinkedIn, commente et engage ton reseau pro pour generer des leads B2B.',
     };
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

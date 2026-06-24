@@ -374,9 +374,9 @@ export const CLIENT_AGENTS: ClientAgent[] = [
 
   {
     id: 'linkedin',
-    displayName: 'Emma',
-    title: 'Experte LinkedIn (absorbed by Jade)',
-    description: 'Fonctionnalités intégrées dans Jade — LinkedIn engagement géré depuis l\'espace Jade.',
+    displayName: 'Lena',
+    title: 'LinkedIn (géré par Léna)',
+    description: 'LinkedIn intégré à Léna — publication de contenu optimisé sur LinkedIn depuis l\'espace Léna (Emma n\'existe plus).',
     visibility: 'admin_only',
     minPlan: 'business',
     gradientFrom: '#0A66C2',

@@ -113,7 +113,7 @@ const AGENT_WIZARDS: Record<string, { title: string; subtitle: string; icon: str
   },
   linkedin: {
     title: 'Lancer l\'engagement LinkedIn',
-    subtitle: 'Emma publie et engage ton reseau pro',
+    subtitle: 'Lena publie et engage ton reseau pro',
     icon: '\u{1F4BC}',
     steps: [
       { title: 'Configuration', fields: [
