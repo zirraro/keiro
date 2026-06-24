@@ -13,6 +13,7 @@ import { DEMO_DM_CONVERSATIONS, DEMO_IG_COMMENTS } from '../AgentPreviewData';
 import { fmt, KpiCard, SectionTitle } from './Primitives';
 import { SocialConnectBanners, AgentNotifications } from './SharedBanners';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
+import FollowSuggestions from './FollowSuggestions';
 import { useLanguage } from '@/lib/i18n/context';
 import { DemoCaption } from '@/components/meta/DemoCaption';
 import type { PanelProps } from './types';
@@ -182,6 +183,12 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
           {'\u{1F91D}'} {followsLabel}
         </button>
       </div>
+
+      {/* Comptes recommandés à suivre (onglet "À suivre", insta + tiktok) —
+          comptes RÉELS vérifiés. Signal de compte actif. (founder 2026-06-24) */}
+      {tab === 'follows' && (network === 'instagram' || network === 'tiktok') && (
+        <FollowSuggestions platform={network} />
+      )}
 
       {/* Instagram — live data */}
       {network === 'instagram' && tab === 'dms' && (

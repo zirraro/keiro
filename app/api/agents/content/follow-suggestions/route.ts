@@ -25,6 +25,45 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
+// Cache d'existence (par instance) — l'existence d'un compte est stable.
+const existsCache = new Map<string, boolean>();
+
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0 Safari/537.36';
+
+/**
+ * Vérifie qu'un compte existe VRAIMENT avant de le proposer (founder : surtout
+ * TikTok, les handles CRM scrapés sont souvent invalides). On exige un signal
+ * POSITIF dans la page (uniqueId/handle canonique) ; en cas de doute (404,
+ * blocage, timeout, captcha) → on NE propose PAS. Mieux vaut moins de comptes
+ * mais tous réels.
+ */
+async function accountExists(platform: string, handle: string): Promise<boolean> {
+  const key = `${platform}:${handle.toLowerCase()}`;
+  const cached = existsCache.get(key);
+  if (cached !== undefined) return cached;
+  let ok = false;
+  try {
+    const url = platform === 'instagram' ? `https://www.instagram.com/${handle}/` : `https://www.tiktok.com/@${handle}`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'fr-FR,fr;q=0.9' }, signal: AbortSignal.timeout(6000), redirect: 'follow' });
+    if (r.status === 200) {
+      const html = (await r.text()).slice(0, 400_000);
+      const h = handle.toLowerCase();
+      if (platform === 'tiktok') {
+        // Signal positif : uniqueId exact dans le JSON de la page, et pas de
+        // marqueur "compte introuvable".
+        const notFound = /couldn['’]t find this account|aucun résultat trouvé|video currently unavailable/i.test(html);
+        ok = !notFound && new RegExp(`"uniqueId"\\s*:\\s*"${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'i').test(html);
+      } else {
+        // Instagram : 200 + handle présent dans og:url/canonical, pas de page login-only.
+        const notFound = /Page Not Found|Sorry, this page isn|isn['’]t available/i.test(html);
+        ok = !notFound && (new RegExp(`instagram\\.com/${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(html) || html.toLowerCase().includes(`"alternate_name":"@${h}"`));
+      }
+    }
+  } catch { ok = false; }
+  existsCache.set(key, ok);
+  return ok;
+}
+
 const searchUrl = (platform: string, q: string) =>
   platform === 'instagram'
     ? `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(q)}`
@@ -48,17 +87,27 @@ export async function GET(req: NextRequest) {
     const m = addr.match(/\d{5}\s+([A-Za-zÀ-ÿ' -]+)/); if (m) city = m[1].trim();
   } catch { /* best-effort */ }
 
-  // 1) Vrais handles du CRM (mêmes secteur, plateforme renseignée) — réels.
+  // 1) Vrais handles du CRM (mêmes secteur, plateforme renseignée). On ne
+  //    propose QUE des comptes dont l'existence est VÉRIFIÉE (founder : surtout
+  //    TikTok). Candidats format-valides → vérif live en parallèle → on garde
+  //    les confirmés (max 8).
   const realHandles: { handle: string; company: string }[] = [];
   try {
     const { data: rows } = await supabase.from('crm_prospects')
-      .select(`company, ${handleCol}`).eq('user_id', user.id).not(handleCol, 'is', null).limit(40);
+      .select(`company, ${handleCol}`).eq('user_id', user.id).not(handleCol, 'is', null).limit(60);
     const seen = new Set<string>();
+    const candidates: { handle: string; company: string }[] = [];
     for (const r of (rows || []) as any[]) {
-      const h = String(r[handleCol] || '').replace(/^@/, '').replace(/\s/g, '').trim();
+      const h = String(r[handleCol] || '').replace(/^@/, '').replace(/\s/g, '').replace(/https?:\/\/(www\.)?(instagram|tiktok)\.com\/@?/i, '').replace(/\/$/, '').trim();
       if (!h || h.length < 2 || !/^[a-zA-Z0-9._]{2,30}$/.test(h) || seen.has(h.toLowerCase())) continue;
       seen.add(h.toLowerCase());
-      realHandles.push({ handle: h, company: r.company || h });
+      candidates.push({ handle: h, company: r.company || h });
+      if (candidates.length >= 24) break; // borne le coût de vérification
+    }
+    // Vérif d'existence en parallèle, on garde les confirmés (max 8).
+    const checks = await Promise.all(candidates.map(async c => ({ c, exists: await accountExists(platform, c.handle) })));
+    for (const { c, exists } of checks) {
+      if (exists) realHandles.push(c);
       if (realHandles.length >= 8) break;
     }
   } catch { /* best-effort */ }
