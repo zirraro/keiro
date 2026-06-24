@@ -14,7 +14,6 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Events } from './event-bus';
-import { saveLearning } from './learning';
 import { saveKnowledge } from './knowledge-rag';
 import { getAgentKnowledgeContext } from './knowledge-rag';
 

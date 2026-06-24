@@ -6207,6 +6207,29 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
     personalBrandingBlock = `\n━━━ PERSONAL BRANDING ACTIVÉ ━━━\nCe client met SA personne en avant : applique le PLAYBOOK PERSONAL BRANDING (storytelling, origin story, coulisses, expertise, POV, séries récurrentes) et adapte/crée une stratégie propre selon son objectif. Priorise le média RÉEL de la personne ; l'IA déclarée sert au décor/B-roll, jamais à fabriquer son visage. Respecte son ton et ses piliers, exploite ses convictions pour des prises de position qui font réagir, et n'aborde JAMAIS ce qu'il veut éviter.${profileBlock}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   }
 
+  // 2026-06-23 — STRATÉGIE DE PORTÉE (compte neuf → propulsion). On câble
+  // reach-strategy : étape du compte (selon nb de posts publiés sur la
+  // plateforme), priorité média réel > IA déclarée, post DIRECT, son tendance
+  // optionnel. Donne à Léna le cadre qui fait grimper les vues d'un compte qui
+  // démarre. (TikTok + Instagram uniquement.)
+  let reachStrategyBlock = '';
+  if (userId && (platform === 'tiktok' || platform === 'instagram')) {
+    try {
+      const { getAccountStage, buildReachStrategyBlock } = await import('@/lib/agents/reach-strategy');
+      const { count: pubCount } = await supabase.from('content_calendar')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId).eq('status', 'published').eq('platform', platform);
+      let hasClientMedia = false;
+      try {
+        const { data: dossier } = await supabase.from('business_dossiers')
+          .select('uploaded_files').eq('user_id', userId).maybeSingle();
+        hasClientMedia = Array.isArray((dossier as any)?.uploaded_files) && (dossier as any).uploaded_files.length > 0;
+      } catch { /* best-effort */ }
+      const stage = getAccountStage(pubCount || 0);
+      reachStrategyBlock = '\n' + buildReachStrategyBlock(stage, platform, hasClientMedia) + '\n';
+    } catch (e: any) { console.warn('[Content] reach-strategy load failed:', e?.message); }
+  }
+
   // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG
   // captions ("algo LinkedIn", "B2B", "decision-makers") or talks
   // about FYP on a LinkedIn post. Each platform has its own voice.
@@ -6360,7 +6383,7 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
   }
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
-${trendsContext}${eventContext}${personalBrandingBlock}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
+${trendsContext}${eventContext}${reachStrategyBlock}${personalBrandingBlock}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
