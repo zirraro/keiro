@@ -40,17 +40,32 @@ export async function guardAccountChange(
       else await supabase.from('org_agent_configs').insert({ user_id: userId, agent_id: 'content', config: next });
     };
 
-    // Première fois : on enregistre le compte, aucun changement.
-    if (!last) { await writeCfg(String(currentAccountId)); return { changed: false, archived: 0, firstTime: true }; }
-    // Même compte : RAS.
-    if (String(last) === String(currentAccountId)) return { changed: false, archived: 0, firstTime: false };
+    const same = !!last && String(last) === String(currentAccountId);
+    if (same) return { changed: false, archived: 0, firstTime: false };
 
-    // COMPTE DIFFÉRENT → archiver le backlog publiable de CE réseau (pas de burst).
+    // Backlog "dû MAINTENANT" (≤ aujourd'hui) = ce qui partirait en rafale.
     const today = new Date().toISOString().split('T')[0];
     const { data: queued } = await supabase.from('content_calendar')
       .select('id').eq('user_id', userId).eq('platform', platform)
       .in('status', ['approved', 'draft', 'publish_failed', 'retry_pending'])
       .lte('scheduled_date', today);
+    const backlogDueNow = queued?.length || 0;
+
+    // 2026-06-24 (fix audit BUG#1) — un compte SAIN ne publie jamais un gros
+    // backlog d'un coup. On archive (= anti-burst) DANS 2 cas :
+    //  - changement de compte (last défini et différent), OU
+    //  - PREMIÈRE connexion (last absent) avec un gros backlog dû maintenant
+    //    (= exactement l'incident : nouveau compte + 60 posts en attente).
+    // Sinon (1ère fois, backlog normal ≤ seuil) : on enregistre et on laisse.
+    const BURST_THRESHOLD = 4;
+    const isChange = !!last; // last défini + différent (same déjà géré)
+    const firstTimeBurst = !last && backlogDueNow > BURST_THRESHOLD;
+
+    if (!isChange && !firstTimeBurst) {
+      await writeCfg(String(currentAccountId));
+      return { changed: false, archived: 0, firstTime: true };
+    }
+
     let archived = 0;
     if (queued && queued.length) {
       const ids = queued.map((q: any) => q.id);

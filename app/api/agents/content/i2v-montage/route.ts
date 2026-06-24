@@ -285,7 +285,7 @@ export async function POST(req: NextRequest) {
   // déclaré UNIQUEMENT si vraiment généré par IA). is_aigc=false pour du média
   // RÉEL (footage client, vraies photos Google/business, stock), true seulement
   // pour la génération IA (Seedream hero, i2v). publishToTikTok lit ce flag.
-  const REAL_MEDIA_METHODS = ['client_footage', 'client_photos', 'real_business_photos', 'stock_kenburns'];
+  const REAL_MEDIA_METHODS = ['client_footage', 'client_photos', 'real_business_photos', 'real_showcase', 'stock_kenburns'];
   const isAigcMethod = !REAL_MEDIA_METHODS.includes(method);
   await supabase.from('content_calendar').update({ video_url: finalUrl, format: 'reel', engagement_data: { visual_provenance: method, is_aigc: isAigcMethod }, updated_at: new Date().toISOString() }).eq('id', post.id);
   if (qc) {

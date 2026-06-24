@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   const supabase = sb();
-  const platform = (new URL(req.url).searchParams.get('platform') || 'tiktok').toLowerCase();
+  const rawPlatform = (new URL(req.url).searchParams.get('platform') || 'tiktok').toLowerCase();
+  const platform = ['instagram', 'tiktok'].includes(rawPlatform) ? rawPlatform : 'tiktok';
   const handleCol = platform === 'instagram' ? 'instagram' : 'tiktok_handle';
 
   // Secteur + ville du client (brand kit puis dossier).
