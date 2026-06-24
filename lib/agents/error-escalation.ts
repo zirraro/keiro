@@ -54,7 +54,7 @@ export async function escalateAgentError(report: ErrorReport): Promise<void> {
   // cadence/débit. Ce sont des décisions stratégiques, pas des échecs.
   // On les loggue en 'info' (traçable) sans escalade ni pollution du
   // taux d'erreur du digest. (cf. isGuard regex côté content/route.ts)
-  if (/autopost_paused|cadence_cap|daily_cap|rate_limit|tiktok_health_paused/i.test(report.error)) {
+  if (/autopost_paused|cadence_cap|daily_cap|rate_limit|tiktok_health_paused|account_changed/i.test(report.error)) {
     try {
       await getSupabase().from('agent_logs').insert({
         agent: report.agent,

@@ -993,6 +993,20 @@ async function publishToInstagram(
       return { success: false, error: 'Instagram tokens not configured for admin user' };
     }
 
+    // 2026-06-24 — GARDE CHANGEMENT DE COMPTE Instagram (même doctrine que
+    // TikTok) : compte IG différent → on archive le backlog (pas de burst) +
+    // notifie + aborte. Évite de publier sur le nouveau compte tout ce qui
+    // était programmé pour l'ancien.
+    try {
+      const { guardAccountChange } = await import('@/lib/agents/account-change-guard');
+      const igGuard = await guardAccountChange(supabase, effectiveUserId || (post as any).user_id || null, 'instagram', igUserId);
+      if (igGuard.changed) {
+        if (post.id) await supabase.from('content_calendar').update({ status: 'archived', publish_diagnostic: 'account_changed_archived', updated_at: new Date().toISOString() }).eq('id', post.id);
+        console.warn(`[Content] IG account changed → archived backlog (${igGuard.archived}), aborting publish for ${post.id}`);
+        return { success: false, error: 'account_changed_archived' };
+      }
+    } catch (e: any) { console.warn('[Content] IG account-change guard failed (non-blocking):', e?.message); }
+
     if (!post.visual_url && !post.video_url) {
       await releaseClaimOnFailure();
       return { success: false, error: 'No visual_url or video_url available for publishing' };
@@ -1880,6 +1894,19 @@ async function publishToTikTok(
       await releaseTtClaim();
       return { success: false, error: 'No TikTok profile found' };
     }
+
+    // 2026-06-24 — GARDE CHANGEMENT DE COMPTE : si le compte TikTok connecté a
+    // changé depuis la dernière publication, on N'envoie PAS le backlog de
+    // l'ancien compte (incident burst). On archive + notifie + aborte ce post.
+    try {
+      const { guardAccountChange } = await import('@/lib/agents/account-change-guard');
+      const acctGuard = await guardAccountChange(supabase, ownerId, 'tiktok', ownerProfile.tiktok_user_id);
+      if (acctGuard.changed) {
+        if (post.id) await supabase.from('content_calendar').update({ status: 'archived', publish_diagnostic: 'account_changed_archived', updated_at: new Date().toISOString() }).eq('id', post.id);
+        console.warn(`[Content] TikTok account changed → archived backlog (${acctGuard.archived}), aborting publish for ${post.id}`);
+        return { success: false, error: 'account_changed_archived' };
+      }
+    } catch (e: any) { console.warn('[Content] account-change guard failed (non-blocking):', e?.message); }
 
     let accessToken = ownerProfile.tiktok_access_token;
     const refreshToken = ownerProfile.tiktok_refresh_token;
