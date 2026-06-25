@@ -36,13 +36,17 @@ export async function GET(req: NextRequest) {
 
   // INSTAGRAM : file dédiée (dm_status='queued_for_manual_follow', dm_followed_at). Inchangé.
   if (platform === 'instagram') {
-    const { data: rows } = await supabase
+    const { data: rowsRaw } = await supabase
       .from('crm_prospects')
-      .select('id, company, instagram, score, angle_approche, notes, city:quartier, note_google, google_rating, dm_queued_at')
+      .select('id, company, instagram, score, angle_approche, notes, city:quartier, note_google, google_rating, dm_queued_at, no_outbound, temperature, status')
       .eq('user_id', user.id)
       .eq('dm_status', 'queued_for_manual_follow')
       .order('score', { ascending: false, nullsFirst: false })
       .limit(500);
+    // Coordination (2026-06-25) : même si la file amont a été filtrée, un prospect
+    // peut être passé opt-out/mort/perdu APRÈS sa mise en file → on re-filtre ici
+    // pour que la garde "follow = touch" soit uniforme sur les 3 réseaux.
+    const rows = (rowsRaw || []).filter((r: any) => !r.no_outbound && r.temperature !== 'dead' && r.status !== 'perdu');
     const [{ count: queuedTotal }, { count: followedTotal }, { count: eligibleTotal }, { count: dmSent }] = await Promise.all([
       supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('dm_status', 'queued_for_manual_follow'),
       supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('dm_followed_at', 'is', null),
@@ -137,11 +141,12 @@ export async function POST(req: NextRequest) {
   if (action === 'all_done') {
     const { data: queuedRows } = await supabase
       .from('crm_prospects')
-      .select('id, instagram')
+      .select('id, instagram, no_outbound, temperature, status')
       .eq('user_id', user.id)
       .eq('dm_status', 'queued_for_manual_follow');
 
-    const rows = queuedRows || [];
+    // Mêmes gardes que la file : pas d'opt-out / mort / perdu dans le batch.
+    const rows = (queuedRows || []).filter((r: any) => !r.no_outbound && r.temperature !== 'dead' && r.status !== 'perdu');
     if (rows.length === 0) {
       return NextResponse.json({ ok: true, action: 'all_done', count: 0 });
     }
@@ -149,8 +154,7 @@ export async function POST(req: NextRequest) {
     await supabase
       .from('crm_prospects')
       .update({ dm_followed_at: now, dm_status: 'followed_by_user', updated_at: now })
-      .eq('user_id', user.id)
-      .eq('dm_status', 'queued_for_manual_follow');
+      .in('id', rows.map((r: any) => r.id));
 
     await supabase.from('crm_activities').insert(
       rows.map(r => ({

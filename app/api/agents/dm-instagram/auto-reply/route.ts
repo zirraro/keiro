@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
         let prospect: any = null;
         const { data: existingProspect } = await supabase
           .from('crm_prospects')
-          .select('id, company, first_name, type, temperature, score')
+          .select('id, company, first_name, type, temperature, score, status, active_channel')
           .or(`instagram.eq.${senderId},instagram.eq.@${senderName}`)
           .limit(1)
           .maybeSingle();
@@ -534,11 +534,18 @@ ${ragContext}`;
               created_at: new Date().toISOString(),
             });
 
-            // Update prospect score
+            // Update prospect score + COORDINATION : Jade vient de répondre à un
+            // entrant → elle RÉCLAME le canal DM (active_channel='dm') pour que les
+            // autres agents (email Hugo) reculent automatiquement, et RÉVEILLE un
+            // prospect mort/perdu qui re-engage (il nous a réécrit = il revient).
             if (prospect?.id) {
+              const newScore = Math.min(100, (prospect.score || 0) + 8);
               await supabase.from('crm_prospects').update({
-                score: Math.min(100, (prospect.score || 0) + 8),
-                temperature: (prospect.score || 0) + 8 >= 70 ? 'hot' : 'warm',
+                score: newScore,
+                temperature: prospect.temperature === 'dead' ? 'warm' : (newScore >= 70 ? 'hot' : 'warm'),
+                active_channel: 'dm',
+                dm_last_outbound_at: new Date().toISOString(),
+                ...(prospect.status === 'perdu' ? { status: 'contacte' } : {}),
                 updated_at: new Date().toISOString(),
               }).eq('id', prospect.id);
             }
