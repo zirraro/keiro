@@ -77,7 +77,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true, platform,
     follows,
-    funnel: { queued: follows.length, followed: followed.size, eligible: all.length, dm_sent: 0 },
+    // "eligible" = prospects avec un handle PAS encore suivis (même sémantique qu'Instagram,
+    // où eligible exclut dm_followed_at). Évite que "Éligibles" gonfle en comptant les suivis.
+    funnel: { queued: follows.length, followed: followed.size, eligible: Math.max(0, all.length - followed.size), dm_sent: 0 },
   });
 }
 
