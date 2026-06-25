@@ -558,6 +558,10 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
       dm_message: dm.dm_text,
       dm_followup_message: dm.follow_up_3d,
       dm_followup_date: followupDate,
+      // COORDINATION MULTI-CANAL (audit 2026-06-25) : on CLAIM le canal DM dès
+      // la mise en file (pas seulement à l'envoi manuel), sinon Hugo peut
+      // emailer le prospect en parallèle pendant que le DM attend.
+      active_channel: 'dm',
       updated_at: now,
     };
     // NOTE: status 'contacte' is set only when the DM is actually SENT in Suivi & Publication

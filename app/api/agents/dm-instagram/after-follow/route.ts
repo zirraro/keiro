@@ -183,6 +183,7 @@ Tu lui envoies un DM pour engager la conversation après son follow. Tu lui anno
         dm_status: 'queued',
         dm_queued_at: now,
         dm_message: message,
+        active_channel: 'dm', // coordination multi-canal (audit 2026-06-25)
         updated_at: now,
       }).eq('id', p.id);
 

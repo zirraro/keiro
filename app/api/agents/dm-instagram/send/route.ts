@@ -99,6 +99,23 @@ export async function POST(req: NextRequest) {
           .eq('instagram', String(recipient_id))
           .eq('dm_status', 'needs_human');
       } catch { /* non-fatal */ }
+      // 2026-06-25 (audit) — COORDINATION MULTI-CANAL : tout DM réussi doit
+      // laisser une trace CRM (sinon angle mort pour les relances + le
+      // multi-canal). On claim le canal DM + on log l'activité.
+      try {
+        const { data: pr } = await supabase.from('crm_prospects')
+          .select('id').eq('instagram', String(recipient_id)).limit(1).maybeSingle();
+        if ((pr as any)?.id) {
+          await supabase.from('crm_prospects').update({
+            active_channel: 'dm', dm_last_outbound_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+          }).eq('id', (pr as any).id);
+          await supabase.from('crm_activities').insert({
+            prospect_id: (pr as any).id, type: 'dm_sent',
+            description: 'DM Instagram envoyé', data: { channel: 'instagram', via: 'graph_api' },
+            created_at: new Date().toISOString(),
+          }).then(() => {}, () => {});
+        }
+      } catch { /* non-fatal */ }
     }
   };
 

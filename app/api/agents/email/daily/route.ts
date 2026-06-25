@@ -1203,6 +1203,10 @@ async function sendEmail(
       last_email_sent_at: now,
       email_sequence_status: step === 10 ? 'warm_sent' : 'in_progress',
       email_provider: provider,
+      // COORDINATION MULTI-CANAL (audit 2026-06-25) : on CLAIM le canal email
+      // pendant la séquence (Jade ne doit pas DM en parallèle), et on LIBÈRE
+      // (null) en fin de séquence pour que le prospect puisse être tenté en DM.
+      active_channel: step === 10 ? null : 'email',
       updated_at: now,
     };
     const { error: stepError } = await supabase.from('crm_prospects').update(stepUpdate).eq('id', prospect.id);
@@ -1553,7 +1557,12 @@ export async function GET(request: NextRequest) {
         const typeOk = targetTypes.length === 0 || (p.type && targetTypes.includes(p.type));
         // Skip prospects that have failed sending 3+ times (prevent infinite retry)
         const failOk = !p.email_send_failures || p.email_send_failures < 3;
-        return seqOk && tempOk && statusOk && typeOk && failOk;
+        // 2026-06-25 — COORDINATION MULTI-CANAL (audit) : ne JAMAIS emailer un
+        // prospect désinscrit (no_outbound) ni un prospect "owned" par un autre
+        // canal (active_channel='dm'). Le cron de volume ignorait ces 2 gardes.
+        const outboundOk = !p.no_outbound;
+        const channelOk = !p.active_channel || p.active_channel === 'email';
+        return seqOk && tempOk && statusOk && typeOk && failOk && outboundOk && channelOk;
       });
 
       if (queryError) {
