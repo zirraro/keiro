@@ -68,15 +68,17 @@ async function accountExists(platform: string, handle: string): Promise<boolean>
 const searchUrl = (platform: string, q: string) =>
   platform === 'instagram'
     ? `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(q)}`
-    : `https://www.tiktok.com/search?q=${encodeURIComponent(q)}`;
+    : platform === 'linkedin'
+      ? `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(q)}`
+      : `https://www.tiktok.com/search?q=${encodeURIComponent(q)}`;
 
 export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   const supabase = sb();
   const rawPlatform = (new URL(req.url).searchParams.get('platform') || 'tiktok').toLowerCase();
-  const platform = ['instagram', 'tiktok'].includes(rawPlatform) ? rawPlatform : 'tiktok';
-  const handleCol = platform === 'instagram' ? 'instagram' : 'tiktok_handle';
+  const platform = ['instagram', 'tiktok', 'linkedin'].includes(rawPlatform) ? rawPlatform : 'tiktok';
+  const handleCol = platform === 'instagram' ? 'instagram' : platform === 'linkedin' ? 'linkedin_url' : 'tiktok_handle';
 
   // Secteur + ville du client (brand kit puis dossier).
   let sectorLabel = 'commerce local', city = '';
@@ -92,17 +94,20 @@ export async function GET(req: NextRequest) {
   //    propose QUE des comptes dont l'existence est VÉRIFIÉE (founder : surtout
   //    TikTok). Candidats format-valides → vérif live en parallèle → on garde
   //    les confirmés (max 8).
-  const realHandles: { handle: string; company: string }[] = [];
-  try {
+  const realHandles: { handle: string; company: string; prospectId: string | null }[] = [];
+  // LinkedIn : les handles CRM sont des URLs + l'existence est difficile à
+  // vérifier de façon fiable → on saute la liste de handles et on ne propose
+  // que des recherches LinkedIn (catégories). Insta/TikTok : vérif live.
+  if (platform !== 'linkedin') try {
     const { data: rows } = await supabase.from('crm_prospects')
-      .select(`company, ${handleCol}`).eq('user_id', user.id).not(handleCol, 'is', null).limit(60);
+      .select(`id, company, ${handleCol}`).eq('user_id', user.id).not(handleCol, 'is', null).limit(60);
     const seen = new Set<string>();
-    const candidates: { handle: string; company: string }[] = [];
+    const candidates: { handle: string; company: string; prospectId: string | null }[] = [];
     for (const r of (rows || []) as any[]) {
       const h = String(r[handleCol] || '').replace(/^@/, '').replace(/\s/g, '').replace(/https?:\/\/(www\.)?(instagram|tiktok)\.com\/@?/i, '').replace(/\/$/, '').trim();
       if (!h || h.length < 2 || !/^[a-zA-Z0-9._]{2,30}$/.test(h) || seen.has(h.toLowerCase())) continue;
       seen.add(h.toLowerCase());
-      candidates.push({ handle: h, company: r.company || h });
+      candidates.push({ handle: h, company: r.company || h, prospectId: r.id || null });
       if (candidates.length >= 24) break; // borne le coût de vérification
     }
     // Vérif d'existence en parallèle, on garde les confirmés (max 8).
@@ -111,6 +116,21 @@ export async function GET(req: NextRequest) {
       if (exists) realHandles.push(c);
       if (realHandles.length >= 8) break;
     }
+  } catch { /* best-effort */ }
+
+  // État "Fait" (founder) : comptes que le CLIENT a déjà marqués suivis →
+  // donnée d'accomplissement (preuve qu'il applique la stratégie). Stocké dans
+  // agent_logs (action 'client_follow_action', data.done=true), pas de DDL.
+  const doneHandles: string[] = [];
+  try {
+    const { data: doneRows } = await supabase.from('agent_logs')
+      .select('data').eq('agent', 'content').eq('action', 'client_follow_action').eq('user_id', user.id).limit(500);
+    const latest: Record<string, boolean> = {};
+    for (const d of (doneRows || []) as any[]) {
+      const dd = d.data || {};
+      if (dd.platform === platform && dd.handle) latest[String(dd.handle).toLowerCase()] = dd.done === true;
+    }
+    for (const [h, on] of Object.entries(latest)) if (on) doneHandles.push(h);
   } catch { /* best-effort */ }
 
   // 2) Catégories de comptes à suivre (par secteur) + liens de recherche réels.
@@ -131,7 +151,7 @@ export async function GET(req: NextRequest) {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('platform', platform).eq('status', 'published');
     const stage = getAccountStage(count || 0);
-    if (stage !== 'established') warmingSteps = accountWarmingSteps(platform as 'tiktok' | 'instagram');
+    if (stage !== 'established' && (platform === 'tiktok' || platform === 'instagram')) warmingSteps = accountWarmingSteps(platform);
   } catch { /* best-effort */ }
 
   return NextResponse.json({
@@ -142,6 +162,55 @@ export async function GET(req: NextRequest) {
     realHandles,
     categories,
     warmingSteps,
-    note: 'Suivre 5-10 comptes pertinents rend ton compte actif et crédible. L\'app ne peut pas suivre à ta place (les réseaux l\'interdisent) — un tap sur chaque suggestion et c\'est fait.',
+    doneHandles,
+    accomplishment: { done: doneHandles.length, recommended: realHandles.length },
+    note: 'Suivre 5-10 comptes pertinents rend ton compte actif et crédible. L\'app ne peut pas suivre à ta place (les réseaux l\'interdisent) — clique, suis sur le profil, puis "Fait".',
   });
+}
+
+/**
+ * POST — marquer un compte recommandé comme SUIVI (ou annuler). Founder : le
+ * client clique → arrive sur le profil → suit → met "Fait". On enregistre
+ * l'accomplissement (preuve qu'il applique la stratégie) + on note dans le CRM
+ * qu'on suit ce prospect (si le handle correspond à un prospect).
+ * Body: { platform, handle, done, prospectId? }
+ */
+export async function POST(req: NextRequest) {
+  const { user, error } = await getAuthUser();
+  if (error || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  const supabase = sb();
+  const body = await req.json().catch(() => ({}));
+  const rawP = String(body.platform || 'tiktok').toLowerCase();
+  const platform = ['instagram', 'tiktok', 'linkedin'].includes(rawP) ? rawP : 'tiktok';
+  const handle = String(body.handle || '').replace(/^@/, '').trim();
+  if (!handle) return NextResponse.json({ ok: false, error: 'handle requis' }, { status: 400 });
+  const done = body.done !== false;
+  try {
+    await supabase.from('agent_logs').insert({
+      agent: 'content', action: 'client_follow_action', status: 'ok', user_id: user.id,
+      data: { platform, handle, done, prospect_id: body.prospectId || null, at: new Date().toISOString() },
+      created_at: new Date().toISOString(),
+    });
+    // Lien CRM : on note qu'on suit ce prospect (si fourni / retrouvé par handle).
+    if (done) {
+      let prospectId = body.prospectId || null;
+      if (!prospectId) {
+        const col = platform === 'instagram' ? 'instagram' : platform === 'tiktok' ? 'tiktok_handle' : 'linkedin_url';
+        try {
+          const { data: p } = await supabase.from('crm_prospects').select('id').eq('user_id', user.id).ilike(col, `%${handle}%`).limit(1).maybeSingle();
+          prospectId = (p as any)?.id || null;
+        } catch { /* best-effort */ }
+      }
+      if (prospectId) {
+        await supabase.from('crm_activities').insert({
+          prospect_id: prospectId, type: 'client_followed',
+          description: `Le client suit ce prospect sur ${platform} (@${handle})`,
+          data: { platform, handle, action: 'followed_by_client' }, created_at: new Date().toISOString(),
+        }).then(() => {}, () => {});
+      }
+    }
+    return NextResponse.json({ ok: true, done });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || 'Erreur serveur' }, { status: 500 });
+  }
 }

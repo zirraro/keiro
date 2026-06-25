@@ -150,61 +150,68 @@ function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; conne
 function JadeTabs({ network }: { network: JadeNetwork }) {
   const { t, locale } = useLanguage();
   const p = t.panels;
+  const en = locale === 'en';
   const [tab, setTab] = useState<'dms' | 'comments' | 'follows'>('dms');
+  const followsLabel = en ? 'Accounts to follow' : 'Comptes à suivre';
 
-  const followsLabel = locale === 'en' ? 'Follows' : 'À suivre';
+  // 2026-06-25 — L'API TikTok ne permet NI DM NI réponse aux commentaires (que
+  // la publication). Sur TikTok (et LinkedIn) on ne montre donc QUE "Comptes à
+  // suivre". Les onglets DM/Commentaires restent uniquement pour Instagram
+  // (Meta autorise ces APIs).
+  const igFull = network === 'instagram';
+  useEffect(() => { if (!igFull) setTab('follows'); }, [igFull]);
 
   return (
     <div>
-      {/* Action tabs (DMs / Comments / Follows) — same set for all networks */}
+      {/* Onglets : DM/Commentaires uniquement sur Instagram ; "Comptes à suivre" partout */}
       <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
-        <button
-          onClick={() => setTab('dms')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            tab === 'dms' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
-          }`}
-        >
-          {'\u{1F4AC}'} {p.dmTabsDms}
-        </button>
-        <button
-          onClick={() => setTab('comments')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            tab === 'comments' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
-          }`}
-        >
-          {'\u{1F4AC}'} {p.dmTabsComments}
-        </button>
+        {igFull && (
+          <>
+            <button
+              onClick={() => setTab('dms')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'dms' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
+            >
+              {'\u{1F4AC}'} {p.dmTabsDms}
+            </button>
+            <button
+              onClick={() => setTab('comments')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'comments' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
+            >
+              {'\u{1F4AC}'} {p.dmTabsComments}
+            </button>
+          </>
+        )}
         <button
           onClick={() => setTab('follows')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            tab === 'follows' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
-          }`}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'follows' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
         >
           {'\u{1F91D}'} {followsLabel}
         </button>
       </div>
 
-      {/* Comptes recommandés à suivre (onglet "À suivre", insta + tiktok) —
-          comptes RÉELS vérifiés. Signal de compte actif. (founder 2026-06-24) */}
-      {tab === 'follows' && (network === 'instagram' || network === 'tiktok') && (
-        <FollowSuggestions platform={network} />
-      )}
+      {/* Comptes à suivre — comptes RÉELS vérifiés + warming + "Fait" (CRM +
+          accomplissement). Insta + TikTok + LinkedIn. (founder 2026-06-24/25) */}
+      {tab === 'follows' && <FollowSuggestions platform={network} />}
 
-      {/* Instagram — live data */}
-      {network === 'instagram' && tab === 'dms' && (
+      {/* Instagram — DM + commentaires (Meta API) */}
+      {igFull && tab === 'dms' && (
         <div data-tour="dm-conversations"><DmConversationsLive /></div>
       )}
-      {network === 'instagram' && tab === 'comments' && (
+      {igFull && tab === 'comments' && (
         <div data-tour="dm-comments"><LenaCommentsSection /></div>
       )}
-      {network === 'instagram' && tab === 'follows' && (
+      {igFull && tab === 'follows' && (
         <div data-tour="dm-follows"><ManualFollowsList /></div>
       )}
 
-      {/* TikTok — JadeTiktokLive auto-detects connection itself */}
-      {network === 'tiktok' && <JadeTiktokLive tab={tab} />}
-      {/* LinkedIn — placeholder until r_member_social scope granted */}
-      {network === 'linkedin' && <JadeNetworkPlaceholder network="linkedin" tab={tab} />}
+      {/* TikTok — uniquement comptes à suivre (l'API ne permet pas DM/commentaires) */}
+      {network === 'tiktok' && (
+        <p className="text-[10px] text-white/30 mt-3">
+          {en
+            ? "TikTok's API allows neither DMs nor comment replies — we focus on accounts to follow to keep your account active and boost our content's reach."
+            : "L'API TikTok ne permet ni DM ni réponse aux commentaires — on se concentre sur les comptes à suivre pour garder ton compte actif et booster la portée de nos contenus."}
+        </p>
+      )}
     </div>
   );
 }
