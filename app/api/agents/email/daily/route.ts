@@ -458,7 +458,16 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}
 <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;">
 <div style="max-width:600px;margin:0 auto;padding:20px;">
 <div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">
-${email.body.split('\n').map((line: string) => `<p style="margin:8px 0;">${line}</p>`).join('')}
+${email.body.split('\n').map((line: string) => {
+  // 2026-06-25 (bug founder : du HTML brut '<p style=...>Victor' s'affichait +
+  // un '<' littéral cassait le rendu). Le corps DOIT être du texte : on retire
+  // toute balise que l'IA aurait pu produire, PUIS on échappe les <>& restants.
+  const clean = String(line || '')
+    .replace(/<\/?[a-z][^>]*>/gi, '')      // strip toute balise HTML émise par l'IA
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .trim();
+  return clean ? `<p style="margin:8px 0;">${clean}</p>` : '';
+}).join('')}
 <p style="margin:20px 0;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Découvrir KeiroAI</a></p>
 <p style="margin:14px 0;font-size:13px;color:#6b7280;border-left:3px solid #0c1a3a;padding-left:12px;">+200 entrepreneurs utilisent KeiroAI pour leur marketing.</p>
 </div>
