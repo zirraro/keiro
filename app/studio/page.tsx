@@ -2615,12 +2615,12 @@ function StudioContent() {
             className="bg-white rounded-xl max-w-3xl w-full max-h-[82vh] overflow-hidden flex flex-col shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-neutral-200">
-              <div>
+            <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-b border-neutral-200">
+              <div className="min-w-0">
                 <div className="font-bold text-neutral-900">🔥 Banque de clips trend</div>
-                <div className="text-xs text-neutral-500">Inspire-toi d&apos;un hook / format qui cartonne avant de créer ton reel</div>
+                <div className="hidden sm:block text-xs text-neutral-500">Inspire-toi d&apos;un hook / format qui cartonne avant de créer ton reel</div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   disabled={trendAdding}

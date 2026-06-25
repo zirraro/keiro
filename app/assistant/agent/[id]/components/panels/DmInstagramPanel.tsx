@@ -169,13 +169,13 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
           <>
             <button
               onClick={() => setTab('dms')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'dms' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'dms' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
             >
               {'\u{1F4AC}'} {p.dmTabsDms}
             </button>
             <button
               onClick={() => setTab('comments')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'comments' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'comments' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
             >
               {'\u{1F4AC}'} {p.dmTabsComments}
             </button>
@@ -183,7 +183,7 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
         )}
         <button
           onClick={() => setTab('follows')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'follows' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
+          className={`flex-1 min-w-0 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'follows' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
         >
           {'\u{1F91D}'} {followsLabel}
         </button>

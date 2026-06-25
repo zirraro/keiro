@@ -186,8 +186,8 @@ export default function BrandKitOnboarding() {
         <label className="block text-sm font-medium mb-1">Horaires</label>
         <div className="space-y-1.5">
           {hours.map((h, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
-              <span className="w-20 text-white/60">{DAYS[h.weekday]}</span>
+            <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="w-16 shrink-0 text-white/60">{DAYS[h.weekday]}</span>
               <button onClick={() => setHours(hs => hs.map((x, j) => j === i ? { ...x, closed: !x.closed } : x))} className={`text-xs px-2 py-1 rounded ${h.closed ? 'bg-white/10 text-white/50' : 'bg-emerald-500/15 text-emerald-300'}`}>{h.closed ? 'Fermé' : 'Ouvert'}</button>
               {!h.closed && <>
                 <input type="time" value={h.open_time} onChange={e => setHours(hs => hs.map((x, j) => j === i ? { ...x, open_time: e.target.value } : x))} className="bg-white/[0.05] border border-white/10 rounded px-2 py-1" />

@@ -64,7 +64,7 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
               <div className="text-[11px] font-semibold text-amber-200 mb-1">{en ? '🔥 Warm up your account (max reach)' : '🔥 Réchauffe ton compte (portée max)'}</div>
               <ul className="space-y-1">
                 {data.warmingSteps.map((s: string, i: number) => (
-                  <li key={i} className="text-[10px] text-white/55 flex gap-1.5"><span className="text-amber-300">{i + 1}.</span><span>{s}</span></li>
+                  <li key={i} className="text-[11px] leading-relaxed text-white/60 flex gap-1.5"><span className="text-amber-300">{i + 1}.</span><span>{s}</span></li>
                 ))}
               </ul>
             </div>
@@ -82,7 +82,7 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
                       <button
                         type="button" disabled={busy === h.handle.toLowerCase()}
                         onClick={() => toggleDone(h.handle, h.prospectId || null)}
-                        className={`text-[10px] px-2 py-1 rounded-md font-semibold transition disabled:opacity-50 ${isDone ? 'bg-emerald-600 text-white' : 'border border-white/15 text-white/60 hover:border-emerald-500/50 hover:text-emerald-300'}`}
+                        className={`shrink-0 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold transition disabled:opacity-50 ${isDone ? 'bg-emerald-600 text-white' : 'border border-white/15 text-white/60 hover:border-emerald-500/50 hover:text-emerald-300'}`}
                       >
                         {isDone ? (en ? '✓ Done' : '✓ Fait') : (en ? 'Mark done' : 'Fait')}
                       </button>

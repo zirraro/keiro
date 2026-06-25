@@ -212,7 +212,7 @@ export default function ClaraHelper() {
   return (
     <div className={`${positionClass} animate-in ${isFirstTime ? 'zoom-in-95' : 'slide-in-from-bottom-3'} duration-300`}>
       <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-3 sm:p-5 w-[calc(100vw-32px)] sm:w-96 max-w-sm">
-        <button onClick={dismissAndCooldown} className="absolute top-2 right-2 text-white/45 hover:text-white/50 transition">
+        <button onClick={dismissAndCooldown} aria-label="Fermer" className="absolute top-1.5 right-1.5 p-1.5 text-white/45 hover:text-white/60 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
