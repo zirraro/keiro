@@ -124,6 +124,12 @@ export async function POST(req: NextRequest) {
     .not('dm_status', 'in', '("blocked","invalid_handle")')
     .gte('score', 20)
     .lt('dm_follow_attempts', 3)
+    // COORDINATION MULTI-CANAL (2026-06-25) : un follow est un touch — jamais
+    // d'opt-out / mort / perdu dans la file. NULL-safe (.or) pour ne pas drop
+    // les prospects au statut/température non renseignés.
+    .or('no_outbound.is.null,no_outbound.is.false')
+    .or('temperature.is.null,temperature.neq.dead')
+    .or('status.is.null,status.neq.perdu')
     .order('score', { ascending: false, nullsFirst: false })
     .limit(MAX_FOLLOWS_PER_RUN);
 

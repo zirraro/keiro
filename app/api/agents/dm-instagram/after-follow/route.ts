@@ -60,6 +60,11 @@ export async function POST(req: NextRequest) {
     .gte('dm_followed_at', since96h)
     .lte('dm_followed_at', before24h)
     .not('instagram', 'is', null)
+    // COORDINATION (2026-06-25) : pas de DM after-follow vers un opt-out / mort /
+    // perdu (le prospect a pu se désinscrire ou être clos depuis le follow-back).
+    .or('no_outbound.is.null,no_outbound.is.false')
+    .or('temperature.is.null,temperature.neq.dead')
+    .or('status.is.null,status.neq.perdu')
     .order('score', { ascending: false, nullsFirst: false })
     .limit(MAX_PER_RUN);
 

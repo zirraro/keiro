@@ -552,6 +552,33 @@ export async function POST(req: NextRequest) {
       .eq('status', 'pending')
       .filter('data->>comment_id', 'eq', comment_id);
 
+      // CRM touch — cohérence avec auto_reply_all : toute réponse à un commentaire
+      // alimente la fiche prospect si le commentateur est dans le CRM (founder :
+      // "tous les agents alimentent la fiche à chaque touchpoint"). Best-effort,
+      // utilise le username déjà connu du panneau (zéro appel Graph en plus).
+      try {
+        const handle = String(body.username || '').toLowerCase().replace(/^@/, '');
+        const crmUid = resolvedUserId || targetUserId;
+        if (handle && crmUid) {
+          const { data: prospect } = await supabase
+            .from('crm_prospects').select('id, temperature')
+            .eq('user_id', crmUid).ilike('instagram', handle).limit(1).maybeSingle();
+          if (prospect) {
+            const tempBump: Record<string, string> = { cold: 'warm', warm: 'hot' };
+            const nextTemp = tempBump[(prospect as any).temperature || 'cold'] || (prospect as any).temperature;
+            await supabase.from('crm_prospects').update({
+              last_contacted_at: now, last_contact_channel: 'instagram_comment',
+              ...(nextTemp ? { temperature: nextTemp } : {}), updated_at: now,
+            }).eq('id', (prospect as any).id);
+            await supabase.from('crm_activities').insert({
+              prospect_id: (prospect as any).id, type: 'comment_replied',
+              description: `Jade a répondu au commentaire de @${handle}`,
+              data: { channel: 'instagram', comment_id, reply: message.substring(0, 200) }, created_at: now,
+            });
+          }
+        }
+      } catch { /* CRM enrichment is best-effort */ }
+
       return NextResponse.json({ ok: true, reply: message });
     } catch (e: any) {
       // Release the reservation so a retry can succeed later.
