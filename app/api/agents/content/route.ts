@@ -2248,8 +2248,12 @@ async function publishToTikTok(
     console.log(`[Content] TikTok video published: ${result.publish_id}`);
     return { success: true, publish_id: result.publish_id };
   } catch (error: any) {
-    const msg = error.message || 'Unknown TikTok publishing error';
+    // Capture le message EXACT de TikTok (error.message se perdait → "Unknown
+    // TT error" générique dans le digest). On tente plusieurs sources.
+    const raw = error?.message || (typeof error === 'string' ? error : '') || error?.error?.message || error?.toString?.() || '';
+    const msg = raw && raw !== '[object Object]' ? raw : 'Unknown TikTok publishing error';
     console.error('[Content] TikTok publish error:', msg);
+    await releaseTtClaim();
 
     // Detect unaudited app — don't retry, just flag clearly
     if (msg.includes('unaudited_client')) {
@@ -2259,8 +2263,15 @@ async function publishToTikTok(
         unaudited: true,
       };
     }
+    // Limite quotidienne TikTok = état ATTENDU (pas une panne) → defer bénin, pas d'alerte.
+    if (/daily posting limit|daily limit|cannot post|reached the (daily )?limit/i.test(msg)) {
+      return { success: false, error: `TikTok daily limit: ${msg}`, daily_limit: true } as any;
+    }
+    // Token expiré / scope manquant → action requise (reconnexion compte), flag clair.
+    if (/SCOPE_ERROR|token (refresh|exchange) failed|access_token|invalid_grant|expired/i.test(msg)) {
+      return { success: false, error: `TikTok token/scope — reconnexion requise: ${msg}`, token_issue: true } as any;
+    }
 
-    await releaseTtClaim();
     return { success: false, error: msg };
   }
 }
@@ -3039,8 +3050,13 @@ export async function GET(request: NextRequest) {
                 }
               }
             } else {
-              console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error}`);
-              escalateAgentError({ agent: 'content', action: 'publish_tiktok', error: ttResult.error || 'Unknown TT error', platform: 'tiktok', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
+              // Cas ATTENDUS (limite quotidienne, draft à finaliser à la main) →
+              // on log mais on n'escalade PAS en alerte (sinon bruit dans le digest).
+              const benign = (ttResult as any).daily_limit || (ttResult as any).is_draft || ttResult.error === 'tiktok_draft_needs_manual_finalize';
+              console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error || '(no error msg)'}${benign ? ' [benign, non escaladé]' : ''}`);
+              if (!benign) {
+                escalateAgentError({ agent: 'content', action: 'publish_tiktok', error: ttResult.error || 'Unknown TT error', platform: 'tiktok', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
+              }
             }
           } else if (fullPost.platform === 'linkedin') {
             // LinkedIn: publier via l'API LinkedIn

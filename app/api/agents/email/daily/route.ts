@@ -1542,17 +1542,14 @@ export async function GET(request: NextRequest) {
 
       const { data: allWithEmail, error: queryError } = await prospectQuery;
 
+      // Doctrine réveil cross-canal : un prospect mort SUR UN AUTRE canal (ex: DM)
+      // peut recevoir UN email de réveil si l'email n'a jamais été tenté.
+      const { canReviveOn, isFinalDead, isDeadProspect } = await import('@/lib/agents/revival');
+
       // Filter in JS for reliability (PostgREST .or() with .not.in. can be tricky)
       const prospects = (allWithEmail || []).filter(p => {
         // EXCLUDE admin-owned prospects
         if (p.user_id && adminUserIds.has(p.user_id)) return false;
-        // email_sequence_status must be null, not_started, or in_progress (exclude completed, warm_sent, send_failed)
-        const seq = p.email_sequence_status;
-        const seqOk = !seq || seq === 'not_started' || seq === 'in_progress';
-        // temperature must not be dead
-        const tempOk = !p.temperature || p.temperature !== 'dead';
-        // status must not be client, perdu, sprint
-        const statusOk = !p.status || !['client', 'perdu', 'sprint', 'client_pro', 'client_fondateurs', 'lost'].includes(p.status);
         // Business type targeting: if types specified, only include matching prospects
         const typeOk = targetTypes.length === 0 || (p.type && targetTypes.includes(p.type));
         // Skip prospects that have failed sending 3+ times (prevent infinite retry)
@@ -1561,8 +1558,20 @@ export async function GET(request: NextRequest) {
         // prospect désinscrit (no_outbound) ni un prospect "owned" par un autre
         // canal (active_channel='dm'). Le cron de volume ignorait ces 2 gardes.
         const outboundOk = !p.no_outbound;
+
+        // Prospect mort : autorisé UNIQUEMENT comme réveil email (mort ailleurs,
+        // email vierge, pas mort définitif). On saute le verrou de canal : le but
+        // EST de changer de canal. Le send posera active_channel='email'.
+        if (isDeadProspect(p)) {
+          return typeOk && failOk && outboundOk && !isFinalDead(p) && canReviveOn(p, 'email');
+        }
+
+        // Vivant : logique normale.
+        const seq = p.email_sequence_status;
+        const seqOk = !seq || seq === 'not_started' || seq === 'in_progress';
+        const statusOk = !p.status || !['client', 'sprint', 'client_pro', 'client_fondateurs'].includes(p.status);
         const channelOk = !p.active_channel || p.active_channel === 'email';
-        return seqOk && tempOk && statusOk && typeOk && failOk && outboundOk && channelOk;
+        return seqOk && statusOk && typeOk && failOk && outboundOk && channelOk;
       });
 
       if (queryError) {

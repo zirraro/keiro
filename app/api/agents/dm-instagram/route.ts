@@ -337,17 +337,27 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     .eq('is_admin', true);
   const adminUserIds = new Set((adminProfiles || []).map((p: any) => p.id));
 
+  // Doctrine réveil cross-canal : un prospect mort SUR UN AUTRE canal peut être
+  // tenté UNE fois en DM si le DM n'a jamais été essayé (et pas mort définitif).
+  const { canReviveOn, isFinalDead, isDeadProspect } = await import('@/lib/agents/revival');
+
   // Filter in JS for reliability
   // For TikTok DMs, also check that we haven't already queued a TikTok DM for this prospect
   const prospects = (allWithHandle || []).filter(p => {
     // EXCLUDE admin-owned prospects
     if (p.user_id && adminUserIds.has(p.user_id)) return false;
     const dmOk = isTikTok ? true : (!p.dm_status || p.dm_status === 'none'); // TikTok DMs are separate from IG dm_status
-    const tempOk = !p.temperature || p.temperature !== 'dead';
-    const statusOk = !p.status || !['client', 'client_pro', 'client_fondateurs', 'lost', 'perdu', 'sprint'].includes(p.status);
     const outboundOk = !p.no_outbound; // anti-collision: jamais recontacter un opt-out (tout canal)
     const channelOk = !p.active_channel || p.active_channel === 'dm'; // 1 canal sortant actif/prospect — laisse l'email tranquille si déjà owned
-    return dmOk && tempOk && statusOk && outboundOk && channelOk;
+    if (!dmOk || !outboundOk || !channelOk) return false;
+
+    // Prospect mort : autorisé UNIQUEMENT comme réveil DM (mort ailleurs, DM
+    // vierge, pas mort définitif). IG seulement — pas de réveil TikTok auto.
+    if (isDeadProspect(p)) {
+      return !isTikTok && !isFinalDead(p) && canReviveOn(p, 'dm');
+    }
+    // Vivant : exclure clients & sprint (déjà gagnés / en cours), DM si frais.
+    return !p.status || !['client', 'client_pro', 'client_fondateurs', 'sprint'].includes(p.status);
   }).slice(0, MAX_DM_PER_DAY * 3);
 
   if (!prospects || prospects.length === 0) {
@@ -572,13 +582,14 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     await supabase.from('crm_activities').insert({
       prospect_id: prospect.id,
       type: isTikTok ? 'dm_tiktok' : 'dm_instagram',
-      description: `DM ${platform} préparé pour @${handle}`,
+      description: `DM ${platform} préparé pour @${handle}${isDeadProspect(prospect) ? ' (réveil cross-canal)' : ''}`,
       data: {
         handle,
         platform,
         message_preview: dm.dm_text.substring(0, 100),
         business_type: category,
         followup_date: followupDate,
+        ...(isDeadProspect(prospect) ? { revival: true, revived_from: 'dead', channel: 'instagram' } : {}),
       },
       created_at: now,
     });
