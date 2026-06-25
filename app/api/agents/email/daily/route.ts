@@ -8,6 +8,7 @@ import { callGemini } from '@/lib/agents/gemini';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { canSendEmail } from '@/lib/agents/email-dedup';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
+import { pickRegister } from '@/lib/agents/tone-register';
 
 import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
@@ -167,7 +168,7 @@ async function generateAIEmails(
   // CONSTAMMENT le taux d'ouverture + partager dans le RAG". autoLearn écrit
   // déjà les apprentissages open/click/reply dans le RAG ; ici on FERME la
   // boucle en les RÉ-INJECTANT dans le prompt de génération des objets, pour
-  // que Victor applique ce qui fonctionne réellement chez nous (amélioration
+  // que Hugo applique ce qui fonctionne réellement chez nous (amélioration
   // continue auto-renforcée).
   let learningsBlock = '';
   if (supabaseClient) {
@@ -194,6 +195,7 @@ async function generateAIEmails(
 - Entreprise: ${pr.company || '(inconnu)'}
 - Prénom: ${pr.first_name || ''}
 - Type: ${p.category}
+- Registre à utiliser: ${pickRegister(pr.type || p.category)} ${pickRegister(pr.type || p.category) === 'vous' ? '(vouvoiement — secteur sérieux/premium, ouvre par "Bonjour")' : '(tutoiement — local/lifestyle, ouvre par "Salut")'}
 - Quartier: ${pr.quartier ? pr.quartier : 'INCONNU — ne mentionne PAS de quartier dans l\'email'}
 - Note Google: ${pr.note_google || pr.google_rating || 'non connue'}
 - Email: ${pr.email}
@@ -206,7 +208,9 @@ async function generateAIEmails(
 
   try {
     const rawText = await callGemini({
-      system: `Tu es Victor, le closer #1 de KeiroAI — une plateforme IA qui génère images, vidéos et posts réseaux sociaux pour les commerces locaux et PME en France. Ton taux de réponse est 3x la moyenne du marché.
+      system: `Tu es Hugo, l'expert email de KeiroAI — une plateforme IA qui génère images, vidéos et posts réseaux sociaux pour les commerces locaux et PME en France. Ton taux de réponse est 3x la moyenne du marché.
+
+REGISTRE (tu/vous) — EXPERTISE : adapte le registre AU SECTEUR de CHAQUE prospect (indiqué sur sa fiche ci-dessous). Tutoiement pour le local/lifestyle (resto, coiffeur, coach, boutique…), vouvoiement pour les professions de confiance/premium (avocat, médecin, comptable, immobilier, santé…). On choisit la bonne formulation, pas "tu" partout.
 
 TON OBJECTIF : écrire des emails qui donnent envie d'ESSAYER le produit — parce qu'il aide vraiment. Une réponse est bien, mais le vrai but est qu'il se dise "tiens, ça pourrait m'aider, je teste".
 
@@ -284,18 +288,18 @@ On a un outil qui génère des visuels pro de tes plats en 3 min, sans photograp
 
 Tu veux que je te montre ce que ça donne ?
 
-Victor
+Hugo
 
 P.S. Tu peux tester gratuitement, 3 visuels en 5 min : https://keiroai.com/generate"
 
 Pas de bullet points, pas de stats forcées, pas de "saviez-vous que 72%...", juste une conversation naturelle entre deux personnes.
 
-SIGNATURE — TU DOIS SIGNER "Victor" à la fin (ou "Victor ✌️" en step 3, "Victor — KeiroAI" en step warm). Une seule fois, pas deux.
+SIGNATURE — TU DOIS SIGNER "Hugo" à la fin (ou "Hugo ✌️" en step 3, "Hugo — KeiroAI" en step warm). Une seule fois, pas deux.
 
 P.S. — Tu PEUX ajouter un P.S. si ça booste la conversion (essai gratuit, lien direct, urgence légère). Une seule P.S. max. Jamais deux P.S. dans le même email. Le P.S. doit être COURT et apporter de la valeur, pas être un slogan.
 
-STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + social proof ("des restos comme toi utilisent déjà..."). Signe "Victor".
-STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️".
+STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + social proof ("des restos comme toi utilisent déjà..."). Signe "Hugo".
+STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Hugo ✌️".
 STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
 WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 7 jours (carte requise, 0€ débité)
@@ -309,25 +313,25 @@ VÉRIFICATION BUSINESS OBLIGATOIRE :
 - Alternative sans quartier : "Salut [prénom], je suis tombé sur [company]" tout court, ça suffit.
 
 TON NATUREL — CRITÈRES ABSOLUS :
-- L'email doit ressembler à un message envoyé par un VRAI humain, pas un robot. Comme si Victor tapait le mail vite fait depuis son téléphone.
+- L'email doit ressembler à un message envoyé par un VRAI humain, pas un robot. Comme si Hugo tapait le mail vite fait depuis son téléphone.
 - JAMAIS de "?" en début de ligne. Une question commence par un sujet, pas par "?".
 - JAMAIS de structure visible type "accroche / pain point / solution / CTA" — ça doit couler naturellement.
 - Le texte doit être FLUIDE, comme une conversation. Pas de bullet points, pas de listes, pas de formatage.
-- Commence par "Salut [prénom]," — JAMAIS "Bonjour" ni "Hey" ni "Cher".
-- Le nom du commerce doit être utilisé comme on en parlerait à l'oral : "je suis tombé sur ton resto" pas "je suis tombé sur Restaurant Le Soleil Paris 9ème".
+- Ouverture selon le REGISTRE du prospect : "Salut [prénom]," en tutoiement, "Bonjour [prénom]," en vouvoiement. JAMAIS "Hey" ni "Cher".
+- Le nom du commerce doit être utilisé comme on en parlerait à l'oral : "ton resto" (tu) / "votre resto" (vous), pas "Restaurant Le Soleil Paris 9ème".
 - Si le nom du commerce est trop long ou formel, utilise une version courte naturelle.
 
 INTERDICTIONS ABSOLUES :
-- JAMAIS "vous/votre" → toujours "tu/ton/ta"
-- JAMAIS "n'hésitez pas" / "nous vous proposons" / "cher" / "cordialement" / "Bonjour"
+- RESPECTE le registre indiqué pour CHAQUE prospect : tutoiement (tu/ton/ta) OU vouvoiement (vous/votre) selon sa fiche. Ne mélange JAMAIS les deux dans le même email.
+- JAMAIS "n'hésitez pas" / "cher" / "cordialement" / "bien à vous" — même en vouvoiement, reste direct, humain et chaleureux, pas corporate.
 - JAMAIS plus de 6 lignes de corps
 - JAMAIS d'emoji dans l'objet (sauf ✌️ dans la signature)
 - JAMAIS mentionner le prix dans le step 1 (sauf essai gratuit)
 - JAMAIS de "?" en tout début de ligne (la question doit commencer par des mots)
 - JAMAIS de nom de commerce qui sonne faux ou inventé — si le nom est bizarre, dis juste "ton commerce" ou "ton resto"
-- Signature obligatoire : Victor (UNE seule ligne, en fin d'email, sans "Cordialement" ni "Bien à toi" devant)
+- Signature obligatoire : Hugo (UNE seule ligne, en fin d'email, sans "Cordialement" ni "Bien à toi" devant)
 - P.S. autorisé MAIS UN SEUL — jamais deux P.S. dans le même mail. Optionnel sur step 1/2/3, recommandé sur step 4/5 pour pousser à la conversion.
-- INTERDIT : signer "Oussama", "l'équipe KeiroAI", "L'équipe", "Cordialement Victor", deux Victor d'affilée, deux P.S. d'affilée
+- INTERDIT : signer "Oussama", "l'équipe KeiroAI", "L'équipe", "Cordialement Hugo", deux Hugo d'affilée, deux P.S. d'affilée
 
 ${learnings}
 
@@ -459,7 +463,7 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}
 <div style="max-width:600px;margin:0 auto;padding:20px;">
 <div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">
 ${email.body.split('\n').map((line: string) => {
-  // 2026-06-25 (bug founder : du HTML brut '<p style=...>Victor' s'affichait +
+  // 2026-06-25 (bug founder : du HTML brut '<p style=...>Hugo' s'affichait +
   // un '<' littéral cassait le rendu). Le corps DOIT être du texte : on retire
   // toute balise que l'IA aurait pu produire, PUIS on échappe les <>& restants.
   const clean = String(line || '')
@@ -596,7 +600,7 @@ async function autoLearn(results: SendResult[], supabase: any, orgId: string | n
   // 2026-06-23 — Apprentissage par FEATURE D'OBJET (founder: "identifier ce qui
   // fait ouvrir"). Corrèle les caractéristiques de l'objet (longueur, question,
   // chiffre) avec l'ouverture réelle → saveLearning (RAG) → ré-injecté dans le
-  // prompt de Victor. Boucle d'amélioration continue du taux d'ouverture.
+  // prompt de Hugo. Boucle d'amélioration continue du taux d'ouverture.
   try {
     const openedIds = new Set(opens.map((o: any) => o.prospect_id).filter(Boolean));
     const feats: Record<string, { sent: number; open: number }> = {
@@ -771,8 +775,8 @@ async function sendEmail(
       return { success: false, error: 'Unresolved template variables' };
     }
     if (template.textBody.includes('Oussama') || template.htmlBody.includes('Oussama')) {
-      template.textBody = template.textBody.replace(/Oussama/g, 'Victor');
-      template.htmlBody = template.htmlBody.replace(/Oussama/g, 'Victor');
+      template.textBody = template.textBody.replace(/Oussama/g, 'Hugo');
+      template.htmlBody = template.htmlBody.replace(/Oussama/g, 'Hugo');
     }
 
     // ── Personalized visual (Hugo + Léna) ─────────────────────────
@@ -936,10 +940,10 @@ async function sendEmail(
       template[key] = t;
     }
 
-    // ── Victor signature + P.S. — DEDUP, don't strip ──
-    // The AI is now allowed (and required) to sign as Victor and to
+    // ── Hugo signature + P.S. — DEDUP, don't strip ──
+    // The AI is now allowed (and required) to sign as Hugo and to
     // include an optional P.S. The role of this block is to:
-    //   1. Remove duplicates if the AI somehow wrote 2 Victor lines or 2 P.S.
+    //   1. Remove duplicates if the AI somehow wrote 2 Hugo lines or 2 P.S.
     //   2. Ensure a clickable keiroai.com/generate link exists somewhere
     //      (text body) — if not, append a single discrete P.S. with it.
     // We DO NOT strip what the AI wrote anymore — it's a real human
@@ -947,9 +951,9 @@ async function sendEmail(
     const signatureUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
     const cleanUrl = signatureUrl.replace(/^https?:\/\//, '');
 
-    // TEXT body dedup — collapse multiple Victor lines into one
+    // TEXT body dedup — collapse multiple Hugo lines into one
     template.textBody = template.textBody.replace(
-      /(\n\s*Victor[^\n]*\n)([\s\S]*?)(\n\s*Victor[^\n]*\n)/gi,
+      /(\n\s*Hugo[^\n]*\n)([\s\S]*?)(\n\s*Hugo[^\n]*\n)/gi,
       '$1$2',
     );
     // TEXT body dedup — collapse multiple P.S. lines into the first one
@@ -962,7 +966,7 @@ async function sendEmail(
       }
     }
     // If no link to keiroai.com anywhere, append a single discrete P.S.
-    // after the Victor line. Never adds a second P.S. — only when none.
+    // after the Hugo line. Never adds a second P.S. — only when none.
     if (!/keiroai\.(com|fr|io)/i.test(template.textBody)) {
       if (/\bP\.?\s*S\.?\b/i.test(template.textBody)) {
         // Author wrote a P.S. but no link — append link to it inline.
@@ -974,18 +978,18 @@ async function sendEmail(
         template.textBody = template.textBody.trimEnd() + `\n\nP.S. Tu peux tester gratuitement : ${signatureUrl}/generate`;
       }
     }
-    // TEXT body: also strip any "Victor de KeiroAI" duplicates that came
-    // from older prompt examples to avoid two Victors back-to-back.
+    // TEXT body: also strip any "Hugo de KeiroAI" duplicates that came
+    // from older prompt examples to avoid two Hugos back-to-back.
     template.textBody = template.textBody.replace(
-      /(\n\s*Victor[^\n]*\n+)\s*Victor[^\n]*\n?/gi,
+      /(\n\s*Hugo[^\n]*\n+)\s*Hugo[^\n]*\n?/gi,
       '$1',
     );
 
     // HTML body — same dedup logic.
     if (template.htmlBody) {
-      // Remove a duplicated "Victor" line if the AI emitted two
+      // Remove a duplicated "Hugo" line if the AI emitted two
       template.htmlBody = template.htmlBody.replace(
-        /(Victor[^<\n]{0,40}(?:<br\s*\/?>|<\/p>|<\/div>)\s*)(.*?)(Victor[^<\n]{0,40}(?:<br\s*\/?>|<\/p>|<\/div>))/i,
+        /(Hugo[^<\n]{0,40}(?:<br\s*\/?>|<\/p>|<\/div>)\s*)(.*?)(Hugo[^<\n]{0,40}(?:<br\s*\/?>|<\/p>|<\/div>))/i,
         '$1$2',
       );
       // Collapse multiple P.S. lines
@@ -1095,8 +1099,8 @@ async function sendEmail(
     if (!sendSuccess && process.env.BREVO_API_KEY) {
       try {
         const brevoResponse = await sendBrevoCompat({
-            sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
-            replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
+            sender: { name: 'Hugo de KeiroAI', email: 'contact@keiroai.com' },
+            replyTo: { email: 'contact@keiroai.com', name: 'Hugo de KeiroAI' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
             // No BCC — saves Brevo quota. Emails tracked via crm_activities.
             subject: template.subject,
@@ -1134,7 +1138,7 @@ async function sendEmail(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Victor de KeiroAI <contact@keiroai.com>',
+            from: 'Hugo de KeiroAI <contact@keiroai.com>',
             to: [prospect.email],
             // No BCC — saves Resend quota. Emails tracked via crm_activities.
             subject: template.subject,
