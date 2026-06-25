@@ -57,10 +57,14 @@ export async function GET(req: NextRequest) {
   const col = PLATFORM_COL[platform];
   const { data: rows } = await supabase
     .from('crm_prospects')
-    .select(`id, company, ${col}, score, angle_approche, note_google, google_rating`)
+    .select(`id, company, ${col}, score, angle_approche, note_google, google_rating, no_outbound, temperature, status`)
     .eq('user_id', user.id).not(col, 'is', null)
     .order('score', { ascending: false, nullsFirst: false }).limit(500);
-  const all = rows || [];
+  // Coordination multi-canal : un follow est un touch. On ne propose JAMAIS de suivre
+  // un opt-out (no_outbound), un prospect mort (temperature='dead') ou perdu (status='perdu').
+  // (filtre en JS — .neq côté SQL exclurait aussi les status NULL légitimes.)
+  const isContactable = (r: any) => !r.no_outbound && r.temperature !== 'dead' && r.status !== 'perdu';
+  const all = (rows || []).filter(isContactable);
   // Suivis sur CETTE plateforme (exclusion de la file).
   const ids = all.map((r: any) => r.id);
   const followed = new Set<string>();
@@ -102,8 +106,9 @@ export async function POST(req: NextRequest) {
     const col = PLATFORM_COL[platform];
     if (action === 'all_done') {
       const { data: rows } = await supabase.from('crm_prospects')
-        .select(`id, ${col}`).eq('user_id', user.id).not(col, 'is', null).limit(500);
-      const list = rows || [];
+        .select(`id, ${col}, no_outbound, temperature, status`).eq('user_id', user.id).not(col, 'is', null).limit(500);
+      // Mêmes gardes que la file : pas d'opt-out / mort / perdu dans le batch.
+      const list = (rows || []).filter((r: any) => !r.no_outbound && r.temperature !== 'dead' && r.status !== 'perdu');
       if (list.length) {
         await supabase.from('crm_activities').insert(list.map((r: any) => ({
           prospect_id: r.id, type: 'client_followed',

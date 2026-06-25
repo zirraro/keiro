@@ -100,10 +100,12 @@ export async function GET(req: NextRequest) {
   // que des recherches LinkedIn (catégories). Insta/TikTok : vérif live.
   if (platform !== 'linkedin') try {
     const { data: rows } = await supabase.from('crm_prospects')
-      .select(`id, company, ${handleCol}`).eq('user_id', user.id).not(handleCol, 'is', null).limit(60);
+      .select(`id, company, ${handleCol}, no_outbound, temperature, status`).eq('user_id', user.id).not(handleCol, 'is', null).limit(80);
     const seen = new Set<string>();
     const candidates: { handle: string; company: string; prospectId: string | null }[] = [];
     for (const r of (rows || []) as any[]) {
+      // Coordination : un follow est un touch → jamais d'opt-out / mort / perdu.
+      if (r.no_outbound || r.temperature === 'dead' || r.status === 'perdu') continue;
       const h = String(r[handleCol] || '').replace(/^@/, '').replace(/\s/g, '').replace(/https?:\/\/(www\.)?(instagram|tiktok)\.com\/@?/i, '').replace(/\/$/, '').trim();
       if (!h || h.length < 2 || !/^[a-zA-Z0-9._]{2,30}$/.test(h) || seen.has(h.toLowerCase())) continue;
       seen.add(h.toLowerCase());
