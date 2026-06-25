@@ -6287,6 +6287,20 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
     } catch (e: any) { console.warn('[Content] reach-strategy load failed:', e?.message); }
   }
 
+  // Registre tu/vous — même expertise partagée que pour les emails (Hugo) : arbitrage
+  // par secteur. La marque parle à SON audience dans le bon ton (proximité vs sérieux).
+  // Override client possible via directive ("vouvoie mon audience") déjà injectée plus bas.
+  let registerBlock = '';
+  try {
+    const { pickRegister } = await import('@/lib/agents/tone-register');
+    const overrideRaw = String((clientSettings as any)?.tone_register || '').toLowerCase();
+    const override = overrideRaw === 'tu' || overrideRaw === 'vous' ? overrideRaw as 'tu' | 'vous' : null;
+    const reg = pickRegister(detectedBusinessType || (clientSettings as any)?.business_type, override);
+    registerBlock = reg === 'vous'
+      ? `\n━━━ REGISTRE DE LA MARQUE ━━━\nVOUVOIEMENT (vous / votre) — ce secteur attend un ton professionnel, posé et rassurant. La marque s'adresse à son audience avec respect et sérieux, chaleureux mais jamais familier. N'utilise jamais "tu/ton/ta" dans les légendes.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+      : `\n━━━ REGISTRE DE LA MARQUE ━━━\nTUTOIEMENT (tu / ton / ta) — proximité et complicité, ton direct comme un commerce de quartier qui parle à ses habitués. JAMAIS "vous/votre" ni formules guindées ("nous vous proposons", "cher client").\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  } catch (e: any) { console.warn('[Content] tone-register load failed:', e?.message); }
+
   // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG
   // captions ("algo LinkedIn", "B2B", "decision-makers") or talks
   // about FYP on a LinkedIn post. Each platform has its own voice.
@@ -6440,7 +6454,7 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
   }
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
-${trendsContext}${eventContext}${reachStrategyBlock}${personalBrandingBlock}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
+${trendsContext}${eventContext}${reachStrategyBlock}${registerBlock}${personalBrandingBlock}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
