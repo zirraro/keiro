@@ -61,6 +61,14 @@ export default function BrandKitOnboarding() {
   const [pbProfile, setPbProfile] = useState<Record<string, string>>({});
   const [pbTones, setPbTones] = useState<string[]>([]);
   const [pbObjective, setPbObjective] = useState('');
+  // Moment "magie" (founder) : un vrai exemple de notre vitrine pour SON secteur.
+  const [sample, setSample] = useState<{ imageUrl?: string; videoUrl?: string; label?: string } | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/onboarding/sample?sector=${vertical}`)
+      .then(r => r.json()).then(d => { if (d?.ok && (d.imageUrl || d.videoUrl)) setSample(d); }).catch(() => {});
+  }, [vertical]);
 
   useEffect(() => {
     fetch('/api/brand-kit', { credentials: 'include' })
@@ -120,12 +128,33 @@ export default function BrandKitOnboarding() {
 
   return (
     <div className="min-h-dvh max-w-2xl mx-auto px-4 py-8 text-white">
-      <h1 className="text-2xl font-bold mb-1">🚀 Configure ton équipe — 5 min</h1>
-      <p className="text-white/50 text-sm mb-6">Clara prépare ton brand kit : ces infos permettent à tes agents de ne JAMAIS inventer un prix, une promo ou un horaire.</p>
+      <h1 className="text-2xl font-bold mb-1">✨ Active ton équipe en 1 minute</h1>
+      <p className="text-white/50 text-sm mb-5">Juste ton nom + ton secteur, et c'est parti. Le reste (horaires, prix, ton…), <span className="text-white/80">Clara le complète avec toi plus tard</span> — rien ne te bloque.</p>
+
+      {/* Moment "MAGIE" — un vrai exemple de notre vitrine pour SON secteur, pour
+          ressentir la valeur tout de suite (founder : feel the magic in 3 taps). */}
+      {sample && (sample.imageUrl || sample.videoUrl) && (
+        <div className="mb-5 rounded-2xl overflow-hidden border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.06] to-white/[0.02]">
+          <div className="p-3 pb-2">
+            <div className="text-xs font-semibold text-emerald-300">🎬 Voilà ce que ton équipe prépare pour {sample.label ? `un·e ${sample.label.toLowerCase()}` : 'toi'}</div>
+            <div className="text-[11px] text-white/45">Du contenu pro comme ça, publié pour toi régulièrement. C'est ça qui t'attend.</div>
+          </div>
+          <div className="grid grid-cols-2 gap-1 px-1.5 pb-1.5">
+            {sample.videoUrl ? (
+              <video src={sample.videoUrl} muted autoPlay loop playsInline className="w-full aspect-[9/16] object-cover rounded-lg bg-black" />
+            ) : sample.imageUrl ? (
+              <img src={sample.imageUrl} alt="" className="w-full aspect-[9/16] object-cover rounded-lg" />
+            ) : null}
+            {sample.imageUrl && (
+              <img src={sample.imageUrl} alt="" className="w-full aspect-[9/16] object-cover rounded-lg" />
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 flex items-center justify-between">
-        <span className="text-sm">Complétude</span>
-        <span className={`font-bold ${confirmed ? 'text-emerald-400' : 'text-amber-400'}`}>{completeness}% {confirmed ? '· prêt ✓' : ''}</span>
+        <span className="text-sm">{confirmed ? '✅ Ton équipe est active' : '⚡ Prêt à activer'}</span>
+        <span className={`font-bold ${confirmed ? 'text-emerald-400' : 'text-amber-400'}`}>{completeness}%</span>
       </div>
 
       {/* Nom + verticale */}
@@ -140,6 +169,18 @@ export default function BrandKitOnboarding() {
         </div>
       </section>
 
+      {/* Détails OPTIONNELS — repliés par défaut. Le client active sans les
+          remplir ; Clara les complète avec lui plus tard (founder). */}
+      <button
+        type="button"
+        onClick={() => setShowDetails(s => !s)}
+        className="w-full mb-4 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-left text-sm text-white/70 hover:border-white/20 flex items-center justify-between"
+      >
+        <span>🛠️ Compléter maintenant <span className="text-white/40">(optionnel — horaires, prix, sujets, personal branding)</span></span>
+        <span className="text-white/40">{showDetails ? '▲' : '▼'}</span>
+      </button>
+
+      {showDetails && (<>
       {/* Horaires */}
       <section className="mb-5">
         <label className="block text-sm font-medium mb-1">Horaires</label>
@@ -253,11 +294,20 @@ export default function BrandKitOnboarding() {
           </div>
         )}
       </section>
+      </>)}
 
       <button onClick={save} disabled={saving || !businessName} className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 font-bold disabled:opacity-50">
-        {saving ? 'Enregistrement…' : confirmed ? 'Mettre à jour mon brand kit' : 'Valider mon brand kit'}
+        {saving ? 'Activation…' : confirmed ? '✓ Mettre à jour' : '🚀 Activer mon équipe'}
       </button>
-      {confirmed && <p className="text-center text-emerald-400 text-sm mt-3">✓ Brand kit confirmé — tes agents publient en sécurité. Tu peux activer la publication auto.</p>}
+      {confirmed ? (
+        <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-4 text-center">
+          <div className="text-emerald-300 font-bold mb-1">✅ Ton équipe est active !</div>
+          <p className="text-white/60 text-xs mb-3">Clara va t'accompagner et te demander quelques infos au fil de l'eau pour tout affiner — rien à faire de plus maintenant. Tes agents se mettent déjà au travail.</p>
+          <a href="/assistant" className="inline-block rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2.5 font-bold text-sm">Voir mes agents au travail →</a>
+        </div>
+      ) : (
+        <p className="text-center text-white/35 text-[11px] mt-3">+200 commerces font déjà tourner leur présence en ligne avec leur équipe KeiroAI.</p>
+      )}
     </div>
   );
 }
