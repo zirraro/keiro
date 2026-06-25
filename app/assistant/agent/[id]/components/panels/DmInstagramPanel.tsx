@@ -189,9 +189,15 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
         </button>
       </div>
 
-      {/* Comptes à suivre — comptes RÉELS vérifiés + warming + "Fait" (CRM +
-          accomplissement). Insta + TikTok + LinkedIn. (founder 2026-06-24/25) */}
-      {tab === 'follows' && <FollowSuggestions platform={network} />}
+      {/* Comptes à suivre — MÊME setup riche que l'onglet Insta (file de
+          prospects cliquables → profil + Fait/Passer + Tout marquer fait + KPIs)
+          pour les 3 réseaux (founder 2026-06-25). + warming/niche en complément. */}
+      {tab === 'follows' && (
+        <div data-tour="dm-follows">
+          <ManualFollowsList platform={network} />
+          <FollowSuggestions platform={network} />
+        </div>
+      )}
 
       {/* Instagram — DM + commentaires (Meta API) */}
       {igFull && tab === 'dms' && (
@@ -199,9 +205,6 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
       )}
       {igFull && tab === 'comments' && (
         <div data-tour="dm-comments"><LenaCommentsSection /></div>
-      )}
-      {igFull && tab === 'follows' && (
-        <div data-tour="dm-follows"><ManualFollowsList /></div>
       )}
 
       {/* TikTok — uniquement comptes à suivre (l'API ne permet pas DM/commentaires) */}
@@ -473,13 +476,15 @@ function urlB64ToUint8Array(base64String: string) {
   return out;
 }
 
-function ManualFollowsList() {
+function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' | 'tiktok' | 'linkedin' }) {
   const { locale } = useLanguage();
   const en = locale === 'en';
+  const netLabel = platform === 'tiktok' ? 'TikTok' : platform === 'linkedin' ? 'LinkedIn' : 'Instagram';
   const [items, setItems] = useState<Array<{
     id: string;
     company?: string;
     instagram?: string;
+    handle?: string;
     score?: number;
     angle_approche?: string;
     note_google?: number;
@@ -581,10 +586,12 @@ function ManualFollowsList() {
     }
   }, []);
 
-  const profileHref = (handle: string) =>
-    isMobile
-      ? `instagram://user?username=${encodeURIComponent(handle)}`
-      : `https://www.instagram.com/${encodeURIComponent(handle)}/`;
+  const profileHref = (handle: string) => {
+    const h = encodeURIComponent(String(handle || '').replace(/^@/, ''));
+    if (platform === 'tiktok') return `https://www.tiktok.com/@${h}`;
+    if (platform === 'linkedin') return /^https?:\/\//i.test(handle) ? handle : `https://www.linkedin.com/search/results/all/?keywords=${h}`;
+    return isMobile ? `instagram://user?username=${h}` : `https://www.instagram.com/${h}/`;
+  };
 
   // Auto-seed strategy: on the very first time the client opens this
   // tab after connecting Instagram, if our manual-follows queue is
@@ -597,18 +604,19 @@ function ManualFollowsList() {
   const load = async (allowSeed = false) => {
     try {
       setLoading(true);
-      const res = await fetch('/api/agents/dm-instagram/manual-follows');
+      const res = await fetch(`/api/agents/dm-instagram/manual-follows?platform=${platform}`);
       if (!res.ok) return;
       const data = await res.json();
       const list = data.follows || [];
       setItems(list);
       if (data.funnel) setFunnel(data.funnel);
 
-      // First-connection seeding: empty queue + IG connected + never
-      // seeded yet → trigger Léo prospection then re-fetch.
+      // First-connection seeding (Instagram seulement — Léo prospecte des
+      // handles IG ; TikTok/LinkedIn réutilisent les mêmes prospects via leur
+      // handle propre).
       const igConnected = (typeof window !== 'undefined' && (window as any).__igConnected) || false;
       const alreadySeeded = typeof window !== 'undefined' && localStorage.getItem(SEED_KEY) === '1';
-      if (allowSeed && igConnected && list.length === 0 && !alreadySeeded) {
+      if (platform === 'instagram' && allowSeed && igConnected && list.length === 0 && !alreadySeeded) {
         try {
           localStorage.setItem(SEED_KEY, '1');
           // Kick off a small follow-prospects pass — async, fire-and-forget
@@ -631,7 +639,7 @@ function ManualFollowsList() {
       await fetch('/api/agents/dm-instagram/manual-follows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prospect_id: prospectId, action }),
+        body: JSON.stringify({ prospect_id: prospectId, action, platform }),
       });
       setItems(prev => prev.filter(x => x.id !== prospectId));
     } finally {
@@ -641,15 +649,15 @@ function ManualFollowsList() {
 
   const handleMarkAllDone = async () => {
     const msg = en
-      ? `Mark all ${items.length} accounts as followed? Use this only if you've already tapped Follow on each profile on Instagram.`
-      : `Marquer les ${items.length} comptes comme suivis ? Utilise ce bouton uniquement si tu as déjà tapé Suivre sur chaque profil Instagram.`;
+      ? `Mark all ${items.length} accounts as followed? Use this only if you've already tapped Follow on each profile on ${netLabel}.`
+      : `Marquer les ${items.length} comptes comme suivis ? Utilise ce bouton uniquement si tu as déjà tapé Suivre sur chaque profil ${netLabel}.`;
     if (!window.confirm(msg)) return;
     setBatchBusy(true);
     try {
       await fetch('/api/agents/dm-instagram/manual-follows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'all_done' }),
+        body: JSON.stringify({ action: 'all_done', platform }),
       });
       setItems([]);
     } finally {
@@ -662,6 +670,18 @@ function ManualFollowsList() {
   }
 
   if (items.length === 0) {
+    // TikTok / LinkedIn : pas de données d'exemple IG — état vide simple +
+    // renvoi vers la prospection (les comptes viennent des prospects qui ont
+    // un handle de cette plateforme).
+    if (platform !== 'instagram') {
+      return (
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center leading-relaxed">
+          <span className="text-xl">{'\u{1F91D}'}</span>
+          <p className="text-xs text-white/60 mt-1">{en ? `No ${netLabel} accounts to follow yet` : `Aucun compte ${netLabel} à suivre pour l'instant`}</p>
+          <p className="text-[11px] text-white/40 mt-1">{en ? `Léo's prospection surfaces accounts with a ${netLabel} handle — they'll appear here to follow in one tap.` : `La prospection de Léo fait remonter les comptes ayant un ${netLabel} — ils apparaîtront ici à suivre en un tap.`}</p>
+        </div>
+      );
+    }
     // STRICT rule: sample accounts ONLY when Instagram is NOT connected.
     // When connected, the empty state is "no accounts queued yet" — real
     // suggestions come in as Léo's prospection queue produces matches.
@@ -804,7 +824,7 @@ function ManualFollowsList() {
         </div>
       </div>
       {items.map(item => {
-        const handle = String(item.instagram || '').replace(/^@/, '');
+        const handle = String(item.handle || item.instagram || '').replace(/^@/, '');
         const rating = item.google_rating || item.note_google;
         return (
           <div key={item.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-start gap-3">
