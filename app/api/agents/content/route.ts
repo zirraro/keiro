@@ -1908,6 +1908,30 @@ async function publishToTikTok(
       }
     } catch (e: any) { console.warn('[Content] account-change guard failed (non-blocking):', e?.message); }
 
+    // 2026-06-25 — GARDE QUOTA TikTok (digest 'daily posting limit' = séquelle
+    // du burst). On respecte la cadence SAINE (reach-strategy) au publish : si
+    // on a déjà publié >= dailyCap sur 24h, on DÉCALE à demain au lieu de
+    // forcer (sinon TikTok renvoie 'daily posting limit' → erreur + rate-limit
+    // API). Ça enforce aussi le warming : jamais de rafale sur un compte.
+    try {
+      const ownerForCap = (post as any).user_id || ownerId;
+      if (ownerForCap && post.id) {
+        const since24 = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+        const [{ count: tt24 }, { count: ttTotal }] = await Promise.all([
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('user_id', ownerForCap).eq('platform', 'tiktok').eq('status', 'published').gte('published_at', since24),
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('user_id', ownerForCap).eq('platform', 'tiktok').eq('status', 'published'),
+        ]);
+        const { getAccountStage, reachPlan } = await import('@/lib/agents/reach-strategy');
+        const cap = reachPlan(getAccountStage(ttTotal || 0), 'tiktok').dailyCap;
+        if ((tt24 || 0) >= cap) {
+          const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+          await supabase.from('content_calendar').update({ status: 'approved', scheduled_date: tomorrow, scheduled_time: '18:30:00', publish_diagnostic: 'tiktok_daily_cap_deferred', updated_at: new Date().toISOString() }).eq('id', post.id);
+          console.log(`[TikTok] daily cap ${tt24}/${cap} atteint → post ${post.id} décalé à ${tomorrow}`);
+          return { success: false, error: 'tiktok_daily_cap_deferred' };
+        }
+      }
+    } catch { /* best-effort — ne bloque pas la publi sur une erreur de comptage */ }
+
     let accessToken = ownerProfile.tiktok_access_token;
     const refreshToken = ownerProfile.tiktok_refresh_token;
 
@@ -3441,7 +3465,7 @@ export async function POST(request: NextRequest) {
         // rescheduled, so we keep them 'approved' (ship on the next slot) and
         // don't pollute the digest with false "publications bloquées".
         const joinedErr = errors.join(' | ');
-        const isGuard = /daily_cap|rate_limit|non connect|not connect|cadence_cap|autopost_paused/i.test(joinedErr);
+        const isGuard = /daily_cap|rate_limit|non connect|not connect|cadence_cap|autopost_paused|daily posting limit|reached the daily|too many post|spam_risk|account_changed/i.test(joinedErr);
         if (pubPermalink || pubPublishId) {
           pubUpdate.status = 'published'; // a real publish actually happened
         } else if (errors.length > 0) {
