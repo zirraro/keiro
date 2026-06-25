@@ -1964,7 +1964,7 @@ function LibraryContent() {
       {/* DropZone Overlay */}
       <DropZone isDragging={isDragging} onCancel={() => setIsDragging(false)} />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Email Gate Modal */}
         <EmailGateModal
           isOpen={showEmailGate}

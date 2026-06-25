@@ -45,6 +45,10 @@ export default function BrandKitOnboarding() {
   const [saving, setSaving] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [completeness, setCompleteness] = useState(0);
+  // 2026-06-25 — VALUE-FIRST : l'activation ne dépend PAS de la complétude.
+  // Dès que nom + secteur sont enregistrés, l'équipe est "active" et le client
+  // file dans l'app ; Clara complète le reste après. (founder)
+  const [activated, setActivated] = useState(false);
 
   const [businessName, setBusinessName] = useState('');
   const [vertical, setVertical] = useState('restaurant');
@@ -76,6 +80,7 @@ export default function BrandKitOnboarding() {
       .then(d => {
         if (d.kit) {
           setBusinessName(d.kit.business_name || '');
+          if (d.kit.business_name) setActivated(true);
           setVertical(d.kit.vertical || 'restaurant');
           setNoPublicPrices(!!d.kit.no_public_prices);
           if (d.prices?.length) setPrices(d.prices.map((p: any) => ({ service_name: p.service_name, amount_eur: String(p.amount_eur), no_discount: p.no_discount })));
@@ -119,6 +124,8 @@ export default function BrandKitOnboarding() {
       const d = await r.json();
       setConfirmed(!!d.confirmed);
       setCompleteness(d.completeness || 0);
+      // Activation immédiate : nom + secteur enregistrés = équipe active.
+      if (r.ok && businessName.trim()) setActivated(true);
     } finally {
       setSaving(false);
     }
@@ -153,8 +160,8 @@ export default function BrandKitOnboarding() {
       )}
 
       <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 flex items-center justify-between">
-        <span className="text-sm">{confirmed ? '✅ Ton équipe est active' : '⚡ Prêt à activer'}</span>
-        <span className={`font-bold ${confirmed ? 'text-emerald-400' : 'text-amber-400'}`}>{completeness}%</span>
+        <span className="text-sm">{(confirmed || activated) ? '✅ Ton équipe est active' : '⚡ Prêt à activer'}</span>
+        <span className={`font-bold ${(confirmed || activated) ? 'text-emerald-400' : 'text-amber-400'}`}>{completeness}%</span>
       </div>
 
       {/* Nom + verticale */}
@@ -299,7 +306,7 @@ export default function BrandKitOnboarding() {
       <button onClick={save} disabled={saving || !businessName} className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 font-bold disabled:opacity-50">
         {saving ? 'Activation…' : confirmed ? '✓ Mettre à jour' : '🚀 Activer mon équipe'}
       </button>
-      {confirmed ? (
+      {(confirmed || activated) ? (
         <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-4 text-center">
           <div className="text-emerald-300 font-bold mb-1">✅ Ton équipe est active !</div>
           <p className="text-white/60 text-xs mb-3">Clara va t'accompagner et te demander quelques infos au fil de l'eau pour tout affiner — rien à faire de plus maintenant. Tes agents se mettent déjà au travail.</p>
