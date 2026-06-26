@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
   add('Webhook signature enforcement', true, false, process.env.ENFORCE_WEBHOOK_SIGNATURES === 'on' ? 'ON' : 'OFF (non-bloquant)');
 
   const hardFails = checks.filter(c => c.hard && !c.ok);
+  const softFails = checks.filter(c => !c.hard && !c.ok);
   const passed = checks.filter(c => c.ok).length;
   const summary = `${passed}/${checks.length} OK${hardFails.length ? ` — ${hardFails.length} échec(s) critique(s): ${hardFails.map(c => c.name).join(', ')}` : ''}`;
 
@@ -101,6 +102,37 @@ export async function GET(req: NextRequest) {
       created_at: new Date().toISOString(),
     });
   } catch { /* best-effort */ }
+
+  // EMAIL ADMIN à CHAQUE passage — confirmation que tout va bien OU alerte si problème.
+  try {
+    const ADMIN_EMAIL = 'contact@keiroai.com';
+    const ok = hardFails.length === 0;
+    const subject = ok
+      ? `🛡️ Sécurité KeiroAI — tout est OK (${passed}/${checks.length})`
+      : `🚨 Sécurité KeiroAI — ${hardFails.length} problème(s) critique(s) à corriger`;
+    const row = (c: { name: string; ok: boolean; hard: boolean; detail: string }) =>
+      `<tr><td style="padding:4px 10px">${c.ok ? '✅' : (c.hard ? '🚨' : '⚠️')}</td><td style="padding:4px 10px">${c.name}${c.hard ? '' : ' <span style="color:#888">(info)</span>'}</td><td style="padding:4px 10px;color:#666">${c.detail || ''}</td></tr>`;
+    const html = `
+      <div style="font-family:system-ui,Arial,sans-serif;max-width:640px">
+        <h2 style="margin:0 0 4px">${ok ? '🛡️ Contrôle de sécurité — RAS' : '🚨 Contrôle de sécurité — action requise'}</h2>
+        <p style="color:#555;margin:0 0 12px">${summary}</p>
+        ${hardFails.length ? `<p style="color:#b00;font-weight:600">À corriger : ${hardFails.map(c => c.name).join(', ')}</p>` : ''}
+        ${softFails.length ? `<p style="color:#a60">À surveiller : ${softFails.map(c => c.name).join(', ')}</p>` : ''}
+        <table style="border-collapse:collapse;font-size:13px;width:100%">${checks.map(row).join('')}</table>
+        <p style="color:#999;font-size:11px;margin-top:14px">Contrôle automatique quotidien — KeiroAI security-check.</p>
+      </div>`;
+    const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+    await sendEmailWithFallback({
+      to: ADMIN_EMAIL,
+      subject,
+      html,
+      fromName: 'KeiroAI Sécurité',
+      fromEmail: 'contact@keiroai.com',
+      tags: ['security_check', ok ? 'ok' : 'alert'],
+    });
+  } catch (e: any) {
+    console.error('[SecurityCheck] email send failed:', e?.message);
+  }
 
   return NextResponse.json({ ok: hardFails.length === 0, summary, checks });
 }
