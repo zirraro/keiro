@@ -352,6 +352,9 @@ export async function GET(request: NextRequest) {
       // tout les agents et client est pret pour la journée".
       fireBackground(async () => {
         await callEndpoint('Admin Morning Digest', '/api/cron/admin-morning-digest', 'GET');
+        // Contrôle de sécurité automatique quotidien — toute régression (headers,
+        // chiffrement, divulgation…) remonte en erreur dans le digest admin.
+        await callEndpoint('Security Check', '/api/cron/security-check', 'GET');
       });
 
       // 1. Commercial — HIGHEST PRIORITY: finds new prospects for all other agents

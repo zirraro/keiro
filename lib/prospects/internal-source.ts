@@ -22,6 +22,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { pgSafe } from '@/lib/safe-filter';
 
 export interface InternalSourceResult {
   importedFromPool: number;
@@ -90,7 +91,7 @@ async function pullFromPool(
       .eq('business_status', 'OPERATIONAL')
       .order('google_reviews', { ascending: false, nullsFirst: false })
       .limit(limit * 4); // over-fetch — we filter below
-    if (focus.sector) q = q.or(`business_type.ilike.%${focus.sector}%,types.cs.{${focus.sector}}`);
+    if (focus.sector) { const s = pgSafe(focus.sector); if (s) q = q.or(`business_type.ilike.%${s}%,types.cs.{${s}}`); }
     const { data } = await q;
     if (!data || data.length === 0) return [];
 

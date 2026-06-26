@@ -52,9 +52,16 @@ export async function POST(req: NextRequest) {
       if (signature) {
         const sigBuf = Buffer.from(signature);
         const expBuf = Buffer.from(expected);
-        if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-          console.warn('[InstagramWebhook] Invalid signature — rejected');
-          return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 401 });
+        const valid = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
+        if (!valid) {
+          // NON-BLOQUANT par défaut (le secret a 3 sources possibles — on ne risque
+          // pas de couper les webhooks IG live). Passe ENFORCE_WEBHOOK_SIGNATURES=on
+          // une fois confirmé dans les logs qu'aucune signature légitime n'est rejetée.
+          if (process.env.ENFORCE_WEBHOOK_SIGNATURES === 'on') {
+            console.warn('[InstagramWebhook] Invalid signature — rejected (enforce on)');
+            return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 401 });
+          }
+          console.warn('[InstagramWebhook] Invalid signature — toléré (enforce off)');
         }
       }
     }

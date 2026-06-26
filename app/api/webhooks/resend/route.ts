@@ -5,18 +5,25 @@ import crypto from 'crypto';
 export const runtime = 'nodejs';
 
 function verifyResendSignature(payload: string, signature: string | null, secret: string): boolean {
-  if (!secret) return true;        // secret non configuré (dev) → on n'impose pas
-  if (!signature) return false;    // secret configuré mais signature absente → REJET (fail-closed, CASA)
-  try {
-    const [ts, sig] = signature.split(',').reduce((acc, part) => {
-      const [key, val] = part.split('=');
-      if (key === 't') acc[0] = val;
-      if (key === 'v1') acc[1] = val;
-      return acc;
-    }, ['', '']);
-    const expected = crypto.createHmac('sha256', secret).update(`${ts}.${payload}`).digest('hex');
-    return expected === sig;
-  } catch { return false; }
+  if (!secret) return true; // secret non configuré → on n'impose pas
+  const enforce = process.env.ENFORCE_WEBHOOK_SIGNATURES === 'on';
+  let valid = false;
+  if (signature) {
+    try {
+      const [ts, sig] = signature.split(',').reduce((acc, part) => {
+        const [key, val] = part.split('=');
+        if (key === 't') acc[0] = val;
+        if (key === 'v1') acc[1] = val;
+        return acc;
+      }, ['', '']);
+      const expected = crypto.createHmac('sha256', secret).update(`${ts}.${payload}`).digest('hex');
+      valid = expected === sig;
+    } catch { valid = false; }
+  }
+  if (!valid) console.warn(`[ResendWebhook] signature invalide/absente — ${enforce ? 'rejetée' : 'tolérée'}`);
+  // Non-bloquant par défaut (le format de signature Resend peut différer → on ne
+  // casse pas le tracking emails). Activer ENFORCE_WEBHOOK_SIGNATURES=on après vérif.
+  return valid || !enforce;
 }
 
 /**
