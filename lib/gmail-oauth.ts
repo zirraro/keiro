@@ -26,14 +26,16 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     response_type: 'code',
     // NIVEAUX D'ACCÈS MINIMAUX (vérif Google Trust & Safety, juin 2026) :
     //   - gmail.send     → envoyer / répondre depuis le Gmail du client (feature cœur)
-    //   - gmail.readonly → lire les réponses prospects pour les router vers
-    //                      /api/webhooks/email-inbound (auto-reply Hugo)
-    // gmail.modify RETIRÉ : il ne servait qu'à marquer les messages lus. On
-    // dédoublonne déjà via gmail_last_poll_at + message_id en aval, donc inutile.
-    // Retirer ce scope restreint = strict minimum demandé par Google.
+    //   - userinfo.email → identifier la boîte connectée
+    // INTERIM : gmail.readonly (RESTREINT → déclenche l'audit CASA payant) est
+    // RETIRÉ pour l'instant. La détection des réponses passe par le Reply-To vers
+    // /api/webhooks/email-inbound (comme le mail domaine perso), donc aucun scope
+    // restreint → vérification Google 100% gratuite. On réintroduira gmail.readonly
+    // + l'audit CASA plus tard pour lire la boîte complète du client (réponses
+    // visibles dans son Gmail + lecture des mails non envoyés par nous).
+    // gmail.modify : déjà retiré (servait juste à marquer lu).
     scope: [
       'https://www.googleapis.com/auth/gmail.send',
-      'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
     ].join(' '),
     access_type: 'offline',

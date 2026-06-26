@@ -249,6 +249,10 @@ export async function POST(request: NextRequest) {
             template.htmlBody,
             senderName,
             gmailAuth.email,
+            // Reply-To → notre pipeline inbound (comme le mail domaine). Les réponses
+            // sont auto-traitées SANS lire la boîte Gmail du client → pas besoin du
+            // scope restreint gmail.readonly (donc pas d'audit CASA). Interim juin 2026.
+            'contact@keiroai.com',
           );
           if (result.sent) {
             messageId = result.id;
@@ -340,7 +344,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Victor de KeiroAI <contact@keiroai.com>',
+            from: 'Hugo de KeiroAI <contact@keiroai.com>',
             to: [prospect.email],
             reply_to: 'contact@keiroai.com',
             subject: template.subject,
@@ -374,9 +378,9 @@ export async function POST(request: NextRequest) {
     if (!sendSuccess && process.env.BREVO_API_KEY) {
       try {
         const brevoResponse = await sendBrevoCompat({
-            sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
+            sender: { name: 'Hugo de KeiroAI', email: 'contact@keiroai.com' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
-            replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
+            replyTo: { email: 'contact@keiroai.com', name: 'Hugo de KeiroAI' },
             subject: template.subject,
             htmlContent: template.htmlBody,
             textContent: template.textBody,

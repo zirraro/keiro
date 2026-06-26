@@ -38,15 +38,18 @@ L'écran de consentement GCP doit lister EXACTEMENT ces scopes (retirer `gmail.m
 > ⚠️ Le SEUL scope qui déclenche l'audit **CASA** (auditeur tiers, annuel, payant) = **`gmail.readonly`**
 > (lecture de la boîte pour détecter les réponses).
 >
-> 🟢 **Option 100% GRATUITE (recommandée)** : retirer `gmail.readonly` et router les réponses via notre
-> webhook inbound (`/api/webhooks/email-inbound`) avec un `Reply-To` — **exactement comme le mail domaine
-> perso**. La fonction `sendViaGmail(...)` accepte déjà un `replyTo`. Résultat : envoi depuis le Gmail du
-> client + auto-reply conservés, **zéro scope restreint, zéro CASA, vérification entièrement gratuite**.
-> Seul changement : les réponses transitent par KeiroAI (comme le domaine) au lieu d'arriver dans la
-> boîte Gmail du client.
+> 🟢 **INTERIM IMPLÉMENTÉ (juin 2026, décision founder)** : `gmail.readonly` RETIRÉ. On envoie depuis le
+> Gmail du client (`gmail.send`) avec un `Reply-To: contact@keiroai.com` qui route les réponses vers
+> `/api/webhooks/email-inbound` — **exactement comme le mail domaine perso**. Résultat : **zéro scope
+> restreint demandé → zéro CASA → vérification Google 100% gratuite**. Poller Gmail désactivé
+> (flag `GMAIL_INBOUND_POLL`, défaut off). Tradeoff assumé : en attendant, les réponses transitent par
+> KeiroAI (le client ne les voit pas dans son Gmail, et on ne lit pas ses autres mails).
 >
-> Sous **100 utilisateurs**, l'app non vérifiée fonctionne déjà gratuitement (écran d'avertissement) —
-> aucun paiement requis pour tester/lancer.
+> 🔵 **PLUS TARD** : réintroduire `gmail.readonly` + lancer l'audit **CASA** pour lire la boîte complète
+> (réponses visibles dans le Gmail du client + mails non envoyés par nous). Remettre le scope dans
+> `lib/gmail-oauth.ts` et poser `GMAIL_INBOUND_POLL=on`.
+>
+> Sous **100 utilisateurs**, l'app non vérifiée fonctionne déjà gratuitement (écran d'avertissement).
 
 ---
 
@@ -109,12 +112,11 @@ d'accueil est `https://keiroai.com`, la politique de confidentialité `https://k
 et les conditions `https://keiroai.com/legal/terms`.
 
 **2. Niveaux d'accès minimaux**
-Nous avons réduit nos scopes au strict nécessaire et **supprimé `gmail.modify`** (il ne servait qu'à
-marquer les messages comme lus ; nous dédoublonnons désormais via un horodatage interne). Les scopes
-demandés et leur usage exact :
-- `gmail.send` — envoyer et répondre aux emails depuis l'adresse Gmail du client.
-- `gmail.readonly` — lire les réponses entrantes pour permettre la réponse assistée.
-- `business.manage` — lire les avis de la fiche Google Business du client et publier ses réponses.
+Nous avons réduit nos scopes au strict nécessaire et **ne demandons aucun scope restreint**. Nous avons
+retiré `gmail.modify` et `gmail.readonly` ; la détection des réponses passe désormais par un `Reply-To`
+routé vers notre pipeline (sans lire la boîte de l'utilisateur). Les scopes demandés et leur usage exact :
+- `gmail.send` (sensible) — envoyer et répondre aux emails depuis l'adresse Gmail du client.
+- `business.manage` (sensible) — lire les avis de la fiche Google Business du client et publier ses réponses.
 - `userinfo.email` — identifier la boîte connectée.
 
 **3. Règles de confidentialité & accès approprié aux données**

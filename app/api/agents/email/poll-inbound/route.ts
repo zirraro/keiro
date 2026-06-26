@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get('user_id');
   if (!userId) return NextResponse.json({ ok: false, error: 'user_id required' }, { status: 400 });
 
+  // INTERIM (juin 2026) : on ne demande plus le scope restreint gmail.readonly
+  // (évite l'audit CASA). La lecture de la boîte est donc désactivée — les réponses
+  // arrivent via le Reply-To → /api/webhooks/email-inbound, comme le mail domaine.
+  // Réactiver en posant GMAIL_INBOUND_POLL=on une fois gmail.readonly + CASA en place.
+  if (process.env.GMAIL_INBOUND_POLL !== 'on') {
+    return NextResponse.json({ ok: true, skipped: 'gmail_readonly_disabled_interim' });
+  }
+
   const supabase = getSupabaseAdmin();
 
   const token = await getValidGmailToken(userId);
