@@ -22,21 +22,31 @@
 
 L'écran de consentement GCP doit lister EXACTEMENT ces scopes (retirer `gmail.modify` côté console aussi) :
 
-| Scope | Catégorie Google | Feature visible | Justification (1 ligne pour le form) |
-|---|---|---|---|
-| `gmail.send` | Restreint | « Envoyer depuis mon Gmail » (agent Hugo) | Envoyer et répondre aux emails de prospection depuis l'adresse Gmail du client. |
-| `gmail.readonly` | Restreint | Réponses auto aux réponses prospects | Lire les réponses entrantes pour les router vers l'assistant qui rédige la réponse. |
-| `business.manage` | Sensible | Gestion auto des avis Google (agent Théo) | Lire les avis de la fiche du client et publier les réponses qu'il a approuvées. |
-| `userinfo.email` | Standard | Identifier la boîte connectée | Afficher quelle adresse est connectée. |
-| `openid` / `profile` | Standard | Login | Connexion. |
+| Scope | Catégorie Google | Coût vérif | Feature visible | Justification (form) |
+|---|---|---|---|---|
+| `gmail.send` | **Sensible** | **GRATUIT** | « Envoyer depuis mon Gmail » (Hugo) | Envoyer/répondre aux emails depuis l'adresse Gmail du client. |
+| `gmail.readonly` | **Restreint** | **CASA (payant)** | Détecter les réponses prospects | Lire les réponses entrantes pour l'auto-reply. **← le SEUL scope qui coûte.** |
+| `business.manage` | **Sensible** | **GRATUIT** | Avis Google auto (Théo) | Lire les avis de la fiche et publier les réponses approuvées. |
+| `userinfo.email` | Standard | GRATUIT | Identifier la boîte connectée | Afficher quelle adresse est connectée. |
+| `openid` / `profile` | Standard | GRATUIT | Login | Connexion. |
 
-**RETIRÉ : `gmail.modify`** — ne servait qu'à marquer les emails lus ; on dédoublonne déjà via
-`gmail_last_poll_at` + message_id. Retiré du code (`lib/gmail-oauth.ts`) ET à retirer de l'écran
-de consentement.
+**RETIRÉ : `gmail.modify`** — ne servait qu'à marquer les emails lus ; dédup déjà via
+`gmail_last_poll_at` + message_id. Retiré du code ET à retirer de l'écran de consentement.
 
-> ⚠️ `gmail.send` + `gmail.readonly` sont RESTREINTS → évaluation de sécurité **CASA** (tier 2,
-> auditeur tiers, annuel, plusieurs k€). `business.manage` est SENSIBLE → vérif standard sans CASA.
-> Budget + délai CASA à prévoir pour la partie Gmail.
+> ✅ **Correction importante** : `gmail.send` est SENSIBLE (pas restreint) → vérification GRATUITE.
+> `business.manage` (avis Google) = SENSIBLE → GRATUIT aussi.
+> ⚠️ Le SEUL scope qui déclenche l'audit **CASA** (auditeur tiers, annuel, payant) = **`gmail.readonly`**
+> (lecture de la boîte pour détecter les réponses).
+>
+> 🟢 **Option 100% GRATUITE (recommandée)** : retirer `gmail.readonly` et router les réponses via notre
+> webhook inbound (`/api/webhooks/email-inbound`) avec un `Reply-To` — **exactement comme le mail domaine
+> perso**. La fonction `sendViaGmail(...)` accepte déjà un `replyTo`. Résultat : envoi depuis le Gmail du
+> client + auto-reply conservés, **zéro scope restreint, zéro CASA, vérification entièrement gratuite**.
+> Seul changement : les réponses transitent par KeiroAI (comme le domaine) au lieu d'arriver dans la
+> boîte Gmail du client.
+>
+> Sous **100 utilisateurs**, l'app non vérifiée fonctionne déjà gratuitement (écran d'avertissement) —
+> aucun paiement requis pour tester/lancer.
 
 ---
 
