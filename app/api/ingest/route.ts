@@ -1,21 +1,31 @@
 import { supabase } from '@/lib/supabase';
+import { getAuthUser } from '@/lib/auth-server';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+
+const json = (obj: any, status: number) =>
+  new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 
 export async function GET() {
+  // Auth requise — endpoint exposait toutes les `sources` sans contrôle.
+  const { user, error: authErr } = await getAuthUser();
+  if (authErr || !user) return json({ error: 'Non authentifié' }, 401);
+
   const { data, error } = await supabase
     .from('sources')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(50);
 
-  return new Response(JSON.stringify({ data, error }), {
-    status: error ? 500 : 200,
-    headers: { 'Content-Type': 'application/json' }
-  });
+  // Ne pas renvoyer l'objet erreur Postgrest brut (fuite de structure DB).
+  if (error) return json({ error: 'internal' }, 500);
+  return json({ data }, 200);
 }
 
 export async function POST(req: Request) {
+  const { user, error: authErr } = await getAuthUser();
+  if (authErr || !user) return json({ error: 'Non authentifié' }, 401);
+
   let body: any = {};
   try { body = await req.json(); } catch {}
 
@@ -23,11 +33,7 @@ export async function POST(req: Request) {
   const type = body?.type ?? 'brief';
   const payload = body?.payload ?? {};
 
-  if (!brand_id) {
-    return new Response(JSON.stringify({ error: { message: 'brand_id is required' } }), {
-      status: 400, headers: { 'Content-Type': 'application/json' }
-    });
-  }
+  if (!brand_id) return json({ error: 'brand_id is required' }, 400);
 
   const { data, error } = await supabase
     .from('sources')
@@ -35,8 +41,6 @@ export async function POST(req: Request) {
     .select()
     .single();
 
-  return new Response(JSON.stringify({ data, error }), {
-    status: error ? 400 : 201,
-    headers: { 'Content-Type': 'application/json' }
-  });
+  if (error) return json({ error: 'internal' }, 400);
+  return json({ data }, 201);
 }

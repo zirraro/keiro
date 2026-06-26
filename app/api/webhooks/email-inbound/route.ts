@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import {
   classifyInbound,
   loadReplyContext,
@@ -32,6 +33,10 @@ function getSupabaseAdmin() {
  * duplicate events. The 'result' field reports what actually happened.
  */
 export async function POST(req: NextRequest) {
+  // Anti-abus : endpoint public → borne le débit par IP (génère des replies LLM).
+  const limited = enforceRateLimit(req, 'email-inbound', 120, 60_000);
+  if (limited) return limited;
+
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
 

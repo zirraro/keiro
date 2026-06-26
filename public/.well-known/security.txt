@@ -1,0 +1,5 @@
+Contact: mailto:security@keiroai.com
+Expires: 2027-06-26T00:00:00.000Z
+Preferred-Languages: fr, en
+Canonical: https://keiroai.com/.well-known/security.txt
+Policy: https://keiroai.com/legal/privacy

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { phoneSafe } from '@/lib/safe-filter';
 import {
   sendWhatsAppMessage,
   markAsRead,
@@ -165,10 +166,11 @@ async function handleIncomingMessage(
     const lower = messageText.toLowerCase().trim();
     if (OPT_OUT_KEYWORDS.some((kw) => lower === kw || lower === kw + '.')) {
       // Update prospect status
+      const sp = phoneSafe(senderPhone); // anti-injection filtre PostgREST (entrée webhook)
       const { data: optOutProspect } = await supabase
         .from('crm_prospects')
         .select('id')
-        .or(`whatsapp_phone.eq.${senderPhone},phone.eq.${senderPhone}`)
+        .or(`whatsapp_phone.eq.${sp},phone.eq.${sp}`)
         .limit(1)
         .maybeSingle();
 

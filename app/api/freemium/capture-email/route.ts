@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    // Anti-abus : capture publique d'email → 10 req/min/IP max.
+    const limited = enforceRateLimit(request, 'capture-email', 10, 60_000);
+    if (limited) return limited;
     // Initialiser le client Supabase à l'intérieur de la fonction pour éviter les erreurs au build
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
