@@ -70,15 +70,17 @@ export async function GET(req: NextRequest) {
 
     console.log(`[Gmail Callback] Saving Gmail tokens for userId=${userId}, email=${profile.email}, hasRefresh=${!!tokens.refresh_token}`);
 
+    // Tokens chiffrés au repos (CASA).
+    const { encryptToken } = await import('@/lib/token-crypto');
     // Build update — NEVER overwrite existing refresh_token with null
     const updateData: Record<string, any> = {
-      gmail_access_token: tokens.access_token,
+      gmail_access_token: encryptToken(tokens.access_token),
       gmail_email: profile.email,
       gmail_token_expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
     };
     // Only set refresh_token if Google actually returned one
     if (tokens.refresh_token) {
-      updateData.gmail_refresh_token = tokens.refresh_token;
+      updateData.gmail_refresh_token = encryptToken(tokens.refresh_token);
     } else {
       // If no refresh_token returned, check if user already has one stored
       const { data: existing } = await supabase.from('profiles').select('gmail_refresh_token').eq('id', userId).single();

@@ -5,7 +5,8 @@ import crypto from 'crypto';
 export const runtime = 'nodejs';
 
 function verifyResendSignature(payload: string, signature: string | null, secret: string): boolean {
-  if (!signature || !secret) return true; // Skip if not configured
+  if (!secret) return true;        // secret non configuré (dev) → on n'impose pas
+  if (!signature) return false;    // secret configuré mais signature absente → REJET (fail-closed, CASA)
   try {
     const [ts, sig] = signature.split(',').reduce((acc, part) => {
       const [key, val] = part.split('=');
@@ -15,7 +16,7 @@ function verifyResendSignature(payload: string, signature: string | null, secret
     }, ['', '']);
     const expected = crypto.createHmac('sha256', secret).update(`${ts}.${payload}`).digest('hex');
     return expected === sig;
-  } catch { return true; }
+  } catch { return false; }
 }
 
 /**

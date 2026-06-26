@@ -44,13 +44,18 @@ export async function POST(req: NextRequest) {
     var body: any;
     try { body = JSON.parse(rawBody); } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 }); }
 
-    // Verify signature (warn but don't block — allows debugging in test mode)
+    // Verify signature — REJETER si présente et invalide (anti-spoofing, CASA).
     const APP_SECRET = process.env.FACEBOOK_APP_SECRET || process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
     if (APP_SECRET) {
       const signature = req.headers.get('x-hub-signature-256') || '';
       const expected = 'sha256=' + crypto.createHmac('sha256', APP_SECRET).update(rawBody).digest('hex');
-      if (signature && signature !== expected) {
-        console.warn('[InstagramWebhook] Invalid signature — processing anyway for debug');
+      if (signature) {
+        const sigBuf = Buffer.from(signature);
+        const expBuf = Buffer.from(expected);
+        if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+          console.warn('[InstagramWebhook] Invalid signature — rejected');
+          return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 401 });
+        }
       }
     }
 

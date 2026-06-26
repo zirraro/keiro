@@ -88,19 +88,24 @@ export async function getValidToken(supabase: any, userId: string): Promise<stri
 
   if (!profile?.google_business_refresh_token) return null;
 
+  // Tokens chiffrés au repos (CASA) — déchiffrer avant usage (rétro-compatible clair).
+  const { decryptToken, encryptToken } = await import('@/lib/token-crypto');
+  const storedAccess = decryptToken(profile.google_business_access_token);
+  const refreshToken = decryptToken(profile.google_business_refresh_token);
+
   const expiry = profile.google_business_token_expiry ? new Date(profile.google_business_token_expiry) : null;
   const isExpired = !expiry || expiry.getTime() < Date.now() + 60000; // Refresh 1 min before expiry
 
-  if (!isExpired && profile.google_business_access_token) {
-    return profile.google_business_access_token;
+  if (!isExpired && storedAccess) {
+    return storedAccess;
   }
 
   // Refresh
   try {
-    const tokens = await refreshGoogleToken(profile.google_business_refresh_token);
+    const tokens = await refreshGoogleToken(refreshToken || '');
     const newExpiry = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
     await supabase.from('profiles').update({
-      google_business_access_token: tokens.access_token,
+      google_business_access_token: encryptToken(tokens.access_token),
       google_business_token_expiry: newExpiry,
     }).eq('id', userId);
     return tokens.access_token;

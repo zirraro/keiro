@@ -7,6 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { encryptToken, decryptToken } from '@/lib/token-crypto';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
@@ -99,18 +100,23 @@ export async function getValidGmailToken(userId: string): Promise<{ accessToken:
 
   if (!profile?.gmail_refresh_token) return null;
 
+  // Tokens chiffrés au repos (CASA/ASVS) — déchiffrer avant usage. Rétro-compatible
+  // avec les anciennes valeurs en clair (decryptToken les renvoie telles quelles).
+  const storedAccess = decryptToken(profile.gmail_access_token);
+  const refreshToken = decryptToken(profile.gmail_refresh_token);
+
   // Check if current token is still valid (with 5 min buffer)
   const expiresAt = profile.gmail_token_expires_at ? new Date(profile.gmail_token_expires_at).getTime() : 0;
-  if (profile.gmail_access_token && expiresAt > Date.now() + 300000) {
-    return { accessToken: profile.gmail_access_token, email: profile.gmail_email || '' };
+  if (storedAccess && expiresAt > Date.now() + 300000) {
+    return { accessToken: storedAccess, email: profile.gmail_email || '' };
   }
 
   // Refresh token
   try {
-    const newToken = await refreshGmailToken(profile.gmail_refresh_token);
+    const newToken = await refreshGmailToken(refreshToken || '');
     const expiresAt = new Date(Date.now() + 3500 * 1000).toISOString(); // ~58 min
     await supabase.from('profiles').update({
-      gmail_access_token: newToken,
+      gmail_access_token: encryptToken(newToken),
       gmail_token_expires_at: expiresAt,
     }).eq('id', userId);
     return { accessToken: newToken, email: profile.gmail_email || '' };

@@ -34,7 +34,7 @@ export default function DataDeletionPage() {
             <ul className="list-disc pl-6 text-neutral-700 space-y-2 mb-4">
               <li>Informations de profil (nom, email, photo de profil)</li>
               <li>Identifiants de compte Facebook/Instagram</li>
-              <li>Tokens d'accès aux API (stockés de manière chiffrée)</li>
+              <li>Tokens d'accès aux API (chiffrés au repos, AES-256-GCM)</li>
               <li>Images et vidéos générées via notre plateforme</li>
               <li>Brouillons de publications et contenus planifiés</li>
               <li>Historique d'utilisation du service</li>

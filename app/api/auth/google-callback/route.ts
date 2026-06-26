@@ -42,11 +42,12 @@ export async function GET(req: NextRequest) {
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-    // 2. Save tokens immediately
+    // 2. Save tokens immediately (chiffrés au repos — CASA)
+    const { encryptToken } = await import('@/lib/token-crypto');
     const tokenExpiry = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
     await supabase.from('profiles').update({
-      google_business_access_token: tokens.access_token,
-      google_business_refresh_token: tokens.refresh_token || null,
+      google_business_access_token: encryptToken(tokens.access_token),
+      google_business_refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
       google_business_token_expiry: tokenExpiry,
       google_business_connected_at: new Date().toISOString(),
     }).eq('id', userId);

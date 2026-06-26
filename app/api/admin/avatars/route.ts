@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthUser } from '@/lib/auth-server';
 import { getAllAgentAvatars, updateAgentAvatar, invalidateAvatarCache } from '@/lib/agents/avatar';
 
 const supabaseAdmin = createClient(
@@ -8,9 +9,23 @@ const supabaseAdmin = createClient(
 );
 
 /**
+ * Garde admin — ces handlers écrivent avec le service_role (bypass RLS), donc
+ * ils DOIVENT vérifier que l'appelant est admin (audit CASA : autorisation).
+ */
+async function requireAdmin(): Promise<NextResponse | null> {
+  const { user, error } = await getAuthUser();
+  if (error || !user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+  const { data: profile } = await supabaseAdmin.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (profile?.is_admin !== true) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+  return null;
+}
+
+/**
  * GET /api/admin/avatars — List all agent avatars
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const avatars = await getAllAgentAvatars(supabaseAdmin);
     return NextResponse.json({ avatars });
@@ -25,6 +40,8 @@ export async function GET() {
  * Body: { id: string, display_name?, title?, personality?, custom_instructions?, is_active?, avatar_url? }
  */
 export async function PUT(req: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { id, ...updates } = body;
@@ -51,6 +68,8 @@ export async function PUT(req: NextRequest) {
  * FormData: { id: string, file: File }
  */
 export async function POST(req: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const formData = await req.formData();
     const id = formData.get('id') as string;
