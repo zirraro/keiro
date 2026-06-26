@@ -133,7 +133,7 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
                 <div className="text-xs sm:text-sm font-bold" style={{ color: step.color }}>{fmt(step.value)}</div>
                 <div className="text-[10px] text-white/40 mt-0.5 truncate">{step.label}</div>
               </div>
-              {i < 4 && <div className="text-white/45 text-[10px] mx-0.5 flex-shrink-0">{'\u2192'}</div>}
+              {i < 4 && <div className="hidden sm:block text-white/45 text-[10px] mx-0.5 flex-shrink-0">{'\u2192'}</div>}
             </div>
           ))}
         </div>

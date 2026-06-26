@@ -2647,7 +2647,7 @@ export default function AgentWorkspacePage() {
                         value={settings[field.key] ?? field.default}
                         onChange={e => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
                         placeholder={field.description}
-                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-[150px]"
+                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-0 sm:min-w-[150px]"
                       />
                     )}
                   </div>
