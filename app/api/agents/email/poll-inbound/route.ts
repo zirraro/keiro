@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getValidGmailToken, listGmailUnread, getGmailMessage, markGmailRead } from '@/lib/gmail-oauth';
+import { getValidGmailToken, listGmailUnread, getGmailMessage } from '@/lib/gmail-oauth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -24,8 +24,9 @@ async function authorized(req: NextRequest): Promise<boolean> {
  * Polls the connected Gmail inbox for unread replies since the last
  * successful poll, normalises each message, and POSTs it back into
  * /api/webhooks/email-inbound which does the classification +
- * auto-reply routing. Marks messages as read once processed so the
- * next tick doesn't re-see them.
+ * auto-reply routing. Dedup = fenêtre gmail_last_poll_at (high-water mark)
+ * + message_id en aval ; on ne marque PLUS les messages lus (scope
+ * gmail.modify retiré pour respecter le "minimum scopes" de Google).
  *
  * Fired by the per-client scheduler every 10 minutes.
  */
@@ -74,7 +75,6 @@ export async function POST(req: NextRequest) {
 
     // Skip emails we ourselves sent (bounces, self-reply threads).
     if (msg.from_email === token.email?.toLowerCase()) {
-      await markGmailRead(token.accessToken, id);
       results.push({ id, result: 'skip_self' });
       continue;
     }
@@ -94,7 +94,6 @@ export async function POST(req: NextRequest) {
       });
       const webhookJson = await webhookRes.json().catch(() => ({}));
       results.push({ id, result: webhookJson.result || (webhookRes.ok ? 'ok' : 'webhook_failed') });
-      await markGmailRead(token.accessToken, id);
     } catch (e: any) {
       results.push({ id, result: `error:${String(e?.message || e).substring(0, 100)}` });
     }

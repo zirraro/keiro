@@ -24,15 +24,16 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: redirectUri,
     response_type: 'code',
-    // readonly scope added so Hugo can poll the inbox for prospect replies
-    // and route them through the /api/webhooks/email-inbound pipeline.
-    // Existing clients who only granted .send will need to reconnect to
-    // get the new scope — listGmailUnread returns null for them and we
-    // prompt to reconnect.
+    // NIVEAUX D'ACCÈS MINIMAUX (vérif Google Trust & Safety, juin 2026) :
+    //   - gmail.send     → envoyer / répondre depuis le Gmail du client (feature cœur)
+    //   - gmail.readonly → lire les réponses prospects pour les router vers
+    //                      /api/webhooks/email-inbound (auto-reply Hugo)
+    // gmail.modify RETIRÉ : il ne servait qu'à marquer les messages lus. On
+    // dédoublonne déjà via gmail_last_poll_at + message_id en aval, donc inutile.
+    // Retirer ce scope restreint = strict minimum demandé par Google.
     scope: [
       'https://www.googleapis.com/auth/gmail.send',
       'https://www.googleapis.com/auth/gmail.readonly',
-      'https://www.googleapis.com/auth/gmail.modify', // needed to mark messages read after processing
       'https://www.googleapis.com/auth/userinfo.email',
     ].join(' '),
     access_type: 'offline',

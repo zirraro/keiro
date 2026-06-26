@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="prose prose-neutral max-w-none">
           <p className="text-sm text-neutral-600 mb-8">
-            Last updated: January 26, 2026
+            Last updated: June 26, 2026
           </p>
 
           <section className="mb-8">
@@ -80,6 +80,54 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
               <li><strong>Instagram (Meta):</strong> Content publishing and analytics</li>
               <li><strong>TikTok:</strong> Content publishing and analytics</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-neutral-900 mt-6 mb-3">4.4 Google Services &mdash; Gmail &amp; Business Profile (Limited Use)</h3>
+            <p className="text-neutral-700 mb-4">
+              Keiro lets you optionally connect your Google account so our assistant can operate two
+              features on your behalf. These integrations access Google user data only after you
+              explicitly grant consent on Google&rsquo;s OAuth screen, and only the minimum scopes
+              required:
+            </p>
+            <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
+              <li>
+                <strong>Gmail</strong> &mdash; so you can send prospecting and follow-up emails from your
+                own Gmail address, and so our assistant can read incoming replies in order to
+                auto-respond on your behalf.
+                <ul className="list-disc pl-6 mt-2 space-y-1">
+                  <li><code>gmail.send</code> &mdash; send and reply to emails from your address.</li>
+                  <li><code>gmail.readonly</code> &mdash; read incoming replies to route them to the auto-reply assistant.</li>
+                  <li><code>userinfo.email</code> &mdash; identify the connected mailbox.</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Google Business Profile</strong> (<code>business.manage</code>) &mdash; so our assistant
+                can read the reviews on your business listing and post replies that you have approved
+                or configured.
+              </li>
+            </ul>
+            <p className="text-neutral-700 mb-4">
+              <strong>Limited Use.</strong> Keiro&rsquo;s use and transfer to any other app of information
+              received from Google APIs will adhere to the{' '}
+              <a className="underline" href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">
+                Google API Services User Data Policy
+              </a>, including the Limited Use requirements. Specifically:
+            </p>
+            <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
+              <li>We use Google user data <strong>only</strong> to provide and improve the user-facing features described above.</li>
+              <li>We do <strong>not</strong> sell Google user data, and we do <strong>not</strong> use it for advertising.</li>
+              <li>We do <strong>not</strong> use Google user data to train, develop, or improve generalized
+                  artificial-intelligence or machine-learning models. Any AI generation is performed per-request
+                  to serve your feature and is not used to train models.</li>
+              <li>We do <strong>not</strong> allow humans to read Google user data except: (a) with your explicit
+                  consent, (b) for security purposes (e.g. investigating abuse), (c) to comply with applicable law,
+                  or (d) where the data has been aggregated and anonymized for internal operations.</li>
+              <li>We do not transfer Google user data to third parties except as necessary to provide or improve
+                  these features, to comply with applicable law, or as part of a merger or acquisition with prior
+                  notice to you.</li>
+              <li>You can revoke Keiro&rsquo;s access at any time from your account settings or from{' '}
+                  <a className="underline" href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">your Google Account permissions</a>.
+                  Tokens are stored encrypted and deleted on disconnection.</li>
             </ul>
 
             <p className="text-neutral-700 mb-4 mt-4">
