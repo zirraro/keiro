@@ -32,17 +32,25 @@
   comparaison timing-safe) + Resend (fail-closed si secret configuré mais signature absente/invalide).
 - **Texte RGPD aligné** (data-deletion : « chiffrés au repos, AES-256-GCM »).
 
-### 🔧 BACKLOG (à finir avant de soumettre `gmail.readonly`/CASA, non bloquant pour la vérif gratuite)
-| Item | Sévérité | Action |
+### ✅ CORRIGÉ LE 26 JUIN — BATCH 2 (commit b78ffbb)
+- **Rate limiting** des endpoints publics : `lib/rate-limit.ts` (fenêtre par IP) appliqué à
+  `webhooks/email-inbound` (120/min) et `freemium/capture-email` (10/min). Réutilisable partout via `enforceRateLimit`.
+- **Routes ouvertes verrouillées** : `/api/ingest` et `/api/publish` exigent maintenant l'auth
+  (écrivaient/relayaient sans aucun contrôle ; `publish` utilise désormais `user.id`, plus l'userId arbitraire du body).
+- **Anti-injection PostgREST** : `lib/safe-filter.ts` (`pgSafe`/`phoneSafe`/`emailSafe`) appliqué au webhook WhatsApp.
+- **Politique de divulgation** : `SECURITY.md` + `/.well-known/security.txt` (contact security@keiroai.com) — attendu par CASA.
+- **Fuite d'erreur** : `/api/ingest` ne renvoie plus l'objet Postgrest brut.
+
+### 🔧 BACKLOG restant (non bloquant pour la vérif gratuite ; à finir avant de soumettre `gmail.readonly`/CASA)
+| Item | Sévérité | Plan SÛR |
 |---|---|---|
-| Chiffrer aussi les tokens Meta / TikTok / LinkedIn (même helper `token-crypto`) | Haute | Wrapper `webhooks/instagram`, `insights-shared`, `cron/token-lifecycle`, `tiktok-callback` + script de migration one-shot |
-| Rate limiting endpoints publics (`widget/*`, `webhooks/email-inbound`, `freemium/capture-email`, `chatbot/message`) | Moyenne | Upstash Redis ou `limit_req` nginx |
-| Auth sur `/api/ingest` et `/api/publish` (écritures DB sans auth) | Moyenne | getAuthUser ou clé d'API |
-| Suppression self-service réelle (`DELETE /api/me`) + brancher le callback FB sur une vraie purge | Moyenne | Route authentifiée qui efface profil/tokens/contenus |
-| Sanitiser les entrées dans `.or()`/`.ilike()` PostgREST (`whatsapp:171`, `internal-source:93`, `knowledge-rag`) | Moyenne | Whitelist `[0-9+]` / échapper `,.()` |
+| Chiffrer les tokens **Meta/TikTok/LinkedIn** | Haute | **Refactor d'abord, chiffrer ensuite.** 49 fetch directs sur 23 fichiers → chiffrer en écriture sans couvrir CHAQUE lecture casserait des intégrations client en prod. Étapes : (1) créer `lib/meta-api.ts`/`lib/tiktok-api.ts`/`lib/linkedin-api.ts` qui centralisent les appels + déchiffrent le token ; (2) migrer tous les call sites vers ces helpers ; (3) chiffrer en écriture + script de migration one-shot. À tester intégration par intégration. (Tokens Google déjà chiffrés.) |
+| Rate limiting sur le reste (`widget/*`, `chatbot/message`) | Moyenne | Étendre `enforceRateLimit` (helper déjà prêt) |
+| Sanitiser les autres `.or()/.ilike()` (`internal-source:93`, `knowledge-rag`) | Moyenne | `pgSafe()` (helper déjà prêt) |
+| Suppression self-service réelle (`DELETE /api/me`) + purge sur callback FB | Moyenne | Route authentifiée qui efface profil/tokens/contenus |
 | Validation `zod` sur routes publiques + écritures DB | Basse | Schémas déclaratifs |
-| Wrapper d'erreur générique (ne pas renvoyer l'objet Postgrest / `error.message` brut) | Basse | `{ error: 'internal', errorId }` corrélé au log |
-| Dépendances vulnérables : `ws` (fix dispo), `xlsx` (pas de fix → remplacer par `exceljs` ou isoler) | Moyenne | `npm audit fix` + remplacer xlsx |
+| Wrapper d'erreur générique global | Basse | `{ error:'internal', errorId }` corrélé au log |
+| Dépendances vulnérables | Moyenne | Audit complet = surtout outillage **dev/build** (supabase CLI, eslint) non embarqué en prod. Runtime : `ws` (pas de version 8.x non vulnérable pour l'instant), `xlsx` (pas de fix → remplacer par `exceljs` si utilisé). Certains fixes = breaking (`nodemailer@9`, `@vercel/blob@2`) → à traiter à part avec tests. |
 
 ---
 
