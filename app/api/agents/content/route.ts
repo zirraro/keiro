@@ -6639,7 +6639,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 1500,
           system: 'Output ONLY a single valid JSON object. No markdown fences, no commentary, no newlines outside string values. Escape every literal newline inside strings as \\n.',
           messages: [

@@ -82,7 +82,7 @@ JSON only. No preamble.`;
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 200,
         system,
         messages: [{ role: 'user', content: `Agent: ${input.agentId}\nBusiness type: ${input.businessType || 'unknown'}\n\nMessage:\n"${input.message.slice(0, 600)}"\n\nExtract.` }],

@@ -206,7 +206,7 @@ async function extractDossierFromWebText(
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1500,
         system: `You extract a small business's identity from its website copy. Read the HTML-stripped text and title, then produce a strict JSON payload matching these keys (omit any key you genuinely cannot infer — NEVER invent):
 

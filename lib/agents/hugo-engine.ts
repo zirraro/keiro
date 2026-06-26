@@ -105,7 +105,7 @@ export async function generateEmail(
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 500,
         system: `Tu es HUGO, l'agent email expert de ${client.company_name || client.sender_name}.
 Tu rediges un email de prospection ${step.type} pour le client.

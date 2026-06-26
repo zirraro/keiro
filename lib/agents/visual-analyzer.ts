@@ -72,7 +72,7 @@ export async function analyzeImageForAgent(
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 900,
         system: `You analyze a photo uploaded by a small business owner so AI agents can produce content that matches the REAL space / brand. Be concrete, grounded, never invent what you don't see. Reply ONLY with a valid JSON object matching this shape:
 
@@ -211,7 +211,7 @@ export async function analyzePdfForAgent(
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1200,
         system: `You analyze a PDF uploaded by a small business owner so AI agents can ground their work in the client's real brand + offer. Never invent what's not in the text. Reply ONLY with a valid JSON matching this shape:
 

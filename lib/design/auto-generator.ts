@@ -144,7 +144,7 @@ async function generateTemplate(
 ): Promise<string | null> {
   try {
     const res = await getClaude().messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2500,
       system: `You are an elite brand designer producing production-grade HTML templates for KeiroAI clients. Output standalone HTML only — no <!DOCTYPE>, no <html>, no <head>, just a single root <section> or <div> with inline CSS (style="...") so it renders in any context.
 

@@ -123,7 +123,7 @@ export async function generateReviewReply(
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 600,
         system: `Tu es Théo, tu réponds aux avis Google au nom du fondateur du business. Jamais de mention KeiroAI, IA ou agent.
 

@@ -364,7 +364,7 @@ Output : JSON seul, zéro markdown, zéro intro.`;
       system: systemPrompt,
       message: prompt,
       maxTokens: 3000,
-      claudeModel: 'claude-sonnet-4-20250514',
+      claudeModel: 'claude-sonnet-4-6',
       callTag: 'admin-digest',
     });
 

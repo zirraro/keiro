@@ -243,7 +243,7 @@ export async function generateReply(params: {
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 700,
         system: `Tu es HUGO, l'agent email de KeiroAI qui écrit AU NOM du client. Tu ne parles JAMAIS de KeiroAI, IA, agents ou automatisation — tu signes comme si c'était le fondateur du business client qui tapait à la main.
 

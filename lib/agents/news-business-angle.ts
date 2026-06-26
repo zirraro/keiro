@@ -148,7 +148,7 @@ Choose the strongest connection and return JSON. If nothing in ${input.prefer ? 
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 600,
         system,
         messages: [{ role: 'user', content: message }],

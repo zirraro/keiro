@@ -58,7 +58,7 @@ function isFallbackable(status: number, body: string): { yes: boolean; reason: s
 export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCallResult> {
   const start = Date.now();
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  const claudeModel = opts.claudeModel || 'claude-sonnet-4-20250514';
+  const claudeModel = opts.claudeModel || 'claude-sonnet-4-6';
 
   // Caller can force a single provider — useful for non-fallbackable calls
   // (e.g. JSON-structured outputs where Gemini might format differently).

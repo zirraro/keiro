@@ -193,7 +193,7 @@ Décide. JSON strict.`;
         // Sonnet 4: better French, sharper editorial taste, fewer
         // generic punchlines than Haiku. ~€0.015 per call vs €0.005.
         // Worth the bump because the overlay is what stops the scroll.
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 250,
         system,
         messages: [{ role: 'user', content: message }],

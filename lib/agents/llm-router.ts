@@ -56,7 +56,7 @@ export function pickModel(agent: AgentName, complexity: TaskComplexity = 'standa
   if (agent === 'hugo' || agent === 'jade' || agent === 'ami' || agent === 'noah') {
     return {
       provider: 'anthropic',
-      claudeModel: 'claude-sonnet-4-20250514',
+      claudeModel: 'claude-sonnet-4-6',
       reason: `${agent}_always_sonnet (sales/strategy quality critical)`,
     };
   }
@@ -74,7 +74,7 @@ export function pickModel(agent: AgentName, complexity: TaskComplexity = 'standa
     if (complexity === 'complex') {
       return {
         provider: 'anthropic',
-        claudeModel: 'claude-sonnet-4-20250514',
+        claudeModel: 'claude-sonnet-4-6',
         reason: 'lena_complex_brief (multi-source mix or news integration → Sonnet directs Bytedance better)',
       };
     }
@@ -121,7 +121,7 @@ export async function smartLlmCall(opts: {
         system: opts.system,
         message: opts.message,
         maxTokens: opts.maxTokens,
-        claudeModel: 'claude-sonnet-4-20250514',
+        claudeModel: 'claude-sonnet-4-6',
         callTag: opts.callTag,
       });
       return { text: r.text, provider: r.provider, modelUsed: r.modelUsed, reason: decision.reason + ' (gemini_failed→sonnet_fallback)' };
