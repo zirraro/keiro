@@ -33,7 +33,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/assistant?error=${encodeURIComponent('Session expiree')}`);
   }
 
-  const redirectUri = `${origin}/api/auth/google-callback`;
+  // DOIT correspondre EXACTEMENT au redirect_uri envoyé par /api/auth/google-oauth
+  // (qui utilise NEXT_PUBLIC_SITE_URL), sinon Google renvoie redirect_uri_mismatch
+  // à l'échange. On n'utilise plus state.origin (qui pouvait être www vs non-www).
+  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL || origin}/api/auth/google-callback`;
 
   try {
     // 1. Exchange code for tokens
