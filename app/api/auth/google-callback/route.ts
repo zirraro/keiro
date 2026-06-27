@@ -50,6 +50,9 @@ export async function GET(req: NextRequest) {
       google_business_refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
       google_business_token_expiry: tokenExpiry,
       google_business_connected_at: new Date().toISOString(),
+      // Doctrine "tout en auto" : Théo répond aux avis dès la connexion (les avis
+      // sensibles — réclamations/litiges — restent escaladés à l'humain, pas auto-répondus).
+      google_reviews_auto_reply: true,
     }).eq('id', userId);
 
     // 3. Fetch accounts and first location
