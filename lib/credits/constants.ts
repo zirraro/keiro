@@ -38,6 +38,7 @@ export const CREDIT_COSTS = {
   narration_suggest: 1,
   marketing_chat: 1,
   agent_chat: 1,
+  review_email_notify: 1, // notif email "nouvel avis Google + réponse Théo" (opt-in client)
 } as const;
 
 /**

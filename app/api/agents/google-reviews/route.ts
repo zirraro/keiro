@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   // Get user's Google Business location
   const { data: profile } = await supabase
     .from('profiles')
-    .select('google_business_location_id, google_business_location_name, google_business_refresh_token')
+    .select('google_business_location_id, google_business_location_name, google_business_refresh_token, email, google_reviews_email_notify')
     .eq('id', user.id)
     .single();
 
@@ -104,6 +104,25 @@ export async function GET(req: NextRequest) {
       replied: 0, escalated: 0, skipped: 0, details: [],
     };
 
+    // Notif email opt-in (1 crédit/avis) : « nouvel avis + réponse envoyée ».
+    const notifyReview = async (icon: string, html: string) => {
+      if (!profile?.google_reviews_email_notify || !profile?.email) return;
+      try {
+        const { deductCredits } = await import('@/lib/credits/server');
+        const dc = await deductCredits(userId!, 'review_email_notify', 'Notif avis Google');
+        if (!dc.success) return; // crédits insuffisants → pas d'email (silencieux)
+        const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+        await sendEmailWithFallback({
+          to: profile.email,
+          subject: `${icon} Nouvel avis Google`,
+          html,
+          fromName: 'KeiroAI — Avis',
+          fromEmail: 'contact@keiroai.com',
+          tags: ['review_notify'],
+        });
+      } catch (e: any) { console.warn('[GoogleReviews] notif email failed:', e?.message); }
+    };
+
     if (shouldAutoReply) {
       const { data: dossier } = await supabase
         .from('business_dossiers')
@@ -148,6 +167,7 @@ export async function GET(req: NextRequest) {
               },
               created_at: new Date().toISOString(),
             }).throwOnError?.();
+            await notifyReview('⭐', `<p>Nouvel avis <strong>${ctx.rating}/5</strong> de ${ctx.author} :</p><blockquote style="color:#555;border-left:3px solid #ddd;padding-left:10px">${ctx.text || '(sans texte)'}</blockquote><p>Réponse envoyée automatiquement par Théo :</p><blockquote style="color:#0a7;border-left:3px solid #0a7;padding-left:10px">${decision.body}</blockquote>`);
           } else {
             autoReport.skipped++;
             autoReport.details.push({ name: r.name, action: 'post_failed' });
@@ -183,6 +203,7 @@ export async function GET(req: NextRequest) {
             },
             created_at: new Date().toISOString(),
           }).throwOnError?.();
+          await notifyReview('⚠️', `<p>Nouvel avis <strong>${ctx.rating}/5</strong> de ${ctx.author} — <strong>à gérer toi-même</strong> :</p><blockquote style="color:#555;border-left:3px solid #ddd;padding-left:10px">${ctx.text || '(sans texte)'}</blockquote><p>Théo l'a escaladé (${decision.reason}). Connecte-toi pour répondre.</p>`);
         }
 
         // Respect Google API rate limits — keep it conservative.
