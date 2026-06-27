@@ -3050,12 +3050,22 @@ export async function GET(request: NextRequest) {
                 }
               }
             } else {
-              // Cas ATTENDUS (limite quotidienne, draft à finaliser à la main) →
-              // on log mais on n'escalade PAS en alerte (sinon bruit dans le digest).
-              const benign = (ttResult as any).daily_limit || (ttResult as any).is_draft || ttResult.error === 'tiktok_draft_needs_manual_finalize';
-              console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error || '(no error msg)'}${benign ? ' [benign, non escaladé]' : ''}`);
-              if (!benign) {
-                escalateAgentError({ agent: 'content', action: 'publish_tiktok', error: ttResult.error || 'Unknown TT error', platform: 'tiktok', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
+              const err = String(ttResult.error || '');
+              const tokenIssue = (ttResult as any).token_issue || /token|scope|reconnex|invalid_grant|expired|unauthor/i.test(err);
+              // Échecs TRANSITOIRES (limite quotidienne, traitement TikTok, "Unknown"
+              // générique, timeout, draft) = non client-impactants, auto-retentés au
+              // prochain cycle → on NE les escalade PAS (sinon bruit P0 dans le digest).
+              const benign = (ttResult as any).daily_limit || (ttResult as any).is_draft
+                || ttResult.error === 'tiktok_draft_needs_manual_finalize'
+                || /unknown|processing|timeout|temporar|try again|rate|503|502|500/i.test(err)
+                || !err;
+              console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${err || '(no error msg)'}${benign && !tokenIssue ? ' [transitoire, non escaladé]' : ''}`);
+              if (tokenIssue) {
+                // Vrai blocage actionnable : le client doit reconnecter son compte TikTok.
+                escalateAgentError({ agent: 'content', action: 'publish_tiktok', error: `TikTok reconnexion requise: ${err}`, platform: 'tiktok', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
+              } else if (!benign) {
+                // Inconnu NON transitoire : on capture le ttResult complet (jamais "Unknown" nu).
+                escalateAgentError({ agent: 'content', action: 'publish_tiktok', error: err || 'TikTok publish failed (no detail)', platform: 'tiktok', postId: post.id, context: `ttResult=${JSON.stringify(ttResult).substring(0, 200)} | Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
               }
             }
           } else if (fullPost.platform === 'linkedin') {
