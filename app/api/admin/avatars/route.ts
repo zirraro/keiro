@@ -21,11 +21,12 @@ async function requireAdmin(): Promise<NextResponse | null> {
 }
 
 /**
- * GET /api/admin/avatars — List all agent avatars
+ * GET /api/admin/avatars — List all agent avatars.
+ * LECTURE PUBLIQUE (pas de garde admin) : le panneau agent client affiche
+ * l'image de chaque agent via cet endpoint. Seules les MUTATIONS (PUT/POST)
+ * exigent l'admin. (Régression corrigée 28/06 : le garde GET cassait les images.)
  */
 export async function GET() {
-  const denied = await requireAdmin();
-  if (denied) return denied;
   try {
     const avatars = await getAllAgentAvatars(supabaseAdmin);
     return NextResponse.json({ avatars });
