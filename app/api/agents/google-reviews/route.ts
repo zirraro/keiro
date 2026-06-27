@@ -92,13 +92,18 @@ export async function GET(req: NextRequest) {
     // unreplied review, classify it, generate a reply (or escalate), and
     // post it via replyToReview. When invoked by a UI user this block is
     // skipped — they'll see the raw reviews and reply manually.
-    const { data: autoReplyProfile } = await supabase
-      .from('profiles')
-      .select('google_reviews_auto_reply')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    const shouldAutoReply = !!autoReplyProfile?.google_reviews_auto_reply && req.headers.get('authorization') === `Bearer ${cronSecret}`;
+    // Auto-reply piloté par le toggle Auto/Manuel du panneau (AutoModeToggle,
+    // agent 'gmaps') — cohérent avec les autres agents. Auto ON par défaut ;
+    // OFF seulement si le client a explicitement coupé (config.auto_mode === false).
+    const { data: cfgRows } = await supabase
+      .from('org_agent_configs')
+      .select('config, created_at')
+      .eq('user_id', user.id)
+      .eq('agent_id', 'gmaps')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const autoMode = cfgRows?.[0]?.config?.auto_mode;
+    const shouldAutoReply = autoMode !== false && req.headers.get('authorization') === `Bearer ${cronSecret}`;
 
     const autoReport: { replied: number; escalated: number; skipped: number; details: Array<{ name: string; action: string; reason?: string }> } = {
       replied: 0, escalated: 0, skipped: 0, details: [],
