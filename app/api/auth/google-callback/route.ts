@@ -13,15 +13,16 @@ export async function GET(req: NextRequest) {
   const stateParam = req.nextUrl.searchParams.get('state');
   const error = req.nextUrl.searchParams.get('error');
 
-  // Decode state
+  // Decode state. On redirige TOUJOURS vers l'URL canonique du site, JAMAIS
+  // state.origin : derrière nginx, le host interne peut être localhost:3000
+  // → redirect cassé "https://localhost:3000/...". (Bug corrigé 28/06.)
   let userId = '';
-  let origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.keiroai.com';
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
 
   if (stateParam) {
     try {
       const state = JSON.parse(Buffer.from(stateParam, 'base64').toString());
       userId = state.userId || '';
-      origin = state.origin || origin;
     } catch {}
   }
 
