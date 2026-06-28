@@ -64,28 +64,48 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, reviews: [], connected: false, message: 'Google Business non connecte' });
   }
 
-  // Tokens saved but no location picked yet — report connected so the UI
-  // switches out of the preview banner, but return zero reviews and a
-  // helpful message. This handles the "OAuth succeeded but the account has
-  // no location" case that previously looked identical to "not connected".
-  if (!profile.google_business_location_id) {
-    return NextResponse.json({
-      ok: true,
-      connected: true,
-      reviews: [],
-      needsLocation: true,
-      message: 'Google Business connecte, mais aucun etablissement trouve. Ajoute ton etablissement sur business.google.com puis reessaie.',
-    });
-  }
-
-  // Get valid token (refreshes if needed)
+  // Get valid token (refreshes if needed) — needed both pour récupérer la
+  // location ET les avis.
   const accessToken = await getValidToken(supabase, user.id);
   if (!accessToken) {
     return NextResponse.json({ ok: true, reviews: [], connected: false, message: 'Token Google expire' });
   }
 
+  // SELF-HEAL : si la location manque (fetch du callback a raté, ou fiche ajoutée
+  // après la connexion), on la re-récupère en LIVE et on la sauvegarde. Évite le
+  // faux "aucun établissement" alors que le compte EST bien connecté.
+  let locationId = profile.google_business_location_id;
+  if (!locationId) {
+    try {
+      const { listAccounts, listLocations } = await import('@/lib/google-business-oauth');
+      const accounts = await listAccounts(accessToken);
+      for (const acc of accounts) {
+        const locations = await listLocations(accessToken, acc.name);
+        if (locations.length > 0) {
+          locationId = locations[0].name;
+          await supabase.from('profiles').update({
+            google_business_account_id: acc.name,
+            google_business_location_id: locationId,
+            google_business_location_name: locations[0].title || locations[0].storefrontAddress?.locality || '',
+          }).eq('id', user.id);
+          break;
+        }
+      }
+    } catch (e: any) { console.warn('[GoogleReviews] location recovery failed:', e?.message); }
+  }
+
+  if (!locationId) {
+    return NextResponse.json({
+      ok: true,
+      connected: true,
+      reviews: [],
+      needsLocation: true,
+      message: 'Google Business connecté, mais aucun établissement trouvé sur ce compte. Crée/réclame ta fiche sur business.google.com, puis recharge — Théo la détectera automatiquement.',
+    });
+  }
+
   try {
-    const reviews = await getReviews(accessToken, profile.google_business_location_id, 20);
+    const reviews = await getReviews(accessToken, locationId, 20);
 
     // Théo auto-reply flow: when the cron wakes us up with CRON_SECRET and
     // the client has google_reviews_auto_reply=true, we iterate every
