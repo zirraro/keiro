@@ -53,7 +53,15 @@ export async function GET(req: NextRequest) {
       supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('instagram', 'is', null).is('dm_followed_at', null).gte('score', 20),
       supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('dm_sent_at', 'is', null),
     ]);
-    return NextResponse.json({ ok: true, platform, follows: (rows || []).map(r => ({ ...r, handle: r.instagram })), funnel: { queued: queuedTotal || 0, followed: followedTotal || 0, eligible: eligibleTotal || 0, dm_sent: dmSent || 0 } });
+    let igFollows = (rows || []).map(r => ({ ...r, handle: r.instagram }));
+    // Vérif d'existence Instagram (clic = profil réel). SAFE : si la vérif renvoie 0
+    // sur plusieurs candidats (= IG bloque nos requêtes serveur), on NE vide PAS la liste.
+    try {
+      const { filterExisting } = await import('@/lib/agents/account-exists');
+      const existing = await filterExisting('instagram', igFollows.map((f: any) => String(f.handle || '')), 24);
+      if (existing.size > 0) igFollows = igFollows.filter((f: any) => existing.has(String(f.handle || '').replace(/^@/, '').toLowerCase()));
+    } catch (e: any) { console.warn('[manual-follows] ig verify failed:', e?.message); }
+    return NextResponse.json({ ok: true, platform, follows: igFollows, funnel: { queued: queuedTotal || 0, followed: followedTotal || 0, eligible: eligibleTotal || 0, dm_sent: dmSent || 0 } });
   }
 
   // TIKTOK / LINKEDIN : même UX, file = prospects AVEC le handle de la plateforme,
@@ -90,7 +98,9 @@ export async function GET(req: NextRequest) {
     try {
       const { filterExisting } = await import('@/lib/agents/account-exists');
       const existing = await filterExisting('tiktok', follows.map(f => f.handle), 24);
-      follows = follows.filter(f => existing.has(f.handle.toLowerCase()));
+      // SAFE : si 0 vérifié sur plusieurs candidats (= TikTok bloque nos requêtes
+      // serveur), on NE vide PAS la liste (sinon faux négatif = liste vide).
+      if (existing.size > 0) follows = follows.filter(f => existing.has(f.handle.toLowerCase()));
     } catch (e: any) { console.warn('[manual-follows] tiktok verify failed:', e?.message); }
   }
 
