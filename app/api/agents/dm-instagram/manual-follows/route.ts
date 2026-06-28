@@ -97,12 +97,26 @@ export async function GET(req: NextRequest) {
     .replace(/\s+/g, '')
     .trim();
 
+  // UNIFICATION du "Fait" : les deux listes (ManualFollowsList + FollowSuggestions)
+  // partagent le même tracking par HANDLE (agent_logs client_follow_action). Sinon
+  // marquer fait dans l'une ne retire pas de l'autre → le compte revient + chiffres faux.
+  const doneHandles = new Set<string>();
+  try {
+    const { data: doneRows } = await supabase.from('agent_logs')
+      .select('data').eq('agent', 'content').eq('action', 'client_follow_action').eq('user_id', user.id).limit(1000);
+    for (const d of (doneRows || []) as any[]) {
+      const dd = d.data || {};
+      if (dd.platform === platform && dd.handle && dd.done === true) doneHandles.add(String(dd.handle).toLowerCase().replace(/^@/, ''));
+    }
+  } catch { /* best-effort */ }
+
   let follows = all
     .filter((r: any) => { const h = String(r[col] || '').trim(); return h.length >= 2 && !followed.has(r.id); })
     .map((r: any) => {
       const handle = platform === 'tiktok' ? cleanTt(r[col]) : String(r[col] || '').replace(/^@/, '');
       return { id: r.id, company: r.company, handle, score: r.score, angle_approche: r.angle_approche, note_google: r.note_google || r.google_rating };
-    });
+    })
+    .filter((f: any) => !doneHandles.has(String(f.handle).toLowerCase())); // déjà marqué fait (n'importe quelle liste)
 
   // VÉRIFICATION D'EXISTENCE (TikTok) : on ne montre QUE des comptes réels — sinon
   // le client clique sur un handle et tombe dans le vide. (founder, 28/06). On vérifie
@@ -151,12 +165,20 @@ export async function POST(req: NextRequest) {
         .select(`id, ${col}, no_outbound, temperature, status`).eq('user_id', user.id).not(col, 'is', null).limit(500);
       // Mêmes gardes que la file : pas d'opt-out / mort / perdu dans le batch.
       const list = (rows || []).filter((r: any) => !r.no_outbound && r.temperature !== 'dead' && r.status !== 'perdu');
+      const cleanH = (v: string) => (platform === 'tiktok'
+        ? String(v || '').replace(/https?:\/\/(www\.|m\.)?tiktok\.com\/@?/i, '').split(/[/?#]/)[0].replace(/^@/, '').replace(/\s+/g, '')
+        : String(v || '').replace(/^@/, '')).trim();
       if (list.length) {
         await supabase.from('crm_activities').insert(list.map((r: any) => ({
           prospect_id: r.id, type: 'client_followed',
-          description: `Follow confirmé par le client (batch) sur ${platform} @${String(r[col] || '').replace(/^@/, '')}`,
+          description: `Follow confirmé par le client (batch) sur ${platform} @${cleanH(r[col])}`,
           data: { channel: platform, confirmed_by_client: true, batch: true, at: now }, created_at: now,
         })));
+        // Tracking unifié par handle (partagé avec FollowSuggestions).
+        await supabase.from('agent_logs').insert(list.map((r: any) => ({
+          agent: 'content', action: 'client_follow_action', status: 'ok', user_id: user.id,
+          data: { platform, handle: cleanH(r[col]), done: true, prospect_id: r.id, batch: true, at: now }, created_at: now,
+        }))).then(() => {}, () => {});
       }
       return NextResponse.json({ ok: true, action: 'all_done', count: list.length, platform });
     }
@@ -165,11 +187,19 @@ export async function POST(req: NextRequest) {
     const { data: pr } = await supabase.from('crm_prospects').select(`id, ${col}`).eq('id', pid).eq('user_id', user.id).maybeSingle();
     if (!pr) return NextResponse.json({ error: 'Prospect introuvable' }, { status: 404 });
     const isDone = action !== 'skip';
+    const cleanHandle = (platform === 'tiktok'
+      ? String((pr as any)[col] || '').replace(/https?:\/\/(www\.|m\.)?tiktok\.com\/@?/i, '').split(/[/?#]/)[0].replace(/^@/, '').replace(/\s+/g, '')
+      : String((pr as any)[col] || '').replace(/^@/, '')).trim();
     await supabase.from('crm_activities').insert({
       prospect_id: (pr as any).id, type: isDone ? 'client_followed' : 'follow_skipped',
-      description: isDone ? `Follow confirmé par le client sur ${platform} @${String((pr as any)[col] || '').replace(/^@/, '')}` : `Follow ${platform} passé par le client`,
+      description: isDone ? `Follow confirmé par le client sur ${platform} @${cleanHandle}` : `Follow ${platform} passé par le client`,
       data: { channel: platform, confirmed_by_client: isDone, at: now }, created_at: now,
     });
+    // Tracking unifié par handle (partagé avec FollowSuggestions) → ne revient plus dans AUCUNE liste.
+    await supabase.from('agent_logs').insert({
+      agent: 'content', action: 'client_follow_action', status: 'ok', user_id: user.id,
+      data: { platform, handle: cleanHandle, done: isDone, prospect_id: (pr as any).id, at: now }, created_at: now,
+    }).then(() => {}, () => {});
     return NextResponse.json({ ok: true, action: isDone ? 'done' : 'skip', platform });
   }
 
