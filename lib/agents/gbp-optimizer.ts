@@ -125,6 +125,46 @@ Sois sévère : en cas de doute sur une invention, pass=false.`;
   return { ok: applied, mode: 'auto', applied, qc, description: newDesc };
 }
 
+/**
+ * Publie un "Google Post" (actu/offre) sur la fiche — signal de fraîcheur = boost
+ * de visibilité locale. Additif (n'écrase rien), gate qualité léger (factuel only).
+ */
+export async function publishGbpPost(supabase: any, userId: string): Promise<{ ok: boolean; posted?: boolean; reason?: string }> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('google_business_location_id, google_business_refresh_token')
+    .eq('id', userId).single();
+  if (!profile?.google_business_refresh_token || !profile?.google_business_location_id) return { ok: false, reason: 'not_connected' };
+  const accessToken = await getValidToken(supabase, userId);
+  if (!accessToken) return { ok: false, reason: 'token_expired' };
+
+  const { data: dossier } = await supabase
+    .from('business_dossiers')
+    .select('company_name, business_type, city, main_products, value_proposition, unique_selling_points')
+    .eq('user_id', userId).maybeSingle();
+  const facts = JSON.stringify(dossier || {}).substring(0, 1200);
+
+  const system = `Tu es Théo, expert SEO local. Rédige un "Google Post" (actu/offre) pour la fiche Google de ce commerce.
+RÈGLES : 100% FACTUEL (uniquement le dossier, n'invente rien), 1200 caractères max, ton chaleureux + concret, ancré local.
+INTERDIT (règles Google) : numéro de téléphone, URL/lien, prix inventé, MAJUSCULES promo, superlatifs non prouvés, emojis en rafale.
+Donne UNIQUEMENT le texte du post, rien d'autre.`;
+  let summary = '';
+  try {
+    summary = (await claude(system, `Dossier: ${facts}`, 450)).replace(/^["']|["']$/g, '').trim().substring(0, 1400);
+  } catch (e: any) {
+    return { ok: false, reason: `gen_failed: ${e?.message}` };
+  }
+  if (summary.length < 30) return { ok: false, reason: 'too_short' };
+  // Garde-fou conformité : pas de tel/URL.
+  if (/\b\d{2}[ .]?\d{2}[ .]?\d{2}[ .]?\d{2}[ .]?\d{2}\b/.test(summary) || /https?:\/\//i.test(summary)) {
+    summary = summary.replace(/https?:\/\/\S+/gi, '').replace(/\b\d{2}([ .]?\d{2}){4}\b/g, '').trim();
+  }
+
+  const posted = await createLocalPost(accessToken, profile.google_business_location_id, summary);
+  await logGbp(supabase, userId, posted ? 'gbp_post_published' : 'gbp_post_failed', { summary: summary.substring(0, 200) });
+  return { ok: posted, posted };
+}
+
 async function logGbp(supabase: any, userId: string, action: string, data: any) {
   try {
     await supabase.from('agent_logs').insert({

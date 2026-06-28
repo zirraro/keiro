@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
   const idsRaw: string[] = Array.isArray(body?.ids) ? body.ids : String(body?.ids || '').split(/[\s,;\n]+/);
   const ids = Array.from(new Set(idsRaw.map(s => String(s).trim()).filter(Boolean))).slice(0, 5000);
   const dryRun = body?.dryRun === true;
+  // 'anonymize' (défaut, conforme RGPD + doctrine never-delete) : on garde la ligne
+  // mais on efface TOUT le PII (lien avec la personne irréversiblement supprimé).
+  // 'delete' : suppression dure de la ligne.
+  const mode: 'anonymize' | 'delete' = body?.mode === 'delete' ? 'delete' : 'anonymize';
   if (!ids.length) return NextResponse.json({ error: 'Aucun ID fourni' }, { status: 400 });
 
   const sb = admin();
@@ -46,15 +50,25 @@ export async function POST(req: NextRequest) {
   // 1) Prospects dont l'identifiant IG/FB scoped == un ID supprimé (DM entrants).
   const { data: matchedProspects } = await sb.from('crm_prospects').select('id, instagram').in('instagram', ids);
   const prospectIds = (matchedProspects || []).map((p: any) => p.id);
+  report.prospects = prospectIds.length;
 
   if (!dryRun && prospectIds.length) {
-    // Activités liées d'abord (FK), puis les prospects.
-    const { count: actCount } = await sb.from('crm_activities').delete({ count: 'exact' }).in('prospect_id', prospectIds);
-    report.activities = actCount || 0;
-    const { count: pCount } = await sb.from('crm_prospects').delete({ count: 'exact' }).in('id', prospectIds);
-    report.prospects = pCount || 0;
-  } else {
-    report.prospects = prospectIds.length;
+    if (mode === 'delete') {
+      const { count: actCount } = await sb.from('crm_activities').delete({ count: 'exact' }).in('prospect_id', prospectIds);
+      report.activities = actCount || 0;
+      await sb.from('crm_prospects').delete().in('id', prospectIds);
+    } else {
+      // ANONYMISATION : on scrub tout le PII, on garde la ligne (anonymisée).
+      await sb.from('crm_prospects').update({
+        instagram: null, tiktok_handle: null, linkedin_url: null,
+        first_name: null, last_name: null, email: null, phone: null, whatsapp_phone: null,
+        company: 'Anonymisé (RGPD)', notes: null, angle_approche: null, dm_message: null,
+        no_outbound: true, status: 'perdu', temperature: 'dead', updated_at: new Date().toISOString(),
+      }).in('id', prospectIds);
+      // Le contenu des messages (PII) dans les activités est supprimé.
+      const { count: actCount } = await sb.from('crm_activities').delete({ count: 'exact' }).in('prospect_id', prospectIds);
+      report.activities = actCount || 0;
+    }
   }
 
   // 2) Logs d'agents contenant ces IDs (sender_id des DM/commentaires).

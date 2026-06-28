@@ -37,17 +37,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: 'plan_locked', upsell: 'Agent SEO Fiche disponible à partir du pack Pro.' });
   }
 
-  // Throttle : on ne ré-optimise pas la description plus d'1×/7j.
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-  const { data: recent } = await supabase.from('agent_logs')
-    .select('id').eq('user_id', userId).eq('agent', 'gmaps')
-    .in('action', ['gbp_optimize_applied', 'gbp_optimize_proposed'])
-    .gte('created_at', sevenDaysAgo).limit(1).maybeSingle();
-  if (recent) return NextResponse.json({ ok: true, skipped: 'throttled_7d' });
-
+  const out: any = { ok: true };
   try {
-    const result = await optimizeGbpListing(supabase, userId);
-    return NextResponse.json(result);
+    // 1) Google Post (fraîcheur) — throttle 4j séparé.
+    const fourDaysAgo = new Date(Date.now() - 4 * 86400000).toISOString();
+    const { data: recentPost } = await supabase.from('agent_logs')
+      .select('id').eq('user_id', userId).eq('agent', 'gmaps').eq('action', 'gbp_post_published')
+      .gte('created_at', fourDaysAgo).limit(1).maybeSingle();
+    if (!recentPost) {
+      const { publishGbpPost } = await import('@/lib/agents/gbp-optimizer');
+      out.post = await publishGbpPost(supabase, userId);
+    } else { out.post = { skipped: 'throttled_4d' }; }
+
+    // 2) Optimisation description — throttle 7j.
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const { data: recent } = await supabase.from('agent_logs')
+      .select('id').eq('user_id', userId).eq('agent', 'gmaps')
+      .in('action', ['gbp_optimize_applied', 'gbp_optimize_proposed'])
+      .gte('created_at', sevenDaysAgo).limit(1).maybeSingle();
+    out.description = recent ? { skipped: 'throttled_7d' } : await optimizeGbpListing(supabase, userId);
+
+    return NextResponse.json(out);
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message?.substring(0, 200) }, { status: 500 });
   }
