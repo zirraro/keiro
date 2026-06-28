@@ -79,9 +79,21 @@ export async function GET(req: NextRequest) {
       if ((a.data?.channel || a.data?.platform) === platform) followed.add(a.prospect_id);
     }
   }
-  const follows = all
+  let follows = all
     .filter((r: any) => { const h = String(r[col] || '').trim(); return h.length >= 2 && !followed.has(r.id); })
     .map((r: any) => ({ id: r.id, company: r.company, handle: String(r[col] || '').replace(/^@/, ''), score: r.score, angle_approche: r.angle_approche, note_google: r.note_google || r.google_rating }));
+
+  // VÉRIFICATION D'EXISTENCE (TikTok) : on ne montre QUE des comptes réels — sinon
+  // le client clique sur un handle et tombe dans le vide. (founder, 28/06). On vérifie
+  // les meilleurs candidats par score (cap), live + cache.
+  if (platform === 'tiktok') {
+    try {
+      const { filterExisting } = await import('@/lib/agents/account-exists');
+      const existing = await filterExisting('tiktok', follows.map(f => f.handle), 24);
+      follows = follows.filter(f => existing.has(f.handle.toLowerCase()));
+    } catch (e: any) { console.warn('[manual-follows] tiktok verify failed:', e?.message); }
+  }
+
   return NextResponse.json({
     ok: true, platform,
     follows,
