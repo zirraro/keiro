@@ -1082,9 +1082,8 @@ async function sendEmail(
             template.htmlBody,
             senderName,
             gmailAuth.email,
-            // Reply-To → pipeline inbound (comme le domaine) : réponses auto-traitées
-            // sans lire la boîte Gmail → pas de gmail.readonly → pas d'audit CASA.
-            'contact@keiroai.com',
+            // Pas de Reply-To override : réponses dans le Gmail du client (lu via
+            // poll-inbound + gmail.readonly) → Hugo répond en auto.
           );
           if (result.sent) {
             messageId = result.id;

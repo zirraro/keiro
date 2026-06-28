@@ -249,10 +249,8 @@ export async function POST(request: NextRequest) {
             template.htmlBody,
             senderName,
             gmailAuth.email,
-            // Reply-To → notre pipeline inbound (comme le mail domaine). Les réponses
-            // sont auto-traitées SANS lire la boîte Gmail du client → pas besoin du
-            // scope restreint gmail.readonly (donc pas d'audit CASA). Interim juin 2026.
-            'contact@keiroai.com',
+            // Pas de Reply-To override : les réponses arrivent dans le Gmail DU CLIENT
+            // (on les lit via poll-inbound + gmail.readonly) → Hugo répond en auto.
           );
           if (result.sent) {
             messageId = result.id;

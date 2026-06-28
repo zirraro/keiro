@@ -25,18 +25,17 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: redirectUri,
     response_type: 'code',
-    // NIVEAUX D'ACCÈS MINIMAUX (vérif Google Trust & Safety, juin 2026) :
-    //   - gmail.send     → envoyer / répondre depuis le Gmail du client (feature cœur)
+    // SCOPES (décision founder 28/06 : on veut la GESTION COMPLÈTE de la boîte) :
+    //   - gmail.send     → envoyer / répondre depuis le Gmail du client
+    //   - gmail.readonly → LIRE la boîte du client (réponses prospects + mails reçus)
+    //                      pour analyser et répondre en auto (Hugo). RESTREINT →
+    //                      nécessite l'audit CASA pour la prod >100 users (gratuit en
+    //                      mode test pour valider la feature). Les réponses arrivent
+    //                      dans le Gmail du client, on les lit via poll-inbound.
     //   - userinfo.email → identifier la boîte connectée
-    // INTERIM : gmail.readonly (RESTREINT → déclenche l'audit CASA payant) est
-    // RETIRÉ pour l'instant. La détection des réponses passe par le Reply-To vers
-    // /api/webhooks/email-inbound (comme le mail domaine perso), donc aucun scope
-    // restreint → vérification Google 100% gratuite. On réintroduira gmail.readonly
-    // + l'audit CASA plus tard pour lire la boîte complète du client (réponses
-    // visibles dans son Gmail + lecture des mails non envoyés par nous).
-    // gmail.modify : déjà retiré (servait juste à marquer lu).
     scope: [
       'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
     ].join(' '),
     access_type: 'offline',

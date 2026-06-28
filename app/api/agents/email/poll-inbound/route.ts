@@ -38,12 +38,13 @@ export async function POST(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get('user_id');
   if (!userId) return NextResponse.json({ ok: false, error: 'user_id required' }, { status: 400 });
 
-  // INTERIM (juin 2026) : on ne demande plus le scope restreint gmail.readonly
-  // (évite l'audit CASA). La lecture de la boîte est donc désactivée — les réponses
-  // arrivent via le Reply-To → /api/webhooks/email-inbound, comme le mail domaine.
-  // Réactiver en posant GMAIL_INBOUND_POLL=on une fois gmail.readonly + CASA en place.
-  if (process.env.GMAIL_INBOUND_POLL !== 'on') {
-    return NextResponse.json({ ok: true, skipped: 'gmail_readonly_disabled_interim' });
+  // gmail.readonly réactivé (28/06) → on LIT la boîte du client pour détecter les
+  // réponses + mails reçus et répondre en auto (Hugo). Poller ACTIF par défaut ;
+  // mettre GMAIL_INBOUND_POLL=off pour le désactiver. Les clients dont la connexion
+  // Gmail n'a pas (encore) le scope readonly verront listGmailUnread échouer
+  // proprement (géré plus bas) et devront reconnecter.
+  if (process.env.GMAIL_INBOUND_POLL === 'off') {
+    return NextResponse.json({ ok: true, skipped: 'gmail_poll_disabled' });
   }
 
   const supabase = getSupabaseAdmin();
