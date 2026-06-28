@@ -11,7 +11,7 @@
  * on n'écrit JAMAIS sur la fiche live sans que le gate passe.
  */
 
-import { getValidToken, getLocationDetails, updateLocationDescription } from '@/lib/google-business-oauth';
+import { getValidToken, getLocationDetails, updateLocationDescription, createLocalPost } from '@/lib/google-business-oauth';
 
 const CLAUDE = 'claude-sonnet-4-6';
 
@@ -41,7 +41,7 @@ export type GbpOptimizeResult = {
 export async function optimizeGbpListing(supabase: any, userId: string): Promise<GbpOptimizeResult> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('google_business_location_id, google_business_refresh_token, gbp_optimize_mode')
+    .select('google_business_location_id, google_business_refresh_token')
     .eq('id', userId).single();
   if (!profile?.google_business_refresh_token || !profile?.google_business_location_id) {
     return { ok: false, reason: 'not_connected' };
@@ -49,7 +49,12 @@ export async function optimizeGbpListing(supabase: any, userId: string): Promise
   const accessToken = await getValidToken(supabase, userId);
   if (!accessToken) return { ok: false, reason: 'token_expired' };
 
-  const mode: 'auto' | 'review' = profile.gbp_optimize_mode === 'review' ? 'review' : 'auto';
+  // Mode auto | review stocké en jsonb (org_agent_configs.config.gbp_mode), PAS en
+  // colonne (DDL bloqué). Défaut = auto (doctrine "tout en auto").
+  const { data: cfg } = await supabase.from('org_agent_configs')
+    .select('config').eq('user_id', userId).eq('agent_id', 'gmaps')
+    .order('created_at', { ascending: false }).limit(1);
+  const mode: 'auto' | 'review' = cfg?.[0]?.config?.gbp_mode === 'review' ? 'review' : 'auto';
   const locationStored = profile.google_business_location_id;
 
   // Contexte factuel — on n'invente RIEN hors du dossier.

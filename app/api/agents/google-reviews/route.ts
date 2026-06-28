@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   // Get user's Google Business location
   const { data: profile } = await supabase
     .from('profiles')
-    .select('google_business_location_id, google_business_location_name, google_business_refresh_token, email, google_reviews_email_notify')
+    .select('google_business_location_id, google_business_location_name, google_business_refresh_token, email')
     .eq('id', user.id)
     .single();
 
@@ -123,6 +123,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(1);
     const autoMode = cfgRows?.[0]?.config?.auto_mode;
+    const emailNotify = cfgRows?.[0]?.config?.email_notify === true; // opt-in (stocké en jsonb, pas en colonne)
     const shouldAutoReply = autoMode !== false && req.headers.get('authorization') === `Bearer ${cronSecret}`;
 
     const autoReport: { replied: number; escalated: number; skipped: number; details: Array<{ name: string; action: string; reason?: string }> } = {
@@ -131,7 +132,7 @@ export async function GET(req: NextRequest) {
 
     // Notif email opt-in (1 crédit/avis) : « nouvel avis + réponse envoyée ».
     const notifyReview = async (icon: string, html: string) => {
-      if (!profile?.google_reviews_email_notify || !profile?.email) return;
+      if (!emailNotify || !profile?.email) return;
       try {
         const { deductCredits } = await import('@/lib/credits/server');
         const dc = await deductCredits(userId!, 'review_email_notify', 'Notif avis Google');
