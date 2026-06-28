@@ -1203,6 +1203,9 @@ export async function GET(request: NextRequest) {
       await callForEachClient('Google Maps Scan', '/api/agents/gmaps', 'POST', {}, 'gmaps');
       // Also respond to Google reviews
       await callForEachClient('Google Reviews Reply', '/api/agents/google-reviews', 'GET', undefined, 'gmaps');
+      // Théo SEO Fiche — optimise la description de la fiche Google (gate qualité,
+      // Pro+, auto-throttle 7j, mode auto ou proposition selon le client).
+      await callForEachClient('GBP SEO Optimize', '/api/agents/gbp-optimize', 'GET', undefined, 'gmaps');
       break;
 
     case 'comptable':

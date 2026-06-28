@@ -189,6 +189,52 @@ export async function replyToReview(accessToken: string, reviewName: string, rep
   return true;
 }
 
+// ── Optimisation de la fiche (SEO local) — scope business.manage ──
+const GBP_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
+const GBP_V4_BASE = 'https://mybusiness.googleapis.com/v4';
+
+/** Normalise "accounts/X/locations/Y" → "locations/Y" (Business Information API). */
+function toLocationName(stored: string): string {
+  const m = String(stored || '').match(/locations\/[^/]+/);
+  return m ? m[0] : stored;
+}
+
+/** Lit les détails de la fiche (titre, description, catégories, horaires…). */
+export async function getLocationDetails(accessToken: string, locationStored: string): Promise<any> {
+  const loc = toLocationName(locationStored);
+  const readMask = 'title,profile,categories,regularHours,phoneNumbers,websiteUri,storefrontAddress';
+  const res = await fetch(`${GBP_INFO_BASE}/${loc}?readMask=${encodeURIComponent(readMask)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`Get location failed: ${(await res.text()).substring(0, 200)}`);
+  return res.json();
+}
+
+/** Met à jour la description de la fiche (profile.description). */
+export async function updateLocationDescription(accessToken: string, locationStored: string, description: string): Promise<boolean> {
+  const loc = toLocationName(locationStored);
+  const res = await fetch(`${GBP_INFO_BASE}/${loc}?updateMask=profile.description`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile: { description: description.substring(0, 750) } }),
+  });
+  if (!res.ok) { console.error('[GBP] update description failed:', (await res.text()).substring(0, 200)); return false; }
+  return true;
+}
+
+/** Publie un "Google Post" (actu/offre) sur la fiche — signal de fraîcheur = visibilité. */
+export async function createLocalPost(accessToken: string, accountLocationStored: string, summary: string, opts?: { ctaType?: string; ctaUrl?: string }): Promise<boolean> {
+  const body: any = { languageCode: 'fr', summary: summary.substring(0, 1500), topicType: 'STANDARD' };
+  if (opts?.ctaType && opts?.ctaUrl) body.callToAction = { actionType: opts.ctaType, url: opts.ctaUrl };
+  const res = await fetch(`${GBP_V4_BASE}/${accountLocationStored}/localPosts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { console.error('[GBP] create post failed:', (await res.text()).substring(0, 200)); return false; }
+  return true;
+}
+
 /** Convert star rating enum to number */
 export function starRatingToNumber(rating: string): number {
   const map: Record<string, number> = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };
