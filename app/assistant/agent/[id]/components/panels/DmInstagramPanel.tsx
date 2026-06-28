@@ -587,8 +587,15 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
   }, []);
 
   const profileHref = (handle: string) => {
+    if (platform === 'tiktok') {
+      // Username TikTok propre depuis tout format (URL/@/espaces) → lien toujours
+      // bien formé (sinon l'app s'ouvre sans naviguer vers le profil).
+      const u = String(handle || '')
+        .replace(/https?:\/\/(www\.|m\.)?tiktok\.com\/@?/i, '')
+        .split(/[/?#]/)[0].replace(/^@/, '').replace(/\s+/g, '').trim();
+      return `https://www.tiktok.com/@${u}`;
+    }
     const h = encodeURIComponent(String(handle || '').replace(/^@/, ''));
-    if (platform === 'tiktok') return `https://www.tiktok.com/@${h}`;
     if (platform === 'linkedin') return /^https?:\/\//i.test(handle) ? handle : `https://www.linkedin.com/search/results/all/?keywords=${h}`;
     return isMobile ? `instagram://user?username=${h}` : `https://www.instagram.com/${h}/`;
   };

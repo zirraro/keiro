@@ -87,14 +87,30 @@ export async function GET(req: NextRequest) {
       if ((a.data?.channel || a.data?.platform) === platform) followed.add(a.prospect_id);
     }
   }
+  // Nettoyage bulletproof du handle TikTok : extrait le username propre depuis
+  // tout format stocké (URL complète, @, espaces) → le lien tiktok.com/@username
+  // est TOUJOURS bien formé (sinon il ouvre l'app sans naviguer vers le profil).
+  const cleanTt = (raw: string) => String(raw || '')
+    .replace(/https?:\/\/(www\.|m\.)?tiktok\.com\/@?/i, '')
+    .split(/[/?#]/)[0]
+    .replace(/^@/, '')
+    .replace(/\s+/g, '')
+    .trim();
+
   let follows = all
     .filter((r: any) => { const h = String(r[col] || '').trim(); return h.length >= 2 && !followed.has(r.id); })
-    .map((r: any) => ({ id: r.id, company: r.company, handle: String(r[col] || '').replace(/^@/, ''), score: r.score, angle_approche: r.angle_approche, note_google: r.note_google || r.google_rating }));
+    .map((r: any) => {
+      const handle = platform === 'tiktok' ? cleanTt(r[col]) : String(r[col] || '').replace(/^@/, '');
+      return { id: r.id, company: r.company, handle, score: r.score, angle_approche: r.angle_approche, note_google: r.note_google || r.google_rating };
+    });
 
   // VÉRIFICATION D'EXISTENCE (TikTok) : on ne montre QUE des comptes réels — sinon
   // le client clique sur un handle et tombe dans le vide. (founder, 28/06). On vérifie
   // les meilleurs candidats par score (cap), live + cache.
   if (platform === 'tiktok') {
+    // 1) FILTRE FORMAT : on ne garde que les usernames TikTok valides (a-z0-9._, 2-24).
+    //    Un handle malformé → lien cassé → app ouverte mais pas de profil.
+    follows = follows.filter(f => /^[a-zA-Z0-9._]{2,24}$/.test(f.handle));
     try {
       const { filterExisting } = await import('@/lib/agents/account-exists');
       const existing = await filterExisting('tiktok', follows.map(f => f.handle), 24);
