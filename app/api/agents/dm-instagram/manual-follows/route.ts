@@ -186,21 +186,24 @@ export async function POST(req: NextRequest) {
     if (!pid) return NextResponse.json({ error: 'prospect_id requis' }, { status: 400 });
     const { data: pr } = await supabase.from('crm_prospects').select(`id, ${col}`).eq('id', pid).eq('user_id', user.id).maybeSingle();
     if (!pr) return NextResponse.json({ error: 'Prospect introuvable' }, { status: 404 });
-    const isDone = action !== 'skip';
+    const isDone = action === 'done'; // 'skip' ET 'dead_link' = PAS suivi
+    const isDeadLink = action === 'dead_link';
     const cleanHandle = (platform === 'tiktok'
       ? String((pr as any)[col] || '').replace(/https?:\/\/(www\.|m\.)?tiktok\.com\/@?/i, '').split(/[/?#]/)[0].replace(/^@/, '').replace(/\s+/g, '')
       : String((pr as any)[col] || '').replace(/^@/, '')).trim();
     await supabase.from('crm_activities').insert({
       prospect_id: (pr as any).id, type: isDone ? 'client_followed' : 'follow_skipped',
-      description: isDone ? `Follow confirmé par le client sur ${platform} @${cleanHandle}` : `Follow ${platform} passé par le client`,
-      data: { channel: platform, confirmed_by_client: isDone, at: now }, created_at: now,
+      description: isDone ? `Follow confirmé par le client sur ${platform} @${cleanHandle}`
+        : isDeadLink ? `Lien ${platform} signalé invalide/introuvable par le client (@${cleanHandle})`
+        : `Follow ${platform} passé par le client`,
+      data: { channel: platform, confirmed_by_client: isDone, reason: isDeadLink ? 'dead_link' : undefined, at: now }, created_at: now,
     });
     // Tracking unifié par handle (partagé avec FollowSuggestions) → ne revient plus dans AUCUNE liste.
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'client_follow_action', status: 'ok', user_id: user.id,
-      data: { platform, handle: cleanHandle, done: isDone, prospect_id: (pr as any).id, at: now }, created_at: now,
+      data: { platform, handle: cleanHandle, done: isDone, dead_link: isDeadLink, prospect_id: (pr as any).id, at: now }, created_at: now,
     }).then(() => {}, () => {});
-    return NextResponse.json({ ok: true, action: isDone ? 'done' : 'skip', platform });
+    return NextResponse.json({ ok: true, action, platform });
   }
 
   // Batch variant: mark every currently-queued follow as done in one shot.

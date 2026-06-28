@@ -640,7 +640,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
 
   useEffect(() => { load(true); }, []);
 
-  const handleAction = async (prospectId: string, action: 'done' | 'skip') => {
+  const handleAction = async (prospectId: string, action: 'done' | 'skip' | 'dead_link') => {
     setBusyId(prospectId);
     try {
       await fetch('/api/agents/dm-instagram/manual-follows', {
@@ -766,8 +766,15 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
     <div className="space-y-2">
       <div className="text-[11px] text-white/50 px-1 pb-1 leading-snug">
         {en
-          ? <>Tap the handle to open Instagram{isMobile ? ' in the app' : ''}, tap Follow, then press ✓ here so Jade knows. She'll DM these accounts after a short warm-up period.</>
-          : <>Touche le handle pour ouvrir Instagram{isMobile ? ' dans l\'appli' : ''}, appuie sur Suivre, puis valide avec ✓ ici. Jade les DM après un petit temps de chauffe.</>}
+          ? <>Tap the handle to open {netLabel}{isMobile ? ' in the app' : ''}, tap Follow, then press ✓ here so we know. </>
+          : <>Touche le handle pour ouvrir {netLabel}{isMobile ? ' dans l\'appli' : ''}, appuie sur Suivre, puis valide avec ✓ ici. </>}
+        {platform !== 'instagram' && (
+          <span className="text-amber-300/70">
+            {en
+              ? 'Note: some profiles may no longer be available or the link may not open directly — a quick manual check is sometimes needed. Tap ⚠ Bad link to report it (it won\'t come back).'
+              : 'Note : certains profils peuvent ne plus être disponibles ou le lien peut ne pas s\'ouvrir directement — une vérif manuelle reste parfois nécessaire. Touche ⚠ Lien mort pour le signaler (il ne reviendra plus).'}
+          </span>
+        )}
       </div>
       {funnel && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
@@ -868,6 +875,14 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
                 className="px-2.5 py-1 text-[11px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
               >
                 {en ? '✓ Followed' : '✓ Fait'}
+              </button>
+              <button
+                disabled={busyId === item.id}
+                onClick={() => handleAction(item.id, 'dead_link')}
+                title={en ? 'The link does not open the profile / account unavailable' : 'Le lien n\'ouvre pas le profil / compte indisponible'}
+                className="px-2.5 py-1 text-[11px] text-amber-300/80 hover:text-amber-200 border border-amber-500/25 hover:border-amber-500/40 rounded-md transition disabled:opacity-50 mt-1"
+              >
+                {en ? '⚠ Bad link' : '⚠ Lien mort'}
               </button>
               <button
                 disabled={busyId === item.id}
