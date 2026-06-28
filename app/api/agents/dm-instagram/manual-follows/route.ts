@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const action: 'done' | 'skip' | 'all_done' = body?.action;
+  const action: 'done' | 'skip' | 'all_done' | 'dead_link' = body?.action;
   const rawP = String(body?.platform || 'instagram').toLowerCase();
   const platform = ['instagram', 'tiktok', 'linkedin'].includes(rawP) ? rawP : 'instagram';
   const supabase = getSupabaseAdmin();
