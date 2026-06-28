@@ -1042,9 +1042,13 @@ async function sendEmail(
           // Mark the prospect email_invalid so we don't retry it every slot
           try {
             const sb = getSupabaseAdmin();
+            // Email invalide ≠ prospect mort ! On flague SEULEMENT l'email et on
+            // LIBÈRE le canal (active_channel=null) → le prospect reste vivant et
+            // joignable via DM/téléphone (doctrine multi-canal). NE PAS mettre
+            // temperature='dead' (ça le tuait partout pour un email deviné).
             await sb.from('crm_prospects').update({
               email_sequence_status: 'email_invalid',
-              temperature: 'dead',
+              active_channel: null,
               updated_at: new Date().toISOString(),
             }).eq('id', prospect.id);
           } catch {}
