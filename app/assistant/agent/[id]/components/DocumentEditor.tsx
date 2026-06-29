@@ -83,7 +83,7 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
     }
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const doc = {
       id: `doc_${Date.now()}`,
       name: docName,
@@ -102,6 +102,14 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
       localStorage.setItem(key, JSON.stringify(existing));
       window.dispatchEvent(new CustomEvent('keiro-doc-saved', { detail: doc }));
     } catch {}
+    // Persistance SERVEUR (vrai stockage + organisation par dossier/agent, retrouvable
+    // depuis n'importe quel appareil — pas juste le localStorage du navigateur).
+    try {
+      await fetch('/api/agents/documents', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ agent_id: agentId, name: docName, content, type: 'document', folder: '' }),
+      });
+    } catch { /* le cache local reste, on retentera */ }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }, [content, docName, agentId]);
