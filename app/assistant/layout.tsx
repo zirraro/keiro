@@ -3,7 +3,7 @@ import ClaraHelper from "./components/ClaraHelper";
 
 export const metadata: Metadata = {
   title: "Agents IA - Automatisation Business - Keiro",
-  description: "15 agents IA qui automatisent votre business : publication, SEO, prospection, emails, comptabilité. Pas un chatbot — des agents qui exécutent.",
+  description: "7 agents IA qui automatisent votre business : publication, SEO, prospection, emails, comptabilité. Pas un chatbot — des agents qui exécutent.",
   keywords: [
     "agents IA automatisation",
     "automatisation business",
@@ -15,14 +15,14 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Agents IA - Automatisation Business - Keiro",
-    description: "15 agents IA qui automatisent votre business : publication, SEO, prospection, emails, comptabilité.",
+    description: "7 agents IA qui automatisent votre business : publication, SEO, prospection, emails, comptabilité.",
     url: "https://www.keiroai.com/assistant",
     type: "website"
   },
   twitter: {
     card: "summary_large_image",
     title: "Agents IA - Automatisation Business - Keiro",
-    description: "15 agents IA qui exécutent vos tâches automatiquement"
+    description: "7 agents IA qui exécutent vos tâches automatiquement"
   },
   alternates: {
     canonical: "/assistant"
