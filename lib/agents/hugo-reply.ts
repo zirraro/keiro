@@ -447,7 +447,7 @@ export async function draftReplyForClient(params: {
   inReplyTo?: string;
   threadId?: string;
   senderName?: string;
-}): Promise<{ drafted: boolean; channel: 'gmail' | 'imap' | 'none'; draftId?: string; reason?: string }> {
+}): Promise<{ drafted: boolean; channel: 'gmail' | 'outlook' | 'imap' | 'none'; draftId?: string; reason?: string }> {
   const { clientUserId } = params;
 
   const htmlWrapped = textToSafeHtml(params.body);
@@ -470,10 +470,26 @@ export async function draftReplyForClient(params: {
         });
         return { drafted: true, channel: 'gmail', draftId: draft.id };
       }
+    } catch { /* fall through to Outlook */ }
+  }
+
+  // 2. Outlook / Microsoft 365 (Graph Mail.ReadWrite) — create a draft message.
+  if (clientUserId) {
+    try {
+      const { getValidOutlookToken, createOutlookDraft } = await import('@/lib/outlook-oauth');
+      const outlook = await getValidOutlookToken(clientUserId);
+      if (outlook) {
+        const d = await createOutlookDraft(outlook.accessToken, {
+          to: params.toEmail,
+          subject: params.subject,
+          htmlBody: htmlWrapped,
+        });
+        return { drafted: true, channel: 'outlook', draftId: d.id };
+      }
     } catch { /* fall through to IMAP */ }
   }
 
-  // 2. IMAP (custom-domain mailbox, no Google) — APPEND to the \Drafts folder.
+  // 3. IMAP (custom-domain mailbox, no Google) — APPEND to the \Drafts folder.
   if (clientUserId) {
     try {
       const { createImapDraft } = await import('@/lib/agents/imap-drafts');

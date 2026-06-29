@@ -17,6 +17,14 @@ import {
   updateImapDraft,
   sendImapDraft,
 } from '@/lib/agents/imap-drafts';
+import {
+  getValidOutlookToken,
+  listOutlookDrafts,
+  getOutlookDraft,
+  createOutlookDraft,
+  updateOutlookDraft,
+  sendOutlookDraft,
+} from '@/lib/outlook-oauth';
 import { textToSafeHtml } from '@/lib/email/text-to-html';
 
 export const runtime = 'nodejs';
@@ -65,6 +73,21 @@ export async function GET() {
     return NextResponse.json({ ok: true, connected: true, provider: 'gmail', email: token.email, drafts });
   }
 
+  const outlook = await getValidOutlookToken(user.id);
+  if (outlook) {
+    let stubs;
+    try { stubs = await listOutlookDrafts(outlook.accessToken, 15); }
+    catch (e: any) { return NextResponse.json({ ok: false, error: e?.message?.substring?.(0, 200) || 'list_failed' }, { status: 502 }); }
+    const drafts = stubs.map(s => ({
+      id: s.id,
+      provider: 'outlook',
+      to: s.to || '',
+      subject: s.subject || '(sans objet)',
+      preview: (s.preview || '').substring(0, 160),
+    }));
+    return NextResponse.json({ ok: true, connected: true, provider: 'outlook', email: outlook.email, drafts });
+  }
+
   if (await hasImap(user.id)) {
     const stubs = await listImapDrafts(user.id, 15);
     const drafts = [];
@@ -91,7 +114,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const action = body?.action as 'improve' | 'send' | 'create' | undefined;
   const draftId = body?.draftId as string | undefined;
-  const provider = (body?.provider as 'gmail' | 'imap' | undefined) || 'gmail';
+  const provider = (body?.provider as 'gmail' | 'outlook' | 'imap' | undefined) || 'gmail';
 
   // ── Create a NEW draft from KeiroAI (compose) ──────────────────────
   // Provider auto-detected: Gmail first, then custom-domain IMAP.
@@ -107,6 +130,15 @@ export async function POST(req: NextRequest) {
       try {
         const d = await createGmailDraft(gToken.accessToken, { to, subject, htmlBody: html, fromEmail: gToken.email, replyTo: gToken.email });
         return NextResponse.json({ ok: true, provider: 'gmail', draftId: d.id });
+      } catch (e: any) {
+        return NextResponse.json({ ok: false, error: e?.message?.substring?.(0, 200) || 'create_failed' }, { status: 502 });
+      }
+    }
+    const oTok = await getValidOutlookToken(user.id);
+    if (oTok) {
+      try {
+        const d = await createOutlookDraft(oTok.accessToken, { to, subject, htmlBody: textToSafeHtml(text) });
+        return NextResponse.json({ ok: true, provider: 'outlook', draftId: d.id });
       } catch (e: any) {
         return NextResponse.json({ ok: false, error: e?.message?.substring?.(0, 200) || 'create_failed' }, { status: 502 });
       }
@@ -156,6 +188,36 @@ export async function POST(req: NextRequest) {
     if (!r.updated) return NextResponse.json({ ok: false, error: r.reason || 'update_failed' }, { status: 502 });
     await logImproved(supabase, user.id, draftId, improved.subject);
     return NextResponse.json({ ok: true, improved, newId: r.uid != null ? String(r.uid) : undefined });
+  }
+
+  // ── Outlook / Microsoft 365 ────────────────────────────────────────
+  if (provider === 'outlook') {
+    const oTok = await getValidOutlookToken(user.id);
+    if (!oTok) return NextResponse.json({ ok: false, error: 'Outlook non connecté' }, { status: 400 });
+
+    if (action === 'send') {
+      const r = await sendOutlookDraft(oTok.accessToken, draftId);
+      return r.sent
+        ? NextResponse.json({ ok: true, sent: true })
+        : NextResponse.json({ ok: false, error: 'send_failed' }, { status: 502 });
+    }
+
+    const existing = await getOutlookDraft(oTok.accessToken, draftId);
+    if (!existing) return NextResponse.json({ ok: false, error: 'Brouillon introuvable' }, { status: 404 });
+    const improved = await improveDraft({ current: { subject: existing.subject || '', body: existing.body || '' }, instruction: body?.instruction, dossier });
+    if (!improved) return NextResponse.json({ ok: false, error: 'Réécriture impossible (LLM indisponible)' }, { status: 502 });
+
+    try {
+      await updateOutlookDraft(oTok.accessToken, draftId, {
+        to: existing.to,
+        subject: improved.subject,
+        htmlBody: textToSafeHtml(improved.body),
+      });
+    } catch (e: any) {
+      return NextResponse.json({ ok: false, error: e?.message?.substring?.(0, 200) || 'update_failed' }, { status: 502 });
+    }
+    await logImproved(supabase, user.id, draftId, improved.subject);
+    return NextResponse.json({ ok: true, improved });
   }
 
   // ── Gmail ──────────────────────────────────────────────────────────

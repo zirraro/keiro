@@ -211,6 +211,118 @@ export async function markOutlookRead(accessToken: string, messageId: string): P
   }).catch(() => {});
 }
 
+// ──────────────────────────────────────────────────────────
+// Outlook DRAFTS (scope Mail.ReadWrite) — parité Gmail/IMAP.
+// A draft = a message resource created but not sent. Graph stores it in
+// the Drafts folder automatically.
+// ──────────────────────────────────────────────────────────
+
+const GRAPH_DRAFTS = 'https://graph.microsoft.com/v1.0/me/mailFolders/drafts/messages';
+
+export interface OutlookDraftLite {
+  id: string;
+  to?: string;
+  subject?: string;
+  preview?: string;
+}
+
+/** Create a draft (POST a message without sending). Returns the draft id. */
+export async function createOutlookDraft(
+  accessToken: string,
+  params: { to?: string; subject: string; htmlBody: string },
+): Promise<{ id: string }> {
+  const payload: any = {
+    subject: params.subject,
+    body: { contentType: 'HTML', content: params.htmlBody },
+    ...(params.to ? { toRecipients: [{ emailAddress: { address: params.to } }] } : {}),
+  };
+  const res = await fetch(GRAPH_MESSAGES, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[Outlook] Draft create failed:', err.substring(0, 200));
+    throw new Error(`Outlook draft create failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return { id: data.id };
+}
+
+/** List recent drafts. */
+export async function listOutlookDrafts(accessToken: string, top = 15): Promise<OutlookDraftLite[]> {
+  const url = `${GRAPH_DRAFTS}?$top=${top}&$select=id,subject,toRecipients,bodyPreview&$orderby=lastModifiedDateTime desc`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) return [];
+    throw new Error(`Outlook drafts list failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return (data.value || []).map((m: any) => ({
+    id: m.id,
+    to: m.toRecipients?.[0]?.emailAddress?.address,
+    subject: m.subject || '(sans objet)',
+    preview: m.bodyPreview || '',
+  }));
+}
+
+/** Fetch one draft (with body). */
+export async function getOutlookDraft(accessToken: string, id: string): Promise<{
+  id: string; to?: string; subject?: string; body: string;
+} | null> {
+  const url = `${GRAPH_MESSAGES}/${encodeURIComponent(id)}?$select=id,subject,toRecipients,body`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) return null;
+  const m = await res.json();
+  const html = m.body?.contentType === 'html' ? (m.body?.content || '') : '';
+  const body = (html ? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') : (m.body?.content || '')).trim();
+  return {
+    id: m.id,
+    to: m.toRecipients?.[0]?.emailAddress?.address,
+    subject: m.subject,
+    body,
+  };
+}
+
+/** Update (resume/modify) a draft in place. */
+export async function updateOutlookDraft(
+  accessToken: string,
+  id: string,
+  params: { to?: string; subject: string; htmlBody: string },
+): Promise<{ id: string }> {
+  const payload: any = {
+    subject: params.subject,
+    body: { contentType: 'HTML', content: params.htmlBody },
+    ...(params.to ? { toRecipients: [{ emailAddress: { address: params.to } }] } : {}),
+  };
+  const res = await fetch(`${GRAPH_MESSAGES}/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[Outlook] Draft update failed:', err.substring(0, 200));
+    throw new Error(`Outlook draft update failed: ${res.status}`);
+  }
+  return { id };
+}
+
+/** Send an existing draft. */
+export async function sendOutlookDraft(accessToken: string, id: string): Promise<{ sent: boolean }> {
+  const res = await fetch(`${GRAPH_MESSAGES}/${encodeURIComponent(id)}/send`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[Outlook] Draft send failed:', err.substring(0, 200));
+    return { sent: false };
+  }
+  return { sent: true };
+}
+
 export async function isOutlookConnected(userId: string): Promise<{ connected: boolean; email: string | null }> {
   const supabase = getSupabase();
   const { data } = await supabase
