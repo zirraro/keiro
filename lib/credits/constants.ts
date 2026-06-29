@@ -251,8 +251,9 @@ export const ADDON_TIER_3 = 15;
 // absorbed by Jade. The remaining sellable addon roster is now:
 // Léna, Jade, Hugo, Léo, Théo. Ami & Clara stay free across all plans.
 export const AGENT_ADDON_PRICES: Record<string, number> = {
-  // Tier 3 (15€) — génération IA lourde
+  // Tier 3 (15€) — génération IA lourde / Sonnet
   content: ADDON_TIER_3,       // Léna — images/vidéos Seedream sur 3 réseaux
+  rh: ADDON_TIER_3,            // Sara — RH + juridique (Sonnet + rédaction docs brandés). Payant = couvre le coût Claude (~80% marge)
 
   // Tier 2 (12€) — agents avec volume d'appels moyen
   dm_instagram: ADDON_TIER_2,  // Jade — DM + comments + engagement (IG/TT/LI)
@@ -287,8 +288,8 @@ export function getAvailableAddons(plan: string): Array<{ agentId: string; name:
   const CREATEUR_AGENTS = new Set([...FREE_AGENTS, 'content', 'dm_instagram']);
   // Pro : all paid agents
   const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'dm_instagram', 'email', 'commercial', 'gmaps']);
-  // Business = Pro + multi-account + multi-platform support
-  const BUSINESS_AGENTS = new Set([...PRO_AGENTS]);
+  // Business = Pro + Sara (RH/juridique) + multi-account + support (le pack "tous les agents")
+  const BUSINESS_AGENTS = new Set([...PRO_AGENTS, 'rh']);
 
   const planAgents: Record<string, Set<string>> = {
     free: FREE_AGENTS,
@@ -306,6 +307,7 @@ export function getAvailableAddons(plan: string): Array<{ agentId: string; name:
     email: 'Hugo (Email)',
     commercial: 'Léo (Prospection)',
     gmaps: 'Théo (Réputation + SEO)',
+    rh: 'Sara (RH + Juridique : contrats, docs, conseil)',
   };
 
   const included = planAgents[plan] || planAgents.free;

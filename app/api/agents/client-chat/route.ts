@@ -298,7 +298,7 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
 
     // Choose model based on plan + agent type
     const premiumPlans = ['business', 'elite', 'agence'];
-    const premiumAgents = ['comptable', 'finance']; // Louis always gets Sonnet (devis, factures, Excel)
+    const premiumAgents = ['comptable', 'finance', 'rh']; // Louis + Sara (RH/juridique) toujours Sonnet — conseil + docs de niveau (agents payants = coût couvert)
     const isPremium = premiumPlans.includes(plan) || premiumAgents.includes(agent_id);
 
     let reply = '';
