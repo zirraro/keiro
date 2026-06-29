@@ -15,17 +15,11 @@ import { getValidToken, getLocationDetails, updateLocationDescription, createLoc
 
 const CLAUDE = 'claude-sonnet-4-6';
 
+// Claude AVEC fallback Gemini automatique (si Claude coupé/sans crédits → bascule).
 async function claude(system: string, message: string, maxTokens = 700): Promise<string> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error('ANTHROPIC_API_KEY manquante');
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: CLAUDE, max_tokens: maxTokens, system, messages: [{ role: 'user', content: message }] }),
-  });
-  if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).substring(0, 160)}`);
-  const data = await res.json();
-  return (data.content?.[0]?.text || '').trim();
+  const { callLlmWithFallback } = await import('@/lib/agents/llm-fallback');
+  const r = await callLlmWithFallback({ system, message, maxTokens, claudeModel: CLAUDE, callTag: 'gbp-optimizer' });
+  return (r.text || '').trim();
 }
 
 export type GbpOptimizeResult = {

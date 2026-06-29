@@ -6,15 +6,23 @@ export const metadata = {
   }
 };
 
-export default function DataDeletionPage() {
+export default async function DataDeletionPage({ searchParams }: { searchParams?: Promise<{ code?: string }> }) {
+  const code = (await searchParams)?.code;
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white">
       <div className="max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold text-neutral-900 mb-8">Suppression des données utilisateur</h1>
 
+        {code && (
+          <div className="bg-green-50 border border-green-300 rounded-xl p-5 mb-8">
+            <p className="text-green-900 font-semibold">✅ Votre demande de suppression a bien été reçue et traitée.</p>
+            <p className="text-green-800 text-sm mt-1">Code de confirmation : <span className="font-mono">{code}</span> — vos données personnelles liées à votre compte ont été supprimées/anonymisées de nos serveurs.</p>
+          </div>
+        )}
+
         <div className="prose prose-neutral max-w-none">
           <p className="text-sm text-neutral-600 mb-8">
-            Dernière mise à jour : 6 février 2026
+            Dernière mise à jour : 29 juin 2026
           </p>
 
           <section className="mb-8">

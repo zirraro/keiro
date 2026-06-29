@@ -10,17 +10,11 @@
 const UA = 'Mozilla/5.0 (compatible; KeiroSEO/1.0; +https://keiroai.com)';
 const CLAUDE = 'claude-sonnet-4-6';
 
+// Claude AVEC fallback Gemini auto (tourne même si Claude coupé/sans crédits).
 async function claude(system: string, message: string, maxTokens = 1200): Promise<string> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error('ANTHROPIC_API_KEY manquante');
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: CLAUDE, max_tokens: maxTokens, system, messages: [{ role: 'user', content: message }] }),
-  });
-  if (!res.ok) throw new Error(`Claude ${res.status}`);
-  const data = await res.json();
-  return (data.content?.[0]?.text || '').trim();
+  const { callLlmWithFallback } = await import('@/lib/agents/llm-fallback');
+  const r = await callLlmWithFallback({ system, message, maxTokens, claudeModel: CLAUDE, callTag: 'seo-site-analyzer' });
+  return (r.text || '').trim();
 }
 
 function extractSignals(html: string, finalUrl: string) {
