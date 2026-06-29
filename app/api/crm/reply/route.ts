@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { graphPOST } from '@/lib/meta';
+import { textToParagraphs } from '@/lib/email/text-to-html';
 
 export const runtime = 'nodejs';
 
@@ -58,9 +59,9 @@ export async function POST(req: NextRequest) {
           reply_to: 'contact@keiroai.com',
           subject: `Re: ${prospect.company || prospect.first_name || 'Votre message'}`,
           html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
-            ${message.split('\n').map((l: string) => `<p style="margin:8px 0;">${l}</p>`).join('')}
+            ${textToParagraphs(message)}
             <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280;">
-              <p style="margin:0;">${senderName}</p>
+              <p style="margin:0;">${senderName.replace(/[<>&]/g, '')}</p>
             </div>
           </div>`,
           text: message,
