@@ -304,17 +304,26 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
     let reply = '';
 
     if (isPremium) {
-      // Premium: Claude Sonnet — best quality
+      // Premium: Claude Sonnet — best quality. AVEC fallback Gemini si Claude
+      // coupé/sans crédits (Sara/Louis ne doivent JAMAIS planter). Gemini 2.5
+      // reste haut niveau pour du texte RH/juridique ; ce n'est qu'un secours.
       console.log(`[ClientChat] Using Claude Sonnet for premium plan=${plan}, user=${user.id}, agent=${agent_id}`);
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: fullSystemPrompt,
-        temperature: 0.7,
-        messages: claudeMessages,
-      });
-      reply = response.content[0].type === 'text' ? response.content[0].text : '';
-      console.log(`[ClientChat] Sonnet response (${response.usage.input_tokens + response.usage.output_tokens} tokens)`);
+      try {
+        const response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2048,
+          system: fullSystemPrompt,
+          temperature: 0.7,
+          messages: claudeMessages,
+        });
+        reply = response.content[0].type === 'text' ? response.content[0].text : '';
+        console.log(`[ClientChat] Sonnet response (${response.usage.input_tokens + response.usage.output_tokens} tokens)`);
+      } catch (claudeErr: any) {
+        console.warn(`[ClientChat] Claude premium failed, fallback Gemini:`, claudeErr.message?.substring(0, 120));
+        const { callGeminiChat } = await import('@/lib/agents/gemini');
+        const historyStr = recentMessages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
+        reply = await callGeminiChat({ system: fullSystemPrompt + (historyStr ? `\n\nHISTORIQUE:\n${historyStr}` : ''), message, history: [] });
+      }
     } else {
       // Standard: Gemini Flash — best value, free/near-free
       console.log(`[ClientChat] Using Gemini Flash for plan=${plan}, user=${user.id}, agent=${agent_id}`);
