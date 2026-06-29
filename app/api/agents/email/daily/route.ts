@@ -383,13 +383,19 @@ RGPD — CE QUI EST RÉELLEMENT AUTORISÉ EN B2B FRANCE :
 - CONSEIL : dans chaque email, une phrase type "Je te contacte car j'ai vu [source] et je pense que KeiroAI peut t'aider" = justification de l'intérêt légitime.
 - MAX 3 emails de prospection par prospect (notre règle actuelle = conforme). Au-delà de 3 relances non sollicitées = harcèlement commercial.
 
+FORME & STRATÉGIE DU CORPS (IMPORTANT) :
+- TEXTE BRUT uniquement. JAMAIS de HTML, JAMAIS de balise, JAMAIS de caractère "<" ou ">", JAMAIS de markdown (**, #, -). Le système ajoute la mise en forme et le bouton CTA lui-même.
+- Structure : une accroche personnalisée (1 ligne qui montre que tu as regardé son business) → une VRAIE astuce actionnable et concrète liée à son secteur (la valeur, 2-3 lignes) → une question ouverte qui invite à répondre. Sépare ces blocs par une ligne vide.
+- VALEUR D'ABORD : tu donnes un conseil utile gratuitement. Tu NE demandes PAS de payer, tu NE vends pas de pack. Au mieux une mention légère "j'aide des [secteur] à faire ça avec KeiroAI" — c'est le système qui met le bouton "Découvrir KeiroAI".
+- Ton humain, naturel, comme un fondateur qui écrit à la main. Pas de jargon, pas de "n'hésite pas", pas de "je reste à dispo".
+
 CONSIGNE : Pour chaque prospect, génère un email UNIQUE et personnalisé.
 Réponds en JSON — un tableau d'objets, un par prospect :
 [
   {
     "id": "prospect_id",
     "subject": "Objet percutant < 50 chars — PAS de emoji",
-    "body": "Corps du mail 4-6 lignes tutoiement",
+    "body": "Corps en TEXTE BRUT (AUCUNE balise HTML, AUCUN caractere < ou >), 5-7 lignes, paragraphes separes par une ligne vide, tutoiement",
     "skip": false
   }
 ]
@@ -462,16 +468,7 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}
 <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;">
 <div style="max-width:600px;margin:0 auto;padding:20px;">
 <div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">
-${email.body.split('\n').map((line: string) => {
-  // 2026-06-25 (bug founder : du HTML brut '<p style=...>Hugo' s'affichait +
-  // un '<' littéral cassait le rendu). Le corps DOIT être du texte : on retire
-  // toute balise que l'IA aurait pu produire, PUIS on échappe les <>& restants.
-  const clean = String(line || '')
-    .replace(/<\/?[a-z][^>]*>/gi, '')      // strip toute balise HTML émise par l'IA
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .trim();
-  return clean ? `<p style="margin:8px 0;">${clean}</p>` : '';
-}).join('')}
+${sanitizeEmailBodyToParagraphs(email.body)}
 <p style="margin:20px 0;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Découvrir KeiroAI</a></p>
 <p style="margin:14px 0;font-size:13px;color:#6b7280;border-left:3px solid #0c1a3a;padding-left:12px;">+200 entrepreneurs utilisent KeiroAI pour leur marketing.</p>
 </div>
@@ -492,6 +489,44 @@ ${email.body.split('\n').map((line: string) => {
   }
 
   return results;
+}
+
+/**
+ * Turn an AI-generated email body (which may contain stray HTML, broken
+ * tags, lone '<' artifacts, or markdown) into clean, well-formed HTML
+ * paragraphs. Bulletproof: NO '<' can ever leak to the recipient.
+ *
+ * - blank line => new paragraph
+ * - single newline inside a paragraph => <br>
+ * - all <...> tags stripped, stray < > removed entirely, & escaped
+ * - markdown bold/italic markers stripped (keep the text)
+ */
+function sanitizeEmailBodyToParagraphs(raw: string): string {
+  const cleanLine = (line: string) =>
+    String(line || '')
+      .replace(/<[^>]*>/g, ' ')        // strip ANY tag-like <...>
+      .replace(/[<>]/g, '')             // remove stray angle brackets entirely
+      .replace(/\*\*?|__|`/g, '')       // drop markdown emphasis markers, keep text
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&/g, '&amp;')           // escape ampersand (no < > left to escape)
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+
+  const paragraphs = String(raw || '')
+    .replace(/\r\n/g, '\n')
+    .split(/\n\s*\n/)                   // blank line => paragraph break
+    .map(block =>
+      block
+        .split('\n')
+        .map(cleanLine)
+        .filter(Boolean)
+        .join('<br>')
+    )
+    .filter(Boolean);
+
+  return paragraphs
+    .map(p => `<p style="margin:0 0 14px;">${p}</p>`)
+    .join('');
 }
 
 /**
