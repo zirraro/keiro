@@ -617,6 +617,12 @@ Quand un visuel inclut une personne ou plusieurs personnes, tu DOIS varier en pe
 
 RÈGLE D'OR : sur 7 posts qui montrent au moins une personne, MAXIMUM 2 partagent le même profil (même genre + même tranche d'âge + même origine apparente). Le feed doit ressembler à la vraie clientèle du commerçant, pas à un casting cliché.
 
+DIVERSITÉ DANS UNE MÊME IMAGE / UN MÊME REEL (RÈGLE DURE, founder 30/06) :
+- Si PLUSIEURS personnes apparaissent dans le MÊME visuel/plan, ce sont des INDIVIDUS DISTINCTS : visages différents, morphologies différentes, âges différents. JAMAIS deux fois la même personne dupliquée (pas « 2 fois la même femme » dans une image ou un reel).
+- Quand un groupe/des clients/une équipe sont ensemble dans le même cadre, MÉLANGE les origines apparentes DANS LE CADRE (afro + maghrébin + européen + asiatique + latino…). Surtout PAS tout le monde de la même ethnie (ex : pas « 4 personnes asiatiques »).
+- Pas d'origine par DÉFAUT : ne retombe pas systématiquement sur la même (ni toujours asiatique, ni toujours européen). Tire chaque casting au sort de façon crédible pour la ville/clientèle réelle.
+- Décris chaque personne du cadre individuellement dans le visual_description (« au premier plan un homme maghrébin la cinquantaine ; derrière, une jeune femme afro et un client européen d'une trentaine ») pour forcer le modèle à générer des visages distincts.
+
 Si le client a fourni des photos de son équipe / lui-même → utilise sa réalité visuelle en priorité. Sinon → diversifie strictement comme ci-dessus.
 
 ANTI-AI VIBES (CRITIQUE) :

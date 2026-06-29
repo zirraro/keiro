@@ -293,7 +293,7 @@ REGLES:
 3. INTERPRETE la direction creative (camera, lumiere) — ne copie pas mot pour mot
 4. AUCUN TEXTE dans la description — pas de panneaux, enseignes lisibles, ecrans avec du texte, tableaux ecrits, menus, etiquettes, prix. Remplace par des FORMES, COULEURS, OBJETS
 5. VOCABULAIRE VARIE — JAMAIS "warm lighting", "vibrant colors", "cinematic feel"
-6. Diversite naturelle si personnes presentes
+6. DIVERSITE si personnes presentes : plusieurs personnes dans le MEME cadre = individus DISTINCTS (visages/ages/origines differents), JAMAIS deux fois la meme personne. Pour un groupe, MELANGE les origines dans le cadre (afro, maghrebin, europeen, asiatique, latino) — pas mono-ethnique, pas toujours la meme origine par defaut
 7. Maximum 550 caracteres
 8. PAS d'instruction "no text" explicite — mais ta description ne doit JAMAIS suggerer des elements contenant du texte lisible
 9. En ANGLAIS
