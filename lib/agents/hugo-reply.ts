@@ -24,6 +24,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { textToSafeHtml } from '@/lib/email/text-to-html';
 
 export type InboundClassification =
   | 'needs_reply'       // real human reply requiring an answer + CTA
@@ -296,17 +297,12 @@ export async function sendReplyViaBrevo(params: {
   const senderEmail = params.senderEmail || 'contact@keiroai.com';
   const senderName = params.senderName || 'KeiroAI';
 
-  const bodyHtml = params.body
-    .split(/\n\n+/)
-    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
-
   const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
   const result = await sendEmailWithFallback({
     to: params.toEmail,
     toName: params.toName,
     subject: params.subject,
-    html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`,
+    html: textToSafeHtml(params.body),
     textContent: params.body,
     fromName: senderName,
     fromEmail: senderEmail,
@@ -349,11 +345,7 @@ export async function sendReplyForClient(params: {
   // KeiroAI as its own client, not a generic fallback for everyone.
   const isAdminAccount = clientEmail === 'mrzirraro@gmail.com' || clientEmail === 'contact@keiroai.com';
 
-  const bodyHtml = params.body
-    .split(/\n\n+/)
-    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
-  const htmlWrapped = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`;
+  const htmlWrapped = textToSafeHtml(params.body);
 
   // 1. Gmail (OAuth) — most common among SMBs
   if (clientUserId) {
@@ -458,11 +450,7 @@ export async function draftReplyForClient(params: {
 }): Promise<{ drafted: boolean; channel: 'gmail' | 'imap' | 'none'; draftId?: string; reason?: string }> {
   const { clientUserId } = params;
 
-  const bodyHtml = params.body
-    .split(/\n\n+/)
-    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
-  const htmlWrapped = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`;
+  const htmlWrapped = textToSafeHtml(params.body);
 
   // 1. Gmail (OAuth gmail.compose) — best UX for the ~90% on Gmail/Workspace.
   if (clientUserId) {

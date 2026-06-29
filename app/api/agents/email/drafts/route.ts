@@ -17,6 +17,7 @@ import {
   updateImapDraft,
   sendImapDraft,
 } from '@/lib/agents/imap-drafts';
+import { textToSafeHtml } from '@/lib/email/text-to-html';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     const gToken = await getValidGmailToken(user.id);
     if (gToken) {
-      const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${text.split(/\n\n+/).map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>`;
+      const html = textToSafeHtml(text);
       try {
         const d = await createGmailDraft(gToken.accessToken, { to, subject, htmlBody: html, fromEmail: gToken.email, replyTo: gToken.email });
         return NextResponse.json({ ok: true, provider: 'gmail', draftId: d.id });
@@ -175,11 +176,7 @@ export async function POST(req: NextRequest) {
   const improved = await improveDraft({ current: { subject: existing.subject || '', body: existing.body || '' }, instruction: body?.instruction, dossier });
   if (!improved) return NextResponse.json({ ok: false, error: 'Réécriture impossible (LLM indisponible)' }, { status: 502 });
 
-  const bodyHtml = improved.body
-    .split(/\n\n+/)
-    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
-  const htmlWrapped = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`;
+  const htmlWrapped = textToSafeHtml(improved.body);
 
   try {
     await updateGmailDraft(token.accessToken, draftId, {

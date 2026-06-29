@@ -17,6 +17,7 @@
 import nodemailer, { type SendMailOptions } from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
 import { decryptSmtpPassword } from '@/lib/smtp-crypto';
+import { textToSafeHtml } from '@/lib/email/text-to-html';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -99,17 +100,12 @@ export async function sendViaSmtp(params: {
   const fromEmail = profile.smtp_from_email || profile.smtp_user;
   const fromName = profile.smtp_from_name || undefined;
 
-  const bodyHtml = params.body
-    .split(/\n\n+/)
-    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
-
   const mail: SendMailOptions = {
     from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
     to: params.toName ? `${params.toName} <${params.to}>` : params.to,
     subject: params.subject,
     text: params.body,
-    html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`,
+    html: textToSafeHtml(params.body),
   };
   if (params.inReplyTo) {
     mail.inReplyTo = params.inReplyTo;

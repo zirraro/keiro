@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { promises as dns } from 'dns';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
+import { textToParagraphs } from '@/lib/email/text-to-html';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-timing';
 import { callGemini } from '@/lib/agents/gemini';
@@ -501,32 +502,9 @@ ${sanitizeEmailBodyToParagraphs(email.body)}
  * - all <...> tags stripped, stray < > removed entirely, & escaped
  * - markdown bold/italic markers stripped (keep the text)
  */
+// Delegates to the shared, bulletproof sanitizer (single source of truth).
 function sanitizeEmailBodyToParagraphs(raw: string): string {
-  const cleanLine = (line: string) =>
-    String(line || '')
-      .replace(/<[^>]*>/g, ' ')        // strip ANY tag-like <...>
-      .replace(/[<>]/g, '')             // remove stray angle brackets entirely
-      .replace(/\*\*?|__|`/g, '')       // drop markdown emphasis markers, keep text
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&/g, '&amp;')           // escape ampersand (no < > left to escape)
-      .replace(/[ \t]{2,}/g, ' ')
-      .trim();
-
-  const paragraphs = String(raw || '')
-    .replace(/\r\n/g, '\n')
-    .split(/\n\s*\n/)                   // blank line => paragraph break
-    .map(block =>
-      block
-        .split('\n')
-        .map(cleanLine)
-        .filter(Boolean)
-        .join('<br>')
-    )
-    .filter(Boolean);
-
-  return paragraphs
-    .map(p => `<p style="margin:0 0 14px;">${p}</p>`)
-    .join('');
+  return textToParagraphs(raw);
 }
 
 /**

@@ -26,6 +26,7 @@ import { simpleParser } from 'mailparser';
 import MailComposer from 'nodemailer/lib/mail-composer';
 import { createClient } from '@supabase/supabase-js';
 import { decryptSmtpPassword } from '@/lib/smtp-crypto';
+import { textToSafeHtml } from '@/lib/email/text-to-html';
 
 function getSupabaseAdmin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -111,11 +112,7 @@ async function buildRaw(cfg: ImapConfig, params: {
 }
 
 function htmlFromBody(body: string): string {
-  const inner = body
-    .split(/\n\n+/)
-    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
-  return `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${inner}</div>`;
+  return textToSafeHtml(body);
 }
 
 export interface ImapDraftLite {
