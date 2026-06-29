@@ -180,7 +180,13 @@ export async function GET(request: NextRequest) {
           ? Math.floor((Date.now() - new Date(lastMsg.last_message_sent_at).getTime()) / 86400000)
           : 999;
 
-        if (daysSinceLastMsg < 7 && level !== 'red') continue; // Max 1/week unless red
+        // Cadence par TYPE (founder 29/06) : le "nudge — publie plus" (yellow)
+        // ne part qu'aux clients qui publient peu (health score bas) ET au
+        // MAX 1×/MOIS pour ne jamais harceler. Orange (vraiment à risque de
+        // churn) = 1×/semaine. Green/celebration = 1×/mois. Red = alerte
+        // fondateur, pas le client.
+        const minGapDays = level === 'orange' ? 7 : 30;
+        if (daysSinceLastMsg < minGapDays && level !== 'red') continue;
 
         // Cross-agent dedup: check if any agent (email, onboarding) emailed this user in last 3 days
         const dedupEmail = authData?.user?.email || client.email;
