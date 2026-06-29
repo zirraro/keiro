@@ -281,8 +281,10 @@ export const AGENT_ADDON_PRICES: Record<string, number> = {
  */
 export function getAvailableAddons(plan: string): Array<{ agentId: string; name: string; price: number; tier: number }> {
   const FREE_AGENTS = new Set(['marketing', 'onboarding']);
-  // Créateur : DM included, others optional addons
-  const CREATEUR_AGENTS = new Set([...FREE_AGENTS, 'content']);
+  // Créateur : Léna (contenu) + Jade (DM) INCLUS. Jade est du texte (coût quasi
+  // nul) → ne pèse pas sur la marge (le COGS reste les générations vidéo/image de
+  // Léna, inchangé). Les autres agents (Hugo, Théo, Léo) restent en add-on.
+  const CREATEUR_AGENTS = new Set([...FREE_AGENTS, 'content', 'dm_instagram']);
   // Pro : all paid agents
   const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'dm_instagram', 'email', 'commercial', 'gmaps']);
   // Business = Pro + multi-account + multi-platform support
