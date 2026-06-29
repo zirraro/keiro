@@ -25,18 +25,21 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: redirectUri,
     response_type: 'code',
-    // SCOPES (décision founder 28/06 : on veut la GESTION COMPLÈTE de la boîte) :
-    //   - gmail.send     → envoyer / répondre depuis le Gmail du client
+    // SCOPES (décision founder 29/06 — set final minimal, post-nettoyage console) :
+    //   - gmail.compose  → CRÉE / REPREND / MODIFIE des brouillons ET envoie. SENSIBLE.
+    //                      Remplace gmail.send (compose envoie aussi) et couvre le mode
+    //                      brouillon (Hugo prépare → le client relit/envoie ; ou le client
+    //                      a commencé un brouillon → Hugo le reprend/améliore).
     //   - gmail.readonly → LIRE la boîte du client (réponses prospects + mails reçus)
     //                      pour analyser et répondre en auto (Hugo). RESTREINT →
     //                      nécessite l'audit CASA pour la prod >100 users (gratuit en
-    //                      mode test pour valider la feature). Les réponses arrivent
-    //                      dans le Gmail du client, on les lit via poll-inbound.
-    //   - userinfo.email → identifier la boîte connectée
+    //                      mode test). On NE demande PAS gmail.modify (jamais).
+    //   - userinfo.email/profile → identifier la boîte connectée (nom/photo affichés).
     scope: [
-      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/gmail.compose',
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
     ].join(' '),
     access_type: 'offline',
     prompt: 'consent',
@@ -185,6 +188,220 @@ export async function sendViaGmail(
     throw new Error(`Gmail send failed: ${res.status}`);
   }
 
+  const data = await res.json();
+  return { id: data.id, sent: true };
+}
+
+// ──────────────────────────────────────────────────────────
+// Gmail DRAFTS (scope gmail.compose) — mode "Hugo prépare, le client relit
+// et envoie" + reprise/modification d'un brouillon commencé par le client.
+// ──────────────────────────────────────────────────────────
+
+const GMAIL_DRAFTS_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/drafts';
+const GMAIL_DRAFT_URL = (id: string) => `${GMAIL_DRAFTS_URL}/${id}`;
+
+/**
+ * Build a base64url-encoded RFC 2822 message. Shared by send + drafts so
+ * threading headers (In-Reply-To / References) and encoding stay identical.
+ */
+export function buildRawGmailMessage(params: {
+  to: string;
+  subject: string;
+  htmlBody: string;
+  fromName?: string;
+  fromEmail?: string;
+  replyTo?: string;
+  inReplyTo?: string;   // Message-ID of the email we're replying to (threading)
+}): string {
+  const { to, subject, htmlBody, fromName, fromEmail, replyTo, inReplyTo } = params;
+  const from = fromName ? `${fromName} <${fromEmail || 'me'}>` : (fromEmail || 'me');
+  const headers = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+  ];
+  if (replyTo) headers.push(`Reply-To: ${replyTo}`);
+  // Threading: In-Reply-To + References make the draft/reply land in the
+  // same conversation in the recipient's inbox.
+  if (inReplyTo) {
+    headers.push(`In-Reply-To: ${inReplyTo}`);
+    headers.push(`References: ${inReplyTo}`);
+  }
+  const rawEmail = headers.join('\r\n') + '\r\n\r\n' + htmlBody;
+  return Buffer.from(rawEmail)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+export interface GmailDraftLite {
+  id: string;
+  messageId?: string;
+  threadId?: string;
+  to?: string;
+  subject?: string;
+  snippet?: string;
+}
+
+/**
+ * Create a draft in the client's Gmail (lands in their Drafts folder).
+ * Returns the draft id. Used by Hugo's "prepare a reply for me to review"
+ * mode and by the on-demand "draft a new email" action.
+ */
+export async function createGmailDraft(
+  accessToken: string,
+  params: {
+    to: string;
+    subject: string;
+    htmlBody: string;
+    fromName?: string;
+    fromEmail?: string;
+    replyTo?: string;
+    inReplyTo?: string;
+    threadId?: string;   // attach the draft to an existing Gmail thread
+  },
+): Promise<{ id: string; messageId?: string; threadId?: string }> {
+  const raw = buildRawGmailMessage(params);
+  const message: any = { raw };
+  if (params.threadId) message.threadId = params.threadId;
+
+  const res = await fetch(GMAIL_DRAFTS_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[Gmail] Draft create failed:', err);
+    throw new Error(`Gmail draft create failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return { id: data.id, messageId: data.message?.id, threadId: data.message?.threadId };
+}
+
+/**
+ * List the most recent drafts in the client's Gmail. Used to surface
+ * "drafts you started" so Hugo can resume/improve them.
+ */
+export async function listGmailDrafts(accessToken: string, maxResults = 20): Promise<GmailDraftLite[]> {
+  const url = `${GMAIL_DRAFTS_URL}?maxResults=${maxResults}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    if (res.status === 403) return []; // scope not granted yet — no-op
+    throw new Error(`Gmail drafts list failed: HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const drafts = data.drafts || [];
+  // The list endpoint returns ids + a light message stub; hydrate headers
+  // for the ones we show (cap to avoid burning quota on huge mailboxes).
+  const out: GmailDraftLite[] = [];
+  for (const d of drafts.slice(0, maxResults)) {
+    out.push({ id: d.id, messageId: d.message?.id, threadId: d.message?.threadId });
+  }
+  return out;
+}
+
+/**
+ * Fetch one draft with its headers + body so Hugo can rewrite it.
+ */
+export async function getGmailDraft(accessToken: string, draftId: string): Promise<{
+  id: string;
+  messageId?: string;
+  threadId?: string;
+  to?: string;
+  subject?: string;
+  body: string;
+} | null> {
+  const res = await fetch(`${GMAIL_DRAFT_URL(draftId)}?format=full`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const msg = data.message;
+  if (!msg?.payload) return { id: data.id, messageId: msg?.id, threadId: msg?.threadId, body: '' };
+
+  const headers: Record<string, string> = {};
+  for (const h of msg.payload.headers || []) headers[h.name.toLowerCase()] = h.value;
+
+  function extract(part: any): string {
+    if (part.mimeType === 'text/plain' && part.body?.data) {
+      return Buffer.from(part.body.data, 'base64').toString('utf8');
+    }
+    if (part.mimeType === 'text/html' && part.body?.data) {
+      return Buffer.from(part.body.data, 'base64').toString('utf8').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    }
+    if (Array.isArray(part.parts)) {
+      for (const sub of part.parts) {
+        const r = extract(sub);
+        if (r) return r;
+      }
+    }
+    return '';
+  }
+  const body = (extract(msg.payload) || msg.snippet || '').trim();
+  return {
+    id: data.id,
+    messageId: msg.id,
+    threadId: msg.threadId,
+    to: headers['to'],
+    subject: headers['subject'],
+    body,
+  };
+}
+
+/**
+ * Replace the content of an existing draft (resume/modify what the client
+ * started). Keeps the same draft id + thread so it stays in place.
+ */
+export async function updateGmailDraft(
+  accessToken: string,
+  draftId: string,
+  params: {
+    to: string;
+    subject: string;
+    htmlBody: string;
+    fromName?: string;
+    fromEmail?: string;
+    inReplyTo?: string;
+    threadId?: string;
+  },
+): Promise<{ id: string }> {
+  const raw = buildRawGmailMessage(params);
+  const message: any = { raw };
+  if (params.threadId) message.threadId = params.threadId;
+
+  const res = await fetch(GMAIL_DRAFT_URL(draftId), {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[Gmail] Draft update failed:', err);
+    throw new Error(`Gmail draft update failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return { id: data.id };
+}
+
+/**
+ * Send an existing draft (drafts.send). Used when the client lets Hugo send
+ * a draft he resumed/improved, instead of sending manually from Gmail.
+ */
+export async function sendGmailDraft(accessToken: string, draftId: string): Promise<{ id: string; sent: boolean }> {
+  const res = await fetch(`${GMAIL_DRAFTS_URL}/send`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: draftId }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[Gmail] Draft send failed:', err);
+    throw new Error(`Gmail draft send failed: ${res.status}`);
+  }
   const data = await res.json();
   return { id: data.id, sent: true };
 }

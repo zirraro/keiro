@@ -39,6 +39,7 @@ export interface InboundEmail {
   body: string;             // plain text
   message_id?: string;      // Message-ID header of the inbound (for threading)
   in_reply_to?: string;     // In-Reply-To header (points to Hugo's outbound)
+  thread_id?: string;       // provider thread id (Gmail/Outlook) — keeps a draft in the same conversation
 }
 
 /**
@@ -433,4 +434,100 @@ export async function sendReplyForClient(params: {
   }
 
   return { sent: false, channel: 'none', reason: 'no_email_provider_connected' };
+}
+
+/**
+ * Draft mode: instead of sending, prepare the reply as a DRAFT in the
+ * client's Gmail (scope gmail.compose) so the client reviews it and hits
+ * "Send" themselves. Founder workflow 29/06 : "on prépare en brouillon et
+ * le client relit et envoie".
+ *
+ * Only Gmail supports OAuth drafts today. For clients on Outlook/SMTP/no
+ * provider we fall back to a client_notification carrying the full text so
+ * the human can paste & send — same safety net as the send path, never silent.
+ */
+export async function draftReplyForClient(params: {
+  clientUserId: string | null;
+  toEmail: string;
+  toName?: string;
+  subject: string;
+  body: string;
+  inReplyTo?: string;
+  threadId?: string;
+  senderName?: string;
+}): Promise<{ drafted: boolean; channel: 'gmail' | 'imap' | 'none'; draftId?: string; reason?: string }> {
+  const { clientUserId } = params;
+
+  const bodyHtml = params.body
+    .split(/\n\n+/)
+    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+  const htmlWrapped = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`;
+
+  // 1. Gmail (OAuth gmail.compose) — best UX for the ~90% on Gmail/Workspace.
+  if (clientUserId) {
+    try {
+      const { getValidGmailToken, createGmailDraft } = await import('@/lib/gmail-oauth');
+      const gmail = await getValidGmailToken(clientUserId);
+      if (gmail) {
+        const draft = await createGmailDraft(gmail.accessToken, {
+          to: params.toEmail,
+          subject: params.subject,
+          htmlBody: htmlWrapped,
+          fromName: params.senderName,
+          fromEmail: gmail.email,
+          replyTo: gmail.email,
+          inReplyTo: params.inReplyTo,
+          threadId: params.threadId,
+        });
+        return { drafted: true, channel: 'gmail', draftId: draft.id };
+      }
+    } catch { /* fall through to IMAP */ }
+  }
+
+  // 2. IMAP (custom-domain mailbox, no Google) — APPEND to the \Drafts folder.
+  if (clientUserId) {
+    try {
+      const { createImapDraft } = await import('@/lib/agents/imap-drafts');
+      const r = await createImapDraft(clientUserId, {
+        to: params.toEmail,
+        subject: params.subject,
+        html: htmlWrapped,
+        inReplyTo: params.inReplyTo,
+      });
+      if (r.created) return { drafted: true, channel: 'imap', draftId: r.uid != null ? String(r.uid) : undefined };
+      if (r.reason && r.reason !== 'imap_not_configured') {
+        return { drafted: false, channel: 'none', reason: `imap_draft_error:${r.reason}` };
+      }
+    } catch { /* fall through */ }
+  }
+
+  return { drafted: false, channel: 'none', reason: 'no_mailbox_for_draft' };
+}
+
+/**
+ * Read the owning client's email reply mode from org_agent_configs.
+ * 'auto_send' (default) = Hugo sends immediately. 'draft' = Hugo prepares a
+ * Gmail draft for the client to review and send.
+ */
+export async function getEmailReplyMode(
+  supabase: SupabaseClient,
+  ownerId: string | null,
+): Promise<'auto_send' | 'draft'> {
+  if (!ownerId) return 'auto_send';
+  try {
+    // Duplicate-row defence (some accounts have several (user_id, agent_id)
+    // rows) — read the most recent, same as /api/agents/settings.
+    const { data: rows } = await supabase
+      .from('org_agent_configs')
+      .select('config, created_at')
+      .eq('user_id', ownerId)
+      .eq('agent_id', 'email')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const mode = rows?.[0]?.config?.reply_mode;
+    return mode === 'draft' ? 'draft' : 'auto_send';
+  } catch {
+    return 'auto_send';
+  }
 }

@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
           body: msg.body,
           message_id: msg.message_id,
           in_reply_to: msg.in_reply_to,
+          thread_id: msg.threadId,
         }),
       });
       const webhookJson = await webhookRes.json().catch(() => ({}));

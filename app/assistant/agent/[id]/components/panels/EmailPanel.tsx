@@ -70,6 +70,128 @@ function EmailCard({ email }: { email: { prospect: string; type: string; status:
   );
 }
 
+// ── Reply mode toggle : envoi auto ↔ brouillon (founder 29/06) ──────
+function ReplyModeToggle() {
+  const [mode, setMode] = useState<'auto_send' | 'draft'>('auto_send');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/agents/settings?agent_id=email', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.settings?.reply_mode === 'draft') setMode('draft'); })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  const setVal = useCallback(async (val: 'auto_send' | 'draft') => {
+    setMode(val);
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ agent_id: 'email', reply_mode: val }),
+      });
+    } catch {}
+  }, []);
+
+  if (!loaded) return null;
+  const opt = (val: 'auto_send' | 'draft', icon: string, title: string, desc: string) => (
+    <button
+      onClick={() => setVal(val)}
+      className={`flex-1 text-left p-2.5 rounded-lg border transition-all ${mode === val ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/5'}`}
+    >
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm">{icon}</span>
+        <span className={`text-[11px] sm:text-xs font-bold ${mode === val ? 'text-cyan-200' : 'text-white/70'}`}>{title}</span>
+        {mode === val && <span className="ml-auto text-cyan-300 text-[10px]">{'✓'}</span>}
+      </div>
+      <div className="text-[10px] text-white/40 mt-0.5">{desc}</div>
+    </button>
+  );
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 mb-3">
+      <div className="text-[11px] sm:text-xs font-medium text-white/80 mb-2">Réponses aux emails reçus</div>
+      <div className="flex gap-2">
+        {opt('auto_send', '\u{1F916}', 'Envoi auto', 'Hugo répond et envoie tout seul')}
+        {opt('draft', '✍️', 'Brouillon', 'Hugo prépare, tu relis et envoies')}
+      </div>
+    </div>
+  );
+}
+
+// ── Drafts Hugo a préparés / que tu as commencés (scope gmail.compose) ──
+function DraftsCard() {
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetch('/api/agents/email/drafts', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { setConnected(!!d.connected); setDrafts(d.drafts || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const act = useCallback(async (id: string, action: 'improve' | 'send', provider: string) => {
+    setBusy(id + action);
+    try {
+      const res = await fetch('/api/agents/email/drafts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ action, draftId: id, provider }),
+      });
+      const j = await res.json();
+      if (j.ok) load();
+      else if (typeof window !== 'undefined') window.alert(j.error || 'Erreur');
+    } catch {} finally { setBusy(null); }
+  }, [load]);
+
+  if (loading || !connected || drafts.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4 mt-3">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs sm:text-sm font-bold text-white">{'✍️'} Brouillons ({drafts.length})</h3>
+        <button onClick={load} className="text-[10px] text-white/40 hover:text-white/70" aria-label="Rafraîchir">{'↻'}</button>
+      </div>
+      <p className="text-[10px] text-white/40 mb-2.5">Hugo peut les améliorer (orthographe, forme, ton) ou les envoyer pour toi.</p>
+      <div className="space-y-2 max-h-72 overflow-y-auto">
+        {drafts.map(d => (
+          <div key={d.id} className="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-semibold text-white/85 truncate">{d.subject || '(sans objet)'}</div>
+                {d.to && <div className="text-[10px] text-white/40 truncate">{'→'} {d.to}</div>}
+              </div>
+            </div>
+            {d.preview && <div className="text-[10px] text-white/45 line-clamp-2 mt-1">{d.preview}</div>}
+            <div className="flex gap-1.5 mt-2">
+              <button
+                onClick={() => act(d.id, 'improve', d.provider)}
+                disabled={!!busy}
+                className="px-2.5 py-1.5 text-[10px] font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
+              >
+                {busy === d.id + 'improve' ? '...' : '✨ Améliorer'}
+              </button>
+              <button
+                onClick={() => act(d.id, 'send', d.provider)}
+                disabled={!!busy}
+                className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 disabled:opacity-40"
+              >
+                {busy === d.id + 'send' ? '...' : '\u{1F680} Envoyer'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
   const { t } = useLanguage();
   const p = t.panels;
@@ -99,8 +221,14 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Auto mode toggle */}
       <div data-tour="auto-toggle"><AutoModeToggle agentId="email" autoLabel="Automatic emails" manualLabel="Manual emails" autoDesc="Hugo sends email sequences automatically" manualDesc="You validate each email before sending" /></div>
 
+      {/* Reply mode: auto-send vs draft-for-review (scope gmail.compose) */}
+      <ReplyModeToggle />
+
       {/* Email connection banner */}
       <EmailConnectBanner connections={(data as any).connections} />
+
+      {/* Drafts Hugo prepared / you started */}
+      <DraftsCard />
 
       {/* ── UNIFIED STATS SECTION ─────────────────────────────────
           User feedback: too many stat blocks repeated in different

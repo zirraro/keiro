@@ -56,17 +56,20 @@ export function RhPanel({ data, agentName, gradientFrom, gradientTo }: PanelProp
         </div>
       )}
 
+      {/* Comment \u00e7a marche \u2014 Sara g\u00e9n\u00e8re les docs dans la conversation */}
+      <div className="mt-3 rounded-xl border border-fuchsia-500/15 bg-fuchsia-500/[0.04] p-3">
+        <p className="text-[11px] text-white/70 leading-relaxed">
+          {'\u{1F4AC}'} Demande \u00e0 Sara dans le chat : <span className="text-white/90 font-medium">\u00ab r\u00e9dige une promesse d&apos;embauche \u00bb</span>, <span className="text-white/90 font-medium">\u00ab un avenant temps partiel \u00bb</span>, <span className="text-white/90 font-medium">\u00ab une attestation employeur \u00bb</span>\u2026 Elle g\u00e9n\u00e8re le document, tu le mets au format de ta marque (logo + couleurs) et tu l&apos;exportes en PDF/Word.
+        </p>
+      </div>
+
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
-        <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} {p.rhBtnGenerate}
-        </a>
+        <ActionButton label={p.rhBtnGenerate} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
           {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
-
-      <ActionButton label="{p.rhBtnGenerate}" gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }

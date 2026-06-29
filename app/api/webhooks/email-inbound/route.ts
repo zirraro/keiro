@@ -6,6 +6,8 @@ import {
   loadReplyContext,
   generateReply,
   sendReplyForClient,
+  draftReplyForClient,
+  getEmailReplyMode,
   type InboundEmail,
 } from '@/lib/agents/hugo-reply';
 
@@ -269,10 +271,99 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, result: 'reply_generation_failed' });
   }
 
-  // Route through the right channel: Gmail for clients who connected it,
-  // Brevo only for our admin (mrzirraro). Other clients with no connected
-  // provider get sent=false + a notification so the human acts.
   const senderName = dossier?.company_name || client?.first_name || 'KeiroAI';
+
+  // Reply MODE (founder 29/06) : 'draft' = Hugo prépare un brouillon dans la
+  // boîte du client (relit + envoie lui-même) ; 'auto_send' (défaut) = envoi auto.
+  const replyMode = await getEmailReplyMode(supabase, ownerId);
+
+  if (replyMode === 'draft') {
+    const draftResult = await draftReplyForClient({
+      clientUserId: ownerId || null,
+      toEmail: normalized.from_email,
+      toName: normalized.from_name,
+      subject: drafted.subject,
+      body: drafted.body,
+      inReplyTo: normalized.message_id,
+      threadId: normalized.thread_id,
+      senderName,
+    });
+
+    // Toujours notifier le client (brouillon créé OU repli "à coller à la main").
+    if (ownerId) {
+      await supabase.from('client_notifications').insert({
+        user_id: ownerId,
+        agent: 'email',
+        type: draftResult.drafted ? 'reply_draft_ready' : 'reply_ready_manual',
+        title: draftResult.drafted
+          ? `Hugo a préparé un brouillon de réponse pour ${normalized.from_email}`
+          : `Hugo a préparé une réponse pour ${normalized.from_email}`,
+        message: drafted.body.substring(0, 280),
+        data: {
+          to: normalized.from_email,
+          subject: drafted.subject,
+          body: drafted.body,
+          inbound_preview: normalized.body.substring(0, 300),
+          draft_id: draftResult.draftId,
+          channel: draftResult.channel,
+          reason: draftResult.drafted
+            ? 'brouillon_dans_ta_boite_relis_et_envoie'
+            : 'connecte_ta_boite_pour_brouillon_auto',
+        },
+      });
+    }
+
+    await supabase.from('crm_prospects').update({
+      temperature: 'hot',
+      status: classification === 'meeting_request' ? 'demo' : 'repondu',
+      updated_at: now,
+    }).eq('id', prospect.id);
+
+    await supabase.from('crm_activities').insert({
+      prospect_id: prospect.id,
+      type: 'email_replied',
+      description: draftResult.drafted
+        ? `Hugo a préparé un BROUILLON de réponse (à relire/envoyer) — ${classification}`
+        : `Hugo a préparé une réponse (brouillon impossible: ${draftResult.reason}) — à envoyer à la main`,
+      data: {
+        classification,
+        mode: 'draft',
+        drafted: draftResult.drafted,
+        draft_id: draftResult.draftId,
+        channel: draftResult.channel,
+        reason: draftResult.reason,
+        reply_subject: drafted.subject,
+        reply_body_preview: drafted.body.substring(0, 300),
+        inbound_preview: normalized.body.substring(0, 300),
+      },
+      created_at: now,
+    });
+
+    await supabase.from('agent_logs').insert({
+      agent: 'email',
+      action: 'inbound_processed',
+      status: 'ok',
+      user_id: ownerId,
+      data: {
+        message_id: normalized.message_id,
+        from: normalized.from_email,
+        classification,
+        decision: draftResult.drafted ? 'draft_ready' : 'draft_fallback_manual',
+        channel: draftResult.channel,
+        subject_out: drafted.subject,
+      },
+      created_at: now,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      result: draftResult.drafted ? 'draft_ready' : (draftResult.reason || 'draft_failed'),
+    });
+  }
+
+  // auto_send (défaut) — Route through the right channel: Gmail for clients
+  // who connected it, Brevo only for our admin (mrzirraro). Other clients with
+  // no connected provider get sent=false + a notification so the human acts.
   const sendResult = await sendReplyForClient({
     clientUserId: ownerId || null,
     clientEmail: client?.email,
@@ -366,6 +457,7 @@ function normalizePayload(raw: any): InboundEmail | null {
       body: String(raw.body || ''),
       message_id: raw.message_id ? String(raw.message_id) : undefined,
       in_reply_to: raw.in_reply_to ? String(raw.in_reply_to) : undefined,
+      thread_id: raw.thread_id ? String(raw.thread_id) : undefined,
     };
   }
 
