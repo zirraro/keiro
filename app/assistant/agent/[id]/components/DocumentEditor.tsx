@@ -133,16 +133,47 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
       } else if (fmt === 'pdf') {
         const { jsPDF } = await import('jspdf');
         const doc = new jsPDF();
-        const lines = doc.splitTextToSize(content, 180);
-        let y = 20;
-        for (const line of lines) {
-          if (y > 280) {
-            doc.addPage();
-            y = 20;
-          }
-          doc.text(line, 15, y);
-          y += 6;
+
+        // Branding client : logo + couleur de marque (récupérés depuis /api/brand).
+        let brand: any = {};
+        try { const r = await fetch('/api/brand', { credentials: 'include' }); const d = await r.json(); brand = d.brand || d || {}; } catch {}
+        const hexToRgb = (h: string) => { const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || ''); return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : { r: 12, g: 26, b: 58 }; };
+        const c = hexToRgb(brand.primary_color || '#0c1a3a');
+
+        // Bandeau couleur de marque en haut.
+        doc.setFillColor(c.r, c.g, c.b); doc.rect(0, 0, 210, 4, 'F');
+        let y = 18;
+        // Logo client (si dispo).
+        if (brand.logo_url) {
+          try {
+            const img = await new Promise<{ data: string; fmt: string; w: number; h: number } | null>((resolve) => {
+              const image = new Image(); image.crossOrigin = 'anonymous';
+              image.onload = () => { try { const cv = document.createElement('canvas'); cv.width = image.naturalWidth; cv.height = image.naturalHeight; cv.getContext('2d')!.drawImage(image, 0, 0); resolve({ data: cv.toDataURL('image/png'), fmt: 'PNG', w: image.naturalWidth, h: image.naturalHeight }); } catch { resolve(null); } };
+              image.onerror = () => resolve(null); image.src = brand.logo_url;
+            });
+            if (img) { const w = 26; doc.addImage(img.data, img.fmt, 15, 8, w, w * (img.h / img.w)); y = 8 + w * (img.h / img.w) + 6; }
+          } catch {}
         }
+        // Titre.
+        doc.setTextColor(c.r, c.g, c.b); doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+        for (const t of doc.splitTextToSize(docName, 180)) { doc.text(t, 15, y); y += 8; }
+        doc.setDrawColor(c.r, c.g, c.b); doc.line(15, y - 2, 195, y - 2); y += 6;
+
+        // Corps avec rendu markdown (titres en couleur de marque, gras).
+        for (const raw of content.split('\n')) {
+          if (y > 280) { doc.addPage(); y = 20; }
+          let line = raw; let size = 11; let bold = false; let col = { r: 30, g: 30, b: 30 };
+          if (line.startsWith('### ')) { line = line.slice(4); size = 12; bold = true; col = c; }
+          else if (line.startsWith('## ')) { line = line.slice(3); size = 14; bold = true; col = c; }
+          else if (line.startsWith('# ')) { line = line.slice(2); size = 15; bold = true; col = c; }
+          else if (/^(\*\*\*|---|___)\s*$/.test(line.trim())) { doc.setDrawColor(220, 220, 220); doc.line(15, y, 195, y); y += 5; continue; }
+          line = line.replace(/\*\*/g, '').replace(/[*_>`]/g, '');
+          doc.setFontSize(size); doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setTextColor(col.r, col.g, col.b);
+          for (const w of doc.splitTextToSize(line || ' ', 180)) { if (y > 282) { doc.addPage(); y = 20; } doc.text(w, 15, y); y += size * 0.55 + 1.5; }
+        }
+        // Pied de page.
+        doc.setFontSize(8); doc.setTextColor(160, 160, 160);
+        doc.text(`${brand.name || docName}`, 15, 290);
         doc.save(`${docName}.pdf`);
       } else if (fmt === 'docx') {
         const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
