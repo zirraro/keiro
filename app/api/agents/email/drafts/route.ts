@@ -5,6 +5,7 @@ import {
   getValidGmailToken,
   listGmailDrafts,
   getGmailDraft,
+  createGmailDraft,
   updateGmailDraft,
   sendGmailDraft,
 } from '@/lib/gmail-oauth';
@@ -12,6 +13,7 @@ import {
   hasImap,
   listImapDrafts,
   getImapDraft,
+  createImapDraft,
   updateImapDraft,
   sendImapDraft,
 } from '@/lib/agents/imap-drafts';
@@ -86,9 +88,37 @@ export async function POST(req: NextRequest) {
   if (error || !user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const action = body?.action as 'improve' | 'send' | undefined;
+  const action = body?.action as 'improve' | 'send' | 'create' | undefined;
   const draftId = body?.draftId as string | undefined;
   const provider = (body?.provider as 'gmail' | 'imap' | undefined) || 'gmail';
+
+  // ── Create a NEW draft from KeiroAI (compose) ──────────────────────
+  // Provider auto-detected: Gmail first, then custom-domain IMAP.
+  if (action === 'create') {
+    const to = String(body?.to || '').trim();
+    const subject = String(body?.subject || '').substring(0, 200);
+    const text = String(body?.body || '').trim();
+    if (!to || !text) return NextResponse.json({ ok: false, error: 'to et body requis' }, { status: 400 });
+
+    const gToken = await getValidGmailToken(user.id);
+    if (gToken) {
+      const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${text.split(/\n\n+/).map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>`;
+      try {
+        const d = await createGmailDraft(gToken.accessToken, { to, subject, htmlBody: html, fromEmail: gToken.email, replyTo: gToken.email });
+        return NextResponse.json({ ok: true, provider: 'gmail', draftId: d.id });
+      } catch (e: any) {
+        return NextResponse.json({ ok: false, error: e?.message?.substring?.(0, 200) || 'create_failed' }, { status: 502 });
+      }
+    }
+    if (await hasImap(user.id)) {
+      const r = await createImapDraft(user.id, { to, subject, body: text });
+      return r.created
+        ? NextResponse.json({ ok: true, provider: 'imap', draftId: r.uid != null ? String(r.uid) : undefined })
+        : NextResponse.json({ ok: false, error: r.reason || 'create_failed' }, { status: 502 });
+    }
+    return NextResponse.json({ ok: false, error: 'Aucune boîte connectée pour enregistrer un brouillon' }, { status: 400 });
+  }
+
   if (!action || !draftId) {
     return NextResponse.json({ ok: false, error: 'action et draftId requis' }, { status: 400 });
   }

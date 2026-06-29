@@ -37,20 +37,32 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    const { sendViaSmtp } = await import('@/lib/agents/smtp-sender');
-    const result = await sendViaSmtp({
-      userId: user.id,
-      to,
+    // Route through the SAME unified sender as Hugo's auto-replies:
+    // Gmail (compose/send) → Outlook → custom-domain SMTP. This is what
+    // makes "send from KeiroAI" work for the ~90% of clients on Gmail —
+    // previously this endpoint was SMTP-only and silently failed for them.
+    const { sendReplyForClient } = await import('@/lib/agents/hugo-reply');
+    const { data: prof } = await sb
+      .from('profiles')
+      .select('email, full_name, company_name')
+      .eq('id', user.id)
+      .maybeSingle();
+    const result = await sendReplyForClient({
+      clientUserId: user.id,
+      clientEmail: prof?.email,
+      toEmail: to,
       subject,
       body: text,
       inReplyTo,
+      senderName: prof?.company_name || prof?.full_name || undefined,
     });
     if (result.sent) {
+      const via = result.channel;
       await sb.from('agent_logs').insert({
         agent: 'email',
         action: 'manual_send',
         user_id: user.id,
-        data: { to, subject, body: text.substring(0, 5000), via: 'smtp', in_reply_to: inReplyTo },
+        data: { to, subject, body: text.substring(0, 5000), via, in_reply_to: inReplyTo },
       });
 
       // Also write to crm_activities so the manual send appears in
@@ -81,7 +93,7 @@ export async function POST(req: NextRequest) {
               auto: false,
               auto_reply: false,
               is_sequence_step: false,
-              via: 'smtp',
+              via,
               in_reply_to: inReplyTo,
             },
             created_at: new Date().toISOString(),
@@ -90,12 +102,12 @@ export async function POST(req: NextRequest) {
       } catch (e: any) {
         console.warn('[send-email] crm_activities write failed:', e?.message);
       }
-      return NextResponse.json({ ok: true, via: 'smtp' });
+      return NextResponse.json({ ok: true, via });
     }
     return NextResponse.json({
       ok: false,
-      error: result.reason === 'smtp_not_configured'
-        ? 'SMTP non configuré — connecte ton email dans le panneau Hugo.'
+      error: result.reason === 'no_email_provider_connected'
+        ? 'Aucune boîte connectée — connecte ton Gmail, Outlook ou ton domaine dans le panneau Hugo.'
         : `Échec envoi : ${result.reason}`,
     }, { status: 500 });
   } catch (e: any) {

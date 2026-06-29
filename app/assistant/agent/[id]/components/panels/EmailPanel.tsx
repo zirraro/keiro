@@ -841,6 +841,40 @@ function FullInbox() {
   const [sending, setSending] = useState(false);
   const [sentOk, setSentOk] = useState(false);
 
+  // Compose new email from KeiroAI (send via connected mailbox or save as draft)
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [cTo, setCTo] = useState('');
+  const [cSubject, setCSubject] = useState('');
+  const [cBody, setCBody] = useState('');
+  const [cBusy, setCBusy] = useState<'' | 'send' | 'draft'>('');
+  const [cDone, setCDone] = useState('');
+
+  const compose = useCallback(async (mode: 'send' | 'draft') => {
+    if (!cTo.trim() || !cBody.trim()) return;
+    setCBusy(mode);
+    setCDone('');
+    try {
+      const res = mode === 'send'
+        ? await fetch('/api/me/send-email', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+            body: JSON.stringify({ to_email: cTo.trim(), subject: cSubject.trim() || '(sans objet)', body: cBody.trim() }),
+          })
+        : await fetch('/api/agents/email/drafts', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+            body: JSON.stringify({ action: 'create', to: cTo.trim(), subject: cSubject.trim(), body: cBody.trim() }),
+          });
+      const j = await res.json();
+      if (j.ok) {
+        setCDone(mode === 'send' ? 'Envoyé ✓' : 'Brouillon enregistré ✓');
+        setTimeout(() => { setComposeOpen(false); setCTo(''); setCSubject(''); setCBody(''); setCDone(''); }, 1400);
+      } else if (typeof window !== 'undefined') {
+        window.alert(j.error || 'Erreur');
+      }
+    } catch (e: any) {
+      if (typeof window !== 'undefined') window.alert(e?.message || 'Erreur');
+    } finally { setCBusy(''); }
+  }, [cTo, cSubject, cBody]);
+
   const load = useCallback(() => {
     setLoading(true);
     fetch(`/api/me/inbox?direction=${filter}&limit=80`, { credentials: 'include' })
@@ -939,23 +973,84 @@ function FullInbox() {
           <h3 className="text-sm font-bold text-white">{en ? 'Hugo mailbox' : 'Boîte mail Hugo'}</h3>
           <p className="text-[10px] text-white/40">{en ? 'Sent + received, including non-CRM' : 'Envoyés + reçus, même hors CRM'}</p>
         </div>
-        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setView('list')}
-            className={`px-2.5 py-1.5 text-[10px] font-medium rounded transition ${view === 'list' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
-            title={en ? 'List view' : 'Vue liste'}
+            onClick={() => setComposeOpen(true)}
+            className="px-3 py-2 min-h-[40px] text-[11px] font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 transition flex items-center gap-1.5"
           >
-            ☰ {en ? 'Liste' : 'Liste'}
+            ✏️ {en ? 'New email' : 'Nouveau mail'}
           </button>
-          <button
-            onClick={() => setView('split')}
-            className={`px-2.5 py-1.5 text-[10px] font-medium rounded transition ${view === 'split' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
-            title={en ? 'Split-pane view' : 'Vue boîte mail'}
-          >
-            ☐ {en ? 'Boîte' : 'Boîte'}
-          </button>
+          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10">
+            <button
+              onClick={() => setView('list')}
+              className={`px-2.5 py-1.5 min-h-[36px] text-[10px] font-medium rounded transition ${view === 'list' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
+              title={en ? 'List view' : 'Vue liste'}
+            >
+              ☰ {en ? 'Liste' : 'Liste'}
+            </button>
+            <button
+              onClick={() => setView('split')}
+              className={`px-2.5 py-1.5 min-h-[36px] text-[10px] font-medium rounded transition ${view === 'split' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
+              title={en ? 'Split-pane view' : 'Vue boîte mail'}
+            >
+              ☐ {en ? 'Boîte' : 'Boîte'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Compose new email from KeiroAI — send via connected mailbox or save as draft */}
+      {composeOpen && (
+        <div className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4" onClick={() => !cBusy && setComposeOpen(false)}>
+          <div className="bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 sticky top-0 bg-gray-900">
+              <h4 className="text-sm font-bold text-white">✏️ {en ? 'New email' : 'Nouveau mail'}</h4>
+              <button onClick={() => !cBusy && setComposeOpen(false)} className="text-white/40 hover:text-white p-1.5" aria-label="Fermer">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="px-4 py-3 space-y-2.5">
+              <input
+                type="email" inputMode="email" value={cTo} onChange={e => setCTo(e.target.value)}
+                placeholder={en ? 'To (email)' : 'À (email)'}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+              />
+              <input
+                type="text" value={cSubject} onChange={e => setCSubject(e.target.value)}
+                placeholder={en ? 'Subject' : 'Objet'}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+              />
+              <textarea
+                value={cBody} onChange={e => setCBody(e.target.value)} rows={7}
+                placeholder={en ? 'Write your message…' : 'Écris ton message…'}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 resize-none"
+              />
+              <p className="text-[10px] text-white/40">{en ? 'Sent from your connected mailbox (Gmail / Outlook / your domain).' : 'Envoyé depuis ta boîte connectée (Gmail / Outlook / ton domaine).'}</p>
+            </div>
+            <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between gap-2 sticky bottom-0 bg-gray-900">
+              {cDone ? (
+                <span className="text-emerald-300 text-xs font-bold">{cDone}</span>
+              ) : <span />}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => compose('draft')}
+                  disabled={!!cBusy || !cTo.trim() || !cBody.trim()}
+                  className="px-3 py-2 min-h-[40px] text-xs font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
+                >
+                  {cBusy === 'draft' ? '...' : (en ? 'Save draft' : 'Brouillon')}
+                </button>
+                <button
+                  onClick={() => compose('send')}
+                  disabled={!!cBusy || !cTo.trim() || !cBody.trim()}
+                  className="px-4 py-2 min-h-[40px] text-xs font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 disabled:opacity-40"
+                >
+                  {cBusy === 'send' ? '...' : (en ? 'Send' : 'Envoyer')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Compact inline counters — removed the big 4-card banner since
           the funnel above already shows Sent / Opened / etc. We keep
