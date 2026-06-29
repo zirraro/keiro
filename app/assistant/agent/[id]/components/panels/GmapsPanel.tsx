@@ -272,10 +272,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
             <span className="text-xl">{'\u26A0\uFE0F'}</span>
             <div className="flex-1 min-w-0">
               <h4 className="text-amber-300 font-bold text-sm mb-1">{p.gmapsNeedsLocationTitle}</h4>
-              <p className="text-white/60 text-xs mb-2 leading-relaxed">
-                {p.gmapsNeedsLocationDesc.split('business.google.com')[0]} <a href="https://business.google.com" target="_blank" rel="noopener" className="text-amber-300 underline">business.google.com</a>,
-                puis reviens ici — Theo recuperera automatiquement tes avis.
-              </p>
+              <p className="text-white/60 text-xs mb-2 leading-relaxed">{p.gmapsNeedsLocationDesc}</p>
               <a
                 href="/api/auth/google-oauth"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
