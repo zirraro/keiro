@@ -1264,6 +1264,32 @@ function extractSeedanceVideoUrl(data: any): string | null {
 // Generate TikTok/short video via Seedance T2V (+ Kling T2V fallback)
 // Returns permanent Supabase Storage URL or null
 // ──────────────────────────────────────
+/**
+ * Bake a royalty-free music track onto a SILENT video (Kling/Seedance T2V
+ * output has NO audio). A soundless clip on TikTok gets ~0 reach — the algo
+ * is sound-first — so we guarantee every generated video ships with audio.
+ * (We can't attach a TikTok CML trending sound via API — that stays a manual
+ * in-app step; but a non-silent clip is far better than a silent one.)
+ */
+async function bakeMusicOnVideo(videoUrl: string): Promise<string> {
+  try {
+    const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
+    const mood: any = pickMoodFromContext({ motion: undefined as any });
+    const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
+    if (music?.url) {
+      const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+      const mix = await muxReelAudio({ videoUrl, musicUrl: music.url, postId: `t2v-${Date.now()}`, durationSec: 10 });
+      if (mix.url && mix.url !== videoUrl) {
+        console.log('[Content] Music baked onto silent T2V video');
+        return mix.url;
+      }
+    }
+  } catch (e: any) {
+    console.warn('[Content] bakeMusicOnVideo failed (shipping silent as last resort):', e?.message);
+  }
+  return videoUrl;
+}
+
 async function generateTikTokVideo(visualDescription: string): Promise<string | null> {
   try {
     // Optimize prompt for viral video generation
@@ -1317,7 +1343,7 @@ Output ONLY the video prompt, nothing else.`,
         if (result.status === 'completed' && result.videoUrl) {
           console.log(`[Content] Kling T2V completed: ${result.videoUrl.substring(0, 80)}...`);
           const cachedUrl = await cacheVideoToStorage(result.videoUrl, `tiktok-${Date.now()}`);
-          return cachedUrl || result.videoUrl;
+          return await bakeMusicOnVideo(cachedUrl || result.videoUrl);
         }
         if (result.status === 'failed') {
           console.error(`[Content] Kling T2V failed: ${result.error}`);
@@ -1388,7 +1414,7 @@ Output ONLY the video prompt, nothing else.`,
               }).catch(() => {});
             } catch { /* silent */ }
             const cachedUrl = await cacheVideoToStorage(videoUrl, `tiktok-${Date.now()}`);
-            return cachedUrl || videoUrl;
+            return await bakeMusicOnVideo(cachedUrl || videoUrl);
           }
           console.warn('[Content] Seedance completed but no video URL');
           break;
