@@ -501,7 +501,8 @@ DÉCISION D'ABORD : avant d'ajouter du texte, demande-toi "le visuel parle-t-il 
 
 Si tu décides d'ajouter du texte, dans CET ordre de préférence :
 1. INTÉGRATION IN-FRAME (idéal) : le texte est dans la scène — gravé sur un objet, imprimé sur un panneau, brodé sur un tablier, affiché sur un écran, écrit à la craie sur une ardoise. Pas un overlay : un élément du décor.
-2. TYPO ÉDITORIALE FLOTTANTE (deuxième choix) : texte en négatif space (zone vide du cadre), typo fine et éditoriale type magazine (Kinfolk / Cereal), pas de fond, ombre subtile pour la lisibilité. Comme une couverture de mag.
+2. TYPO ÉDITORIALE FLOTTANTE (deuxième choix, LE STANDARD À VISER) : texte en négatif space (zone vide du cadre), typo fine et éditoriale type magazine (Kinfolk / Cereal), pas de fond, ombre subtile pour la lisibilité. Comme une couverture de mag.
+   PATTERN DE RÉFÉRENCE (exemple validé founder, à reproduire) : une LIGNE PRINCIPALE courte et élégante en blanc (typo raffinée, serif fin ou sans light — PAS un gras massif), placée en bas-centre sur une zone calme de l'image, + une SECONDE LIGNE plus petite en dessous (sous-titre bénéfice, blanc, plus léger). Ex : « Restez élégant même sous 30°C » puis dessous, plus petit, « Confort et légèreté au quotidien ». Blanc, ombre douce, zéro boîte, élégant. C'est le niveau à atteindre — pas du texte gras criard.
 3. GRADIENT TRANSPARENT (en dernier recours) : un fade sombre→transparent en bas de l'image (10-15% de la hauteur) qui laisse l'image respirer. Pas un bandeau plein.
 
 INTERDIT ABSOLUMENT :
@@ -515,6 +516,13 @@ CONTRAINTES MÊME EN INTÉGRATION IN-FRAME :
 - Le texte est en FRANÇAIS par défaut — sauf si la communication_language du client est non-français.
 - Pas plus de 6 mots de texte par image. Lisibles en thumbnail 300×300px.
 - Pas de overlay texte sur 100% des images du feed — max 1 sur 3 ou ça sature.
+
+ANGLE MÉTÉO & SAISON — LE PRODUIT RÉSOUT LE MOMENT (founder 02/07, exemple validé)
+Relie régulièrement le PRODUIT/SERVICE du commerçant à la MÉTÉO ou la SAISON du jour, comme un bénéfice concret. Le produit devient la réponse au moment que vit le client MAINTENANT.
+- Canicule / grosse chaleur → légèreté, fraîcheur, confort, "rester élégant même sous 30°C", matières respirantes, boisson fraîche, ombre.
+- Froid / pluie → chaleur, réconfort, cocon, soupe/plat chaud, imperméabilité.
+- Rentrée, soldes, fêtes, changement de saison → angle correspondant.
+Exemple de référence (à reproduire dans l'esprit) : un accessoire d'été photographié élégamment + overlay « Restez élégant même sous 30°C » / « Confort et légèreté au quotidien ». L'actu (la chaleur) est ANCRÉE dans le visuel (lumière d'été, boisson glacée, terrasse) ET reliée au bénéfice produit. Météo réelle plausible pour la ville/saison du client — n'invente pas une canicule en décembre.
 
 DIMENSIONS D'AMPLIFICATION SÉLECTIVE (catchy / urgency / authority)
 Au-delà du framework Émotion × Preuve × Autorité (qui coche 2/3 sur chaque post), certains posts gagnent à monter d'un cran sur UNE dimension supplémentaire pour stopper le scroll. NE PAS LE FAIRE SUR TOUS LES POSTS — saturer = agressif → unfollow.
