@@ -11,6 +11,7 @@ import AgentOrdersHint from './components/AgentOrdersHint';
 import CreditPackModal from '@/components/CreditPackModal';
 import CreditBalanceChip from '@/components/CreditBalanceChip';
 import WeeklyPlanCard from './components/WeeklyPlanCard';
+import PlanningReviewFlow from './components/PlanningReviewFlow';
 import InfoTooltip from '@/components/InfoTooltip';
 
 // Per-tab explanations shown by the "i" next to each agent tab (FR/EN).
@@ -2290,6 +2291,7 @@ export default function AgentWorkspacePage() {
         {activeTab === 'planning' && agentId !== 'email' && (
           <>
             {agentId === 'content' && <WeeklyPlanCard />}
+            {agentId === 'content' && <PlanningReviewFlow />}
             <EditorialCalendarFull agentId={agentId} />
           </>
         )}
