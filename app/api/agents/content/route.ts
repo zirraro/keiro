@@ -2256,10 +2256,24 @@ async function publishToTikTok(
       return { success: false, error: 'No video or image available for TikTok publishing' };
     }
 
-    // 2026-06-07 — Boost mode: video lands in user's TikTok INBOX (draft).
-    // User opens the TikTok app, picks a CML trending sound, edits if
-    // needed, and publishes. Strategic for max algo boost.
-    const useDraft = (post as any).boost_mode === true;
+    // TikTok publish mode (founder 02/07) : choix manuel/auto par client.
+    //   'manual' → reel déposé en BROUILLON dans l'app TikTok (inbox) : l'user
+    //     ajoute un son CML tendance + publie (levier #1 de portée, impossible
+    //     via l'API).
+    //   'auto' (défaut) → publication DIRECTE 100% automatique (aucune action).
+    // boost_mode per-post force aussi le manuel.
+    let ttPublishMode = 'auto';
+    try {
+      const ttUid = (post as any).user_id;
+      if (ttUid) {
+        const { data: ttCfg } = await supabase
+          .from('org_agent_configs').select('config')
+          .eq('user_id', ttUid).eq('agent_id', 'content')
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        ttPublishMode = (ttCfg?.config as any)?.tiktok_publish_mode || 'auto';
+      }
+    } catch { /* défaut auto */ }
+    const useDraft = (post as any).boost_mode === true || ttPublishMode === 'manual';
     console.log(`[Content] Publishing TikTok VIDEO (${useDraft ? 'DRAFT/inbox' : 'DIRECT'}): ${videoUrl.substring(0, 60)}...`);
     const result = await publishTikTokVideoViaFileUpload(
       accessToken,

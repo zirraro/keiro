@@ -94,6 +94,10 @@ export default function WeeklyPlanCard() {
         <div className="mt-3 pt-3 border-t border-purple-500/20">
           <ValidatePublicationsToggle />
         </div>
+        {/* TikTok : publication auto vs manuelle (son tendance) */}
+        <div className="mt-3 pt-3 border-t border-purple-500/20">
+          <TikTokPublishModeToggle />
+        </div>
       </div>
       {weeklyToast && (
         <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${weeklyToast.kind === 'ok' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`}>
@@ -101,6 +105,85 @@ export default function WeeklyPlanCard() {
         </div>
       )}
     </>
+  );
+}
+
+function TikTokPublishModeToggle() {
+  const [mode, setMode] = useState<'auto' | 'manual' | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from('org_agent_configs')
+          .select('config')
+          .eq('user_id', user.id)
+          .eq('agent_id', 'content')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const m = ((data as any)?.config || {}).tiktok_publish_mode;
+        setMode(m === 'manual' ? 'manual' : 'auto');
+      } catch { setMode('auto'); }
+    })();
+  }, []);
+
+  const setVal = async (next: 'auto' | 'manual') => {
+    if (saving) return;
+    setMode(next);
+    setSaving(true);
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: existing } = await supabase
+        .from('org_agent_configs')
+        .select('id, config')
+        .eq('user_id', user.id)
+        .eq('agent_id', 'content')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const newConfig = { ...((existing as any)?.config || {}), tiktok_publish_mode: next };
+      if (existing?.id) {
+        await supabase.from('org_agent_configs').update({ config: newConfig }).eq('id', (existing as any).id);
+      } else {
+        await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: 'content', is_enabled: true, config: newConfig });
+      }
+    } catch { /* keep optimistic */ } finally { setSaving(false); }
+  };
+
+  if (mode === null) return null;
+  const opt = (val: 'auto' | 'manual', icon: string, title: string, desc: string) => (
+    <button
+      onClick={() => setVal(val)}
+      disabled={saving}
+      className={`flex-1 text-left p-2.5 rounded-lg border transition-all ${mode === val ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/5'}`}
+    >
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm">{icon}</span>
+        <span className={`text-[11px] font-bold ${mode === val ? 'text-cyan-200' : 'text-white/70'}`}>{title}</span>
+        {mode === val && <span className="ml-auto text-cyan-300 text-[10px]">✓</span>}
+      </div>
+      <div className="text-[10px] text-white/40 mt-0.5">{desc}</div>
+    </button>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-base">🎵</span>
+        <span className="text-sm font-bold text-white">Publication TikTok</span>
+      </div>
+      <div className="flex gap-2">
+        {opt('auto', '⚡', 'Auto', 'Léna publie directement, sans action de ta part.')}
+        {opt('manual', '🎵', 'Manuel + son tendance', 'Léna dépose le reel en brouillon dans ton app TikTok. Tu ajoutes un son tendance (30s) et publies → bien plus de portée.')}
+      </div>
+    </div>
   );
 }
 
