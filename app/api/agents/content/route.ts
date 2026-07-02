@@ -1950,9 +1950,30 @@ async function publishToTikTok(
         const { getAccountStage, reachPlan } = await import('@/lib/agents/reach-strategy');
         const cap = reachPlan(getAccountStage(ttTotal || 0), 'tiktok').dailyCap;
         if ((tt24 || 0) >= cap) {
-          const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-          await supabase.from('content_calendar').update({ status: 'approved', scheduled_date: tomorrow, scheduled_time: '18:30:00', publish_diagnostic: 'tiktok_daily_cap_deferred', updated_at: new Date().toISOString() }).eq('id', post.id);
-          console.log(`[TikTok] daily cap ${tt24}/${cap} atteint → post ${post.id} décalé à ${tomorrow}`);
+          // ANTI-BURST (founder 02/07) : l'ancien code décalait TOUT le surplus
+          // à demain 18:30 → le lendemain ils redevenaient tous dus À LA MÊME
+          // HEURE = re-burst (cause du shadowban : 27 vidéos en 5 min le 24/06).
+          // On étale : on cherche le 1er jour futur avec < cap posts déjà
+          // planifiés, et on assigne un créneau varié (jamais 2 au même slot).
+          const SLOTS = ['09:15:00', '12:30:00', '17:45:00', '19:30:00', '20:15:00', '13:20:00', '18:05:00'];
+          let deferDate = '';
+          let deferTime = '18:30:00';
+          for (let d = 1; d <= 30; d++) {
+            const day = new Date(Date.now() + d * 86400000).toISOString().split('T')[0];
+            const { count: dayCount } = await supabase
+              .from('content_calendar').select('id', { count: 'exact', head: true })
+              .eq('user_id', ownerForCap).eq('platform', 'tiktok')
+              .in('status', ['approved', 'pending_approval'])
+              .eq('scheduled_date', day);
+            if ((dayCount || 0) < cap) {
+              deferDate = day;
+              deferTime = SLOTS[(dayCount || 0) % SLOTS.length];
+              break;
+            }
+          }
+          if (!deferDate) deferDate = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+          await supabase.from('content_calendar').update({ status: 'approved', scheduled_date: deferDate, scheduled_time: deferTime, publish_diagnostic: 'tiktok_daily_cap_deferred', updated_at: new Date().toISOString() }).eq('id', post.id);
+          console.log(`[TikTok] daily cap ${tt24}/${cap} atteint → post ${post.id} étalé au ${deferDate} ${deferTime}`);
           return { success: false, error: 'tiktok_daily_cap_deferred' };
         }
       }
