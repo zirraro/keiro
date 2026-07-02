@@ -355,6 +355,9 @@ export async function GET(request: NextRequest) {
         // Contrôle de sécurité automatique quotidien — toute régression (headers,
         // chiffrement, divulgation…) remonte en erreur dans le digest admin.
         await callEndpoint('Security Check', '/api/cron/security-check', 'GET');
+        // Tracking des vues TikTok (view_count/like_count par post → engagement_data)
+        // pour mesurer la portée réelle + la reprise après le fix anti-burst.
+        await callEndpoint('TikTok Stats', '/api/cron/tiktok-stats', 'GET');
       });
 
       // 1. Commercial — HIGHEST PRIORITY: finds new prospects for all other agents
