@@ -1077,6 +1077,23 @@ async function sendEmail(
     let provider = 'brevo';
     let sendSuccess = false;
 
+    // GARDE ANTI-ENVOI CASSÉ (founder 02/07) : ne JAMAIS envoyer un mail vide ou
+    // avec du HTML brut visible (fuite de balises type "<p style=...>", "<"
+    // orphelins) — ça crie "arnaque" et fait perdre des leads. Mieux vaut sauter :
+    // le prochain run régénérera proprement.
+    {
+      const visibleText = String(template.textBody || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+      // Après avoir retiré les VRAIES balises <...>, un texte visible propre ne
+      // doit contenir NI "style=" NI de "<" orphelin. S'il en reste → une balise
+      // s'est fait casser (le "<" manque, ex "p style=...>") = mail corrompu.
+      const strippedHtml = String(template.htmlBody || '').replace(/<[^>]*>/g, ' ');
+      const tagLeak = /style\s*=|<|&lt;\s*p\b/i.test(strippedHtml);
+      if (visibleText.length < 40 || tagLeak) {
+        console.warn(`[EmailDaily] Corps cassé/vide détecté pour ${prospect.email} → ENVOI ANNULÉ (régénération au prochain run). visibleLen=${visibleText.length} tagLeak=${tagLeak}`);
+        return { success: false, error: 'broken_body_skipped' };
+      }
+    }
+
     // Priority 1: Gmail API (client's own email) — if connected
     const ownerUserId = clientUserId || prospect.user_id || prospect.created_by || null;
     if (ownerUserId) {
@@ -1114,7 +1131,8 @@ async function sendEmail(
       }
     }
 
-    // Priority 2: Brevo (primary fallback)
+    // Priority 2: Brevo. keiroai.com est authentifié dans Brevo (SPF+DKIM,
+    // 02/07) → l'expéditeur est bien contact@keiroai.com (plus de brevosend.com).
     if (!sendSuccess && process.env.BREVO_API_KEY) {
       try {
         const brevoResponse = await sendBrevoCompat({
