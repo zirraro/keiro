@@ -2291,7 +2291,18 @@ async function publishToTikTok(
           .from('org_agent_configs').select('config')
           .eq('user_id', ttUid).eq('agent_id', 'content')
           .order('created_at', { ascending: false }).limit(1).maybeSingle();
-        ttPublishMode = (ttCfg?.config as any)?.tiktok_publish_mode || 'auto';
+        const explicit = (ttCfg?.config as any)?.tiktok_publish_mode;
+        if (explicit === 'auto' || explicit === 'manual') {
+          ttPublishMode = explicit; // choix explicite du client → prime
+        } else {
+          // Pas de choix réglé → défaut selon l'étape : compte neuf/warming
+          // démarre en MANUEL (son tendance = warming rapide), établi = auto.
+          const { count: ttPub } = await supabase
+            .from('content_calendar').select('id', { count: 'exact', head: true })
+            .eq('user_id', ttUid).eq('platform', 'tiktok').eq('status', 'published');
+          const { getAccountStage, recommendedPublishMode } = await import('@/lib/agents/reach-strategy');
+          ttPublishMode = recommendedPublishMode(getAccountStage(ttPub || 0));
+        }
       }
     } catch { /* défaut auto */ }
     const useDraft = (post as any).boost_mode === true || ttPublishMode === 'manual';
