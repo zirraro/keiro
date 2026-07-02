@@ -24,16 +24,15 @@ export function getAccountStage(publishedCount: number): AccountStage {
 }
 
 /**
- * Mode de publication TikTok RECOMMANDÉ selon l'étape (leçon 2 juillet : le
- * BURST tue la portée, et sur un compte neuf/en reprise le SON TENDANT est le
- * levier #1 — impossible via l'API, donc on passe par le mode "manuel"
- * (brouillon inbox → le client colle un son tendance + publie). Une fois le
- * compte établi et sa portée prouvée, on peut repasser en 'auto' (direct).
- * N'écrase JAMAIS un choix explicite du client — c'est seulement le DÉFAUT
- * quand `tiktok_publish_mode` n'est pas encore réglé.
+ * Mode de publication TikTok — DÉFAUT = 'auto' À TOUS LES STADES (founder 02/07).
+ * Nos posts en AUTO (publication directe) SONT le produit et sont utiles — on
+ * ne dit JAMAIS au client que l'auto ne sert à rien ni qu'il "faut passer en
+ * manuel". Le mode 'manual' (brouillon inbox pour coller un son tendant) reste
+ * disponible comme CHOIX EXPLICITE du client et se SUGGÈRE seulement comme
+ * BOOSTER optionnel (cf. adviseTrendingSound), jamais comme un défaut imposé.
  */
-export function recommendedPublishMode(stage: AccountStage): 'auto' | 'manual' {
-  return stage === 'established' ? 'auto' : 'manual';
+export function recommendedPublishMode(_stage: AccountStage): 'auto' | 'manual' {
+  return 'auto';
 }
 
 export interface ReachPlan {

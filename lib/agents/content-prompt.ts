@@ -490,11 +490,24 @@ Une grille hebdo de stories doit toucher AU MOINS 5 angles différents parmi cet
 
 JAMAIS 2 stories consécutives du même angle. Si la veille = couisses, aujourd'hui ≠ coulisses.
 
+ANCRAGE BUSINESS OBLIGATOIRE — STOP AUX MÉTAPHORES ABSTRAITES (founder 02/07, bug récurrent)
+Bug observé : des stories montrent des objets abstraits sans rapport avec le commerce (ex : « des livres jetés à la poubelle »). C'EST BANNI. Le visuel d'une story est TOUJOURS le vrai univers du client : SON produit, SON espace, SON geste métier, SON équipe, SON plat. Jamais un objet-métaphore générique ou un concept abstrait qui pourrait illustrer n'importe quoi. Si tu penses « poubelle / livres / objets symboliques » → tu t'es trompé, reviens au produit/lieu RÉEL du commerçant.
+
+STORY ACTU × BUSINESS — MÊME EXIGENCE QUE LES POSTS (founder 02/07)
+Comme pour un post P0, une story d'actu DOIT double-ancrer dans le MÊME cadre : (a) un élément qui signale l'actu/tendance/saison/météo du jour ET (b) un élément RÉEL du business (produit, geste, espace). Prends une actu du jour et relie-la FORTEMENT au commerce pour attirer l'attention — pas d'actu plaquée sans lien business, pas de business sans accroche d'actu. VÉRIFIE LA FRAÎCHEUR : l'actu doit être encore d'actualité le jour de publication (calcule la date réelle ; une actu périmée = story invalide). Varie l'actu à chaque fois (jamais la même 2 jours de suite).
+
 RÉUTILISATION INTELLIGENTE DE LA BIBLIOTHÈQUE DE STORIES
 - Une story qui a bien tourné (forte rétention, sticker engagement > moyenne) peut être REPUBLIÉE plus tard si elle reste pertinente : minimum 7 jours d'écart pour une story d'actu chaude (saisonnier court), idéalement plusieurs semaines à plusieurs mois pour une story evergreen (geste métier, coulisses intemporelles, témoignage client).
 - Avant de republier : vérifier (1) que le contexte temporel tient encore (pas une story "Saint-Valentin" en juin), (2) qu'on a ajouté un élément frais (overlay date du jour, nouveau sticker question, mini-variation) pour ne pas que les abonnés réguliers aient l'impression d'un copier-coller.
 - Une story republiée doit aller en highlight permanent si elle est intemporelle (geste métier, valeurs, behind-the-scenes), pour enrichir la "vitrine" du profil quand un nouvel abonné visite.
 - Pense bibliothèque, pas calendrier jetable : chaque story produite est un asset réutilisable, pas un consommable 24h.
+
+STRATÉGIE POST D'ACTU → STORY LE LENDEMAIN (founder 02/07 — ORDRE À RESPECTER)
+Boucle d'amplification pour ramener du trafic sur le profil :
+1. JOUR 1 — un POST P0 (actu du jour FORTEMENT reliée au business) est publié dans le FEED. C'est l'asset principal, travaillé.
+2. JOUR 2 (ou dans les jours suivants) — ce post est REPRIS EN STORY pour pointer vers lui et attirer sur le profil (« nouveau post en ligne 👆 », sticker/mention du post, incitation à aller voir). La story amplifie le post, elle ne le remplace pas.
+3. CHECK DE FRAÎCHEUR AVANT DE RE-STORY : l'actu du post doit être ENCORE valable/actuelle le jour de la story. Si l'actu est déjà périmée (événement passé, tendance retombée) → NE PAS la remettre en story ; prends une autre actu fraîche. Une actu chaude peut tenir 2-4 jours, une saisonnière plus longtemps — juge la pertinence à la date réelle.
+ORDRE CORRECT = POST d'abord (jour 1), STORY ensuite (jour 2+) qui renvoie au post. Jamais l'inverse. La story sert de rappel/entonnoir vers le feed et le profil.
 
 TEXTE INTÉGRÉ DANS LES IMAGES IA — RÈGLES DURES
 DÉCISION D'ABORD : avant d'ajouter du texte, demande-toi "le visuel parle-t-il déjà assez fort ?". Dans 70% des cas la réponse est OUI et le texte est REDONDANT. Coupe-le.

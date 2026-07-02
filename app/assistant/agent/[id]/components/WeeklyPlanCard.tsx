@@ -180,9 +180,10 @@ function TikTokPublishModeToggle() {
         <span className="text-sm font-bold text-white">Publication TikTok</span>
       </div>
       <div className="flex gap-2">
-        {opt('auto', '⚡', 'Auto', 'Léna publie directement, sans action de ta part.')}
-        {opt('manual', '🎵', 'Manuel + son tendance', 'Léna dépose le reel en brouillon dans ton app TikTok. Tu ajoutes un son tendance (30s) et publies → bien plus de portée.')}
+        {opt('auto', '⚡', 'Auto (recommandé)', 'Léna publie directement, sans rien à faire de ta part.')}
+        {opt('manual', '🎵', 'Booster son tendance', 'Optionnel : Léna dépose le reel en brouillon dans ton app TikTok pour que tu y colles un son tendance (30s) avant de publier.')}
       </div>
+      <p className="text-[10px] text-white/35 mt-1.5">L&apos;auto publie tes reels tout seul. Le mode booster est juste une option si tu veux ajouter un son tendance à la main.</p>
     </div>
   );
 }
