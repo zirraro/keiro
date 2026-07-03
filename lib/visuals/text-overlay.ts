@@ -144,7 +144,7 @@ If yes, the line MUST:
   * outline-only — outlined text, transparent fill (luxury/editorial feel, lifestyle brands)
 - accentColor (only relevant for style=accent-bar): a HEX color from the brand palette or a culturally-resonant news color (red for breaking news, etc).
 
-VARY YOUR CHOICES: across many decisions for the same business, mix positions (don't always pick "bottom"), mix styles (not every overlay is "white-shadow"). The combination of position + style + tone should feel like a deliberate art direction choice, not a default.
+VARY YOUR CHOICES: across many decisions for the same business, mix POSITIONS (don't always pick "bottom") and font TONE. BUT for the visual TREATMENT, elegant clean white is the strong default: "white-shadow" (or "outline-only" for a premium editorial feel) should be your pick the large majority of the time — plain WHITE text with a soft shadow is the most beautiful and premium look (founder ref 03/07: an elegant white two-line overlay on a product shot). Do NOT reach for "accent-bar" / a coloured bar by reflex — a systematic red/coloured bar reads as "cheap promo" and is rarely necessary. Reserve accent-bar for the RARE case where a real breaking-news angle genuinely calls for it AND the colour is drawn from the image's own palette. When unsure: white. It is completely fine (and often better) if most overlays are elegant white — that is a deliberate art-direction choice, not laziness.
 
 Return STRICT JSON:
 {
