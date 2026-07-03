@@ -133,7 +133,8 @@ async function sendImmediateAdminEmail(supabase: any, anomaliesP0: Anomaly[]) {
   if (recent && recent.length > 0) return;
 
   const apiKey = process.env.BREVO_API_KEY;
-  const adminEmail = process.env.ADMIN_EMAIL || 'mrzirraro@gmail.com';
+  // Alerte 100% interne → boîte admin de l'entreprise, jamais le mail perso.
+  const adminEmail = process.env.ADMIN_EMAIL || 'contact@keiroai.com';
   if (!apiKey) return;
 
   let html = '<div style="font-family:system-ui,sans-serif;max-width:680px">';

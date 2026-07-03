@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
 
   // ── Send via Brevo ──
   const apiKey = process.env.BREVO_API_KEY;
-  const adminEmail = process.env.ADMIN_EMAIL || 'mrzirraro@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'contact@keiroai.com';
   if (!apiKey) return NextResponse.json({ ok: false, error: 'BREVO_API_KEY missing' });
 
   const res = await sendBrevoCompat({

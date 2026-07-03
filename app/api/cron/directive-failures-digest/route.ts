@@ -21,7 +21,7 @@ function authOk(req: NextRequest) {
 
 async function sendAdminEmail(subject: string, html: string) {
   const apiKey = process.env.BREVO_API_KEY;
-  const adminEmail = process.env.ADMIN_EMAIL || 'mrzirraro@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'contact@keiroai.com';
   if (!apiKey) return { ok: false, error: 'BREVO_API_KEY missing' };
   const res = await sendBrevoCompat({
       sender: { name: 'KeiroAI Admin', email: 'admin@keiroai.com' },

@@ -130,26 +130,37 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.projCost - a.projCost);
   const clientsInLoss = clientRows.filter(r => r.overBudget);
 
-  // 3d. Coût PAR AGENT (où part le budget).
+  // 3d. Coût PAR PROVIDER (où part le budget). Le champ `provider` est
+  //     TOUJOURS renseigné (contrairement à `agent`, souvent null en prod →
+  //     ne pas s'y fier pour l'attribution). C'est le vrai révélateur du coût.
+  const byProvider: Record<string, number> = {};
   const byAgent: Record<string, number> = {};
   for (const e of (events || []) as any[]) {
-    const ag = e.agent || 'autre';
-    byAgent[ag] = (byAgent[ag] || 0) + (parseFloat(e.cost_eur) || 0);
+    const cost = parseFloat(e.cost_eur) || 0;
+    byProvider[e.provider || 'autre'] = (byProvider[e.provider || 'autre'] || 0) + cost;
+    byAgent[e.agent || 'non-taggé'] = (byAgent[e.agent || 'non-taggé'] || 0) + cost;
   }
+  const providerRows = Object.entries(byProvider)
+    .map(([provider, cost]) => ({ provider, cost: Math.round(cost * 100) / 100, pct: totalMtd > 0 ? Math.round((cost / totalMtd) * 100) : 0 }))
+    .sort((a, b) => b.cost - a.cost);
   const agentRows = Object.entries(byAgent)
     .map(([agent, cost]) => ({ agent, cost: Math.round(cost * 100) / 100, pct: totalMtd > 0 ? Math.round((cost / totalMtd) * 100) : 0 }))
     .sort((a, b) => b.cost - a.cost);
 
-  // 3e. Coût PAR POST : coût contenu (agent='content') / posts publiés MTD.
-  const contentCostMtd = byAgent['content'] || 0;
+  // 3e. Coût PAR POST : coût MÉDIA (image/vidéo/voix) attribué au contenu, /
+  //     posts publiés MTD. On s'appuie sur `provider` (fiable) et non sur
+  //     `agent`. Un coût/post ~0€ = les posts ont réutilisé des visuels de la
+  //     librairie (0 coût) — c'est bon signe, pas un bug.
+  const MEDIA_PROVIDERS = new Set(['seedream', 'seedance', 'kling', 'elevenlabs']);
+  const mediaCostMtd = (events || []).reduce((s: number, e: any) => s + (MEDIA_PROVIDERS.has(e.provider) ? (parseFloat(e.cost_eur) || 0) : 0), 0);
   const { count: postsPublishedMtd } = await supabase
     .from('content_calendar')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'published')
     .gte('published_at', monthStart.toISOString());
   const posts = postsPublishedMtd || 0;
-  const costPerPost = posts > 0 ? contentCostMtd / posts : 0;
-  const TARGET_COST_PER_POST = 0.60; // seuil cible €/post (image + LLM). Au-delà = à optimiser.
+  const costPerPost = posts > 0 ? mediaCostMtd / posts : 0;
+  const TARGET_COST_PER_POST = 0.60; // seuil cible €/post média (image+vidéo). Au-delà = à optimiser.
 
   // 4. Decision : do we alert ?
   const alerts: string[] = [];
@@ -166,8 +177,8 @@ export async function GET(req: NextRequest) {
     try {
       const html = renderAlertEmail({
         marginPct, monthlyRevenue, totalMtd, projection, dailyAvg, daysElapsed, daysInMonth, alerts, spikes,
-        clientCount, planRows, clientRows, clientsInLoss, agentRows,
-        posts, costPerPost, contentCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
+        clientCount, planRows, clientRows, clientsInLoss, agentRows, providerRows,
+        posts, costPerPost, mediaCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
       });
       const brevoKey = process.env.BREVO_API_KEY;
       if (brevoKey) {
@@ -195,8 +206,10 @@ export async function GET(req: NextRequest) {
     client_count: clientCount,
     plans: planRows,
     clients_in_loss: clientsInLoss,
+    cost_by_provider: providerRows,
     cost_by_agent: agentRows,
     posts_published_mtd: posts,
+    media_cost_mtd_eur: Math.round(mediaCostMtd * 100) / 100,
     cost_per_post_eur: Math.round(costPerPost * 100) / 100,
     spikes: spikes.slice(0, 10),
     alerts,
@@ -243,13 +256,14 @@ function renderAlertEmail(d: any): string {
       </tbody>
     </table>` : `<p style="margin-top:16px; color:#059669;">✅ Aucun client en perte — tous dans le clou.</p>`}
 
-    ${d.agentRows.length > 0 ? `
-    <h2 style="margin-top: 24px;">🤖 Où part le budget (par agent)</h2>
+    ${d.providerRows.length > 0 ? `
+    <h2 style="margin-top: 24px;">🔌 Où part le budget (par provider)</h2>
     <table style="width:100%; border-collapse: collapse; font-size: 13px;">
       <tbody>
-        ${d.agentRows.slice(0, 8).map((a: any) => `<tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px; text-transform:capitalize;">${a.agent}</td><td style="text-align:right; padding:6px 8px; font-weight:bold;">${a.cost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; color:#666;">${a.pct}%</td></tr>`).join('')}
+        ${d.providerRows.slice(0, 10).map((a: any) => `<tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px; text-transform:capitalize;">${a.provider}</td><td style="text-align:right; padding:6px 8px; font-weight:bold;">${a.cost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; color:#666;">${a.pct}%</td></tr>`).join('')}
       </tbody>
-    </table>` : ''}
+    </table>
+    <p style="font-size:11px;color:#94a3b8;margin-top:6px;">Coût média (image/vidéo/voix) ce mois : ${d.mediaCostMtd.toFixed(2)} € · ${d.posts} posts publiés.</p>` : ''}
 
     ${d.spikes.length > 0 ? `
     <h2 style="margin-top: 24px;">⚡ Clients en spike (top 10)</h2>
