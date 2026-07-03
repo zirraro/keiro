@@ -17,6 +17,24 @@ interface BlogPost {
 
 type Tab = 'articles' | 'masterclass';
 
+// Catégorise un article par métier (dérivé du slug + mots-clés) pour une
+// navigation facile. Regroupé en familles pertinentes plutôt qu'un métier par
+// catégorie (trop granulaire).
+const ARTICLE_CATEGORIES: { label: string; match: RegExp }[] = [
+  { label: 'Restauration', match: /restaurant|resto|traiteur|boulanger|patisser|caf[eé]|bar\b|pizz/i },
+  { label: 'Beauté & Bien-être', match: /coiffeur|coiffure|salon|institut|beaut[eé]|esth[eé]tique|spa|ongle|nail|massage/i },
+  { label: 'Sport & Coaching', match: /coach|coaching|sport|fitness|salle|yoga|pilates/i },
+  { label: 'Commerce & Boutique', match: /boutique|commerce|fleuriste|fleur|caviste|vin\b|cave|[eé]picerie|concept.?store/i },
+  { label: 'Artisanat', match: /artisan|menuisier|plombier|[eé]lectricien|b[aâ]timent|r[eé]novation|d[eé]coration/i },
+  { label: 'Services & Freelance', match: /freelance|ind[eé]pendant|consultant|immobilier|agence|avocat|coach.?business/i },
+];
+
+function categorizeArticle(post: { slug?: string; keywords_primary?: string; title?: string }): string {
+  const hay = `${post.slug || ''} ${post.keywords_primary || ''} ${post.title || ''}`;
+  for (const c of ARTICLE_CATEGORIES) if (c.match.test(hay)) return c.label;
+  return 'Marketing & Stratégie';
+}
+
 // Curated YouTube videos — selected for small business owners
 // Replace youtubeId with real IDs when ready
 const CURATED_VIDEOS = [
@@ -116,6 +134,13 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
   const [activeTab, setActiveTab] = useState<Tab>('articles');
   const [videoCategory, setVideoCategory] = useState('Tous');
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [articleCategory, setArticleCategory] = useState('Tous');
+
+  // Compte par catégorie (pour les chips) + liste filtrée
+  const postsWithCat = posts.map(p => ({ ...p, _cat: categorizeArticle(p) }));
+  const catCounts = postsWithCat.reduce((acc: Record<string, number>, p) => { acc[p._cat] = (acc[p._cat] || 0) + 1; return acc; }, {});
+  const articleCats = ['Tous', ...ARTICLE_CATEGORIES.map(c => c.label).filter(l => catCounts[l]), ...(catCounts['Marketing & Stratégie'] ? ['Marketing & Stratégie'] : [])];
+  const filteredPosts = articleCategory === 'Tous' ? postsWithCat : postsWithCat.filter(p => p._cat === articleCategory);
 
   const filteredVideos = videoCategory === 'Tous'
     ? CURATED_VIDEOS
@@ -180,8 +205,27 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
                 </button>
               </div>
             ) : (
+              <>
+              {/* Filtre par catégorie (navigation par métier) */}
+              <div className="flex flex-wrap gap-2 mb-8">
+                {articleCats.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setArticleCategory(cat)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                      articleCategory === cat
+                        ? 'bg-[#0c1a3a] text-white shadow-md'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    {cat}
+                    {cat !== 'Tous' && <span className="ml-1.5 opacity-60">{catCounts[cat]}</span>}
+                    {cat === 'Tous' && <span className="ml-1.5 opacity-60">{posts.length}</span>}
+                  </button>
+                ))}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {posts.map((post) => {
+                {filteredPosts.map((post) => {
                   const date = new Date(post.published_at).toLocaleDateString('fr-FR', {
                     day: 'numeric',
                     month: 'long',
@@ -215,7 +259,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
                       <div className="p-5">
                         <div className="flex items-center justify-between mb-3">
                           <span className="bg-purple-100 text-purple-700 text-xs font-medium px-2.5 py-0.5 rounded-full truncate max-w-[60%]">
-                            {post.keywords_primary}
+                            {(post as any)._cat || post.keywords_primary}
                           </span>
                           <time className="text-xs text-neutral-500" dateTime={post.published_at}>
                             {date}
@@ -238,6 +282,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
                   );
                 })}
               </div>
+              </>
             )}
           </>
         ) : (
@@ -353,7 +398,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
             <div className="mt-10 bg-gradient-to-r from-[#0c1a3a] to-purple-900 rounded-2xl p-6 text-center text-white">
               <h3 className="font-bold text-lg mb-2">Tu as appris les strategies — maintenant automatise-les</h3>
               <p className="text-purple-200 text-sm mb-4">
-                Vos 15 agents IA executent ces strategies a votre place : publication, SEO, prospection, emails — tout en automatique.
+                Vos agents IA executent ces strategies a votre place : publication, SEO, prospection, emails — tout en automatique.
               </p>
               <Link
                 href="/assistant"
