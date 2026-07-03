@@ -50,12 +50,14 @@ export async function GET(req: NextRequest) {
   const dailyAvg = totalMtd / daysElapsed;
   const projection = dailyAvg * daysInMonth;
 
-  // 2. Revenue estimate — on distingue VRAIS clients vs comptes admin/test.
-  //    Founder 03/07 : les 3 "clients" sont tous ses propres comptes (dont
-  //    l'alias Gmail mrzirraro+metareview). Compter leur "revenu" comme réel
-  //    fait crier une fausse "marge critique". On normalise les alias Gmail
-  //    (mrzirraro+xxx@gmail.com → mrzirraro@gmail.com) pour les démasquer.
-  const ADMIN_TEST_EMAILS = new Set(['mrzirraro@gmail.com', 'contact@keiroai.com', 'metareview@keiroai.com', 'admin@keiroai.com']);
+  // 2. Rôle des comptes (founder 03/07, affiné) — 3 catégories :
+  //   • 'reference'  = mrzirraro@gmail.com : compte KeiroAI à VRAIE activité →
+  //                    sa conso simule le coût d'un client actif (projection).
+  //   • 'supervision'= contact@ (admin) + metareview (Meta review + alias
+  //                    mrzirraro+metareview) : doivent coûter ~0. On surveille
+  //                    qu'ils NE dépassent PAS le budget supervision (sinon =
+  //                    appel non désiré / qqch de cassé / Meta qui review).
+  //   • 'client'     = tout le reste = vrai client payant externe.
   const normalizeEmail = (email: string): string => {
     const e = (email || '').toLowerCase().trim();
     const [local, domain] = e.split('@');
@@ -63,7 +65,16 @@ export async function GET(req: NextRequest) {
     if (domain === 'gmail.com' || domain === 'googlemail.com') return `${local.split('+')[0].replace(/\./g, '')}@gmail.com`;
     return `${local.split('+')[0]}@${domain}`;
   };
-  const isAdminTest = (email: string): boolean => ADMIN_TEST_EMAILS.has(normalizeEmail(email));
+  // Comparé sur l'email BRUT (l'alias +metareview doit rester distinct de la référence).
+  const SUPERVISION_EMAILS = new Set(['contact@keiroai.com', 'admin@keiroai.com', 'metareview@keiroai.com', 'mrzirraro+metareview@gmail.com']);
+  const REFERENCE_EMAILS = new Set(['mrzirraro@gmail.com']); // compte KeiroAI = client simulé
+  const SUPERVISION_BUDGET_EUR = 5; // budget mensuel projeté toléré pour la supervision (au-delà = anomalie)
+  const accountRole = (email: string): 'reference' | 'supervision' | 'client' => {
+    const raw = (email || '').toLowerCase().trim();
+    if (SUPERVISION_EMAILS.has(raw)) return 'supervision';
+    if (REFERENCE_EMAILS.has(normalizeEmail(email))) return 'reference';
+    return 'client';
+  };
 
   const { data: clients } = await supabase
     .from('profiles')
@@ -71,16 +82,16 @@ export async function GET(req: NextRequest) {
     .neq('subscription_plan', 'free')
     .neq('subscription_plan', null);
   let monthlyRevenue = 0;   // tous plans confondus (référence)
-  let realRevenue = 0;      // hors comptes admin/test = revenu réellement encaissé
+  let realRevenue = 0;      // vrais clients externes uniquement = revenu réellement encaissé
   let realClientCount = 0;
   for (const c of (clients || []) as any[]) {
     const rev = PLAN_REV[c.subscription_plan] || 0;
     monthlyRevenue += rev;
-    if (!isAdminTest(c.email)) { realRevenue += rev; realClientCount++; }
+    if (accountRole(c.email) === 'client') { realRevenue += rev; realClientCount++; }
   }
 
-  // Marge basée sur le revenu RÉEL (le seul qui compte). Sans vrai client,
-  // la marge n'a pas de sens → on la traite comme "burn interne" plus bas.
+  // Marge basée sur le revenu RÉEL (vrais clients). Sans vrai client, pas de
+  // marge → burn interne + simulation via le compte référence (plus bas).
   const marginPct = realRevenue > 0 ? Math.round(((realRevenue - projection) / realRevenue) * 100) : 0;
 
   // 3. Top spikes — clients with >5x avg spend
@@ -140,17 +151,20 @@ export async function GET(req: NextRequest) {
     const plan = c.subscription_plan || 'inconnu';
     const price = PLAN_REV[plan] || 0;
     const projCost = spent * projFactor;
-    const admin = isAdminTest(c.email);
-    // Un compte admin/test ne génère pas de "perte" (pas de vrai revenu à protéger).
+    const role = accountRole(c.email);
     const marginPctC = price > 0 ? Math.round(((price - projCost) / price) * 100) : (projCost > 0 ? -999 : 100);
-    const status = admin ? 'test'
-      : marginPctC < 0 || (price === 0 && projCost > 0) ? 'perte'
+    // Le statut dépend du rôle : un vrai client a une marge à protéger ; la
+    // supervision doit rester sous son budget ; la référence est une simulation.
+    let status: string;
+    if (role === 'supervision') status = projCost > SUPERVISION_BUDGET_EUR ? 'supervision-over' : 'supervision';
+    else if (role === 'reference') status = 'reference';
+    else status = marginPctC < 0 || (price === 0 && projCost > 0) ? 'perte'
       : marginPctC < WATCH_MARGIN ? 'surveiller' : 'ok';
     return {
       email: c.email || '?',
       plan,
       price,
-      isAdmin: admin,
+      role,
       mtdCost: Math.round(spent * 100) / 100,
       projCost: Math.round(projCost * 100) / 100,
       marginPct: marginPctC,
@@ -159,6 +173,13 @@ export async function GET(req: NextRequest) {
   }).sort((a, b) => b.projCost - a.projCost);
   const clientsInLoss = clientRows.filter(r => r.status === 'perte');
   const clientsToWatch = clientRows.filter(r => r.status === 'surveiller');
+
+  // Agrégats par rôle (founder 03/07).
+  const referenceRows = clientRows.filter(r => r.role === 'reference');
+  const supervisionRows = clientRows.filter(r => r.role === 'supervision');
+  const referenceProjCost = referenceRows.reduce((s, r) => s + r.projCost, 0);
+  const supervisionProjCost = supervisionRows.reduce((s, r) => s + r.projCost, 0);
+  const supervisionOverBudget = supervisionProjCost > SUPERVISION_BUDGET_EUR;
 
   // 3c-bis. Coût ATTRIBUÉ aux clients vs coût SYSTÈME/TESTS (user_id null).
   //     Révèle que la marge globale est plombée par nos propres tests +
@@ -206,9 +227,13 @@ export async function GET(req: NextRequest) {
   const noRealClients = realClientCount === 0;
   const BURN_ALERT_EUR = 60; // seuil de burn mensuel projeté à signaler quand 0 client réel
   const alerts: string[] = [];
+  // Supervision : doit rester ~0. Un dépassement = appel non désiré / anomalie.
+  if (supervisionOverBudget) {
+    alerts.push(`🔧 SUPERVISION en dépassement : ${supervisionProjCost.toFixed(2)}€/mois projeté > budget ${SUPERVISION_BUDGET_EUR}€ (${supervisionRows.map(r => r.email.split('@')[0]).join(', ')}). Appel non désiré ou anomalie à vérifier.`);
+  }
   if (noRealClients) {
     if (projection > BURN_ALERT_EUR) {
-      alerts.push(`ℹ️ 0 client réel — burn interne projeté ${projection.toFixed(2)}€/mois (tests + prospection KeiroAI). Marge non applicable.`);
+      alerts.push(`ℹ️ 0 client réel — burn interne projeté ${projection.toFixed(2)}€/mois (référence ${referenceProjCost.toFixed(2)}€ + prospection/tests). Marge non applicable.`);
     }
   } else {
     if (marginPct < 70 && marginPct >= 60) alerts.push(`⚠️ MARGE RÉELLE ${marginPct}% — sous le seuil 70%`);
@@ -227,6 +252,7 @@ export async function GET(req: NextRequest) {
       const html = renderAlertEmail({
         marginPct, monthlyRevenue, realRevenue, realClientCount, noRealClients, totalMtd, projection, dailyAvg, daysElapsed, daysInMonth, alerts, spikes,
         clientCount, planRows, clientRows, clientsInLoss, clientsToWatch, agentRows, providerRows,
+        referenceRows, supervisionRows, referenceProjCost, supervisionProjCost, supervisionOverBudget, supervisionBudget: SUPERVISION_BUDGET_EUR,
         attributedMtd, unattributedMtd, unattributedPct, watchMargin: WATCH_MARGIN,
         posts, costPerPost, mediaCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
       });
@@ -260,6 +286,10 @@ export async function GET(req: NextRequest) {
     real_client_count: realClientCount,
     real_revenue_eur: realRevenue,
     no_real_clients: noRealClients,
+    reference_proj_cost_eur: Math.round(referenceProjCost * 100) / 100,
+    supervision_proj_cost_eur: Math.round(supervisionProjCost * 100) / 100,
+    supervision_budget_eur: SUPERVISION_BUDGET_EUR,
+    supervision_over_budget: supervisionOverBudget,
     clients: clientRows,
     clients_in_loss: clientsInLoss,
     clients_to_watch: clientsToWatch,
@@ -284,7 +314,7 @@ function renderAlertEmail(d: any): string {
   <div style="background: #fff; border-radius: 12px; padding: 24px;">
     ${d.noRealClients ? `
     <h1 style="color: #4f46e5; margin-bottom: 8px;">🧪 Burn interne : ${d.projection.toFixed(2)} €/mois projeté</h1>
-    <p style="color: #666;">Jour ${d.daysElapsed}/${d.daysInMonth} · <strong>0 client réel</strong> — les ${d.clientCount} comptes payants sont tous admin/test. La "marge" ne s'applique pas ; ce coût = tes tests + la prospection KeiroAI.</p>
+    <p style="color: #666;">Jour ${d.daysElapsed}/${d.daysInMonth} · <strong>0 client réel externe</strong>. Compte référence (mrzirraro = KeiroAI, simule un client actif) : <strong>${d.referenceProjCost.toFixed(2)} €/mois</strong>. Supervision (admin + Meta review) : <strong style="color:${d.supervisionOverBudget ? '#dc2626' : '#059669'};">${d.supervisionProjCost.toFixed(2)} €</strong> / budget ${d.supervisionBudget} €.</p>
     ` : `
     <h1 style="color: ${d.marginPct < 60 ? '#dc2626' : '#d97706'}; margin-bottom: 8px;">
       ${d.marginPct < 60 ? '🚨' : '⚠️'} Marge réelle projetée : ${d.marginPct}%
@@ -294,8 +324,8 @@ function renderAlertEmail(d: any): string {
 
     <h2 style="margin-top: 24px;">📊 Chiffres clés</h2>
     <table style="width:100%; border-collapse: collapse;">
-      <tr><td style="padding: 6px 0; color: #666;">Clients payants</td><td style="text-align: right; font-weight: bold;">${d.clientCount} (dont ${d.realClientCount} réel${d.realClientCount > 1 ? 's' : ''}) · ${d.planRows.length} plan(s)</td></tr>
-      <tr><td style="padding: 6px 0; color: #666;">Revenu réel encaissé</td><td style="text-align: right; font-weight: bold;">${d.realRevenue} €${d.monthlyRevenue !== d.realRevenue ? ` <span style="color:#94a3b8;font-weight:normal;">(${d.monthlyRevenue} € avec comptes test)</span>` : ''}</td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">Comptes</td><td style="text-align: right; font-weight: bold;">${d.realClientCount} client${d.realClientCount > 1 ? 's' : ''} réel${d.realClientCount > 1 ? 's' : ''} · ${d.referenceRows.length} référence · ${d.supervisionRows.length} supervision</td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">Revenu réel encaissé</td><td style="text-align: right; font-weight: bold;">${d.realRevenue} €${d.monthlyRevenue !== d.realRevenue ? ` <span style="color:#94a3b8;font-weight:normal;">(${d.monthlyRevenue} € en comptant les comptes internes)</span>` : ''}</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Dépense MTD</td><td style="text-align: right; font-weight: bold;">${d.totalMtd.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">— attribué aux clients</td><td style="text-align: right;">${d.attributedMtd.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #b45309;">— système / tests / prospection KeiroAI</td><td style="text-align: right; color:#b45309; font-weight:bold;">${d.unattributedMtd.toFixed(2)} € (${d.unattributedPct}%)</td></tr>
@@ -315,18 +345,27 @@ function renderAlertEmail(d: any): string {
       </tbody>
     </table>
 
-    <h2 style="margin-top: 24px;">👤 Clients payants — qui ils sont</h2>
+    <h2 style="margin-top: 24px;">👤 Comptes — qui ils sont</h2>
     <table style="width:100%; border-collapse: collapse; font-size: 13px;">
-      <thead><tr style="background: #f3f4f6;"><th style="padding: 8px; text-align: left;">Email</th><th style="padding: 8px; text-align: left;">Plan</th><th style="padding: 8px; text-align: right;">Prix</th><th style="padding: 8px; text-align: right;">Coût proj.</th><th style="padding: 8px; text-align: right;">Marge</th><th style="padding: 8px; text-align: center;">État</th></tr></thead>
+      <thead><tr style="background: #f3f4f6;"><th style="padding: 8px; text-align: left;">Email</th><th style="padding: 8px; text-align: left;">Rôle</th><th style="padding: 8px; text-align: right;">Coût proj.</th><th style="padding: 8px; text-align: right;">Marge</th><th style="padding: 8px; text-align: center;">État</th></tr></thead>
       <tbody>
         ${d.clientRows.map((c: any) => {
-          const badge = c.status === 'perte' ? '🔴 perte' : c.status === 'surveiller' ? '🟠 surveiller' : c.status === 'test' ? '🧪 test' : '✅ ok';
-          const col = c.status === 'perte' ? '#dc2626' : c.status === 'surveiller' ? '#d97706' : c.status === 'test' ? '#4f46e5' : '#059669';
-          return `<tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px;">${c.email}${c.isAdmin ? ' <span style="font-size:10px;color:#fff;background:#6366f1;padding:1px 5px;border-radius:4px;">admin/test</span>' : ''}</td><td style="padding: 6px 8px; text-transform:capitalize;">${c.plan}</td><td style="text-align:right; padding:6px 8px;">${c.price} €</td><td style="text-align:right; padding:6px 8px;">${c.projCost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; font-weight:bold; color:${col};">${c.marginPct <= -999 ? 'n/a' : c.marginPct + '%'}</td><td style="text-align:center; padding:6px 8px; color:${col};">${badge}</td></tr>`;
+          const map: any = {
+            'perte':            { b: '🔴 perte', col: '#dc2626' },
+            'surveiller':       { b: '🟠 surveiller', col: '#d97706' },
+            'ok':               { b: '✅ ok', col: '#059669' },
+            'reference':        { b: '🎯 référence', col: '#4f46e5' },
+            'supervision':      { b: '🔧 supervision', col: '#059669' },
+            'supervision-over': { b: '🔧 dépassement', col: '#dc2626' },
+          };
+          const roleLabel: any = { reference: 'référence (simulation client)', supervision: 'supervision', client: 'client' };
+          const m = map[c.status] || map['ok'];
+          const showMargin = c.role === 'client';
+          return `<tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px;">${c.email}</td><td style="padding: 6px 8px; color:#64748b;">${roleLabel[c.role]}</td><td style="text-align:right; padding:6px 8px;">${c.projCost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; font-weight:bold; color:${m.col};">${showMargin ? (c.marginPct <= -999 ? 'n/a' : c.marginPct + '%') : '—'}</td><td style="text-align:center; padding:6px 8px; color:${m.col};">${m.b}</td></tr>`;
         }).join('')}
       </tbody>
     </table>
-    <p style="font-size:11px;color:#94a3b8;margin-top:6px;">"Dans le clou" = marge ≥ ${d.watchMargin}%. Sous ${d.watchMargin}% = 🟠 à surveiller. Coût projeté &gt; prix du plan = 🔴 en perte. Les comptes admin/test génèrent du coût sans revenu réel — normal en phase de tests.</p>
+    <p style="font-size:11px;color:#94a3b8;margin-top:6px;">🎯 <strong>référence</strong> = mrzirraro (compte KeiroAI à vraie activité) : simule le coût d'un client actif. 🔧 <strong>supervision</strong> = admin + Meta review : doivent coûter ~0 (budget ${d.supervisionBudget} €) ; un dépassement = appel non désiré ou anomalie. Vrai client : ✅ ok ≥ ${d.watchMargin}% · 🟠 &lt; ${d.watchMargin}% · 🔴 en perte.</p>
 
     ${d.providerRows.length > 0 ? `
     <h2 style="margin-top: 24px;">🔌 Où part le budget (par provider)</h2>
