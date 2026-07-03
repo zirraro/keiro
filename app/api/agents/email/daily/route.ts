@@ -219,6 +219,7 @@ TON OBJECTIF : écrire des emails qui donnent envie d'ESSAYER le produit — par
 STRATÉGIE VALUE-FIRST (founder 2026-06-25) — le cœur de ton approche :
 - Tu RENDS SERVICE avant de vendre. L'email doit ressembler à quelqu'un qui offre un coup de main utile, pas à un commercial. "Je t'ai préparé/repéré un truc qui peut t'aider" > "achète mon produit".
 - Mets en avant l'ESSAI GRATUIT comme un cadeau sans risque : "essaie, c'est gratuit, tu juges par toi-même, ça prend 3 min". Le produit fait le travail à sa place — c'est ça la promesse.
+- ⚠️ DISTINCTION IMPORTANTE (founder 03/07) : en démarchage à froid, l'essai dont tu parles = GÉNÉRER quelques visuels GRATUITEMENT, SANS carte bancaire (keiroai.com/generate). NE JAMAIS parler de payer, de prix, de carte, ni d'abonnement dans le cold. Tu offres de la valeur gratuite (le guide/astuce) + un essai gratuit sans risque. L'essai 7 jours avec carte bancaire (0€ débité) ne se mentionne QUE plus tard, quand on parle d'AUTOMATISER (les agents qui tournent tout seuls) — pas dans le premier contact.
 - Hyper-PERSONNALISÉ : parle de SON commerce, SA situation, ce que ÇA lui apporterait à LUI concrètement (couverts, RDV, passage). Jamais générique.
 - Générosité réelle : n'hésite pas à donner une vraie astuce gratuite, même sans qu'il achète. Celui qui aide est celui qu'on rappelle.
 - Pas de pression, pas de fausse rareté. La confiance + l'utilité convertissent mieux que l'urgence forcée.
@@ -471,7 +472,8 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}
 <div style="max-width:600px;margin:0 auto;padding:20px;">
 <div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">
 ${sanitizeEmailBodyToParagraphs(email.body)}
-<p style="margin:20px 0;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Découvrir KeiroAI</a></p>
+<p style="margin:20px 0 6px;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Essaie gratuitement</a></p>
+<p style="margin:0 0 14px;text-align:center;font-size:12px;color:#9ca3af;">Génère tes premiers visuels en 3 min — gratuit, sans carte</p>
 <p style="margin:14px 0;font-size:13px;color:#6b7280;border-left:3px solid #0c1a3a;padding-left:12px;">+200 entrepreneurs utilisent KeiroAI pour leur marketing.</p>
 </div>
 <div style="padding:12px;text-align:center;color:#9ca3af;font-size:11px;">
@@ -1093,7 +1095,7 @@ async function sendEmail(
       if (visibleText.length < 40 || hasTagLeak(template.htmlBody)) {
         const cleanInner = textToParagraphs(String(template.textBody || '').replace(/<[^>]*>/g, ' '));
         if (visibleOf(cleanInner).length >= 40) {
-          template.htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;"><div style="max-width:600px;margin:0 auto;padding:20px;"><div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">${cleanInner}<p style="margin:20px 0;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Découvrir KeiroAI</a></p></div></div></body></html>`;
+          template.htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;"><div style="max-width:600px;margin:0 auto;padding:20px;"><div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">${cleanInner}<p style="margin:20px 0 6px;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Essaie gratuitement</a></p><p style="margin:0;text-align:center;font-size:12px;color:#9ca3af;">Génère tes premiers visuels en 3 min — gratuit, sans carte</p></div></div></body></html>`;
           console.log(`[EmailDaily] Corps réparé (re-sanitize) pour ${prospect.email}`);
         }
         visibleText = visibleOf(template.htmlBody);
