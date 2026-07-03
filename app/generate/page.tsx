@@ -804,6 +804,16 @@ export default function GeneratePage() {
     } catch { /* ignore */ }
   }, []);
 
+  // Récupère les visuels générés avant la création du compte (associés à l'IP)
+  // et les rattache à la librairie du nouveau compte (founder 03/07).
+  useEffect(() => {
+    if (!authUserId) return;
+    fetch('/api/anon-gen/claim', { method: 'POST', credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d?.claimed > 0) console.log(`[Generate] ${d.claimed} visuel(s) gratuit(s) récupéré(s) dans ta librairie`); })
+      .catch(() => { /* non-fatal */ });
+  }, [authUserId]);
+
   // Seed business identity from the signup questionnaire (business_dossiers)
   // when no localStorage state restored anything. Founder ask: business
   // + description should pre-fill from signup, the other generation
@@ -2037,6 +2047,25 @@ export default function GeneratePage() {
       // flow (the user can still click Save manually as a backup).
       if (authUserId && generationLimit.canDownload) {
         saveToLibrary().catch(err => console.warn('[Generate] auto-save failed:', err));
+      }
+
+      // Visiteur NON connecté : persiste le visuel côté serveur, associé à son
+      // IP (founder 03/07 : "que ça ne disparaisse pas"). Il pourra le récupérer
+      // dans sa librairie à la création du compte (/api/anon-gen/claim).
+      if (!authUserId && finalImageUrl.startsWith('http')) {
+        fetch('/api/anon-gen/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_url: finalImageUrl,
+            business_type: businessType,
+            business_description: businessDescription,
+            visual_style: visualStyle,
+            tone,
+            generation_prompt: fullPrompt,
+            title: 'Ton visuel gratuit',
+          }),
+        }).catch(() => { /* non-fatal */ });
       }
 
       // Incrémenter le compteur de génération pour le freemium

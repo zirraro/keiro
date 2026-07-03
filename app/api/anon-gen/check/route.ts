@@ -20,7 +20,7 @@ import crypto from 'crypto';
  * Privacy: the IP is stored HASHED (sha256 + salt), never in clear.
  */
 
-const FREE_PER_IP = 1;
+const FREE_PER_IP = 2; // 2 visuels gratuits par IP pour appâter le lead (founder 03/07)
 
 function getIp(req: NextRequest): string {
   const fwd = req.headers.get('x-forwarded-for') || '';
