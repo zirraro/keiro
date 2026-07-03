@@ -1077,19 +1077,37 @@ async function sendEmail(
     let provider = 'brevo';
     let sendSuccess = false;
 
-    // GARDE ANTI-ENVOI CASSÉ (founder 02/07) : ne JAMAIS envoyer un mail vide ou
-    // avec du HTML brut visible (fuite de balises type "<p style=...>", "<"
-    // orphelins) — ça crie "arnaque" et fait perdre des leads. Mieux vaut sauter :
-    // le prochain run régénérera proprement.
+    // AUTO-RÉPARATION ANTI-ENVOI CASSÉ (founder 02/07, renforcé 03/07) : ne
+    // JAMAIS envoyer un mail vide/avec du HTML brut visible (aspect "arnaque" →
+    // perte de leads). Au lieu de SKIP (qui bouclait : Atelier de Jaél 4 échecs),
+    // on RÉPARE en direct : (1) reconstruit le HTML proprement depuis le texte
+    // via le sanitizer bulletproof, (2) si le texte est trop pauvre, fallback
+    // template statique propre, (3) skip seulement si tout échoue.
     {
-      const visibleText = String(template.textBody || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-      // Après avoir retiré les VRAIES balises <...>, un texte visible propre ne
-      // doit contenir NI "style=" NI de "<" orphelin. S'il en reste → une balise
-      // s'est fait casser (le "<" manque, ex "p style=...>") = mail corrompu.
-      const strippedHtml = String(template.htmlBody || '').replace(/<[^>]*>/g, ' ');
-      const tagLeak = /style\s*=|<|&lt;\s*p\b/i.test(strippedHtml);
-      if (visibleText.length < 40 || tagLeak) {
-        console.warn(`[EmailDaily] Corps cassé/vide détecté pour ${prospect.email} → ENVOI ANNULÉ (régénération au prochain run). visibleLen=${visibleText.length} tagLeak=${tagLeak}`);
+      const visibleOf = (h: string) => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+      const hasTagLeak = (h: string) => /style\s*=|(?:^|\s)<(?!\s)|&lt;\s*[a-z]/i.test(String(h || '').replace(/<[^>]*>/g, ' '));
+
+      let visibleText = visibleOf(template.htmlBody);
+      // (1) Répare le HTML depuis le texte brut (le sanitizer enlève tout '<' et style=)
+      if (visibleText.length < 40 || hasTagLeak(template.htmlBody)) {
+        const cleanInner = textToParagraphs(String(template.textBody || '').replace(/<[^>]*>/g, ' '));
+        if (visibleOf(cleanInner).length >= 40) {
+          template.htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;"><div style="max-width:600px;margin:0 auto;padding:20px;"><div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">${cleanInner}<p style="margin:20px 0;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Découvrir KeiroAI</a></p></div></div></body></html>`;
+          console.log(`[EmailDaily] Corps réparé (re-sanitize) pour ${prospect.email}`);
+        }
+        visibleText = visibleOf(template.htmlBody);
+      }
+      // (2) Fallback template statique si toujours pauvre
+      if (visibleText.length < 40 || hasTagLeak(template.htmlBody)) {
+        const firstName = (prospect.first_name || '').trim();
+        const fb = `Bonjour${firstName ? ' ' + firstName : ''},\n\nJe suis tombé sur ${prospect.company || 'votre établissement'} et j'ai pensé que ça pourrait vous intéresser : on aide des commerces comme le vôtre à gagner du temps sur leur présence en ligne (posts, avis Google, emails) — sans que vous ayez à vous en occuper.\n\nSi vous êtes curieux, je peux vous montrer ce que ça donnerait pour votre activité, sans engagement.\n\nBelle journée.`;
+        template.textBody = fb;
+        template.subject = template.subject && template.subject.length > 3 ? template.subject : `Une idée pour ${prospect.company || 'votre commerce'}`;
+        template.htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;"><div style="max-width:600px;margin:0 auto;padding:20px;"><div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">${textToParagraphs(fb)}<p style="margin:20px 0;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Découvrir KeiroAI</a></p></div></div></body></html>`;
+        console.warn(`[EmailDaily] Corps IA irrécupérable pour ${prospect.email} → fallback template statique`);
+      }
+      // (3) Dernier recours : skip si vraiment rien (ne devrait plus arriver)
+      if (visibleOf(template.htmlBody).length < 40) {
         return { success: false, error: 'broken_body_skipped' };
       }
     }
