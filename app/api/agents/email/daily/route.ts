@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { promises as dns } from 'dns';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { textToParagraphs } from '@/lib/email/text-to-html';
+import { pickBlogArticleForType, blogValueBlockHtml, blogValueBlockText } from '@/lib/agents/blog-match';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-timing';
 import { callGemini } from '@/lib/agents/gemini';
@@ -1110,6 +1111,28 @@ async function sendEmail(
       if (visibleOf(template.htmlBody).length < 40) {
         return { success: false, error: 'broken_body_skipped' };
       }
+    }
+
+    // VALEUR GRATUITE = ARTICLE DE BLOG (founder 03/07). À partir du step 2
+    // (doctrine : PAS de lien dans le 1er email), on ajoute un bloc « guide
+    // gratuit » qui pointe vers l'article du blog KeiroAI correspondant au
+    // métier du prospect → il lit l'article complet sur keiroai.com → puis
+    // l'essai. Donner de la valeur sans rien demander = celui qui aide est
+    // celui qu'on rappelle. Ajouté APRÈS la garde (HTML déjà validé propre).
+    if (step >= 2) {
+      try {
+        const artSb = getSupabaseAdmin();
+        const article = await pickBlogArticleForType(artSb, prospect.type || autoCategorizeProspect(prospect));
+        if (article) {
+          const htmlBlock = blogValueBlockHtml(article);
+          if (/<\/body>/i.test(template.htmlBody)) {
+            template.htmlBody = template.htmlBody.replace(/<\/body>/i, `${htmlBlock}</body>`);
+          } else {
+            template.htmlBody = template.htmlBody + htmlBlock;
+          }
+          template.textBody = (template.textBody || '') + blogValueBlockText(article);
+        }
+      } catch { /* bloc article best-effort, ne bloque pas l'envoi */ }
     }
 
     // Priority 1: Gmail API (client's own email) — if connected
