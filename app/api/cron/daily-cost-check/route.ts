@@ -111,24 +111,39 @@ export async function GET(req: NextRequest) {
     })
     .sort((x, y) => y.revenue - x.revenue);
 
-  // 3c. Clients EN PERTE : coût projeté > prix du plan (marge négative).
-  const clientRows = Object.entries(byUser)
-    .map(([uid, spent]) => {
-      const plan = planMap[uid] || 'inconnu';
-      const price = PLAN_REV[plan] || 0;
-      const projCost = spent * projFactor;
-      return {
-        email: emailMapAll[uid] || '?',
-        plan,
-        price,
-        mtdCost: Math.round(spent * 100) / 100,
-        projCost: Math.round(projCost * 100) / 100,
-        overBudget: price > 0 ? projCost > price : projCost > 0,
-        marginPct: price > 0 ? Math.round(((price - projCost) / price) * 100) : -999,
-      };
-    })
-    .sort((a, b) => b.projCost - a.projCost);
-  const clientsInLoss = clientRows.filter(r => r.overBudget);
+  // 3c. DÉTAIL par client : on NOMME chaque client payant (founder 03/07 :
+  //     "dis-moi qui ils sont"), on marque le compte admin/test, et on classe
+  //     par marge — seuil "dans le clou" = 70% (< 70% = à surveiller, < 0 = en perte).
+  const ADMIN_TEST_EMAILS = new Set(['mrzirraro@gmail.com', 'contact@keiroai.com', 'metareview@keiroai.com']);
+  const WATCH_MARGIN = 70; // en-dessous = plus dans le clou, à surveiller de près
+  const clientRows = (clients || []).map((c: any) => {
+    const spent = byUser[c.id] || 0;
+    const plan = c.subscription_plan || 'inconnu';
+    const price = PLAN_REV[plan] || 0;
+    const projCost = spent * projFactor;
+    const marginPct = price > 0 ? Math.round(((price - projCost) / price) * 100) : (projCost > 0 ? -999 : 100);
+    const status = marginPct < 0 || (price === 0 && projCost > 0) ? 'perte'
+      : marginPct < WATCH_MARGIN ? 'surveiller' : 'ok';
+    return {
+      email: c.email || '?',
+      plan,
+      price,
+      isAdmin: ADMIN_TEST_EMAILS.has((c.email || '').toLowerCase()),
+      mtdCost: Math.round(spent * 100) / 100,
+      projCost: Math.round(projCost * 100) / 100,
+      marginPct,
+      status,
+    };
+  }).sort((a, b) => b.projCost - a.projCost);
+  const clientsInLoss = clientRows.filter(r => r.status === 'perte');
+  const clientsToWatch = clientRows.filter(r => r.status === 'surveiller');
+
+  // 3c-bis. Coût ATTRIBUÉ aux clients vs coût SYSTÈME/TESTS (user_id null).
+  //     Révèle que la marge globale est plombée par nos propres tests +
+  //     prospection KeiroAI, pas par les clients (founder 03/07).
+  const attributedMtd = Object.values(byUser).reduce((a, b) => a + b, 0);
+  const unattributedMtd = Math.max(0, totalMtd - attributedMtd); // système / tests / prospection KeiroAI
+  const unattributedPct = totalMtd > 0 ? Math.round((unattributedMtd / totalMtd) * 100) : 0;
 
   // 3d. Coût PAR PROVIDER (où part le budget). Le champ `provider` est
   //     TOUJOURS renseigné (contrairement à `agent`, souvent null en prod →
@@ -165,6 +180,7 @@ export async function GET(req: NextRequest) {
   // 4. Decision : do we alert ?
   const alerts: string[] = [];
   if (clientsInLoss.length > 0) alerts.push(`💸 ${clientsInLoss.length} client(s) EN PERTE (coût projeté > prix du plan)`);
+  if (clientsToWatch.length > 0) alerts.push(`🟠 ${clientsToWatch.length} client(s) à surveiller (marge < ${WATCH_MARGIN}%)`);
   if (posts > 0 && costPerPost > TARGET_COST_PER_POST) alerts.push(`📈 Coût/post ${costPerPost.toFixed(2)}€ > cible ${TARGET_COST_PER_POST.toFixed(2)}€`);
   if (marginPct < 70 && marginPct >= 60) alerts.push(`⚠️ MARGE PROJETÉE ${marginPct}% — sous le seuil 70%`);
   if (marginPct < 60) alerts.push(`🚨 MARGE PROJETÉE ${marginPct}% — sous le seuil critique 60%`);
@@ -177,7 +193,8 @@ export async function GET(req: NextRequest) {
     try {
       const html = renderAlertEmail({
         marginPct, monthlyRevenue, totalMtd, projection, dailyAvg, daysElapsed, daysInMonth, alerts, spikes,
-        clientCount, planRows, clientRows, clientsInLoss, agentRows, providerRows,
+        clientCount, planRows, clientRows, clientsInLoss, clientsToWatch, agentRows, providerRows,
+        attributedMtd, unattributedMtd, unattributedPct, watchMargin: WATCH_MARGIN,
         posts, costPerPost, mediaCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
       });
       const brevoKey = process.env.BREVO_API_KEY;
@@ -204,8 +221,13 @@ export async function GET(req: NextRequest) {
     days_elapsed: daysElapsed,
     days_in_month: daysInMonth,
     client_count: clientCount,
-    plans: planRows,
+    clients: clientRows,
     clients_in_loss: clientsInLoss,
+    clients_to_watch: clientsToWatch,
+    attributed_cost_mtd_eur: Math.round(attributedMtd * 100) / 100,
+    unattributed_cost_mtd_eur: Math.round(unattributedMtd * 100) / 100,
+    unattributed_pct: unattributedPct,
+    plans: planRows,
     cost_by_provider: providerRows,
     cost_by_agent: agentRows,
     posts_published_mtd: posts,
@@ -230,6 +252,8 @@ function renderAlertEmail(d: any): string {
     <table style="width:100%; border-collapse: collapse;">
       <tr><td style="padding: 6px 0; color: #666;">Clients payants</td><td style="text-align: right; font-weight: bold;">${d.clientCount} · ${d.planRows.length} plan(s)</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Dépense MTD</td><td style="text-align: right; font-weight: bold;">${d.totalMtd.toFixed(2)} €</td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">— attribué aux clients</td><td style="text-align: right;">${d.attributedMtd.toFixed(2)} €</td></tr>
+      <tr><td style="padding: 6px 0; color: #b45309;">— système / tests / prospection KeiroAI</td><td style="text-align: right; color:#b45309; font-weight:bold;">${d.unattributedMtd.toFixed(2)} € (${d.unattributedPct}%)</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Moyenne quotidienne</td><td style="text-align: right; font-weight: bold;">${d.dailyAvg.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Projection fin de mois</td><td style="text-align: right; font-weight: bold;">${d.projection.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Revenu mensuel estimé</td><td style="text-align: right; font-weight: bold;">${d.monthlyRevenue} €</td></tr>
@@ -247,14 +271,18 @@ function renderAlertEmail(d: any): string {
       </tbody>
     </table>
 
-    ${d.clientsInLoss.length > 0 ? `
-    <h2 style="margin-top: 24px; color:#dc2626;">💸 Clients en perte (coût projeté &gt; prix du plan)</h2>
+    <h2 style="margin-top: 24px;">👤 Clients payants — qui ils sont</h2>
     <table style="width:100%; border-collapse: collapse; font-size: 13px;">
-      <thead><tr style="background: #fef2f2;"><th style="padding: 8px; text-align: left;">Email</th><th style="padding: 8px; text-align: left;">Plan</th><th style="padding: 8px; text-align: right;">Prix</th><th style="padding: 8px; text-align: right;">Coût proj.</th><th style="padding: 8px; text-align: right;">Marge</th></tr></thead>
+      <thead><tr style="background: #f3f4f6;"><th style="padding: 8px; text-align: left;">Email</th><th style="padding: 8px; text-align: left;">Plan</th><th style="padding: 8px; text-align: right;">Prix</th><th style="padding: 8px; text-align: right;">Coût proj.</th><th style="padding: 8px; text-align: right;">Marge</th><th style="padding: 8px; text-align: center;">État</th></tr></thead>
       <tbody>
-        ${d.clientsInLoss.slice(0, 12).map((c: any) => `<tr style="border-top: 1px solid #fecaca;"><td style="padding: 6px 8px;">${c.email}</td><td style="padding: 6px 8px; text-transform:capitalize;">${c.plan}</td><td style="text-align:right; padding:6px 8px;">${c.price} €</td><td style="text-align:right; padding:6px 8px; font-weight:bold;">${c.projCost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; color:#dc2626;">${c.marginPct <= -999 ? 'n/a' : c.marginPct + '%'}</td></tr>`).join('')}
+        ${d.clientRows.map((c: any) => {
+          const badge = c.status === 'perte' ? '🔴 perte' : c.status === 'surveiller' ? '🟠 surveiller' : '✅ ok';
+          const col = c.status === 'perte' ? '#dc2626' : c.status === 'surveiller' ? '#d97706' : '#059669';
+          return `<tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px;">${c.email}${c.isAdmin ? ' <span style="font-size:10px;color:#fff;background:#6366f1;padding:1px 5px;border-radius:4px;">admin/test</span>' : ''}</td><td style="padding: 6px 8px; text-transform:capitalize;">${c.plan}</td><td style="text-align:right; padding:6px 8px;">${c.price} €</td><td style="text-align:right; padding:6px 8px;">${c.projCost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; font-weight:bold; color:${col};">${c.marginPct <= -999 ? 'n/a' : c.marginPct + '%'}</td><td style="text-align:center; padding:6px 8px; color:${col};">${badge}</td></tr>`;
+        }).join('')}
       </tbody>
-    </table>` : `<p style="margin-top:16px; color:#059669;">✅ Aucun client en perte — tous dans le clou.</p>`}
+    </table>
+    <p style="font-size:11px;color:#94a3b8;margin-top:6px;">"Dans le clou" = marge ≥ ${d.watchMargin}%. Sous ${d.watchMargin}% = 🟠 à surveiller. Coût projeté &gt; prix du plan = 🔴 en perte. Les comptes admin/test génèrent du coût sans revenu réel — normal en phase de tests.</p>
 
     ${d.providerRows.length > 0 ? `
     <h2 style="margin-top: 24px;">🔌 Où part le budget (par provider)</h2>
