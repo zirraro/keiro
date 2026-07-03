@@ -148,6 +148,7 @@ async function sendImmediateAdminEmail(supabase: any, anomaliesP0: Anomaly[]) {
     html += `</div>`;
   }
   html += `<p style="margin-top:16px"><a href="https://keiroai.com/admin/agents/control" style="background:#0c1a3a;color:#fff;padding:8px 14px;border-radius:6px;text-decoration:none">Ouvrir le Control Center →</a></p>`;
+  html += `<p style="font-size:11px;color:#94a3b8;margin-top:14px;border-top:1px solid #e2e8f0;padding-top:10px">🔒 Alerte interne — envoyée uniquement à l'admin (${adminEmail}). Aucun client ne reçoit ces notifications.</p>`;
   html += '</div>';
 
   try {
@@ -276,31 +277,49 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // ── 4. agent_down : agent attendu mais zéro run en 12h ──
-  // Each active agent should run at least once per 12h on a paying client.
-  // If global cron is OK but specific user is silent, that's a config issue.
-  // (Simpler version : detect when an agent has zero runs across ALL clients
-  //  in last 12h whereas typical baseline.)
-  const since12h = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
-  const { data: all12hAgents } = await supabase
+  // ── 4. agent_down : agent silencieux AU-DELÀ DE SA CADENCE NORMALE ──
+  // ⚠️ Correctif fatigue d'alerte (2026-07-03) : un seuil unique de 12h
+  // crachait un faux P0 chaque nuit. Ex : commercial tourne à 07:00 et
+  // 14:00 → gap nocturne 14:00→07:00 = 17h, mécaniquement > 12h → P0
+  // trompeur alors que rien n'est cassé. On passe à un seuil PAR agent qui
+  // couvre le gap nocturne : seul un vrai silence (> 1 cycle manqué) alerte.
+  // Les agents à cadence pluri-quotidienne gardent un seuil serré ; ceux à
+  // ~1×/jour tolèrent le creux de la nuit.
+  const AGENT_MAX_SILENCE_H: Record<string, number> = {
+    content: 15,            // tourne plusieurs fois/jour (+ publish loops)
+    email: 26,              // batch quotidien (matin) → creux nocturne normal
+    dm_instagram: 26,       // slot matin ~1×/jour
+    instagram_comments: 30, // réactif : peut légitimement n'avoir aucun commentaire
+    ceo: 26,                // brief quotidien
+    commercial: 26,         // 2×/jour mais gap nocturne ~17h → 26h = 1 cycle manqué réel
+  };
+  const maxSilenceWindowH = Math.max(...Object.values(AGENT_MAX_SILENCE_H)) + 6;
+  const sinceMaxSilence = new Date(Date.now() - maxSilenceWindowH * 3600 * 1000).toISOString();
+  const { data: recentAgentLogs } = await supabase
     .from('agent_logs')
-    .select('agent')
-    .gte('created_at', since12h)
-    .limit(5000);
-  const seenAgents = new Set((all12hAgents || []).map((l: any) => l.agent));
-  const EXPECTED_AGENTS = ['content', 'email', 'dm_instagram', 'ceo', 'commercial', 'instagram_comments'];
-  for (const ag of EXPECTED_AGENTS) {
-    if (!seenAgents.has(ag)) {
+    .select('agent, created_at')
+    .gte('created_at', sinceMaxSilence)
+    .order('created_at', { ascending: false })
+    .limit(8000);
+  const lastSeenByAgent: Record<string, number> = {};
+  for (const l of (recentAgentLogs || []) as any[]) {
+    const t = new Date(l.created_at).getTime();
+    if (!lastSeenByAgent[l.agent] || t > lastSeenByAgent[l.agent]) lastSeenByAgent[l.agent] = t;
+  }
+  for (const [ag, maxH] of Object.entries(AGENT_MAX_SILENCE_H)) {
+    const last = lastSeenByAgent[ag];
+    const silentH = last ? (Date.now() - last) / 3600000 : Infinity;
+    if (silentH > maxH) {
       detected.push({
         severity: 'P0',
         kind: 'agent_down',
         agent: ag,
         user_id: null,
         fingerprint: `agent_down::${ag}`,
-        title: `${ag} : aucun run en 12h`,
-        detail: `Vérifier le cron worker + l'endpoint. Risque silencieux pour tous les clients.`,
-        metric_value: 0,
-        metric_threshold: 1,
+        title: `${ag} : aucun run depuis ${last ? Math.round(silentH) + 'h' : `> ${maxSilenceWindowH}h`}`,
+        detail: `Cadence normale dépassée (seuil ${maxH}h — 1 cycle manqué). Souvent un 502/timeout sur une requête lourde : vérifier le cron worker + l'endpoint /api/agents/${ag}.`,
+        metric_value: last ? Math.round(silentH) : maxSilenceWindowH,
+        metric_threshold: maxH,
       });
     }
   }

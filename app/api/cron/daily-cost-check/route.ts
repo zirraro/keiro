@@ -85,8 +85,76 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // 3b. Répartition par PLAN + par CLIENT (founder 2026-07-03 : "combien de
+  //     clients, combien de plans différents, quels coûts dépassent le clou").
+  const projFactor = daysInMonth / daysElapsed; // MTD → projeté fin de mois
+  const clientCount = (clients || []).length;
+  const planAgg: Record<string, { count: number; revenue: number; mtdCost: number }> = {};
+  const emailMapAll = Object.fromEntries((clients || []).map((c: any) => [c.id, c.email]));
+  const planMap = Object.fromEntries((clients || []).map((c: any) => [c.id, c.subscription_plan]));
+  for (const c of (clients || []) as any[]) {
+    const plan = c.subscription_plan || 'inconnu';
+    if (!planAgg[plan]) planAgg[plan] = { count: 0, revenue: 0, mtdCost: 0 };
+    planAgg[plan].count++;
+    planAgg[plan].revenue += PLAN_REV[plan] || 0;
+  }
+  for (const [uid, spent] of Object.entries(byUser)) {
+    const plan = planMap[uid] || 'inconnu';
+    if (!planAgg[plan]) planAgg[plan] = { count: 0, revenue: 0, mtdCost: 0 };
+    planAgg[plan].mtdCost += spent;
+  }
+  const planRows = Object.entries(planAgg)
+    .map(([plan, a]) => {
+      const projCost = a.mtdCost * projFactor;
+      const marginPctPlan = a.revenue > 0 ? Math.round(((a.revenue - projCost) / a.revenue) * 100) : (projCost > 0 ? -999 : 100);
+      return { plan, count: a.count, revenue: a.revenue, mtdCost: a.mtdCost, projCost, marginPct: marginPctPlan };
+    })
+    .sort((x, y) => y.revenue - x.revenue);
+
+  // 3c. Clients EN PERTE : coût projeté > prix du plan (marge négative).
+  const clientRows = Object.entries(byUser)
+    .map(([uid, spent]) => {
+      const plan = planMap[uid] || 'inconnu';
+      const price = PLAN_REV[plan] || 0;
+      const projCost = spent * projFactor;
+      return {
+        email: emailMapAll[uid] || '?',
+        plan,
+        price,
+        mtdCost: Math.round(spent * 100) / 100,
+        projCost: Math.round(projCost * 100) / 100,
+        overBudget: price > 0 ? projCost > price : projCost > 0,
+        marginPct: price > 0 ? Math.round(((price - projCost) / price) * 100) : -999,
+      };
+    })
+    .sort((a, b) => b.projCost - a.projCost);
+  const clientsInLoss = clientRows.filter(r => r.overBudget);
+
+  // 3d. Coût PAR AGENT (où part le budget).
+  const byAgent: Record<string, number> = {};
+  for (const e of (events || []) as any[]) {
+    const ag = e.agent || 'autre';
+    byAgent[ag] = (byAgent[ag] || 0) + (parseFloat(e.cost_eur) || 0);
+  }
+  const agentRows = Object.entries(byAgent)
+    .map(([agent, cost]) => ({ agent, cost: Math.round(cost * 100) / 100, pct: totalMtd > 0 ? Math.round((cost / totalMtd) * 100) : 0 }))
+    .sort((a, b) => b.cost - a.cost);
+
+  // 3e. Coût PAR POST : coût contenu (agent='content') / posts publiés MTD.
+  const contentCostMtd = byAgent['content'] || 0;
+  const { count: postsPublishedMtd } = await supabase
+    .from('content_calendar')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'published')
+    .gte('published_at', monthStart.toISOString());
+  const posts = postsPublishedMtd || 0;
+  const costPerPost = posts > 0 ? contentCostMtd / posts : 0;
+  const TARGET_COST_PER_POST = 0.60; // seuil cible €/post (image + LLM). Au-delà = à optimiser.
+
   // 4. Decision : do we alert ?
   const alerts: string[] = [];
+  if (clientsInLoss.length > 0) alerts.push(`💸 ${clientsInLoss.length} client(s) EN PERTE (coût projeté > prix du plan)`);
+  if (posts > 0 && costPerPost > TARGET_COST_PER_POST) alerts.push(`📈 Coût/post ${costPerPost.toFixed(2)}€ > cible ${TARGET_COST_PER_POST.toFixed(2)}€`);
   if (marginPct < 70 && marginPct >= 60) alerts.push(`⚠️ MARGE PROJETÉE ${marginPct}% — sous le seuil 70%`);
   if (marginPct < 60) alerts.push(`🚨 MARGE PROJETÉE ${marginPct}% — sous le seuil critique 60%`);
   if (projection > monthlyRevenue) alerts.push(`🚨 PROJECTION ${projection.toFixed(2)}€ DÉPASSE REVENU ${monthlyRevenue}€`);
@@ -96,7 +164,11 @@ export async function GET(req: NextRequest) {
   let emailSent = false;
   if (alerts.length > 0) {
     try {
-      const html = renderAlertEmail({ marginPct, monthlyRevenue, totalMtd, projection, dailyAvg, daysElapsed, daysInMonth, alerts, spikes });
+      const html = renderAlertEmail({
+        marginPct, monthlyRevenue, totalMtd, projection, dailyAvg, daysElapsed, daysInMonth, alerts, spikes,
+        clientCount, planRows, clientRows, clientsInLoss, agentRows,
+        posts, costPerPost, contentCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
+      });
       const brevoKey = process.env.BREVO_API_KEY;
       if (brevoKey) {
         const r = await sendBrevoCompat({
@@ -120,6 +192,12 @@ export async function GET(req: NextRequest) {
     margin_pct: marginPct,
     days_elapsed: daysElapsed,
     days_in_month: daysInMonth,
+    client_count: clientCount,
+    plans: planRows,
+    clients_in_loss: clientsInLoss,
+    cost_by_agent: agentRows,
+    posts_published_mtd: posts,
+    cost_per_post_eur: Math.round(costPerPost * 100) / 100,
     spikes: spikes.slice(0, 10),
     alerts,
     email_sent: emailSent,
@@ -137,14 +215,41 @@ function renderAlertEmail(d: any): string {
 
     <h2 style="margin-top: 24px;">📊 Chiffres clés</h2>
     <table style="width:100%; border-collapse: collapse;">
+      <tr><td style="padding: 6px 0; color: #666;">Clients payants</td><td style="text-align: right; font-weight: bold;">${d.clientCount} · ${d.planRows.length} plan(s)</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Dépense MTD</td><td style="text-align: right; font-weight: bold;">${d.totalMtd.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Moyenne quotidienne</td><td style="text-align: right; font-weight: bold;">${d.dailyAvg.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Projection fin de mois</td><td style="text-align: right; font-weight: bold;">${d.projection.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Revenu mensuel estimé</td><td style="text-align: right; font-weight: bold;">${d.monthlyRevenue} €</td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">Posts publiés (mois) · coût/post</td><td style="text-align: right; font-weight: bold; color:${d.posts > 0 && d.costPerPost > d.targetCostPerPost ? '#dc2626' : '#059669'};">${d.posts} · ${d.costPerPost.toFixed(2)} €${d.posts > 0 ? ` (cible ${d.targetCostPerPost.toFixed(2)})` : ''}</td></tr>
     </table>
 
     <h2 style="margin-top: 24px;">🚨 Alertes</h2>
     <ul>${d.alerts.map((a: string) => `<li style="margin: 8px 0; color: #dc2626;">${a}</li>`).join('')}</ul>
+
+    <h2 style="margin-top: 24px;">📦 Marge par plan</h2>
+    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+      <thead><tr style="background: #f3f4f6;"><th style="padding: 8px; text-align: left;">Plan</th><th style="padding: 8px; text-align: right;">Clients</th><th style="padding: 8px; text-align: right;">Revenu</th><th style="padding: 8px; text-align: right;">Coût proj.</th><th style="padding: 8px; text-align: right;">Marge</th></tr></thead>
+      <tbody>
+        ${d.planRows.map((p: any) => `<tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px; text-transform:capitalize;">${p.plan}</td><td style="text-align:right; padding:6px 8px;">${p.count}</td><td style="text-align:right; padding:6px 8px;">${p.revenue} €</td><td style="text-align:right; padding:6px 8px;">${p.projCost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; font-weight:bold; color:${p.marginPct < 60 ? '#dc2626' : p.marginPct < 70 ? '#d97706' : '#059669'};">${p.marginPct <= -999 ? 'n/a' : p.marginPct + '%'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+
+    ${d.clientsInLoss.length > 0 ? `
+    <h2 style="margin-top: 24px; color:#dc2626;">💸 Clients en perte (coût projeté &gt; prix du plan)</h2>
+    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+      <thead><tr style="background: #fef2f2;"><th style="padding: 8px; text-align: left;">Email</th><th style="padding: 8px; text-align: left;">Plan</th><th style="padding: 8px; text-align: right;">Prix</th><th style="padding: 8px; text-align: right;">Coût proj.</th><th style="padding: 8px; text-align: right;">Marge</th></tr></thead>
+      <tbody>
+        ${d.clientsInLoss.slice(0, 12).map((c: any) => `<tr style="border-top: 1px solid #fecaca;"><td style="padding: 6px 8px;">${c.email}</td><td style="padding: 6px 8px; text-transform:capitalize;">${c.plan}</td><td style="text-align:right; padding:6px 8px;">${c.price} €</td><td style="text-align:right; padding:6px 8px; font-weight:bold;">${c.projCost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; color:#dc2626;">${c.marginPct <= -999 ? 'n/a' : c.marginPct + '%'}</td></tr>`).join('')}
+      </tbody>
+    </table>` : `<p style="margin-top:16px; color:#059669;">✅ Aucun client en perte — tous dans le clou.</p>`}
+
+    ${d.agentRows.length > 0 ? `
+    <h2 style="margin-top: 24px;">🤖 Où part le budget (par agent)</h2>
+    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+      <tbody>
+        ${d.agentRows.slice(0, 8).map((a: any) => `<tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px; text-transform:capitalize;">${a.agent}</td><td style="text-align:right; padding:6px 8px; font-weight:bold;">${a.cost.toFixed(2)} €</td><td style="text-align:right; padding:6px 8px; color:#666;">${a.pct}%</td></tr>`).join('')}
+      </tbody>
+    </table>` : ''}
 
     ${d.spikes.length > 0 ? `
     <h2 style="margin-top: 24px;">⚡ Clients en spike (top 10)</h2>
