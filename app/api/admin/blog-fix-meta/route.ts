@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
   let fixed = 0;
 
   for (const p of posts || []) {
-    const metaTitleLong = !p.meta_title || p.meta_title.length > 60;
+    // Re-traite aussi les titres/desc tronqués avec "…" (fallback pas élégant).
+    const metaTitleLong = !p.meta_title || p.meta_title.length > 60 || /…|\.\.\./.test(p.meta_title);
     const metaDescLong = !p.meta_description || p.meta_description.length < 120 || p.meta_description.length > 158;
     if (!metaTitleLong && !metaDescLong) continue;
 
@@ -68,10 +69,11 @@ RÈGLES DURES :
     const update: Record<string, any> = {};
     // meta_title
     if (metaTitleLong) {
-      let mt = (out.meta_title || '').trim();
+      let mt = (out.meta_title || '').replace(/…|\.\.\./g, '').trim();
       if (!mt || mt.length > 60) {
-        const base = mt || p.meta_title || p.title || '';
-        mt = base.length <= 60 ? base : base.slice(0, 57).replace(/\s+\S*$/, '') + '…';
+        // Fallback élégant : couper au dernier mot complet, SANS ellipse.
+        const base = (mt || p.meta_title || p.title || '').replace(/…|\.\.\./g, '').trim();
+        mt = base.length <= 60 ? base : base.slice(0, 60).replace(/\s+\S*$/, '').replace(/[\s:,-]+$/, '');
       }
       update.meta_title = mt;
     }
