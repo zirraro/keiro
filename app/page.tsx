@@ -281,12 +281,14 @@ function HomeKeiroInner() {
               { emoji: '⭐', label: 'Théo', role: locale === 'fr' ? 'Avis Google' : 'Reviews', accent: 'from-amber-500 to-orange-500', avatar: '/avatars-3d/gmaps.png' },
               { emoji: '👋', label: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding', accent: 'from-violet-500 to-purple-600', avatar: '/avatars-3d/onboarding.png' },
               { emoji: '📊', label: 'Ami', role: locale === 'fr' ? 'Analyse' : 'Analytics', accent: 'from-indigo-500 to-blue-600', avatar: '/avatars-3d/marketing.png' },
+              { emoji: '💚', label: 'Stella', role: locale === 'fr' ? 'WhatsApp' : 'WhatsApp', accent: 'from-green-500 to-emerald-600', avatar: '/avatars-3d/whatsapp.png' },
+              { emoji: '⚖️', label: 'Sara', role: locale === 'fr' ? 'RH & juridique' : 'HR & legal', accent: 'from-slate-500 to-slate-700', avatar: '/avatars-3d/rh.png' },
             ].map(a => (
               <div key={a.label} className="rounded-xl bg-white border border-neutral-200 p-2 sm:p-3 text-center shadow-sm hover:shadow-md transition">
                 {/* Avatar with the activity emoji as a tiny corner badge —
                     humanises the agent into a 'real employee' card. */}
                 <div className={`relative w-11 h-11 sm:w-14 sm:h-14 rounded-full mx-auto mb-1 bg-gradient-to-br ${a.accent} p-0.5`}>
-                  <img src={a.avatar} alt={a.label} className="w-full h-full rounded-full object-cover" loading="lazy" />
+                  <img src={a.avatar} alt={a.label} className="w-full h-full rounded-full object-cover" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                   <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center text-[11px] border border-neutral-100">{a.emoji}</span>
                 </div>
                 <div className="text-[10px] sm:text-xs font-bold text-neutral-900 leading-tight mt-1">{a.label}</div>
