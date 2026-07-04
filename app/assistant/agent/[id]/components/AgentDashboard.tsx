@@ -162,7 +162,7 @@ const AGENT_CONFIG: Record<string, { subtitle: string; Panel: typeof MarketingPa
   finance: { subtitle: 'Finance & Tresorerie', Panel: FinancePanel },
   rh: { subtitle: 'Expert Juridique & RH', Panel: RhPanel },
   onboarding: { subtitle: 'Guide de Demarrage', Panel: OnboardingPanel },
-  dm_instagram: { subtitle: 'DM, Commentaires & Engagement — IG, TikTok, LinkedIn', Panel: DmInstagramPanel },
+  dm_instagram: { subtitle: 'DM, Commentaires & Comptes à suivre — IG, TikTok, LinkedIn', Panel: DmInstagramPanel },
   instagram_comments: { subtitle: 'Commentaires Instagram', Panel: InstagramCommentsPanel },
   tiktok_comments: { subtitle: 'Expert TikTok Engagement', Panel: TiktokCommentsPanel },
   gmaps: { subtitle: 'Réputation, Avis Google & SEO', Panel: GmapsPanel },

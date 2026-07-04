@@ -276,7 +276,7 @@ function HomeKeiroInner() {
             {[
               { emoji: '🎨', label: 'Léna', role: locale === 'fr' ? 'Posts auto' : 'Auto posts', accent: 'from-purple-500 to-pink-500', avatar: '/avatars-3d/content.png' },
               { emoji: '📧', label: 'Hugo', role: locale === 'fr' ? 'Emails' : 'Emails', accent: 'from-cyan-500 to-blue-500', avatar: '/avatars-3d/email.png' },
-              { emoji: '💬', label: 'Jade', role: locale === 'fr' ? 'DMs IG' : 'IG DMs', accent: 'from-pink-500 to-rose-500', avatar: '/avatars-3d/dm_instagram.png' },
+              { emoji: '💬', label: 'Jade', role: locale === 'fr' ? 'DM, commentaires & comptes à suivre' : 'DMs, comments & follows', accent: 'from-pink-500 to-rose-500', avatar: '/avatars-3d/dm_instagram.png' },
               { emoji: '🎯', label: 'Léo', role: locale === 'fr' ? 'Prospects' : 'Prospects', accent: 'from-emerald-500 to-teal-500', avatar: '/avatars-3d/commercial.png' },
               { emoji: '⭐', label: 'Théo', role: locale === 'fr' ? 'Avis Google' : 'Reviews', accent: 'from-amber-500 to-orange-500', avatar: '/avatars-3d/gmaps.png' },
               { emoji: '👋', label: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding', accent: 'from-violet-500 to-purple-600', avatar: '/avatars-3d/onboarding.png' },
@@ -635,18 +635,18 @@ function HomeKeiroInner() {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-lg">💬</div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Jade</div>
-                    <div className="text-[10px] text-pink-700 font-semibold">{locale === 'fr' ? 'DM Instagram' : 'Instagram DMs'}</div>
+                    <div className="text-[10px] text-pink-700 font-semibold">{locale === 'fr' ? 'DM, commentaires & comptes à suivre' : 'DMs, comments & follows'}</div>
                   </div>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
-                    ? 'Répond à tes DMs 24/7 avec ton ton de voix. Tu reprends quand tu veux.'
-                    : 'Replies to DMs 24/7 in your voice. Take over anytime.'}
+                    ? 'Répond à tes DMs et commentaires 24/7 avec ton ton de voix, et repère les comptes pertinents à suivre. Tu reprends quand tu veux.'
+                    : 'Replies to your DMs and comments 24/7 in your voice, and spots relevant accounts to follow. Take over anytime.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? 'Auto-réponse intelligente' : 'Smart auto-reply'}</li>
+                  <li>✓ {locale === 'fr' ? 'DM & commentaires auto' : 'Auto DMs & comments'}</li>
+                  <li>✓ {locale === 'fr' ? 'Comptes pertinents à suivre' : 'Relevant accounts to follow'}</li>
                   <li>✓ {locale === 'fr' ? 'Mode humain en 1 clic' : 'Human mode in 1 click'}</li>
-                  <li>✓ {locale === 'fr' ? 'Comments auto aussi' : 'Auto-replies on comments too'}</li>
                 </ul>
               </div>
 
