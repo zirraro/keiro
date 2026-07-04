@@ -638,7 +638,9 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
     }
   };
 
-  useEffect(() => { load(true); }, []);
+  // Recharge à CHAQUE changement de réseau (sinon les comptes à suivre du 1er
+  // réseau restent affichés sur les autres = effet miroir TikTok/LinkedIn).
+  useEffect(() => { setItems([]); setFunnel(null); load(true); }, [platform]);
 
   const handleAction = async (prospectId: string, action: 'done' | 'skip' | 'dead_link') => {
     setBusyId(prospectId);

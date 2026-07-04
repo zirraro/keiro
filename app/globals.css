@@ -1157,26 +1157,40 @@ html.light [class*="bg-\[#060e1f\]"] {
   background-color: #f1f5f9 !important;
 }
 
-/* Glass cards: bg-white/5, bg-white/10, bg-white/[0.02], bg-white/[0.03] → subtle gray */
+/* Glass cards: les overlays blancs subtils (bg-white/5, /[0.02]…) doivent
+   devenir une TEINTE SLATE légère, pas du blanc pur — sinon carte blanche sur
+   page blanche = invisible ("clair sur clair", founder 04/07). Les bordures
+   ci-dessous donnent l'arête de carte. */
 html.light [class*="bg-white\/5"],
 html.light [class*="bg-white\/\[0\.02\]"],
-html.light [class*="bg-white\/\[0\.03\]"] {
-  background-color: #ffffff !important;
+html.light [class*="bg-white\/\[0\.03\]"],
+html.light [class*="bg-white\/\[0\.04\]"],
+html.light [class*="bg-white\/\[0\.05\]"] {
+  background-color: rgba(15, 23, 42, 0.035) !important;
 }
 html.light [class*="bg-white\/10"],
-html.light [class*="bg-white\/15"] {
-  background-color: rgba(0, 0, 0, 0.04) !important;
+html.light [class*="bg-white\/15"],
+html.light [class*="bg-white\/20"],
+html.light [class*="bg-white\/25"] {
+  background-color: rgba(15, 23, 42, 0.06) !important;
 }
 
-/* Borders: border-white/10, border-white/5 → light gray */
+/* Borders: border-white/X → gris visible sur fond clair */
 html.light [class*="border-white\/10"],
 html.light [class*="border-white\/5"],
-html.light [class*="border-white\/\[0\.06\]"] {
-  border-color: rgba(0, 0, 0, 0.1) !important;
+html.light [class*="border-white\/\[0\.06\]"],
+html.light [class*="border-white\/\[0\.08\]"] {
+  border-color: rgba(15, 23, 42, 0.12) !important;
 }
-html.light [class*="border-white\/20"] {
-  border-color: rgba(0, 0, 0, 0.15) !important;
+html.light [class*="border-white\/20"],
+html.light [class*="border-white\/15"] {
+  border-color: rgba(15, 23, 42, 0.18) !important;
 }
+
+/* Divides / rings / placeholders "verre" → gris visible en mode clair. */
+html.light [class*="divide-white\/10"] > :not([hidden]) ~ :not([hidden]) { border-color: rgba(15, 23, 42, 0.1) !important; }
+html.light [class*="ring-white\/10"], html.light [class*="ring-white\/20"] { --tw-ring-color: rgba(15, 23, 42, 0.12) !important; }
+html.light [class*="placeholder-white\/30"]::placeholder, html.light [class*="placeholder-white\/40"]::placeholder, html.light [class*="placeholder-white\/50"]::placeholder { color: rgba(15, 23, 42, 0.4) !important; }
 
 /* Text: text-white → dark, text-white/XX → gray scale */
 html.light .text-white {
@@ -1207,6 +1221,10 @@ html.light [class*="text-white\/25"] {
   color: #cbd5e1 !important;
 }
 html.light [class*="text-white\/20"] {
+  color: #cbd5e1 !important;
+}
+html.light [class*="text-white\/15"],
+html.light [class*="text-white\/10"] {
   color: #cbd5e1 !important;
 }
 
