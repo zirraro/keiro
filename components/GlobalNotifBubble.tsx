@@ -7,15 +7,21 @@ import { useLanguage } from '@/lib/i18n/context';
 
 interface NotifData {
   totalPending: number;
+  actionSignature?: string;
   badges: Record<string, number>;
   hotProspects: Array<{ id: string; company: string; type: string; status: string }>;
   notifications: Array<{ id: string; agent: string; type: string; title: string; message: string; read: boolean; created_at: string }>;
 }
 
+const DISMISS_KEY = 'keiro_notif_dismissed_sig';
+
 export default function GlobalNotifBubble() {
   const [data, setData] = useState<NotifData | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  // Signature des actions que l'utilisateur a masquées : on ne ré-affiche le
+  // popup QUE si de NOUVELLES actions apparaissent (founder 03/07 : "pas de
+  // popup qui ressort inutilement / s'accumule").
+  const [dismissedSig, setDismissedSig] = useState<string>('');
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useLanguage();
@@ -43,19 +49,26 @@ export default function GlobalNotifBubble() {
       const d = await res.json();
       if (d.error) { setData(null); return; }
       setData(d);
-      // Reset dismissed if new notifs arrive
-      if (d.totalPending > 0) setDismissed(false);
     } catch { setData(null); }
   }, []);
 
   useEffect(() => {
+    try { setDismissedSig(localStorage.getItem(DISMISS_KEY) || ''); } catch { /* SSR/no storage */ }
     fetchNotifs();
     const interval = setInterval(fetchNotifs, 30000);
     return () => clearInterval(interval);
   }, [fetchNotifs]);
 
-  // Nothing to show
-  if (!data || data.totalPending === 0 || isAssistantPage || dismissed) return null;
+  const sig = data?.actionSignature || '';
+  const dismiss = () => {
+    setDismissedSig(sig);
+    try { localStorage.setItem(DISMISS_KEY, sig); } catch { /* ignore */ }
+    setExpanded(false);
+  };
+
+  // Nothing to show — or the current action set was already dismissed (only
+  // re-appears when a NEW action changes the signature).
+  if (!data || data.totalPending === 0 || isAssistantPage || (sig && sig === dismissedSig)) return null;
 
   const agentsWithActions = Object.entries(data.badges)
     .filter(([, count]) => count > 0)
@@ -147,7 +160,7 @@ export default function GlobalNotifBubble() {
 
         {/* Dismiss button — visible only on hover desktop, always small touch on mobile */}
         <button
-          onClick={(e) => { e.stopPropagation(); setDismissed(true); setExpanded(false); }}
+          onClick={(e) => { e.stopPropagation(); dismiss(); }}
           className="ml-0.5 sm:ml-1 text-white/50 hover:text-white/90 transition p-1 -m-1"
           aria-label="Masquer"
         >

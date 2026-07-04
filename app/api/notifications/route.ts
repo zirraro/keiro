@@ -25,7 +25,18 @@ export async function GET() {
 
   const unreadCount = (notifications || []).filter(n => !n.read).length;
 
-  // Hot prospects needing human intervention
+  // ── ACTIONS RÉELLES uniquement (founder 03/07) ──
+  // Le popup "actions en attente" ne doit PLUS afficher toutes les notifs
+  // (info/brief = purement informatif → cloche seule). Il ne compte QUE ce qui
+  // demande VRAIMENT une action manuelle du client : type 'action' (reconnecter
+  // un réseau, valider un brouillon, follow manuel, email à vérifier…) ou
+  // 'alert' (échec à corriger). Ça arrête l'accumulation de "51 actions" bidon.
+  const ACTION_TYPES = new Set(['action', 'alert']);
+  const actionNotifs = (notifications || []).filter(n => !n.read && ACTION_TYPES.has((n.type || 'info')));
+
+  // Hot prospects needing human intervention (affichés dans le panneau, PAS
+  // comptés dans le total — ils ne sont pas une action manuelle bloquante et
+  // gonflaient le compteur ×3 avant).
   const { data: hotProspects } = await supabase
     .from('crm_prospects')
     .select('id, company, email, type, status, temperature')
@@ -34,24 +45,24 @@ export async function GET() {
     .order('updated_at', { ascending: false })
     .limit(10);
 
-  // Count badges per agent
+  // Badges par agent = uniquement les vraies actions.
   const badges: Record<string, number> = {};
-  for (const n of (notifications || [])) {
-    if (!n.read && n.agent) badges[n.agent] = (badges[n.agent] || 0) + 1;
-  }
-  // Hot prospects add to DM + email + commercial badges
-  for (const p of (hotProspects || [])) {
-    badges['dm_instagram'] = (badges['dm_instagram'] || 0) + 1;
-    badges['email'] = (badges['email'] || 0) + 1;
-    badges['commercial'] = (badges['commercial'] || 0) + 1;
+  for (const n of actionNotifs) {
+    if (n.agent) badges[n.agent] = (badges[n.agent] || 0) + 1;
   }
 
-  const totalPending = unreadCount + (hotProspects?.length || 0);
+  const totalPending = actionNotifs.length;
+
+  // Signature stable de l'ensemble d'actions courant : permet au front de ne
+  // ré-afficher le popup QUE si de NOUVELLES actions apparaissent (sinon le
+  // masquage tient).
+  const actionSignature = actionNotifs.map(n => n.id).sort().join(',');
 
   return NextResponse.json({
     notifications: notifications || [],
     unreadCount,
     totalPending,
+    actionSignature,
     badges,
     hotProspects: (hotProspects || []).map(p => ({
       id: p.id,
