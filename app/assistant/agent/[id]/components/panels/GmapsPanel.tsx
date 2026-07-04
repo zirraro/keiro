@@ -161,7 +161,8 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
 }
 
 export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isEn = locale === 'en';
   const p = t.panels;
   const stats = data.gmapsStats || { reviewsAnswered: 0, googleRating: 0, totalReviews: 0, gmbClicks: 0, recentReviews: [] };
 
@@ -310,6 +311,44 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           ))}
         </div>
       )}
+
+      {/* SEO local \u2014 ce que Th\u00e9o optimise (avec exemples ; r\u00e9el si location trouv\u00e9e) */}
+      {(() => {
+        const locationFound = googleConnected && !googleNeedsLocation;
+        const seoItems = [
+          { icon: '\ud83d\udcdd', title: isEn ? 'Keyword-optimised description' : 'Description optimis\u00e9e mots-cl\u00e9s', desc: isEn ? 'Rewrites your Google profile with the terms clients search for.' : 'R\u00e9\u00e9crit ta fiche Google avec les termes que cherchent tes clients.', ex: isEn ? '"Hair salon in Lyon 2 \u2014 balayage, color, curly specialist"' : '\u00ab Salon de coiffure Lyon 2 \u2014 balayage, couleur, sp\u00e9cialiste boucl\u00e9s \u00bb' },
+          { icon: '\ud83d\udcee', title: isEn ? 'Regular Google Posts' : 'Google Posts r\u00e9guliers', desc: isEn ? 'Publishes offers/news on your profile \u2014 a strong local ranking signal.' : 'Publie offres/actus sur ta fiche \u2014 fort signal de classement local.', ex: isEn ? '"This week: -20% on your first color \ud83c\udfa8"' : '\u00ab Cette semaine : -20% sur ta premi\u00e8re couleur \ud83c\udfa8 \u00bb' },
+          { icon: '\ud83c\udff7\ufe0f', title: isEn ? 'Categories & attributes' : 'Cat\u00e9gories & attributs', desc: isEn ? 'Picks the right primary/secondary categories and attributes.' : 'Choisit les bonnes cat\u00e9gories principale/secondaires et attributs.', ex: isEn ? 'Primary: Hair salon \u00b7 +Wheelchair accessible, By appointment' : 'Principale : Salon de coiffure \u00b7 +Acc\u00e8s PMR, Sur RDV' },
+          { icon: '\ud83d\udcc8', title: isEn ? 'Local rank tracking' : 'Suivi de position locale', desc: isEn ? 'Tracks where you rank for your key searches over time.' : 'Suit ta position sur tes recherches cl\u00e9s dans le temps.', ex: isEn ? '"coiffeur Lyon 2": #7 \u2192 #3 in 4 weeks' : '\u00ab coiffeur Lyon 2 \u00bb : #7 \u2192 #3 en 4 semaines' },
+          { icon: '\ud83d\udcf8', title: isEn ? 'Photos & Q&A' : 'Photos & Questions/R\u00e9ponses', desc: isEn ? 'Keeps photos fresh and answers the FAQ on your profile.' : 'Garde les photos fra\u00eeches et r\u00e9pond aux questions sur ta fiche.', ex: isEn ? 'Q: "Do you do highlights?" \u2192 auto-answered' : 'Q : \u00ab Vous faites les m\u00e8ches ? \u00bb \u2192 r\u00e9pondu automatiquement' },
+        ];
+        return (
+          <div data-tour="theo-seo" className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 sm:p-4">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-sm font-semibold text-white/90">{isEn ? '\ud83d\udd0d Local Google SEO \u2014 what Th\u00e9o optimises' : '\ud83d\udd0d SEO local Google \u2014 ce que Th\u00e9o optimise'}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${locationFound ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50'}`}>
+                {locationFound ? (isEn ? 'Active on your profile' : 'Actif sur ta fiche') : (isEn ? 'Preview \u2014 examples' : 'Aper\u00e7u \u2014 exemples')}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {seoItems.map((s, i) => (
+                <div key={i} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+                  <div className="text-[12px] font-semibold text-white/85 mb-0.5">{s.icon} {s.title}</div>
+                  <div className="text-[10px] text-white/45 leading-relaxed mb-1.5">{s.desc}</div>
+                  <div className="text-[10px] italic text-amber-300/80 leading-relaxed border-l-2 border-amber-500/30 pl-2">{s.ex}</div>
+                </div>
+              ))}
+            </div>
+            {!locationFound && (
+              <p className="text-[10px] text-white/40 mt-2.5">
+                {isEn
+                  ? 'Connect your Google Business profile to run these on your real location.'
+                  : 'Connecte ta fiche Google Business pour lancer \u00e7a sur ta vraie localisation.'}
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
