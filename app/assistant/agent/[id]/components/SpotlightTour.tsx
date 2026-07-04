@@ -64,6 +64,19 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
     setCurrentStep(0);
   }, [onFinish]);
 
+  // Clavier (founder 03/07) : Échap arrête la présentation à toute étape,
+  // flèches ← → pour naviguer. Se nettoie quand le tour s'arrête.
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); skip(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, skip, next, prev]);
+
   // Signal to ClaraHelper that tour is running
   useEffect(() => {
     if (active) {
@@ -135,7 +148,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
             )}
           </mask>
         </defs>
-        <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.1)" mask="url(#spot-mask)" />
+        <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#spot-mask)" />
       </svg>
 
       {/* Clear border around highlighted element */}
@@ -195,6 +208,9 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
             {isLast ? 'Terminer' : 'Suivant \u2192'}
           </button>
         </div>
+
+        {/* Indice clavier \u2014 \u00c9chap arr\u00eate, fl\u00e8ches naviguent */}
+        <div className="mt-2.5 text-center text-[9px] text-white/25">{'\u238b'} \u00c9chap {'\u00b7'} {'\u2190'} {'\u2192'}</div>
       </div>
     </div>
   );
