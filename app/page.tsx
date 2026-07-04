@@ -736,6 +736,50 @@ function HomeKeiroInner() {
                 </ul>
               </div>
 
+              {/* Stella */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-lg">💚</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Stella</div>
+                    <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'WhatsApp Business' : 'WhatsApp Business'}</div>
+                  </div>
+                  <span className="ml-auto text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Business · +19€' : 'Business · +€19'}</span>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? 'Confirmations de réservation, rappels anti no-show, réponses auto aux questions clients.'
+                    : 'Booking confirmations, no-show reminders, instant answers to customer questions.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Confirmations & rappels RDV' : 'Booking confirmations & reminders'}</li>
+                  <li>✓ {locale === 'fr' ? 'Réponses 24/7 (fenêtre gratuite)' : '24/7 answers (free service window)'}</li>
+                  <li>✓ {locale === 'fr' ? 'Relance avis Google (avec Théo)' : 'Google review follow-up (with Théo)'}</li>
+                </ul>
+              </div>
+
+              {/* Sara */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-lg">⚖️</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Sara</div>
+                    <div className="text-[10px] text-slate-600 font-semibold">{locale === 'fr' ? 'RH & Juridique' : 'HR & Legal'}</div>
+                  </div>
+                  <span className="ml-auto text-[9px] font-bold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">Business</span>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? 'Génère tes contrats, CGV, mentions légales, RGPD — et répond à tes questions RH & juridiques.'
+                    : 'Drafts your contracts, T&Cs, legal notices, GDPR — and answers your HR & legal questions.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Contrats, avenants, attestations' : 'Contracts, amendments, certificates'}</li>
+                  <li>✓ {locale === 'fr' ? 'CGV, RGPD, mentions légales' : 'T&Cs, GDPR, legal notices'}</li>
+                  <li>✓ {locale === 'fr' ? 'Conseils RH & juridiques' : 'HR & legal guidance'}</li>
+                </ul>
+              </div>
+
               {/* Bonus highlight card — auto-publication callout */}
               <div className="rounded-2xl border-2 border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 p-4 shadow-md flex flex-col justify-center">
                 <div className="flex items-center gap-2 mb-2">
