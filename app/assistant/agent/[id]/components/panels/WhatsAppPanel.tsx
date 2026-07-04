@@ -32,9 +32,54 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
     waiting: '#fbbf24',
   };
 
+  const en = locale === 'en';
+  const connected = !!(data as any).whatsappConnected;
+
+  // Cas d'usage concrets de Stella (founder 03/07 : montrer ce qu'elle fait,
+  // avec exemples). Conçus autour du GRATUIT (service) + utility pas cher.
+  const capabilities = [
+    { icon: '📅', title: en ? 'Booking confirmations' : 'Confirmations de réservation', desc: en ? 'Instant WhatsApp confirmation when a client books.' : 'Confirmation WhatsApp instantanée à chaque réservation.', ex: en ? '"Hi Marie ✅ Your table for 2 is confirmed for Fri 8pm. See you soon!"' : '« Bonjour Marie ✅ Ta table pour 2 est confirmée vendredi 20h. À très vite ! »' },
+    { icon: '⏰', title: en ? 'No-show reminders' : 'Rappels anti no-show', desc: en ? 'Automatic reminder before the appointment — fewer no-shows.' : 'Rappel automatique avant le RDV — moins d\'absences.', ex: en ? '"Reminder: your appointment is tomorrow at 2pm. Reply YES to confirm 🙌"' : '« Rappel : ton RDV est demain à 14h. Réponds OUI pour confirmer 🙌 »' },
+    { icon: '💬', title: en ? 'Auto-answer questions' : 'Réponses auto aux questions', desc: en ? 'Hours, availability, prices, menu — answered 24/7 (free service window).' : 'Horaires, dispo, prix, carte — répondu 24/7 (fenêtre service gratuite).', ex: en ? '"We\'re open until 11pm tonight, and yes we have a vegan menu 🌱"' : '« On est ouverts jusqu\'à 23h ce soir, et oui on a une carte vegan 🌱 »' },
+    { icon: '📦', title: en ? 'Order / ready-to-pickup' : 'Statut commande / prêt', desc: en ? 'Notify when an order is ready or on its way.' : 'Prévenir quand une commande est prête ou en route.', ex: en ? '"Your order #182 is ready for pickup 🎉"' : '« Ta commande n°182 est prête à récupérer 🎉 »' },
+    { icon: '⭐', title: en ? 'Review follow-up' : 'Relance avis', desc: en ? 'Post-visit message that invites a Google review (hands off to Théo).' : 'Message post-visite qui invite à un avis Google (relais Théo).', ex: en ? '"Thanks for coming by! A quick Google review would help us a lot 🙏"' : '« Merci de ta visite ! Un petit avis Google nous aiderait beaucoup 🙏 »' },
+    { icon: '📣', title: en ? 'Occasional campaigns' : 'Campagnes ponctuelles', desc: en ? 'Targeted promo broadcast — used sparingly to protect deliverability.' : 'Broadcast promo ciblé — avec parcimonie pour préserver la délivrabilité.', ex: en ? '"This weekend: -20% on all bouquets 💐 Order here 👇"' : '« Ce week-end : -20% sur tous les bouquets 💐 Commande ici 👇 »' },
+  ];
+
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {/* Ce que Stella fait — cas d'usage concrets avec exemples */}
+      <div className="rounded-xl border border-[#25D366]/25 bg-[#25D366]/[0.05] p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="text-sm font-semibold text-white/90">{en ? '💚 What Stella does for you' : '💚 Ce que Stella fait pour toi'}</span>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full ${connected ? 'bg-[#25D366]/20 text-[#34d399]' : 'bg-amber-500/15 text-amber-300'}`}>
+            {connected ? (en ? 'Connected — live data' : 'Connecté — données réelles') : (en ? 'Preview — examples' : 'Aperçu — exemples')}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {capabilities.map((c, i) => (
+            <div key={i} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+              <div className="text-[12px] font-semibold text-white/85 mb-0.5">{c.icon} {c.title}</div>
+              <div className="text-[10px] text-white/45 leading-relaxed mb-1.5">{c.desc}</div>
+              <div className="text-[10px] italic text-[#34d399]/80 leading-relaxed border-l-2 border-[#25D366]/30 pl-2">{c.ex}</div>
+            </div>
+          ))}
+        </div>
+        {!connected && (
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-2.5">
+            <span className="text-[11px] text-amber-100/80 flex-1">
+              {en
+                ? 'Connect a WhatsApp Business number to turn these on for real. Included in Business, or +19€/mo add-on.'
+                : 'Connecte un numéro WhatsApp Business pour les activer pour de vrai. Inclus dans Business, ou add-on +19€/mois.'}
+            </span>
+            <a href="/mon-compte?connect=whatsapp" className="shrink-0 px-3 py-1.5 rounded-lg bg-[#25D366] text-[#0b141a] text-[11px] font-bold hover:opacity-90 transition text-center">
+              {en ? 'Connect WhatsApp' : 'Connecter WhatsApp'}
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
         <KpiCard label={p.whatsappKpiSent} value={fmt(stats.messagesSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label={p.whatsappKpiReceived} value={fmt(stats.messagesReceived)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label={p.whatsappKpiRate} value={fmtPercent(stats.responseRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
