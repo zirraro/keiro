@@ -38,6 +38,7 @@ export function StickyCtaBar() {
 
     if (sessionStorage.getItem('keiro_sticky_cta_dismissed') === '1') return;
 
+    let cancelled = false;
     // Reveal after a short scroll so the bar doesn't smash into the hero.
     const onScroll = () => {
       if (window.scrollY > 400) {
@@ -45,8 +46,23 @@ export function StickyCtaBar() {
         window.removeEventListener('scroll', onScroll);
       }
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const armScrollReveal = () => {
+      if (cancelled) return;
+      window.addEventListener('scroll', onScroll, { passive: true });
+    };
+    // Ne JAMAIS montrer le CTA d'essai à un client qui a déjà un plan payant
+    // (founder 03/07 : "si le client paie déjà, pas besoin"). On vérifie le
+    // plan avant d'armer la barre — visiteurs anonymes/free la voient (fallback
+    // sur erreur = non connecté = comportement d'origine).
+    fetch('/api/me/quota-status', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        const plan = (d?.status?.subscription_plan || '').toLowerCase();
+        if (plan && plan !== 'free') return; // client payant → jamais de CTA d'essai
+        armScrollReveal();
+      })
+      .catch(armScrollReveal);
+    return () => { cancelled = true; window.removeEventListener('scroll', onScroll); };
   }, []);
 
   if (!visible || dismissed) return null;

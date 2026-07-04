@@ -1210,6 +1210,38 @@ html.light [class*="text-white\/20"] {
   color: #cbd5e1 !important;
 }
 
+/* 2026-07-04 — Le texte blanc doit RESTER blanc sur les surfaces sombres de
+   marque (hero navy #0c1a3a / #1e3a5f, cartes CTA violettes). Ces fonds ne sont
+   PAS éclaircis en mode clair, donc l'inversion text-white→foncé ci-dessus les
+   rendait illisibles (bug : titre d'article de blog invisible sur le hero navy).
+   Contrairement à bg-gray-900/black qui, eux, sont éclaircis → gardent un texte
+   foncé. On re-blanchit le conteneur (héritage vers ses enfants type <h1>) ET
+   ses descendants text-white/XX. */
+html.light :is(
+  [class*="from-[#0c1a3a]"],
+  [class*="via-[#132d54]"],
+  [class*="to-[#0c1a3a]"],
+  [class*="from-[#1e3a5f]"],
+  [class*="to-[#1e3a5f]"],
+  [class*="bg-[#0c1a3a]"],
+  [class*="bg-[#1e3a5f]"],
+  [class*="from-purple-600"],
+  [class*="from-purple-700"]
+).text-white,
+html.light :is(
+  [class*="from-[#0c1a3a]"],
+  [class*="via-[#132d54]"],
+  [class*="to-[#0c1a3a]"],
+  [class*="from-[#1e3a5f]"],
+  [class*="to-[#1e3a5f]"],
+  [class*="bg-[#0c1a3a]"],
+  [class*="bg-[#1e3a5f]"],
+  [class*="from-purple-600"],
+  [class*="from-purple-700"]
+) [class*="text-white"] {
+  color: #fff !important;
+}
+
 /* Agent chat bubble (outgoing stays colored, incoming gets light bg) */
 html.light [class*="bg-gray-900"] {
   background-color: #f1f5f9 !important;
