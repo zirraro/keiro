@@ -194,6 +194,7 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
           pour les 3 réseaux (founder 2026-06-25). + warming/niche en complément. */}
       {tab === 'follows' && (
         <div data-tour="dm-follows">
+          {network === 'linkedin' && <LinkedInDrafts />}
           <ManualFollowsList platform={network} />
           <FollowSuggestions platform={network} />
         </div>
@@ -474,6 +475,58 @@ function urlB64ToUint8Array(base64String: string) {
   const out = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
+}
+
+// Brouillons LinkedIn de Jade — DM + commentaires générés (envoi manuel, l'API
+// LinkedIn interdit l'automatisation). Founder 03/07.
+function LinkedInDrafts() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
+  const [data, setData] = useState<any>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/agents/dm-instagram/linkedin-drafts', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null)).then(d => { if (d?.ok) setData(d); }).catch(() => {});
+  }, []);
+
+  const copy = (key: string, text: string) => {
+    try { navigator.clipboard?.writeText(text); } catch { /* noop */ }
+    setCopied(key);
+    setTimeout(() => setCopied(c => (c === key ? null : c)), 1500);
+  };
+
+  if (!data) return null;
+  const Section = ({ label, items, kind }: { label: string; items: any[]; kind: string }) => (
+    <div className="mb-3">
+      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{label}</div>
+      <div className="space-y-1.5">
+        {items.map((it: any, i: number) => {
+          const key = `${kind}-${i}`;
+          return (
+            <div key={key} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-[11px] font-semibold text-[#0A66C2] dark:text-sky-300">{it.title}</span>
+                <button type="button" onClick={() => copy(key, it.text)} className="shrink-0 text-[10px] px-2 py-1 rounded-md border border-white/15 text-white/60 hover:border-sky-400/50 hover:text-sky-300 transition">
+                  {copied === key ? (en ? '✓ Copied' : '✓ Copié') : (en ? 'Copy' : 'Copier')}
+                </button>
+              </div>
+              <p className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap">{it.text}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="mb-3 rounded-xl border border-[#0A66C2]/25 bg-[#0A66C2]/[0.05] p-3">
+      <div className="text-xs font-semibold text-white/90 mb-2">{en ? '✍️ LinkedIn drafts — DMs & comments (Jade)' : '✍️ Brouillons LinkedIn — DM & commentaires (Jade)'}</div>
+      <Section label={en ? 'Connection / DM messages' : 'Messages de mise en relation / DM'} items={data.dmDrafts || []} kind="dm" />
+      <Section label={en ? 'Post comments' : 'Commentaires de posts'} items={data.commentDrafts || []} kind="cm" />
+      <p className="text-[10px] text-white/40">{data.note}</p>
+    </div>
+  );
 }
 
 function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' | 'tiktok' | 'linkedin' }) {
