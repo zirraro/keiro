@@ -509,7 +509,17 @@ export const CLIENT_AGENTS: ClientAgent[] = [
 export const FORCED_COMING_SOON_AGENTS = new Set(['ads']);
 const BETA_AGENTS_BELOW_BUSINESS = new Set(['tiktok_comments', 'linkedin', 'whatsapp']);
 
-export function getVisibleAgents(plan: string, isAdmin = false): (ClientAgent & { notReleased?: boolean })[] {
+/** L'utilisateur a-t-il l'add-on Stella (WhatsApp) actif ? Stocké dans
+ *  org_agent_configs (posé par le webhook Stripe). Founder 05/07. */
+export async function hasStellaAddon(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase.from('org_agent_configs')
+      .select('config').eq('user_id', userId).eq('agent_id', 'whatsapp').maybeSingle();
+    return !!(data?.config?.addon_active);
+  } catch { return false; }
+}
+
+export function getVisibleAgents(plan: string, isAdmin = false, opts?: { whatsappAddon?: boolean }): (ClientAgent & { notReleased?: boolean })[] {
   const planOrder = ['gratuit', 'free', 'sprint', 'solo', 'solo_promo', 'createur', 'pro', 'pro_promo', 'fondateurs', 'standard', 'business', 'elite', 'agence'];
   const userPlanIndex = planOrder.indexOf(plan || 'gratuit');
   const businessIndex = planOrder.indexOf('business');
@@ -522,8 +532,10 @@ export function getVisibleAgents(plan: string, isAdmin = false): (ClientAgent & 
       const requiredIndex = planOrder.indexOf(a.minPlan);
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
       const isHardComingSoon = FORCED_COMING_SOON_AGENTS.has(a.id) && !isAdmin;
-      // Beta agents: hidden for plans below Business, active for Business+
-      const isBetaLocked = BETA_AGENTS_BELOW_BUSINESS.has(a.id) && !hasBusinessAccess;
+      // Beta agents: hidden for plans below Business, active for Business+.
+      // Exception : l'add-on Stella débloque whatsapp même sous Business.
+      const unlockedByAddon = a.id === 'whatsapp' && !!opts?.whatsappAddon;
+      const isBetaLocked = BETA_AGENTS_BELOW_BUSINESS.has(a.id) && !hasBusinessAccess && !unlockedByAddon;
       const isNotReleased = isHardComingSoon || isBetaLocked;
 
       return {

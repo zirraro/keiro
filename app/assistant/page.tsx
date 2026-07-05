@@ -566,11 +566,18 @@ export default function AssistantPage() {
     init();
   }, []);
 
+  // Add-on Stella (WhatsApp) — débloque l'agent whatsapp même sous Business.
+  const [whatsappAddon, setWhatsappAddon] = useState(false);
+  useEffect(() => {
+    fetch('/api/me/addons', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null)).then(d => { if (d?.whatsapp) setWhatsappAddon(true); }).catch(() => {});
+  }, []);
+
   // ─── Load agents based on plan ──────────────────────────
   // During trial: all agents unlocked. After trial: by plan.
   useEffect(() => {
     const allUnlocked = isAdmin || isTrialActive;
-    const visible = getVisibleAgents(allUnlocked ? 'agence' : userPlan, isAdmin);
+    const visible = getVisibleAgents(allUnlocked ? 'agence' : userPlan, isAdmin, { whatsappAddon });
     const amiIndex = visible.findIndex(a => a.id === 'marketing');
     if (amiIndex > 0) {
       const ami = visible.splice(amiIndex, 1)[0];
@@ -583,7 +590,7 @@ export default function AssistantPage() {
       return 0;
     });
     setAgents(visible);
-  }, [userPlan, isAdmin, isTrialActive]);
+  }, [userPlan, isAdmin, isTrialActive, whatsappAddon]);
 
   // ─── Load AMI dashboard stats ───────────────────────────
   useEffect(() => {

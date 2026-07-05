@@ -72,9 +72,19 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
                 ? 'Connect a WhatsApp Business number to turn these on for real. Included in Business, or +19€/mo add-on.'
                 : 'Connecte un numéro WhatsApp Business pour les activer pour de vrai. Inclus dans Business, ou add-on +19€/mois.'}
             </span>
-            <a href="/mon-compte?connect=whatsapp" className="shrink-0 px-3 py-1.5 rounded-lg bg-[#25D366] text-[#0b141a] text-[11px] font-bold hover:opacity-90 transition text-center">
-              {en ? 'Connect WhatsApp' : 'Connecter WhatsApp'}
-            </a>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const r = await fetch('/api/stripe/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ planKey: 'stella_addon' }) });
+                  const d = await r.json();
+                  if (d?.url) window.location.href = d.url;
+                } catch { /* noop */ }
+              }}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-[#25D366] text-[#0b141a] text-[11px] font-bold hover:opacity-90 transition text-center"
+            >
+              {en ? 'Activate Stella — €19/mo' : 'Activer Stella — 19€/mois'}
+            </button>
           </div>
         )}
       </div>

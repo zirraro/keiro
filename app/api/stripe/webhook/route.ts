@@ -136,6 +136,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
+  // ---- ADD-ON STELLA (WhatsApp) — founder 05/07 ----
+  // Un add-on ne change PAS le plan ni les crédits : il débloque l'agent
+  // whatsapp via org_agent_configs (lu par getVisibleAgents). Réversible à
+  // l'annulation (customer.subscription.deleted).
+  if (session.metadata?.addon === 'stella') {
+    try {
+      const { data: cfg } = await supabase.from('org_agent_configs')
+        .select('id, config').eq('user_id', profileId).eq('agent_id', 'whatsapp').maybeSingle();
+      const next = { ...((cfg?.config as any) || {}), addon_active: true, addon_since: new Date().toISOString(), stripe_subscription_id: (session.subscription as string) || null };
+      if (cfg?.id) await supabase.from('org_agent_configs').update({ config: next }).eq('id', cfg.id);
+      else await supabase.from('org_agent_configs').insert({ user_id: profileId, agent_id: 'whatsapp', config: next });
+      console.log('[Webhook] Stella add-on activated for', profileId);
+    } catch (e: any) { console.error('[Webhook] Stella add-on grant failed:', e.message); }
+    return;
+  }
+
   if (session.mode === 'subscription') {
     // ---- ABONNEMENT RÉCURRENT ----
     const subscriptionId = session.subscription as string;
@@ -677,6 +693,29 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 // ====================================================================
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const supabase = getSupabaseAdmin();
+
+  // Add-on Stella annulé → on désactive SEULEMENT l'agent whatsapp (via
+  // org_agent_configs), sans toucher au plan/crédits du client. Founder 05/07.
+  const addonPrice = process.env.STRIPE_PRICE_STELLA_ADDON;
+  const isStellaAddon = subscription.metadata?.addon === 'stella'
+    || (!!addonPrice && ((subscription as any).items?.data || []).some((it: any) => it.price?.id === addonPrice));
+  if (isStellaAddon) {
+    try {
+      const uid = subscription.metadata?.userId;
+      let q = supabase.from('org_agent_configs').select('id, config').eq('agent_id', 'whatsapp');
+      if (uid) q = q.eq('user_id', uid);
+      const { data: rows } = await q;
+      for (const r of (rows || []) as any[]) {
+        if (uid || r.config?.stripe_subscription_id === subscription.id) {
+          await supabase.from('org_agent_configs')
+            .update({ config: { ...(r.config || {}), addon_active: false, addon_canceled_at: new Date().toISOString() } })
+            .eq('id', r.id);
+        }
+      }
+      console.log('[Webhook] Stella add-on deactivated (subscription canceled)');
+    } catch (e: any) { console.error('[Webhook] Stella add-on deactivation failed:', e.message); }
+    return;
+  }
 
   let profileId = subscription.metadata?.userId;
   if (!profileId) {
