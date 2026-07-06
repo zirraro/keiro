@@ -2079,8 +2079,15 @@ export async function GET(request: NextRequest) {
     }
 
     // --- Summary & Logging ---
+    // Skips légitimes (donnée prospect invalide / non-envoyable) ≠ VRAIE erreur
+    // d'envoi. Founder 06/07 : un domaine sans MX, un email jetable ou un corps
+    // irrécupérable ne doivent PAS gonfler le compteur d'erreurs du digest —
+    // c'est du nettoyage de liste, pas une panne. On les compte à part.
+    const SKIP_REASONS = new Set(['Domain has no MX record', 'Disposable email', 'broken_body_skipped', 'Unresolved template variables']);
+    const isSkip = (r: any) => !r.success && SKIP_REASONS.has(String(r.error || ''));
     const successCount = results.filter(r => r.success).length;
-    const failCount = results.filter(r => !r.success).length;
+    const skippedCount = results.filter(isSkip).length;
+    const failCount = results.filter(r => !r.success && !isSkip(r)).length;
     const aiCount = results.filter(r => r.ai_generated).length;
 
     // Business type breakdown
@@ -2101,7 +2108,7 @@ export async function GET(request: NextRequest) {
         const bType = typeMap[r.prospect_id] || 'unknown';
         if (!byBusinessType[bType]) byBusinessType[bType] = { sent: 0, failed: 0, steps: [] };
         if (r.success) byBusinessType[bType].sent++;
-        else byBusinessType[bType].failed++;
+        else if (!isSkip(r)) byBusinessType[bType].failed++;
         byBusinessType[bType].steps.push(r.step);
       }
     }
@@ -2110,13 +2117,15 @@ export async function GET(request: NextRequest) {
       agent: 'email',
       action: type === 'warm' ? 'daily_warm' : 'daily_cold',
       // Explicit success status so the Ops health check counts this run as a
-      // success. A batch that sent at least one email (or had nothing to send)
-      // is a healthy run; only a batch where everything failed is an error.
-      status: results.length > 0 && successCount === 0 ? 'error' : 'ok',
+      // success. Une batch avec ≥1 envoi (ou rien à envoyer, ou QUE des skips de
+      // liste invalide) est saine ; seule une batch avec de VRAIES erreurs et
+      // zéro envoi est en erreur.
+      status: failCount > 0 && successCount === 0 ? 'error' : 'ok',
       data: {
         total: results.length,
         success: successCount,
         failed: failCount,
+        skipped: skippedCount,
         ai_generated: aiCount,
         provider: 'brevo+resend',
         manual: isManualTrigger,
@@ -2140,6 +2149,28 @@ export async function GET(request: NextRequest) {
       },
       created_at: nowISO,
     });
+
+    // Quick win (founder 06/07) : alerte admin si le taux d'échec RÉEL d'un batch
+    // cold dépasse 5% (hors skips de liste) → détecte vite une liste dégradée
+    // sans attendre le digest. Rate-limité 1×/6h via agent_logs.
+    try {
+      const realSends = successCount + failCount; // exclut les skips
+      const failRate = realSends >= 10 ? failCount / realSends : 0;
+      if (type !== 'warm' && failRate > 0.05) {
+        const since6h = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+        const { data: recentAlert } = await supabase.from('agent_logs')
+          .select('id').eq('agent', 'email').eq('action', 'cold_failrate_alert').gte('created_at', since6h).limit(1);
+        if (!recentAlert || recentAlert.length === 0) {
+          await sendBrevoCompat({
+            sender: { name: 'KeiroAI Ops', email: 'contact@keiroai.com' },
+            to: [{ email: process.env.ADMIN_EMAIL || 'contact@keiroai.com' }],
+            subject: `[KeiroAI] ⚠️ Cold email : ${Math.round(failRate * 100)}% d'échec sur un batch`,
+            htmlContent: `<div style="font-family:system-ui"><h3>⚠️ Taux d'échec cold élevé</h3><p><b>${failCount}</b> échecs réels / <b>${realSends}</b> envois (${Math.round(failRate * 100)}%), +${skippedCount} skips liste invalide. Liste prospect probablement dégradée — vérifier la source.</p></div>`,
+          }).catch(() => {});
+          await supabase.from('agent_logs').insert({ agent: 'email', action: 'cold_failrate_alert', status: 'ok', data: { failRate, failCount, realSends, skippedCount }, created_at: new Date().toISOString() });
+        }
+      }
+    } catch { /* alerte best-effort */ }
 
     // Auto-learn from performance
     await autoLearn(results, supabase, orgId, clientUserId);

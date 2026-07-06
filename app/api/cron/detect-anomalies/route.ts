@@ -260,9 +260,23 @@ export async function GET(req: NextRequest) {
     .eq('status', 'published')
     .gte('published_at', since24h);
 
+  // Comptes internes (admin/supervision/test) : ne PAS crier "aucune publi"
+  // dessus (le ×287 sur mrzirraro+metareview polluait le digest). Founder 06/07.
+  // Normalise les alias Gmail (+suffixe, points) pour les démasquer.
+  const normEmail = (e: string): string => {
+    const s = (e || '').toLowerCase().trim();
+    const [local, domain] = s.split('@');
+    if (!domain) return s;
+    if (domain === 'gmail.com' || domain === 'googlemail.com') return `${local.split('+')[0].replace(/\./g, '')}@gmail.com`;
+    return `${local.split('+')[0]}@${domain}`;
+  };
+  const ADMIN_TEST = new Set(['mrzirraro@gmail.com', 'contact@keiroai.com', 'metareview@keiroai.com', 'admin@keiroai.com']);
+  const isInternal = (raw: string) => ADMIN_TEST.has((raw || '').toLowerCase().trim()) || ADMIN_TEST.has(normEmail(raw));
+
   const publishedSet = new Set((publish24h || []).map((p: any) => p.user_id));
   for (const c of (payingClients || []) as any[]) {
     if (publishedSet.has(c.id)) continue;
+    if (isInternal(c.email)) continue; // compte interne (supervision/test), pas un vrai client
     // Skip if client never started (no plan_started_at recent enough)
     // Skip if was just created (less than 48h)
     detected.push({
