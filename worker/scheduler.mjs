@@ -386,17 +386,24 @@ async function tick() {
     log('normal', `👤 ${currentHHMM} UTC — ${clientJobs.length} per-client job(s)`);
     log('normal', `${'─'.repeat(60)}`);
 
-    for (const job of clientJobs) {
+    // SCALABILITÉ (founder 06/07) : la boucle était séquentielle (1 client à la
+    // fois + 2s) → à 200-500 clients regroupés sur le même créneau, ça débordait
+    // sur plusieurs heures. Les jobs sont I/O-bound (on attend l'app/LLM/API),
+    // donc on les traite en POOL avec un cap de concurrence. Le VPS a 4 cœurs +
+    // ~6 Go libres → 6 en parallèle est large et sûr. Tunable via WORKER_CONCURRENCY.
+    const CONCURRENCY = Math.max(1, Number(process.env.WORKER_CONCURRENCY || 6));
+    let jobIdx = 0;
+    const runJob = async (job) => {
       // Feature-flag block — ads/rh/comptable/whatsapp/tiktok* are paused
       // while the other agents get polished. Safe to bypass via DB config.
       if (DISABLED_AGENTS_WORKER.has(job.agentId)) {
         log('verbose', `  ⏸ ${job.agentId} for ${job.client.email} — agent disabled globally`);
-        continue;
+        return;
       }
       const endpoint = AGENT_ENDPOINTS[job.agentId];
       if (!endpoint) {
         log('verbose', `  ⏭ ${job.agentId} — no endpoint mapped, skipping`);
-        continue;
+        return;
       }
 
       const separator = endpoint.path.includes('?') ? '&' : '?';
@@ -415,12 +422,17 @@ async function tick() {
       const retries = NO_RETRY_AGENTS.has(job.agentId) ? 1 : 3;
       const result = await callEndpoint(path, endpoint.method, body, retries);
       log('normal', result.ok
-        ? `    ✓ Done in ${result.duration}s`
-        : `    ✗ FAILED: ${result.error || `HTTP ${result.status}`}`);
-
-      // 2s between client jobs to avoid overload
-      await new Promise(r => setTimeout(r, 2000));
-    }
+        ? `    ✓ ${job.agentId}/${job.client.email} in ${result.duration}s`
+        : `    ✗ ${job.agentId}/${job.client.email} FAILED: ${result.error || `HTTP ${result.status}`}`);
+    };
+    // Pool de workers : chacun consomme la file jusqu'à épuisement.
+    const pool = Array.from({ length: Math.min(CONCURRENCY, clientJobs.length) }, async () => {
+      while (jobIdx < clientJobs.length) {
+        const job = clientJobs[jobIdx++];
+        await runJob(job);
+      }
+    });
+    await Promise.all(pool);
   }
 }
 
