@@ -32,9 +32,29 @@ interface AgentRun {
   agent: string;
   runs: number;
   errors: number;
+  delivered: number;   // livrable RÉEL (emails envoyés, posts publiés, DMs…) — pas juste des runs
+  unit: string;        // libellé du livrable
   last_action: string;
   last_ts: string;
 }
+
+// Livrable réel d'un log (founder 06/07 : cohérence — le digest montrait 88
+// "tâches" email pour 14 envois car il comptait les ENTRÉES DE LOG, pas les
+// livrables). On extrait le vrai chiffre selon l'agent.
+function deliveredOf(l: any): number {
+  const d = l?.data || {};
+  const a = l?.agent;
+  if (a === 'email') return Number(d.success ?? d.sent ?? 0);
+  if (a === 'content') return Number(d.posts_published ?? d.published ?? d.published_count ?? 0);
+  if (a === 'dm_instagram') return Number(d.dms_sent ?? d.sent ?? d.dms_prepared ?? d.replied ?? 0);
+  if (a === 'gmaps' || a === 'reviews') return Number(d.reviews_answered ?? d.answered ?? 0);
+  if (a === 'commercial') return Number(d.prospects_added ?? d.added ?? d.discovered ?? 0);
+  return 0;
+}
+const UNIT_OF: Record<string, string> = {
+  email: 'emails envoyés', content: 'posts publiés', dm_instagram: 'DMs',
+  gmaps: 'avis répondus', reviews: 'avis répondus', commercial: 'prospects ajoutés',
+};
 
 interface ClaudeDigest {
   headline: string;
@@ -122,8 +142,9 @@ export async function buildAdminDigest(
   const perAgent: Record<string, AgentRun> = {};
   for (const l of list) {
     const a = l.agent || 'unknown';
-    if (!perAgent[a]) perAgent[a] = { agent: a, runs: 0, errors: 0, last_action: '', last_ts: '' };
+    if (!perAgent[a]) perAgent[a] = { agent: a, runs: 0, errors: 0, delivered: 0, unit: UNIT_OF[a] || 'actions', last_action: '', last_ts: '' };
     perAgent[a].runs++;
+    perAgent[a].delivered += deliveredOf(l);
     if (isRealFailure(l)) perAgent[a].errors++;
     if (!perAgent[a].last_ts) {
       perAgent[a].last_action = l.action;
@@ -271,7 +292,7 @@ export async function buildAdminDigest(
 Exécutions totales : ${runs} · Erreurs : ${errors} · Taux de succès : ${stats.success_rate}%.
 
 === Runs par agent (top 15) ===
-${agentRuns.slice(0, 15).map(a => `- ${a.agent}: ${a.runs} runs, ${a.errors} errors, dernier: ${a.last_action}`).join('\n')}
+${agentRuns.slice(0, 15).map(a => `- ${a.agent}: ${a.delivered} ${a.unit} (${a.runs} runs, ${a.errors} errors), dernier: ${a.last_action}`).join('\n')}
 
 === Échecs (${failures.length} visibles) ===
 ${failures.slice(0, 25).map((f, i) => `${i + 1}. [${f.agent} / ${f.action}] ${f.error}\n   data: ${f.data_preview.substring(0, 200)}`).join('\n')}${pastContext}`;
@@ -569,7 +590,7 @@ export async function sendAdminDailyDigest(
     : '';
 
   const agentRunsHtml = stats.agent_runs.slice(0, 10).map(a =>
-    `<tr><td style="padding:4px 8px;font-size:11px;">${esc(a.agent)}</td><td style="padding:4px 8px;font-size:11px;text-align:right;">${a.runs}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${a.errors > 0 ? '#ef4444' : '#22c55e'};">${a.errors}</td><td style="padding:4px 8px;font-size:10px;color:#6b7280;">${esc(a.last_action).substring(0, 30)}</td></tr>`
+    `<tr><td style="padding:4px 8px;font-size:11px;">${esc(a.agent)}</td><td style="padding:4px 8px;font-size:11px;text-align:right;font-weight:bold;">${a.delivered > 0 ? `${a.delivered} <span style="color:#6b7280;font-weight:normal;">${esc(a.unit)}</span>` : '—'}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:#9ca3af;">${a.runs}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${a.errors > 0 ? '#ef4444' : '#22c55e'};">${a.errors}</td><td style="padding:4px 8px;font-size:10px;color:#6b7280;">${esc(a.last_action).substring(0, 30)}</td></tr>`
   ).join('');
 
   const downCount = agentsDown.filter(a => a.status === 'down').length;
@@ -648,7 +669,7 @@ export async function sendAdminDailyDigest(
 
           <h3 style="color:#111;font-size:14px;margin:24px 0 8px;">Runs par agent (top 10)</h3>
           <table style="width:100%;border-collapse:collapse;font-size:11px;">
-            <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Agent</th><th style="padding:6px 8px;text-align:right;">Runs</th><th style="padding:6px 8px;text-align:right;">Erreurs</th><th style="padding:6px 8px;text-align:left;">Dernière action</th></tr></thead>
+            <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Agent</th><th style="padding:6px 8px;text-align:right;">Livré</th><th style="padding:6px 8px;text-align:right;">Runs</th><th style="padding:6px 8px;text-align:right;">Erreurs</th><th style="padding:6px 8px;text-align:left;">Dernière action</th></tr></thead>
             <tbody>${agentRunsHtml}</tbody>
           </table>
 
