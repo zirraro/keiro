@@ -402,34 +402,31 @@ function getUpcomingEvents(): CalendarEvent[] {
   for (const evt of commercialCalendar) {
     const daysUntil = calculateDaysUntil(month, day, evt.month, evt.day, evt.range);
 
-    // Future events: adapt anticipation to event size
-    // Big events (Black Friday, Noel, Soldes) → 7j ahead
-    // Medium events (Fete meres, Saint-Valentin) → 7j ahead
-    // Small events (Chandeleur, Poisson avril) → 3j ahead
-    const isBigEvent = ['Black Friday', 'Noel', 'Soldes', 'Calendrier Avent', 'Cyber Monday'].some(k => evt.name.includes(k));
+    // LEAD TIME (founder 06/07) : on communique sur un événement AVANT la date,
+    // plusieurs semaines à l'avance — jamais après (ça n'a aucun sens de poster
+    // sur un événement passé). Grands events → J-28 (4 sem.), commerciaux →
+    // J-21 (3 sem.), petits → J-10. Une "phase" guide le ton : teasing loin,
+    // campagne active proche.
+    const isBigEvent = ['Black Friday', 'Noel', 'Soldes', 'Calendrier Avent', 'Cyber Monday', 'Fete des meres', 'Fete des peres', 'Saint-Valentin'].some(k => evt.name.includes(k));
     const isMediumEvent = evt.type === 'commercial';
-    const maxAhead = isBigEvent ? 14 : isMediumEvent ? 7 : 3;
+    const maxAhead = isBigEvent ? 28 : isMediumEvent ? 21 : 10;
 
     if (daysUntil >= 0 && daysUntil <= maxAhead) {
+      const phase = daysUntil <= 3 ? 'JOUR J / campagne active — poste MAINTENANT'
+        : daysUntil <= 10 ? 'campagne active — contenu en cours'
+        : 'ANTICIPATION — commence à teaser / prépare le contenu de cet événement';
       events.push({
         name: evt.name,
         date: daysUntil === 0 ? 'aujourd\'hui' : daysUntil === 1 ? 'demain' : `dans ${daysUntil} jours`,
         type: evt.type,
-        relevance: daysUntil <= 1 ? 0.99 : daysUntil <= 3 ? 0.95 : daysUntil <= 7 ? 0.8 : 0.6,
-        ...(evt.action ? { action: evt.action } : {}),
+        // Plus l'événement est proche, plus il est prioritaire ; mais on le
+        // surface DÈS l'anticipation pour préparer le contenu à temps.
+        relevance: daysUntil <= 1 ? 0.99 : daysUntil <= 3 ? 0.95 : daysUntil <= 7 ? 0.85 : daysUntil <= 14 ? 0.7 : 0.55,
+        ...(evt.action ? { action: `${phase}. ${evt.action}` } : { action: phase }),
       } as any);
     }
-
-    // Recently passed (< 2 days): brief retrospective only
-    if (daysUntil < 0 && daysUntil >= -2) {
-      events.push({
-        name: `${evt.name} (TERMINE)`,
-        date: `termine il y a ${Math.abs(daysUntil)} jour${Math.abs(daysUntil) > 1 ? 's' : ''}`,
-        type: evt.type,
-        relevance: 0.3,
-        ...(evt.action ? { action: `RETROSPECTIVE: bilan ${evt.name}, contenu recap, resultats` } : {}),
-      } as any);
-    }
+    // NB : plus de bloc "événement TERMINÉ / rétrospective" — on ne poste JAMAIS
+    // sur un événement passé (founder 06/07).
   }
 
   // Seasonal context
