@@ -25,8 +25,16 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
     const el = document.querySelector(`[data-tour="${step.target}"]`);
     if (el) {
       const rect = el.getBoundingClientRect();
-      setTargetRect(rect);
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Rect INVALIDE (élément caché/non layouté = 0×0, ou complètement hors
+      // écran) → on ne "spotlight" pas dessus, on affiche la carte CENTRÉE.
+      // Corrige le bug "coincé en haut à gauche / coupé" (founder 06/07).
+      const valid = rect.width > 4 && rect.height > 4 && rect.bottom > 0 && rect.right > 0;
+      if (valid) {
+        setTargetRect(rect);
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        setTargetRect(null);
+      }
     } else {
       setTargetRect(null);
     }
@@ -130,7 +138,9 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
   }
 
   return (
-    <div className="fixed inset-0 z-[9998]">
+    <div className="fixed inset-0 z-[9998]" onClick={skip}>
+      {/* Clic n'importe où sur le fond = fermer (backdrop-close, en plus de
+          Échap et de la croix) — garantit qu'on peut TOUJOURS sortir du tour. */}
       {/* Light overlay — NOT blurring the highlighted element */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
         <defs>

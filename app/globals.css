@@ -521,7 +521,10 @@ main, .fix-pointer {
 }
 
 html.light .gradient-text {
-  background: linear-gradient(135deg, #0c1a3a, #1e3a5f, #06b6d4);
+  /* Fin de gradient assombrie (#0e7490 au lieu de #06b6d4 cyan clair) pour
+     rester LISIBLE de bout en bout sur fond blanc (founder 06/07 : le bout du
+     titre apparaissait gris/invisible sur blanc). */
+  background: linear-gradient(135deg, #0c1a3a, #6d28d9, #0e7490);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -543,10 +546,20 @@ html.light .bg-\[\#0c1a3a\] .gradient-text {
 }
 
 html.light .gradient-text-blue {
-  background: linear-gradient(135deg, #0c1a3a, #06b6d4);
+  background: linear-gradient(135deg, #0c1a3a, #0e7490);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Galerie / Studio / Génération (page-studio-bg) en MODE CLAIR : le texte en
+   gradient clippé doit rester lisible sur fond blanc — on force un gradient
+   sombre. Founder 06/07 (mots invisibles sur la galerie). Sauf surfaces sombres. */
+html.light .page-studio-bg [class*="bg-clip-text"] {
+  background: linear-gradient(135deg, #0c1a3a, #6d28d9, #0e7490) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
 }
 
 /* Dark mode: gradient clip-text with dark navy is invisible — lighten */
