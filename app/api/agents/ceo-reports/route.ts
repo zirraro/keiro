@@ -1704,23 +1704,25 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
 
       // Per-agent breakdown — only agents that did something show up
       const agentLines: string[] = [];
-      // Jade = content publishing (posts + drafts + engagement received)
+      // Léna = contenu & publication (posts + drafts + engagement reçu).
+      // (Correctif 06/07 : les libellés Léna/Jade étaient inversés → le client
+      // croyait que Jade publiait le contenu.)
       if (doneCounts.posts_published > 0 || doneCounts.posts_drafted > 0 || weeklyLikes + weeklyComments > 0) {
         const parts = [];
         if (doneCounts.posts_published > 0) parts.push(`<strong>${doneCounts.posts_published}</strong> post${doneCounts.posts_published > 1 ? 's' : ''} publié${doneCounts.posts_published > 1 ? 's' : ''} sur Instagram`);
         if (doneCounts.posts_drafted > 0) parts.push(`<strong>${doneCounts.posts_drafted}</strong> en préparation`);
         if (weeklyLikes + weeklyComments > 0) parts.push(`<strong>${weeklyLikes}</strong> like${weeklyLikes > 1 ? 's' : ''} + <strong>${weeklyComments}</strong> com. reçus cette semaine`);
-        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🎨 Jade</strong> <span style="color:#9ca3af;font-size:11px;">· contenu & publication</span> — ${parts.join(', ')}</div>`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🎨 Léna</strong> <span style="color:#9ca3af;font-size:11px;">· contenu & publication</span> — ${parts.join(', ')}</div>`);
       }
 
-      // Léna = DMs + follows + commentaires (engagement humain sur les réseaux)
+      // Jade = DMs + follows + commentaires (engagement sur les réseaux)
       if (doneCounts.dms_sent > 0 || doneCounts.dms_followed > 0 || doneCounts.follows_to_do > 0 || doneCounts.comments_replied > 0) {
         const parts = [];
         if (doneCounts.dms_sent > 0) parts.push(`<strong>${doneCounts.dms_sent}</strong> DM${doneCounts.dms_sent > 1 ? 's' : ''} envoyé${doneCounts.dms_sent > 1 ? 's' : ''}`);
-        if (doneCounts.comments_replied > 0) parts.push(`<strong>${doneCounts.comments_replied}</strong> commentaire${doneCounts.comments_replied > 1 ? 's' : ''} Instagram répondu${doneCounts.comments_replied > 1 ? 's' : ''}`);
+        if (doneCounts.comments_replied > 0) parts.push(`<strong>${doneCounts.comments_replied}</strong> commentaire${doneCounts.comments_replied > 1 ? 's' : ''} répondu${doneCounts.comments_replied > 1 ? 's' : ''}`);
         if (doneCounts.dms_followed > 0) parts.push(`<strong>${doneCounts.dms_followed}</strong> follow${doneCounts.dms_followed > 1 ? 's' : ''} confirmé${doneCounts.dms_followed > 1 ? 's' : ''}`);
         if (doneCounts.follows_to_do > 0) parts.push(`<strong>${doneCounts.follows_to_do}</strong> compte${doneCounts.follows_to_do > 1 ? 's' : ''} à suivre manuellement`);
-        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#a855f7;">💬 Léna</strong> <span style="color:#9ca3af;font-size:11px;">· DM · follows · commentaires</span> — ${parts.join(', ')}</div>`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#a855f7;">💬 Jade</strong> <span style="color:#9ca3af;font-size:11px;">· DM · follows · commentaires</span> — ${parts.join(', ')}</div>`);
       }
       if (doneCounts.emails_sent > 0 || doneCounts.emails_opened > 0) {
         const parts = [];
@@ -1790,9 +1792,15 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         const brevoRes = await sendBrevoCompat({
             sender: { name: 'Keiro', email: 'contact@keiroai.com' },
             to: [{ email: client.email }],
-            subject: isEvening
-              ? `\u{1F319} Keiro — Ton débrief du soir · ${totalDone} actions${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a relancer demain` : ''}`
-              : `\u{1F4CB} Keiro — ${totalDone} actions aujourd'hui${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a contacter` : ''}`,
+            subject: (() => {
+              // Founder 06/07 : parler d'AGENTS ACTIFS (ton équipe) plutôt que
+              // d'un nombre d'actions abstrait — le client comprend direct.
+              const nA = Math.max(agentLines.length, 1);
+              const team = `${nA} agent${nA > 1 ? 's' : ''}`;
+              return isEvening
+                ? `\u{1F319} Keiro — Ton équipe a bossé pour toi · ${team} actif${nA > 1 ? 's' : ''}${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a relancer demain` : ''}`
+                : `\u{1F4CB} Keiro — ${team} au travail pour toi aujourd'hui${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a contacter` : ''}`;
+            })(),
             htmlContent: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
               <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px 20px;border-radius:12px 12px 0 0;">
                 <h2 style="margin:0;font-size:16px;">\u{1F9E0} Keiro — ${isEvening ? 'Ton débrief du soir' : 'Ton brief du jour'}</h2>

@@ -181,12 +181,28 @@ export async function GET(req: NextRequest) {
   const supervisionProjCost = supervisionRows.reduce((s, r) => s + r.projCost, 0);
   const supervisionOverBudget = supervisionProjCost > SUPERVISION_BUDGET_EUR;
 
-  // 3c-bis. Coût ATTRIBUÉ aux clients vs coût SYSTÈME/TESTS (user_id null).
-  //     Révèle que la marge globale est plombée par nos propres tests +
-  //     prospection KeiroAI, pas par les clients (founder 03/07).
+  // 3c-bis. Coût ATTRIBUÉ aux clients vs NON-attribué (user_id null). Le
+  //     non-attribué se scinde en PROSPECTION (fonction que les clients
+  //     utilisent AUSSI → à traiter comme un coût client, founder 06/07) et
+  //     SYSTÈME/TESTS internes purs.
   const attributedMtd = Object.values(byUser).reduce((a, b) => a + b, 0);
-  const unattributedMtd = Math.max(0, totalMtd - attributedMtd); // système / tests / prospection KeiroAI
+  const unattributedMtd = Math.max(0, totalMtd - attributedMtd);
   const unattributedPct = totalMtd > 0 ? Math.round((unattributedMtd / totalMtd) * 100) : 0;
+
+  // Prospection = Places (Google Maps) + agents commercial/gmaps, sur la part
+  // NON attribuée (opérations KeiroAI). Provider fiable ; agent en secours.
+  const PROSPECTION_PROVIDERS = new Set(['places']);
+  const PROSPECTION_AGENTS = new Set(['commercial', 'gmaps']);
+  let prospectionMtd = 0;
+  for (const e of (events || []) as any[]) {
+    if (e.user_id) continue; // seulement le non-attribué
+    if (PROSPECTION_PROVIDERS.has(e.provider) || PROSPECTION_AGENTS.has(e.agent)) {
+      prospectionMtd += parseFloat(e.cost_eur) || 0;
+    }
+  }
+  const systemTestsMtd = Math.max(0, unattributedMtd - prospectionMtd);
+  const prospectionPct = totalMtd > 0 ? Math.round((prospectionMtd / totalMtd) * 100) : 0;
+  const systemTestsPct = totalMtd > 0 ? Math.round((systemTestsMtd / totalMtd) * 100) : 0;
 
   // 3d. Coût PAR PROVIDER (où part le budget). Le champ `provider` est
   //     TOUJOURS renseigné (contrairement à `agent`, souvent null en prod →
@@ -253,7 +269,7 @@ export async function GET(req: NextRequest) {
         marginPct, monthlyRevenue, realRevenue, realClientCount, noRealClients, totalMtd, projection, dailyAvg, daysElapsed, daysInMonth, alerts, spikes,
         clientCount, planRows, clientRows, clientsInLoss, clientsToWatch, agentRows, providerRows,
         referenceRows, supervisionRows, referenceProjCost, supervisionProjCost, supervisionOverBudget, supervisionBudget: SUPERVISION_BUDGET_EUR,
-        attributedMtd, unattributedMtd, unattributedPct, watchMargin: WATCH_MARGIN,
+        attributedMtd, unattributedMtd, unattributedPct, prospectionMtd, prospectionPct, systemTestsMtd, systemTestsPct, watchMargin: WATCH_MARGIN,
         posts, costPerPost, mediaCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
       });
       const brevoKey = process.env.BREVO_API_KEY;
@@ -296,6 +312,10 @@ export async function GET(req: NextRequest) {
     attributed_cost_mtd_eur: Math.round(attributedMtd * 100) / 100,
     unattributed_cost_mtd_eur: Math.round(unattributedMtd * 100) / 100,
     unattributed_pct: unattributedPct,
+    prospection_cost_mtd_eur: Math.round(prospectionMtd * 100) / 100,
+    prospection_pct: prospectionPct,
+    system_tests_cost_mtd_eur: Math.round(systemTestsMtd * 100) / 100,
+    system_tests_pct: systemTestsPct,
     plans: planRows,
     cost_by_provider: providerRows,
     cost_by_agent: agentRows,
@@ -328,7 +348,8 @@ function renderAlertEmail(d: any): string {
       <tr><td style="padding: 6px 0; color: #666;">Revenu réel encaissé</td><td style="text-align: right; font-weight: bold;">${d.realRevenue} €${d.monthlyRevenue !== d.realRevenue ? ` <span style="color:#94a3b8;font-weight:normal;">(${d.monthlyRevenue} € en comptant les comptes internes)</span>` : ''}</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Dépense MTD</td><td style="text-align: right; font-weight: bold;">${d.totalMtd.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">— attribué aux clients</td><td style="text-align: right;">${d.attributedMtd.toFixed(2)} €</td></tr>
-      <tr><td style="padding: 6px 0; color: #b45309;">— système / tests / prospection KeiroAI</td><td style="text-align: right; color:#b45309; font-weight:bold;">${d.unattributedMtd.toFixed(2)} € (${d.unattributedPct}%)</td></tr>
+      <tr><td style="padding: 6px 0; color: #0369a1;">— prospection (utilisée aussi par les clients)</td><td style="text-align: right; color:#0369a1; font-weight:bold;">${d.prospectionMtd.toFixed(2)} € (${d.prospectionPct}%)</td></tr>
+      <tr><td style="padding: 6px 0; color: #b45309;">— système / tests internes</td><td style="text-align: right; color:#b45309; font-weight:bold;">${d.systemTestsMtd.toFixed(2)} € (${d.systemTestsPct}%)</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Moyenne quotidienne</td><td style="text-align: right; font-weight: bold;">${d.dailyAvg.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Projection fin de mois</td><td style="text-align: right; font-weight: bold;">${d.projection.toFixed(2)} €</td></tr>
       <tr><td style="padding: 6px 0; color: #666;">Posts publiés (mois) · coût/post</td><td style="text-align: right; font-weight: bold; color:${d.posts > 0 && d.costPerPost > d.targetCostPerPost ? '#dc2626' : '#059669'};">${d.posts} · ${d.costPerPost.toFixed(2)} €${d.posts > 0 ? ` (cible ${d.targetCostPerPost.toFixed(2)})` : ''}</td></tr>
