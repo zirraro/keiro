@@ -1,0 +1,13 @@
+{
+  "total": 3373,
+  "counts": {
+    "text-white (no dark:)": 1410,
+    "light grey text 100-400": 621,
+    "glass bg-white/x": 523,
+    "border-white/x": 615,
+    "gradient clip text": 13,
+    "hover:text-white (no dark:)": 138,
+    "light placeholders": 53
+  },
+  "at": "run manually"
+}
