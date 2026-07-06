@@ -89,7 +89,12 @@ export async function GET(req: NextRequest) {
     const client = clientMap[cfg.user_id];
     if (!client) continue;
 
-    const isActive = cfg.config?.auto_mode === true || cfg.config?.setup_completed === true;
+    // Auto-pause de sécurité (auto-remediation) : si un agent error-storm pour
+    // ce client, il est mis en pause temporaire → on le désactive tant que
+    // auto_paused_until est dans le futur. Fail-safe : absent = actif normal.
+    const pausedUntil = cfg.config?.auto_paused_until ? new Date(cfg.config.auto_paused_until).getTime() : 0;
+    const isAutoPaused = pausedUntil > Date.now();
+    const isActive = !isAutoPaused && (cfg.config?.auto_mode === true || cfg.config?.setup_completed === true);
     const customSchedule = cfg.config?.custom_schedule?.[cfg.agent_id] || null;
     const defaultSched = DEFAULT_SCHEDULES[cfg.agent_id] || null;
 
