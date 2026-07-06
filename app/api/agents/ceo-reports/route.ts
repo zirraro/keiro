@@ -1489,7 +1489,7 @@ ${clientContext || 'Nouveau client, pas encore de profil complet.'}
 
 FORMAT OBLIGATOIRE — HTML brut, tutoiement, zero jargon, 3 blocs SEULEMENT (les stats détaillées et la liste par agent sont ajoutées automatiquement par le template — tu n'as PAS à les réécrire):
 
-<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase d'accroche VIVANTE, comme un associé qui t'écrit, pas un robot. Elle doit refléter CE qui s'est VRAIMENT passé aujourd'hui (les vrais chiffres ci-dessous), donc être DIFFÉRENTE chaque jour — jamais une formule toute faite répétée. Varie le ton : tantôt fier, tantôt complice, tantôt motivant, tantôt rassurant un jour calme. Naturel, humain, chaleureux. ${isEvening ? 'Reconnais sincèrement le travail accompli sans en faire trop (ex: "grosse journée, ça a bien tourné", "journée tranquille — on recharge pour demain", "petit creux aujourd’hui, rien d’alarmant, on relance").' : 'Donne le ton du jour avec une vraie intention (ex: "on a de quoi faire de belles choses aujourd’hui", "journée parfaite pour relancer tes prospects chauds", "on consolide, tranquille").'} INTERDIT : "bravo" mécanique ou la même phrase que d'habitude.</p>
+<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase d'accroche VIVANTE, comme un associé qui t'écrit, pas un robot. Elle doit refléter CE qui s'est VRAIMENT passé aujourd'hui (les vrais chiffres ci-dessous), donc être DIFFÉRENTE chaque jour — jamais une formule toute faite répétée. Varie le ton : tantôt fier, tantôt complice, tantôt motivant, tantôt rassurant un jour calme. Naturel, humain, chaleureux. ${isEvening ? 'Reconnais sincèrement le travail accompli sans en faire trop (ex: "grosse journée, ça a bien tourné", "journée tranquille — on recharge pour demain", "petit creux aujourd’hui, rien d’alarmant, on relance").' : 'Donne le ton du jour avec une vraie intention (ex: "on a de quoi faire de belles choses aujourd’hui", "journée parfaite pour relancer tes prospects chauds", "on consolide, tranquille").'} INTERDIT : "bravo" mécanique ou la même phrase que d'habitude. INTERDIT AUSSI : citer un NOMBRE TOTAL d'actions ("197 actions", "X tâches") — ça n'a aucun sens pour le client et crée de la confusion. Reste QUALITATIF et MOTIVANT (objectif = rétention : donne envie de continuer). Tu peux mentionner un chiffre CONCRET et parlant (ex: "3 posts publiés", "5 prospects chauds") mais jamais un total d'actions abstrait.</p>
 
 <h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '💡 Mes recos pour booster ton business (à faire demain)' : '💡 Mes recos pour booster ton business'}</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
@@ -1557,7 +1557,7 @@ Rédige le brief.`
 
       // Fallback if AI fails — short narrative, detail comes from template
       if (!briefHtml) {
-        briefHtml = `<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — ${totalDone > 0 ? `tes agents ont poussé fort, ${totalDone} actions au compteur.` : 'journée calme, tes agents préparent la suite.'}</p>
+        briefHtml = `<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — ${isEvening ? (totalDone > 0 ? 'ton équipe a assuré aujourd’hui pendant que tu gérais ton business. On garde le rythme 💪' : 'journée tranquille — tes agents préparent déjà la suite pour toi 🌱') : (hotCount > 0 ? `${hotCount} prospect${hotCount > 1 ? 's' : ''} chaud${hotCount > 1 ? 's' : ''} n’attendent que toi aujourd’hui 🔥` : 'nouvelle journée, ton équipe est déjà au travail pour toi ✨')}</p>
 ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 À faire ${isEvening ? 'demain' : 'aujourd\u2019hui'}</h4><ul style="margin:0 0 12px;padding-left:18px;font-size:13px;"><li>Relancer tes ${hotCount} prospect${hotCount > 1 ? 's' : ''} chaud${hotCount > 1 ? 's' : ''} dans ton CRM</li></ul>` : `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 À faire ${isEvening ? 'demain' : 'aujourd\u2019hui'}</h4><ul style="margin:0 0 12px;padding-left:18px;font-size:13px;"><li>Rien d'urgent, tout tourne en auto</li></ul>`}
 <h4 style="margin:0 0 6px;color:#a855f7;font-size:13px;">⚡ Sur les rails (auto)</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;"><li>Tes agents continuent leur travail en arrière-plan.</li></ul>`;
@@ -1793,13 +1793,19 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
             sender: { name: 'Keiro', email: 'contact@keiroai.com' },
             to: [{ email: client.email }],
             subject: (() => {
-              // Founder 06/07 : parler d'AGENTS ACTIFS (ton équipe) plutôt que
-              // d'un nombre d'actions abstrait — le client comprend direct.
+              // Founder 06/07 : sujet DIRECT et MOTIVANT (rétention). Pas de nombre
+              // d'actions abstrait, pas d'info "vide" ajoutée en bout — on met en
+              // avant CE qui compte pour le client : ses prospects chauds à saisir,
+              // sinon le fait que son équipe a assuré / est au travail.
               const nA = Math.max(agentLines.length, 1);
-              const team = `${nA} agent${nA > 1 ? 's' : ''}`;
-              return isEvening
-                ? `\u{1F319} Keiro — Ton équipe a bossé pour toi · ${team} actif${nA > 1 ? 's' : ''}${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a relancer demain` : ''}`
-                : `\u{1F4CB} Keiro — ${team} au travail pour toi aujourd'hui${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a contacter` : ''}`;
+              if (isEvening) {
+                return hotCount > 0
+                  ? `\u{1F319} Keiro — ${hotCount} prospect${hotCount > 1 ? 's' : ''} chaud${hotCount > 1 ? 's' : ''} à relancer demain \u{1F525}`
+                  : `\u{1F319} Keiro — ton équipe a assuré aujourd'hui \u{1F4AA}`;
+              }
+              return hotCount > 0
+                ? `☀️ Keiro — ${hotCount} prospect${hotCount > 1 ? 's' : ''} chaud${hotCount > 1 ? 's' : ''} à relancer aujourd'hui \u{1F525}`
+                : `☀️ Keiro — tes ${nA} agent${nA > 1 ? 's' : ''} sont déjà au travail pour toi ✨`;
             })(),
             htmlContent: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
               <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px 20px;border-radius:12px 12px 0 0;">
