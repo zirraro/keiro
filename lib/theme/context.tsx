@@ -21,10 +21,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('keiro_theme') as Theme | null;
+    // Param URL ?theme=light|dark = force le thème (lien partageable + permet
+    // l'audit visuel headless du mode clair). Sinon localStorage.
+    let forced: Theme | null = null;
+    try {
+      const p = new URLSearchParams(window.location.search).get('theme');
+      if (p === 'light' || p === 'dark') forced = p;
+    } catch { /* noop */ }
+    const saved = forced || (localStorage.getItem('keiro_theme') as Theme | null);
     if (saved === 'light' || saved === 'dark') {
       setThemeState(saved);
       document.documentElement.classList.toggle('light', saved === 'light');
+      if (forced) { try { localStorage.setItem('keiro_theme', forced); } catch { /* noop */ } }
     }
     setMounted(true);
   }, []);
