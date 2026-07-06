@@ -885,7 +885,7 @@ function HomeKeiroInner() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'En concret...' : 'Concretely...'}</strong> {locale === 'fr' ? '~3 posts pro/semaine sur Instagram, avec texte et hashtags' : '~3 pro posts/week on Instagram, with copy and hashtags'}</span>
+                <span><strong>{locale === 'fr' ? 'En concret...' : 'Concretely...'}</strong> {locale === 'fr' ? 'Des posts pros publiés chaque jour sur tes réseaux, avec texte et hashtags' : 'Pro posts published every day on your networks, with copy and hashtags'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500 font-bold mt-0.5">▸</span>
