@@ -169,7 +169,7 @@ const AGENT_CONFIG: Record<string, { subtitle: string; Panel: typeof MarketingPa
   chatbot: { subtitle: 'Chatbot Site Web', Panel: ChatbotPanel },
   whatsapp: { subtitle: 'WhatsApp Business', Panel: WhatsAppPanel },
   commercial: { subtitle: 'Prospection & Pipeline', Panel: CommercialPanel },
-  comptable: { subtitle: 'Finance & Tresorerie', Panel: FinancePanel },
+  comptable: { subtitle: 'Finance & Documents — Business plan, Excel, PowerPoint', Panel: FinancePanel },
   ceo: { subtitle: 'Vision Strategique', Panel: CeoPanel },
   linkedin: { subtitle: 'LinkedIn & Reseau Pro', Panel: GenericPanel },
 };

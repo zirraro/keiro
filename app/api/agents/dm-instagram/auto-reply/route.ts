@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
+import { checkEscalation, loadEscalationConfig } from '@/lib/agents/escalation-filter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -122,6 +123,9 @@ export async function POST(req: NextRequest) {
     const convData = await convRes.json();
     const conversations = convData.data || [];
     console.log(`[DM-AutoReply] Found ${conversations.length} conversations`);
+
+    // Filtre d'escalade (founder 06/07) : mots-clés client + triggers sensibles.
+    const escConfig = userId ? await loadEscalationConfig(supabase, userId, 'dm_instagram') : { keywords: [], sensitiveOn: true };
 
     let replied = 0;
     let skipped = 0;
@@ -460,6 +464,41 @@ ${ragContext}`;
             } catch {}
             console.log(`[DM-AutoReply] HANDOFF for ${senderName}: ${reason}`);
             continue;   // skip sending — human will reply
+          }
+
+          // FILTRE D'ESCALADE (founder 06/07) : si le message entrant matche un
+          // mot-clé "je gère moi-même" (réservation, devis…) OU un trigger
+          // sensible (mécontent, menace, insulte, légal/RGPD/santé), on NE
+          // finalise PAS l'envoi auto : on garde le brouillon (aiReply) et on
+          // NOTIFIE le client (type 'action') pour qu'il reprenne la main.
+          // Jamais 0 action — le lien + la tâche sont conservés.
+          const esc = checkEscalation(lastMsgText, escConfig);
+          if (esc.escalate) {
+            const draft = aiReply.replace(/\[HANDOFF_HUMAN[^\]]*\]/gi, '').trim().slice(0, 500);
+            try {
+              await supabase.from('crm_prospects').update({
+                dm_status: 'needs_human',
+                dm_message: `[À VALIDER] ${draft}`,
+                updated_at: new Date().toISOString(),
+              }).eq('id', prospect?.id);
+              await supabase.from('crm_activities').insert({
+                prospect_id: prospect?.id, type: 'dm_escalation',
+                description: `Escalade (${esc.reason}) — brouillon prêt, à valider par le client`,
+                data: { channel: 'instagram', category: esc.category, matched: esc.matched, last_message: lastMsgText.substring(0, 500), draft },
+                created_at: new Date().toISOString(),
+              });
+              if (ownerUserId) {
+                const { notifyClient } = await import('@/lib/agents/notify-client');
+                await notifyClient(supabase, {
+                  userId: ownerUserId, agent: 'dm_instagram', type: 'action',
+                  title: { fr: `DM à valider — ${esc.reason}`, en: `DM to review — ${esc.reason}` },
+                  message: { fr: `Un message de ${senderName} demande ta validation (${esc.reason}). Jade a préparé une réponse — à toi de finaliser.`, en: `A message from ${senderName} needs your review (${esc.reason}). Jade drafted a reply — finalize it.` },
+                  data: { prospect_id: prospect?.id, category: esc.category },
+                });
+              }
+            } catch {}
+            console.log(`[DM-AutoReply] ESCALATION (${esc.category}) for ${senderName}: ${esc.reason}`);
+            continue; // brouillon prêt — le client reprend la main
           }
 
           aiReply = aiReply
