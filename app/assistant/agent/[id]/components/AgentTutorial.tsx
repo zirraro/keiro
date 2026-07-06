@@ -23,7 +23,7 @@ function useAgentTours(): Record<string, TourStep[]> {
     return {
       content: [
         { target: 'auto-toggle', title: 'Auto publishing', description: 'Turn AUTO on so Léna publishes on your calendar. In MANUAL you approve every post before it ships.', position: 'bottom' },
-        { target: 'content-workflow', title: 'Your posts', description: 'Every generated post lands here. Click to see the visual, caption and hashtags. Publish in one tap.', position: 'bottom' },
+        { target: 'agent-dashboard', title: 'Your posts', description: 'Every generated post lands here. Click to see the visual, caption and hashtags. Publish in one tap.', position: 'bottom' },
         { target: 'agent-dashboard', title: 'Planning tab', description: 'Open the Planning tab for a 7-day editorial calendar with scheduled posts per platform.', position: 'top' },
       ],
       dm_instagram: [
@@ -82,7 +82,7 @@ function useAgentTours(): Record<string, TourStep[]> {
   return {
     content: [
       { target: 'auto-toggle', title: 'Publication automatique', description: 'Active le mode AUTO pour que Léna publie selon ton calendrier. En MANUEL, tu valides chaque post avant publication.', position: 'bottom' },
-      { target: 'content-workflow', title: 'Tes publications', description: 'Tous tes posts generes apparaissent ici. Clique pour voir le visuel, la legende et les hashtags. Publie en un clic.', position: 'bottom' },
+      { target: 'agent-dashboard', title: 'Tes publications', description: 'Tous tes posts generes apparaissent ici. Clique pour voir le visuel, la legende et les hashtags. Publie en un clic.', position: 'bottom' },
       { target: 'agent-dashboard', title: 'Onglet Planning', description: 'Va dans l\u2019onglet Planning pour voir ton calendrier editorial sur 7 jours avec les publications programmees par plateforme.', position: 'top' },
     ],
     dm_instagram: [
