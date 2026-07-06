@@ -442,9 +442,9 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'whatsapp',
     displayName: 'Stella',
-    title: 'WhatsApp Business (admin only)',
-    description: 'WhatsApp Business — réservé fondateur, pas exposé aux clients pour le moment',
-    visibility: 'admin_only',
+    title: 'WhatsApp Business',
+    description: 'Confirmations de réservation, rappels anti no-show, réponses auto aux questions clients sur WhatsApp. Inclus dans Business, ou en add-on (+19€/mois).',
+    visibility: 'active',
     minPlan: 'business',
     gradientFrom: '#25D366',
     gradientTo: '#128C7E',
@@ -454,14 +454,14 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'comptable',
     displayName: 'Louis',
-    title: 'Expert Finance (admin only)',
-    description: 'Trésorerie + prévisions — réservé fondateur, pas exposé aux clients pour le moment',
-    visibility: 'admin_only',
+    title: 'Finance & Documents',
+    description: 'Business plans, prévisionnels, tableaux Excel et présentations PowerPoint pro — générés et prêts à ta marque. Inclus dans Business, ou en add-on.',
+    visibility: 'active',
     minPlan: 'business',
     gradientFrom: '#0e7490',
     gradientTo: '#155e75',
     icon: '\u{1F4B0}',
-    integrations: ['Stripe', 'Facturation KeiroAI'],
+    integrations: ['Excel', 'PowerPoint', 'Facturation KeiroAI'],
   },
 
   // ── BACKGROUND AGENTS ─── Optimisent KeiroAI pour TOUS les plans ───
@@ -507,19 +507,24 @@ export const CLIENT_AGENTS: ClientAgent[] = [
 // 'ads' reste partout en coming_soon tant qu'aucune API ads n'est
 // branchée (Meta Ads + Google Ads), même pour Business.
 export const FORCED_COMING_SOON_AGENTS = new Set(['ads']);
-const BETA_AGENTS_BELOW_BUSINESS = new Set(['tiktok_comments', 'linkedin', 'whatsapp']);
+const BETA_AGENTS_BELOW_BUSINESS = new Set(['tiktok_comments', 'linkedin', 'whatsapp', 'comptable']);
 
-/** L'utilisateur a-t-il l'add-on Stella (WhatsApp) actif ? Stocké dans
- *  org_agent_configs (posé par le webhook Stripe). Founder 05/07. */
+/** L'utilisateur a-t-il l'add-on Stella (WhatsApp) actif ? Compat. */
 export async function hasStellaAddon(supabase: any, userId: string): Promise<boolean> {
-  try {
-    const { data } = await supabase.from('org_agent_configs')
-      .select('config').eq('user_id', userId).eq('agent_id', 'whatsapp').maybeSingle();
-    return !!(data?.config?.addon_active);
-  } catch { return false; }
+  return (await getUnlockedAddonAgents(supabase, userId)).includes('whatsapp');
 }
 
-export function getVisibleAgents(plan: string, isAdmin = false, opts?: { whatsappAddon?: boolean }): (ClientAgent & { notReleased?: boolean })[] {
+/** Liste des agents débloqués par add-on (addon_active) pour cet utilisateur.
+ *  Stocké dans org_agent_configs (posé par le webhook Stripe). Founder 06/07. */
+export async function getUnlockedAddonAgents(supabase: any, userId: string): Promise<string[]> {
+  try {
+    const { data } = await supabase.from('org_agent_configs')
+      .select('agent_id, config').eq('user_id', userId);
+    return (data || []).filter((r: any) => r.config?.addon_active).map((r: any) => r.agent_id);
+  } catch { return []; }
+}
+
+export function getVisibleAgents(plan: string, isAdmin = false, opts?: { unlockedAgents?: string[] }): (ClientAgent & { notReleased?: boolean })[] {
   const planOrder = ['gratuit', 'free', 'sprint', 'solo', 'solo_promo', 'createur', 'pro', 'pro_promo', 'fondateurs', 'standard', 'business', 'elite', 'agence'];
   const userPlanIndex = planOrder.indexOf(plan || 'gratuit');
   const businessIndex = planOrder.indexOf('business');
@@ -533,8 +538,8 @@ export function getVisibleAgents(plan: string, isAdmin = false, opts?: { whatsap
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
       const isHardComingSoon = FORCED_COMING_SOON_AGENTS.has(a.id) && !isAdmin;
       // Beta agents: hidden for plans below Business, active for Business+.
-      // Exception : l'add-on Stella débloque whatsapp même sous Business.
-      const unlockedByAddon = a.id === 'whatsapp' && !!opts?.whatsappAddon;
+      // Exception : un add-on (Stella/Louis…) débloque son agent même sous Business.
+      const unlockedByAddon = (opts?.unlockedAgents || []).includes(a.id);
       const isBetaLocked = BETA_AGENTS_BELOW_BUSINESS.has(a.id) && !hasBusinessAccess && !unlockedByAddon;
       const isNotReleased = isHardComingSoon || isBetaLocked;
 

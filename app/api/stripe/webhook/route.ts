@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
 // pas seulement Stella). Ajouter ici tout futur agent vendu en add-on.
 const ADDON_TO_AGENT: Record<string, string> = {
   stella: 'whatsapp',
+  louis: 'comptable',
 };
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {

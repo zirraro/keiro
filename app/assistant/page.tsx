@@ -566,18 +566,18 @@ export default function AssistantPage() {
     init();
   }, []);
 
-  // Add-on Stella (WhatsApp) — débloque l'agent whatsapp même sous Business.
-  const [whatsappAddon, setWhatsappAddon] = useState(false);
+  // Agents débloqués par add-on (Stella, Louis…) — visibles même sous Business.
+  const [unlockedAgents, setUnlockedAgents] = useState<string[]>([]);
   useEffect(() => {
     fetch('/api/me/addons', { credentials: 'include' })
-      .then(r => (r.ok ? r.json() : null)).then(d => { if (d?.whatsapp) setWhatsappAddon(true); }).catch(() => {});
+      .then(r => (r.ok ? r.json() : null)).then(d => { if (Array.isArray(d?.unlockedAgents)) setUnlockedAgents(d.unlockedAgents); }).catch(() => {});
   }, []);
 
   // ─── Load agents based on plan ──────────────────────────
   // During trial: all agents unlocked. After trial: by plan.
   useEffect(() => {
     const allUnlocked = isAdmin || isTrialActive;
-    const visible = getVisibleAgents(allUnlocked ? 'agence' : userPlan, isAdmin, { whatsappAddon });
+    const visible = getVisibleAgents(allUnlocked ? 'agence' : userPlan, isAdmin, { unlockedAgents });
     const amiIndex = visible.findIndex(a => a.id === 'marketing');
     if (amiIndex > 0) {
       const ami = visible.splice(amiIndex, 1)[0];
@@ -590,7 +590,7 @@ export default function AssistantPage() {
       return 0;
     });
     setAgents(visible);
-  }, [userPlan, isAdmin, isTrialActive, whatsappAddon]);
+  }, [userPlan, isAdmin, isTrialActive, unlockedAgents]);
 
   // ─── Load AMI dashboard stats ───────────────────────────
   useEffect(() => {
