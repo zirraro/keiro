@@ -86,6 +86,20 @@ async function run() {
       // New suppression → protective pause + alert (brief will notify + 100% the %).
       await writeCfg({ ...cfg, tiktok_health_paused: true, tiktok_health_paused_at: new Date().toISOString(), tiktok_zero_streak: streak });
       await supabase.from('agent_logs').insert({ agent: 'content', action: 'tiktok_suppression_suspected', status: 'error', data: { user_id: c.id, zero_streak: streak, severity: 'warning', note: 'pause protectrice TikTok auto — cooldown + contenu natif' }, created_at: new Date().toISOString() }).then(() => {}, () => {});
+      // Notification CLIENT transparente + STRATÉGIE qui rassure (founder 07/07 :
+      // ne déclencher qu'à 0 vue, expliquer ce qu'on fait, pas une coupure sèche).
+      try {
+        const { notifyClient } = await import('@/lib/agents/notify-client');
+        await notifyClient(supabase, {
+          userId: c.id, agent: 'content', type: 'info',
+          title: { fr: 'TikTok : diffusion en pause douce (on gère)', en: 'TikTok: soft pause on distribution (we\'ve got it)' },
+          message: {
+            fr: `Tes 3 derniers posts TikTok sont à 0 vue → c'est un signal de non-distribution (throttle du compte), PAS un souci de qualité. Notre plan : on met TikTok en pause douce quelques jours, on privilégie du contenu natif/incarné pour reconstruire la crédibilité du compte, puis on republie progressivement. Tes autres réseaux (Instagram, LinkedIn) continuent normalement. On te prévient dès que ça repart — tu n'as rien à faire.`,
+            en: `Your last 3 TikToks got 0 views → a distribution signal (account throttle), NOT a quality issue. Our plan: soft-pause TikTok for a few days, favor native/on-camera content to rebuild the account's credibility, then resume gradually. Your other networks (Instagram, LinkedIn) keep running. We'll ping you when it recovers — nothing to do on your side.`,
+          },
+          data: { network: 'tiktok', zero_streak: streak },
+        });
+      } catch { /* notif best-effort */ }
       transition = 'paused';
     } else if (!suspected && wasPaused) {
       // Reach recovered → auto-resume + notify (the evening brief surfaces this).
@@ -93,6 +107,15 @@ async function run() {
       next.tiktok_health_resumed_at = new Date().toISOString();
       await writeCfg(next);
       await supabase.from('agent_logs').insert({ agent: 'content', action: 'tiktok_suppression_recovered', status: 'success', data: { user_id: c.id, note: 'TikTok reprend — diffusion réactivée automatiquement' }, created_at: new Date().toISOString() }).then(() => {}, () => {});
+      try {
+        const { notifyClient } = await import('@/lib/agents/notify-client');
+        await notifyClient(supabase, {
+          userId: c.id, agent: 'content', type: 'info',
+          title: { fr: 'TikTok repart 🎉', en: 'TikTok is back 🎉' },
+          message: { fr: 'Bonne nouvelle : TikTok redistribue ton contenu. On a réactivé la publication automatiquement — on repart progressivement.', en: 'Good news: TikTok is distributing your content again. We\'ve re-enabled publishing automatically — ramping back up gradually.' },
+          data: { network: 'tiktok' },
+        });
+      } catch { /* notif best-effort */ }
       transition = 'resumed';
     }
     results.push({ user: c.id, streak, suspected, wasPaused, transition });
