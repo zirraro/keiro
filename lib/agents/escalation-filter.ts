@@ -76,6 +76,12 @@ export async function loadEscalationConfig(supabase: any, userId: string, agentI
     const { data } = await supabase.from('org_agent_configs')
       .select('config').eq('user_id', userId).eq('agent_id', agentId).maybeSingle();
     const c = data?.config || {};
-    return { keywords: Array.isArray(c.escalation_keywords) ? c.escalation_keywords : [], sensitiveOn: c.escalation_sensitive !== false };
+    // Les settings client stockent une chaîne « réservation, devis » → on
+    // accepte string (split virgule) OU array.
+    const raw = c.escalation_keywords;
+    const keywords = Array.isArray(raw)
+      ? raw
+      : String(raw || '').split(/[,;\n]/).map((s: string) => s.trim()).filter(Boolean);
+    return { keywords, sensitiveOn: c.escalation_sensitive !== false };
   } catch { return { keywords: [], sensitiveOn: true }; }
 }

@@ -29,6 +29,7 @@ function useAgentTours(): Record<string, TourStep[]> {
       dm_instagram: [
         { target: 'auto-toggle', title: 'Auto DMs', description: 'In AUTO, Jade contacts prospects over Instagram DM and replies automatically. You are alerted when a prospect goes hot.', position: 'bottom' },
         { target: 'agent-dashboard', title: 'Conversations', description: 'Your ongoing DMs with prospects. Take over any conversation whenever Jade needs a hand.', position: 'bottom' },
+        { target: 'agent-dashboard', title: 'What you handle yourself', description: 'In Settings, list keywords (e.g. "booking", "quote") you want to handle. Jade drafts a reply but notifies YOU to finalize. Sensitive messages (upset, threats, legal) auto-escalate too.', position: 'bottom' },
       ],
       email: [
         { target: 'auto-toggle', title: 'Auto emails', description: 'Hugo fires personalised prospecting sequences. Each prospect gets 3-6 emails spaced intelligently.', position: 'bottom' },
@@ -87,6 +88,7 @@ function useAgentTours(): Record<string, TourStep[]> {
     dm_instagram: [
       { target: 'auto-toggle', title: 'DM automatique', description: 'En AUTO, Jade contacte tes prospects par DM Instagram et repond automatiquement. Tu es alerte quand un prospect est chaud.', position: 'bottom' },
       { target: 'agent-dashboard', title: 'Conversations', description: 'Tes DMs en cours avec les prospects. Tu peux reprendre la conversation a tout moment si Jade a besoin d\u2019aide.', position: 'bottom' },
+      { target: 'agent-dashboard', title: 'Ce que tu g\u00e8res toi-m\u00eame', description: 'Dans les Param\u00e8tres, liste des mots-cl\u00e9s (ex : \u00ab r\u00e9servation \u00bb, \u00ab devis \u00bb) que tu veux g\u00e9rer. Jade pr\u00e9pare un brouillon mais te NOTIFIE pour que tu finalises. Les messages sensibles (m\u00e9content, menace, l\u00e9gal) escaladent aussi automatiquement.', position: 'bottom' },
     ],
     email: [
       { target: 'auto-toggle', title: 'Emails automatiques', description: 'Hugo envoie des sequences de prospection personnalisees. Chaque prospect recoit 3 a 6 emails espaces intelligemment.', position: 'bottom' },

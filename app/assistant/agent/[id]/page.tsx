@@ -129,6 +129,10 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'include_visual', label: 'Visual personnalisé', type: 'toggle', default: true, description: 'Générer un visuel personnalisé avec le DM' },
       { key: 'handover_score', label: 'Score handover', type: 'number', default: 60, description: 'Score a partir duquel vous etes notifie pour closer' },
       { key: 'handover_exchanges', label: 'Echanges avant handover', type: 'number', default: 3, description: 'Nombre d\'echanges avant notification' },
+      // ── Escalade / ce que TU gères toi-même (founder 06/07) ──
+      { key: '_header_escalation', label: '\u{1F64B} Ce que tu gères toi-même', type: 'header', default: '', description: '' },
+      { key: 'escalation_keywords', label: 'Mots-clés à te notifier', type: 'text', default: '', description: 'Séparés par des virgules (ex : réservation, devis, partenariat). Si un DM les contient, Jade prépare un brouillon mais te notifie pour que TU finalises — jamais d\'envoi auto sur ces sujets.' },
+      { key: 'escalation_sensitive', label: 'Escalade auto des messages sensibles', type: 'toggle', default: true, description: 'Client mécontent, menace, insulte, sujet légal/RGPD/santé → Jade prépare une réponse et te notifie pour que tu reprennes la main.' },
     ],
     commercial: [
       { key: 'scoring_threshold', label: 'Seuil score contact', type: 'number', default: 30, description: 'Score minimum pour contacter un prospect' },
