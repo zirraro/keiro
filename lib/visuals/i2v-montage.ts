@@ -294,17 +294,27 @@ export async function kenBurnsClip(photoUrl: string, postId: string, idx: number
       { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*on/${frames}`, y: cy },        // 1 traverse L→R
       { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*(1-on/${frames})`, y: cy },    // 2 traverse R→L
       { z: zout, x: cx, y: cy },                                                          // 3 pull back / reveal
-      { z: zin, x: cx, y: `(ih-ih/zoom)*0.10` },                                          // 4 zoom into upper third
-      { z: zin, x: cx, y: `(ih-ih/zoom)*0.90` },                                          // 5 zoom into lower third
-      { z: `min(zoom+${zStepSlow},1.30)`, x: `(iw-iw/zoom)*on/${frames}`, y: `(ih-ih/zoom)*on/${frames}` }, // 6 diagonal TL→BR
-      { z: `min(zoom+${zStepSlow},1.30)`, x: `(iw-iw/zoom)*(1-on/${frames})`, y: `(ih-ih/zoom)*on/${frames}` }, // 7 diagonal TR→BL
-      { z: zin, x: `(iw-iw/zoom)*0.15`, y: cy },                                          // 8 zoom into left
-      { z: zin, x: `(iw-iw/zoom)*0.85`, y: cy },                                          // 9 zoom into right
-      { z: `min(zoom+${zStepSlow},1.22)`, x: cx, y: `(ih-ih/zoom)*(1-on/${frames})` },    // 10 rise bottom→top
+      // 4-10 : mouvements qui RÉSOLVENT VERS LE CENTRE (founder 07/07 : le
+      // mouvement ne doit jamais FINIR sur un coin — le sujet reste cadré à la
+      // fin, qui est le point de transition). On "révèle" depuis un léger décalage
+      // puis on se recentre sur le sujet.
+      { z: zin, x: cx, y: `(ih-ih/zoom)*(0.5-0.32*(1-on/${frames}))` },                   // 4 révèle du haut → centre
+      { z: zin, x: cx, y: `(ih-ih/zoom)*(0.5+0.32*(1-on/${frames}))` },                   // 5 révèle du bas → centre
+      { z: `min(zoom+${zStepSlow},1.30)`, x: `(iw-iw/zoom)*(0.5-0.28*(1-on/${frames}))`, y: `(ih-ih/zoom)*(0.5-0.28*(1-on/${frames}))` }, // 6 révèle coin HG → centre
+      { z: `min(zoom+${zStepSlow},1.30)`, x: `(iw-iw/zoom)*(0.5+0.28*(1-on/${frames}))`, y: `(ih-ih/zoom)*(0.5-0.28*(1-on/${frames}))` }, // 7 révèle coin HD → centre
+      { z: zin, x: `(iw-iw/zoom)*(0.5-0.34*(1-on/${frames}))`, y: cy },                   // 8 révèle gauche → centre
+      { z: zin, x: `(iw-iw/zoom)*(0.5+0.34*(1-on/${frames}))`, y: cy },                   // 9 révèle droite → centre
+      { z: `min(zoom+${zStepSlow},1.22)`, x: cx, y: `(ih-ih/zoom)*(0.5+0.3*(1-on/${frames}))` }, // 10 monte du bas → centre
       // ── Mouvements DYNAMIQUES (founder: "tourbillon", pas que du zoom) ──
       { z: zin, x: cx, y: cy, rot: `(1-min(t/${D},1))*0.13` },                            // 11 whirl-in horaire (spin qui se stabilise) = HOOK tourbillon
       { z: zin, x: cx, y: cy, rot: `-(1-min(t/${D},1))*0.13` },                           // 12 whirl-in anti-horaire
       { z: `min(zoom+${zStepSlow},1.24)`, x: cx, y: cy, rot: `sin(t/${D}*3.14159)*0.05` },// 13 swirl / balancé doux continu
+      // ── Hooks de transition supplémentaires (founder 07/07 : plus de variété
+      // efficace, naturelle, pas "trop IA") — tous CENTRÉS sujet ──
+      { z: `min(zoom+${(0.5 / frames).toFixed(6)},1.6)`, x: cx, y: cy },                  // 14 PUNCH-IN rapide (hook d'accroche, zoom vif qui claque)
+      { z: zin, x: `(iw-iw/zoom)*(0.5+0.12*sin(on/${frames}*3.14159))`, y: cy },          // 15 arc cinématique doux (léger S qui revient au centre)
+      { z: `min(zoom+${zStepSlow},1.26)`, x: cx, y: cy, rot: `(t/${D})*0.06` },           // 16 orbite lente (spirale d'ouverture naturelle, sens horaire)
+      { z: zout, x: cx, y: cy, rot: `-(1-min(t/${D},1))*0.08` },                          // 17 pull-back dévoilé + redressement (reveal spiralé)
     ];
     const v = variants[((variant % variants.length) + variants.length) % variants.length];
     // Normalize to a 2160x3840 (9:16) canvas first so the pan/zoom never

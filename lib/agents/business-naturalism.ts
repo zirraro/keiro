@@ -174,6 +174,17 @@ export function naturalismToPromptBlock(profile: NaturalismProfile): string {
 À ÉVITER ABSOLUMENT pour ce type de business :
 ${profile.rules.avoid.map(x => `- ${x}`).join('\n')}
 
+━━━ TELLS "IA" À BANNIR (universel — founder 07/07) ━━━
+Ces artefacts trahissent immédiatement une image générée et DÉCRÉDIBILISENT :
+- AUCUNE goutte / éclaboussure / filet de liquide (eau, sirop, glaçage, sauce, chocolat) qui LÉVITE, gicle ou reste suspendue en l'air. Un aliment posé est STATIQUE.
+- AUCUNE "goutte de fraîcheur" décorative artificielle sur une pâtisserie, un fruit, un verre — sauf condensation réaliste et discrète sur une boisson vraiment froide.
+- Pas de brillance / glaçage / laqué exagéré facon CGI ; texture MATE et réaliste (mie, croûte, grain, pores).
+- Pas d'ingrédients ou éclats (pistache, poudre, farine, herbes) figés en l'air ou en explosion "hero shot".
+- Pas de perfection impossible : légères imperfections réelles (miette, reflet naturel, asymétrie) = plus crédible.
+- Vapeur/fumée seulement si le plat est réellement chaud, et discrète.
+→ Objectif : une VRAIE photo prise au téléphone dans le commerce, pas un rendu 3D de pub. Si un détail "en fait trop", il est faux — on l'enlève.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 → La photo doit ressembler à ce qu'un photographe local capturerait dans CE TYPE de commerce. Pas du stock, pas du Vogue, pas du clinical. Du vrai, ancré dans le métier.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
