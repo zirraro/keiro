@@ -62,6 +62,9 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         } catch { /* silent */ }
         break;
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
         break;
@@ -438,6 +441,81 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 // ====================================================================
 // NOTIFICATION FONDATEUR — Alerte paiement reçu
 // ====================================================================
+// DUNNING (Fable 5 : churn silencieux garanti sans ça — 5-10% des renouvellements).
+// Stripe Smart Retries pilote la cadence J0/J3/J7 → un `invoice.payment_failed` par
+// tentative. On relance GRACIEUSEMENT : email escaladé + notif in-app, JAMAIS de
+// coupure sèche (les agents restent actifs pendant la grâce ; la coupure finale =
+// subscription.deleted quand Stripe abandonne). Objectif : récupérer la CB, pas punir.
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  const supabase = getSupabaseAdmin();
+  let profileId: string | undefined;
+  const invSubscription = (invoice as any).subscription as string | undefined;
+  if (invSubscription) {
+    const { data } = await supabase.from('profiles').select('id').eq('stripe_subscription_id', invSubscription).maybeSingle();
+    profileId = data?.id;
+  }
+  if (!profileId && invoice.customer) {
+    const { data } = await supabase.from('profiles').select('id').eq('stripe_customer_id', invoice.customer as string).maybeSingle();
+    profileId = data?.id;
+  }
+  if (!profileId) { console.log('[Dunning] no profile for failed invoice', invoice.id); return; }
+  const { data: profile } = await supabase.from('profiles').select('email, company_name, subscription_plan').eq('id', profileId).single();
+  if (!profile?.email) return;
+
+  const attempt = invoice.attempt_count || 1;
+  const billingUrl = 'https://keiroai.com/mon-compte?section=billing';
+  // Marqueur past_due (best-effort — la colonne peut ne pas exister).
+  try { await supabase.from('profiles').update({ payment_status: 'past_due' } as any).eq('id', profileId); } catch { /* colonne absente = ok */ }
+
+  // Notif in-app (gracieuse : l'équipe continue de travailler).
+  try {
+    const { notifyClient } = await import('@/lib/agents/notify-client');
+    await notifyClient(supabase, {
+      userId: profileId, agent: 'system', type: 'alert',
+      title: { fr: 'Paiement à mettre à jour', en: 'Payment needs updating' },
+      message: {
+        fr: `Ton dernier paiement n'a pas pu être traité. Ton équipe continue de travailler normalement — mets à jour ta carte pour éviter toute interruption.`,
+        en: `Your last payment could not be processed. Your team keeps working normally — update your card to avoid any interruption.`,
+      },
+      data: { billing_url: billingUrl, attempt },
+    });
+  } catch { /* best-effort */ }
+
+  // Email escaladé (1re tentative = doux ; suivantes = plus ferme, mais jamais menaçant).
+  const firm = attempt >= 2;
+  const subject = firm ? 'Action requise : mets à jour ton paiement — KeiroAI' : 'Petit souci avec ton paiement — KeiroAI';
+  const intro = firm
+    ? `Nous avons réessayé de prélever ton abonnement KeiroAI sans succès (tentative ${attempt}).`
+    : `Le prélèvement de ton abonnement KeiroAI n'a pas pu aboutir.`;
+  const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;">
+<div style="max-width:540px;margin:0 auto;padding:20px;">
+  <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+    <h2 style="margin:0;">Un petit geste et tout repart</h2>
+  </div>
+  <div style="background:white;padding:24px;border:1px solid #e5e7eb;border-top:none;">
+    <p>Bonjour${profile.company_name ? ` ${profile.company_name}` : ''},</p>
+    <p>${intro} Aucune inquiétude : <strong>ton équipe d'agents continue de travailler normalement</strong>.</p>
+    <p>Il te suffit de mettre à jour ta carte pour éviter toute interruption :</p>
+    <p style="text-align:center;margin:24px 0;"><a href="${billingUrl}" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;">Mettre à jour mon paiement</a></p>
+    <p style="color:#6b7280;font-size:12px;margin-top:24px;">Une question ? Réponds simplement à cet email, on s'occupe de toi.</p>
+  </div>
+  <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">KeiroAI — Ton équipe IA</div>
+</div></body></html>`;
+  try {
+    await sendBrevoCompat({
+      sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
+      to: [{ email: profile.email }],
+      subject, htmlContent: html,
+    });
+  } catch { /* best-effort */ }
+
+  await supabase.from('agent_logs').insert({
+    agent: 'system', action: 'dunning_payment_failed', status: 'warning',
+    data: { user_id: profileId, attempt, invoice_id: invoice.id, amount_due: (invoice.amount_due || 0) / 100 },
+    created_at: new Date().toISOString(),
+  }).then(() => {}, () => {});
+}
+
 async function notifyFounderPayment(info: {
   email: string;
   plan: string;
