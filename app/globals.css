@@ -1241,6 +1241,17 @@ html.light [class*="text-white\/10"] {
   color: #cbd5e1 !important;
 }
 
+/* ===== SECTIONS VOLONTAIREMENT SOMBRES (hero, bandeaux CTA navy) =====
+   Bug founder 07/07 : le hero utilise bg-[#0c1a3a] qui est ÉCLAIRCI en mode clair
+   (règle agent-pages) → texte blanc sur fond devenu clair = INVISIBLE. La classe
+   .dark-section force le fond à rester sombre + le texte à rester clair, quel que
+   soit le thème. À poser sur toute bande volontairement sombre. */
+html.light .dark-section { background-color: #0c1a3a !important; }
+html.light .dark-section, html.light .dark-section .text-white, html.light .dark-section [class*="text-white"] { color: #ffffff !important; }
+html.light .dark-section [class*="text-gray-"], html.light .dark-section [class*="text-slate-"],
+html.light .dark-section [class*="text-neutral-"], html.light .dark-section [class*="text-zinc-"] { color: rgba(255, 255, 255, 0.82) !important; }
+html.light .dark-section [class*="text-[#"] { color: inherit; } /* laisse les hex décoratifs (déjà pensés clair sur navy) */
+
 /* ===== FILET DE SÉCURITÉ MODE CLAIR — couverture exhaustive (audit Fable 5, 07/07) =====
    Le design est dark-first (2776 text-white, 621 gris clairs, 517 border-white…).
    Migration composant-par-composant = des semaines → on force la lisibilité
