@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { recordOutcome } from '@/lib/agents/outcome-events';
 import { getTikTokVideos, refreshTikTokToken } from '@/lib/tiktok';
 
 export const runtime = 'nodejs';
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   const { data: accounts } = await supabase
     .from('profiles')
-    .select('id, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry')
+    .select('id, business_type, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry')
     .not('tiktok_access_token', 'is', null);
 
   const summary: Array<{ user: string; videos: number; totalViews: number; updated: number }> = [];
@@ -92,6 +93,18 @@ export async function GET(req: NextRequest) {
           },
         }).eq('id', post.id);
         updated++;
+        // MOAT : outcome mesuré normalisé (post publié → vues réelles), idempotent
+        // par post × fenêtre. Nourrit les benchmarks sectoriels → API insights.
+        {
+          const ageDays = post.published_at ? (Date.now() - new Date(post.published_at).getTime()) / 86400000 : 0;
+          const window = ageDays >= 6 ? '7d' : ageDays >= 3 ? '72h' : '24h';
+          await recordOutcome(supabase, {
+            userId: acct.id, agent: 'content', type: 'post_published', platform: 'tiktok',
+            sector: acct.business_type, format: (post.engagement_data as any)?.format || 'video',
+            metrics: { views: match.view_count ?? 0, likes: match.like_count ?? 0, comments: match.comment_count ?? 0, shares: match.share_count ?? 0 },
+            measuredAt: window as any, refId: String(post.id),
+          });
+        }
       }
 
       // Account-level summary → agent_logs (visible to founder / Ami)
