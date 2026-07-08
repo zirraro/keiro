@@ -375,6 +375,21 @@ export async function checkFreeGeneration(
 
   const supabase = getAdminClient();
 
+  // GARDE ANTI-BURST (sécurité — surface d'abus financière) : max quelques
+  // générations dans une courte fenêtre glissante par IP. Bloque les rafales de
+  // requêtes concurrentes (qui, sinon, passent toutes le check mensuel avant que
+  // l'insert n'ait lieu = race TOCTOU → coût illimité) et le spam générique.
+  const WINDOW_SEC = 60;
+  const BURST_MAX = 3;
+  const { count: recent } = await supabase
+    .from('free_generations')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip_address', ipAddress)
+    .gte('created_at', new Date(Date.now() - WINDOW_SEC * 1000).toISOString());
+  if ((recent || 0) >= BURST_MAX) {
+    return { allowed: false, used: recent || 0, limit: FREE_MONTHLY_LIMIT, reason: 'rate_limited' };
+  }
+
   // Compter les générations ce mois-ci pour cette IP
   const { count } = await supabase
     .from('free_generations')
@@ -481,7 +496,24 @@ export async function isAdmin(userId: string): Promise<boolean> {
 }
 
 /**
- * Extrait l'IP depuis les headers de la request
+ * Extrait l'IP depuis les headers de la request.
+ *
+ * ⚠️ LIMITE DE SÉCURITÉ CONNUE (à corriger avec vérif du proxy) : on lit
+ * X-Forwarded-For[0] (valeur la PLUS À GAUCHE), qui est CONTRÔLABLE par le
+ * client → un attaquant peut spoofer une IP différente à chaque requête et
+ * contourner le plafond gratuit + la garde anti-burst. Ma garde anti-burst
+ * (checkFreeGeneration) n'arrête donc que l'abus naïf.
+ *
+ * FIX CORRECT (à faire une fois la chaîne de proxy vérifiée sur le VPS) :
+ *  - si derrière Cloudflare : utiliser `cf-connecting-ip` (CF écrase toute
+ *    valeur client → non spoofable) ;
+ *  - si nginx seul : configurer nginx pour SETTER x-real-ip = $remote_addr
+ *    (non spoofable) et lire CE header, ou prendre la Nième valeur XFF depuis
+ *    la droite selon le nb de proxys de confiance.
+ * NE PAS préférer cf-connecting-ip/x-real-ip à l'aveugle : si on n'est PAS
+ * derrière le proxy qui les pose, ces headers deviennent eux-mêmes spoofables.
+ * Défense robuste finale = captcha au seuil (Fable 5 §5), IP/fingerprint étant
+ * tous deux falsifiables.
  */
 export function getClientIP(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
