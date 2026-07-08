@@ -29,9 +29,11 @@ interface AgentCardProps {
   isComingSoon?: boolean;
   onNotifyClick?: () => void;
   badgeCount?: number;
+  /** Présence véridique (design §13.1) — état réel depuis agent_logs. */
+  presence?: { state: 'working' | 'done_today' | 'paused' | 'idle'; label?: { fr: string; en: string } } | null;
 }
 
-export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comingSoonMode = false, isComingSoon = false, onNotifyClick, badgeCount = 0 }: AgentCardProps) {
+export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comingSoonMode = false, isComingSoon = false, onNotifyClick, badgeCount = 0, presence = null }: AgentCardProps) {
   const [imgError, setImgError] = useState(false);
   const showImage = avatarUrl && !imgError;
   const isLocked = comingSoonMode || isComingSoon;
@@ -120,12 +122,29 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
           </svg>
           <span className="text-[10px] text-amber-200 font-medium">{agent.minPlan === 'pro' ? 'Pro' : agent.minPlan === 'business' ? 'Business' : 'Premium'}</span>
         </div>
-      ) : (
+      ) : !presence ? (
+        // Pas de donnée de présence réelle → neutre « Actif » (JAMAIS de fausse
+        // activité : on ne prétend pas « travaille… » sans preuve dans les logs).
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 bg-green-500/15 backdrop-blur-sm rounded-full border border-green-500/20">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           <span className="text-[10px] text-green-300 font-medium">Actif</span>
         </div>
-      )}
+      ) : (() => {
+        // Badge de présence VÉRIDIQUE (design §13.1) — reflète l'activité réelle.
+        const st = presence.state;
+        const cfg = {
+          working:    { wrap: 'bg-green-500/15 border-green-500/20', dot: 'bg-green-400 animate-pulse', text: 'text-green-300', label: presence?.label?.fr || 'travaille…' },
+          done_today: { wrap: 'bg-sky-500/15 border-sky-500/20',     dot: 'bg-sky-400',                  text: 'text-sky-300',   label: presence?.label?.fr || 'a fini ✓' },
+          paused:     { wrap: 'bg-amber-500/15 border-amber-500/20', dot: 'bg-amber-400',                text: 'text-amber-200', label: presence?.label?.fr || 'en pause' },
+          idle:       { wrap: 'bg-white/10 border-white/15',         dot: 'bg-white/40',                 text: 'text-white/60',  label: presence?.label?.fr || 'en veille' },
+        }[st];
+        return (
+          <div className={`absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 backdrop-blur-sm rounded-full border ${cfg.wrap}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            <span className={`text-[10px] font-medium ${cfg.text}`}>{cfg.label}</span>
+          </div>
+        );
+      })()}
 
       <div className="relative z-10 p-4 flex flex-col items-center text-center gap-2.5">
         {/* Avatar — large, circular, with gradient ring */}
