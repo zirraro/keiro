@@ -58,6 +58,19 @@ export default function PrivacyPolicyPage() {
               <li>Detect and prevent fraud or abuse</li>
               <li>Comply with legal obligations</li>
             </ul>
+
+            <h3 className="text-xl font-semibold text-neutral-900 mt-6 mb-3">3.1 Aggregated &amp; Anonymized Insights</h3>
+            <p className="text-neutral-700 mb-4">
+              We may use <strong>aggregated and anonymized</strong> performance data (for example, which content
+              formats, timings or angles perform well within a business sector) to build benchmarks and improve
+              our AI models and recommendations for all users. This data is stripped of any information that could
+              identify you or your business, and we apply <strong>k-anonymity</strong>: no insight is ever produced
+              or served from a sector segment containing fewer than ten (10) distinct businesses. Aggregated
+              insights are never sold with identifying information. You can <strong>opt out</strong> of contributing
+              to aggregated insights at any time from your account settings or by contacting{' '}
+              <a href="mailto:contact@keiroai.com" className="text-purple-700 underline">contact@keiroai.com</a> —
+              opting out does not affect your use of the Service.
+            </p>
           </section>
 
           <section className="mb-8">
