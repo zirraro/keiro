@@ -252,6 +252,17 @@ export async function POST(req: NextRequest) {
 
     console.log('[InstagramCallback] Instagram account connected successfully for user:', userId);
 
+    // STYLE-FROM-FEED (doc suite C1) : lit le feed réel du client pour seeder son
+    // ton/piliers AVANT la génération du 1er plan → Léna écrit comme LUI dès le
+    // jour 1. Fire-and-forget (n'attend pas l'OAuth), best-effort.
+    (async () => {
+      try {
+        const { seedStyleFromFeed } = await import('@/lib/agents/style-from-feed');
+        const res = await seedStyleFromFeed(supabase, userId);
+        console.log('[InstagramCallback] style-from-feed:', JSON.stringify(res));
+      } catch (e: any) { console.warn('[InstagramCallback] style-from-feed failed:', e?.message); }
+    })();
+
     // Auto-kickstart: if this client has NO scheduled / draft / published
     // posts yet, fire a weekly plan generation in the background so the
     // content calendar populates within ~30 sec of OAuth completion.
