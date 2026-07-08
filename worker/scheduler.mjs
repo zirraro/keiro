@@ -135,6 +135,8 @@ const GLOBAL_SCHEDULE = [
   // same business_type. Pattern decays after 72h of silence.
   { cron: '45 4 * * *',   path: '/api/cron/detect-error-patterns', label: 'Detect Cross-Client Error Patterns (knowledge mutualisation)' },
   { cron: '10 5 * * *',   path: '/api/cron/auto-remediate', label: 'Safe Auto-Remediation (invalid-email cleanup, low-risk data hygiene)' },
+  { cron: '30 5,17 * * *', path: '/api/cron/tiktok-stats', label: 'TikTok real stats → engagement_data + outcome_events (moat)' },
+  { cron: '0 10 * * *',   path: '/api/cron/trial-nurture', label: 'Trial Nurture J1/J3/J5 (essai→payant conversion)' },
   // 2026-06-09 — Every 30min. Real-time anomaly detector (6 kinds:
   // error_burst, success_drop, publish_silence, agent_down,
   // new_error_pattern, token_expiring). P0 anomalies trigger an
