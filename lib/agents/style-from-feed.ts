@@ -107,6 +107,16 @@ export async function seedStyleFromFeed(supabase: SupabaseClient, userId: string
     if (Object.keys(update).length) {
       await supabase.from('profiles').update(update).eq('id', userId);
     }
+    // Pont onboarding : si un brand_kit existe déjà avec un ton vide, on y reflète
+    // le ton détecté pour que la page brand-kit le montre pré-rempli (« oui c'est
+    // moi » au lieu d'un formulaire vide). Conservateur : jamais de surécriture,
+    // jamais de création de ligne (pour ne pas interférer avec l'état onboarding).
+    try {
+      const { data: kit } = await supabase.from('brand_kits').select('id, tone').eq('org_id', userId).maybeSingle();
+      if (kit?.id && (!kit.tone || String(kit.tone).trim().length < 3)) {
+        await supabase.from('brand_kits').update({ tone: style.tone }).eq('id', kit.id);
+      }
+    } catch { /* best-effort */ }
     // Trace l'analyse (mémoire agent, consultable) même si on n'a rien surécrit.
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'style_from_feed', status: 'ok',

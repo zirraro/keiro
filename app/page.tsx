@@ -864,69 +864,6 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* CONCRÈTEMENT LA DIFFÉRENCE */}
-      <section className="hp-light-island mx-auto max-w-6xl px-6 py-16 mt-12">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">{locale === 'fr' ? 'Concrètement, c\u2019est quoi la différence ?' : 'In plain terms — what\u2019s the difference?'}</h2>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4 md:gap-8 mb-10">
-          {/* Pro card */}
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
-            <h3 className="text-xl font-bold text-purple-900 mb-4">💎 {locale === 'fr' ? 'Pro — Ta vitrine Instagram, pro et autonome' : 'Pro — Your Instagram storefront, professional and autonomous'}</h3>
-            <ul className="space-y-3 text-sm text-neutral-700">
-              <li className="flex items-start gap-2">
-                <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</strong> {locale === 'fr' ? 'Un flyer distribué à 5 000 personnes \u2014 pro, ciblé et mesurable' : 'A flyer handed to 5,000 people \u2014 pro, targeted, measurable'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</strong> {locale === 'fr' ? 'Le neveu qui poste 1x/mois + Canva' : 'The nephew posting 1×/month + Canva'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'En concret...' : 'Concretely...'}</strong> {locale === 'fr' ? 'Des posts pros publiés chaque jour sur tes réseaux, avec texte et hashtags' : 'Pro posts published every day on your networks, with copy and hashtags'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'Ça coûte...' : 'It costs...'}</strong> {locale === 'fr' ? 'Le prix de 2 dîners au restaurant' : 'The price of 2 dinners out'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</strong> {locale === 'fr' ? '1 vente en plus (boutique) / 5 couverts (resto)' : '1 extra sale (shop) / 5 covers (resto)'}</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Business card */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-400 p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-amber-900 mb-4">{'\u{1F3E2}'} {locale === 'fr' ? 'Business \u2014 Ta marque partout, sur Instagram ET TikTok, en 3 formats' : 'Business \u2014 Your brand everywhere, Instagram AND TikTok, 3 formats'}</h3>
-            <ul className="space-y-3 text-sm text-neutral-700">
-              <li className="flex items-start gap-2">
-                <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</strong> {locale === 'fr' ? 'Avoir un directeur marketing à temps partiel' : 'Having a part-time marketing director'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</strong> {locale === 'fr' ? 'Un graphiste (800\u20AC) + un CM (1 500\u20AC) + stats (100\u20AC) + Canva Pro (12\u20AC)' : 'A designer (\u20AC800) + a CM (\u20AC1,500) + analytics (\u20AC100) + Canva Pro (\u20AC12)'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'En concret...' : 'Concretely...'}</strong> {locale === 'fr' ? '~5-6 posts/semaine, TON logo, post + Story + Reel, Instagram ET TikTok' : '~5-6 posts/week, YOUR logo, post + Story + Reel, Instagram AND TikTok'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'Ça coûte...' : 'It costs...'}</strong> {locale === 'fr' ? 'Le prix de 5 dîners au restaurant' : 'The price of 5 dinners out'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</strong> {locale === 'fr' ? '2 ventes (boutique) / 7 couverts (resto) / 2 séances (coach)' : '2 sales (shop) / 7 covers (resto) / 2 sessions (coach)'}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-      </section>
 
       {/* SOCIAL PROOF & FAQ COURTE */}
       <section className="mx-auto max-w-6xl px-6 py-12">
