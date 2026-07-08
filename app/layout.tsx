@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
+import CookieConsent from "@/components/CookieConsent";
 import Script from "next/script";
 import { LanguageProvider } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/lib/theme/context";
@@ -81,6 +82,33 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
+        {/* Consent Mode v2 — DÉFAUT refusé (conformité UE) : GTM/gtag ne posent
+            aucun cookie tant que l'utilisateur n'a pas accepté via la bannière.
+            Doit s'exécuter AVANT le chargement de GTM. */}
+        <Script
+          id="consent-default"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('consent','default',{
+                ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied',
+                analytics_storage:'denied', functionality_storage:'granted',
+                security_storage:'granted', wait_for_update:500
+              });
+              try {
+                if (localStorage.getItem('keiro_cookie_consent') === 'granted') {
+                  gtag('consent','update',{
+                    ad_storage:'granted', ad_user_data:'granted',
+                    ad_personalization:'granted', analytics_storage:'granted'
+                  });
+                }
+              } catch(e){}
+            `
+          }}
+        />
+
         {/* Google Tag Manager */}
         <Script
           id="gtm-script"
@@ -140,6 +168,7 @@ export default function RootLayout({
           <StickyCtaBar />
           <GlobalNotifBubble />
           <ChatbotWidget />
+          <CookieConsent />
         </LanguageProvider>
         </ThemeProvider>
       </body>
