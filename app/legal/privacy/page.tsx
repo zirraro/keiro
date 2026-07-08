@@ -59,17 +59,30 @@ export default function PrivacyPolicyPage() {
               <li>Comply with legal obligations</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-neutral-900 mt-6 mb-3">3.1 Aggregated &amp; Anonymized Insights</h3>
+            <h3 className="text-xl font-semibold text-neutral-900 mt-6 mb-3">3.1 Aggregated &amp; Anonymized Data — Insights &amp; Model Improvement</h3>
             <p className="text-neutral-700 mb-4">
-              We may use <strong>aggregated and anonymized</strong> performance data (for example, which content
-              formats, timings or angles perform well within a business sector) to build benchmarks and improve
-              our AI models and recommendations for all users. This data is stripped of any information that could
-              identify you or your business, and we apply <strong>k-anonymity</strong>: no insight is ever produced
-              or served from a sector segment containing fewer than ten (10) distinct businesses. Aggregated
-              insights are never sold with identifying information. You can <strong>opt out</strong> of contributing
-              to aggregated insights at any time from your account settings or by contacting{' '}
-              <a href="mailto:contact@keiroai.com" className="text-purple-700 underline">contact@keiroai.com</a> —
-              opting out does not affect your use of the Service.
+              We build and use an <strong>aggregated, anonymized dataset</strong> of performance signals (for example,
+              which content formats, timings, hooks or angles perform well within a business sector) to produce
+              benchmarks and to <strong>train and improve our AI language and vision models</strong> and
+              recommendations for all users. Once data is irreversibly aggregated and anonymized, it no longer
+              identifies you or your business and is therefore <strong>not personal data</strong>; we may use it
+              without additional consent. We apply <strong>k-anonymity</strong>: no insight is ever produced or
+              served from a sector segment containing fewer than ten (10) distinct businesses. Anonymized/aggregated
+              data is never sold with identifying information.
+            </p>
+            <p className="text-neutral-700 mb-4">
+              <strong>Content license (model improvement).</strong> To operate and continuously improve the Service,
+              you grant KeiroAI a non-exclusive, worldwide, royalty-free license to process the content generated
+              through or provided to the Service and its associated performance data, including to train and improve
+              our AI models — used in aggregated and/or anonymized form. This license is limited to operating and
+              improving the Service and survives in respect of already-anonymized data.
+            </p>
+            <p className="text-neutral-700 mb-4">
+              <strong>Your controls.</strong> For any data that still identifies you, you keep your GDPR rights
+              (access, deletion, portability) and can object to identifiable processing by contacting{' '}
+              <a href="mailto:contact@keiroai.com" className="text-purple-700 underline">contact@keiroai.com</a>.
+              Exercising these rights does not affect your use of the Service. Note that data already irreversibly
+              anonymized cannot be individually withdrawn, as it can no longer be linked back to you.
             </p>
           </section>
 
@@ -93,6 +106,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
               <li><strong>Instagram (Meta):</strong> Content publishing and analytics</li>
               <li><strong>TikTok:</strong> Content publishing and analytics</li>
+              <li><strong>LinkedIn:</strong> Content publishing and analytics</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-neutral-900 mt-6 mb-3">4.4 Google Services &mdash; Gmail &amp; Business Profile (Limited Use)</h3>

@@ -49,14 +49,17 @@ export default function CookieConsent() {
       <p className="font-semibold text-gray-900 dark:text-white mb-1">
         {isEn ? 'We respect your privacy' : 'On respecte ta vie privée'}
       </p>
-      <p className="text-gray-600 dark:text-white/70 leading-snug mb-3">
+      <p className="text-gray-600 dark:text-white/70 leading-snug mb-2">
         {isEn
           ? 'We use measurement cookies to improve KeiroAI. Nothing is stored without your consent.'
-          : 'On utilise des cookies de mesure pour améliorer KeiroAI. Rien n\'est stocké sans ton accord.'}{' '}
-        <a href="/legal/privacy" className="underline text-gray-700 dark:text-white/80 hover:opacity-80">
-          {isEn ? 'Learn more' : 'En savoir plus'}
-        </a>
+          : 'On utilise des cookies de mesure pour améliorer KeiroAI. Rien n\'est stocké sans ton accord.'}
       </p>
+      <a
+        href="/legal/privacy"
+        className="inline-block mb-3 text-[10px] text-gray-400 dark:text-white/40 underline underline-offset-2 hover:opacity-70"
+      >
+        {isEn ? 'Learn more' : 'En savoir plus'}
+      </a>
       <div className="flex gap-2">
         <button
           onClick={() => decide(false)}

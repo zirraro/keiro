@@ -529,7 +529,17 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
       const searchQuery = customQuery ? query : `${query} ${zone.name.split(' ')[0]}`;
       console.log(`[GMaps] Searching: "${searchQuery}"`);
 
-      const results = await searchPlaces(searchQuery, zone.lat, zone.lng, zone.radius);
+      const rawResults = await searchPlaces(searchQuery, zone.lat, zone.lng, zone.radius);
+      // TWO-STAGE (Fable 5 #20) : textsearch (pas cher) donne déjà note +
+      // nb d'avis + statut. On (a) écarte les fermés définitifs AVANT tout
+      // appel Place Details (coûteux) = pur gaspillage évité, et (b) PRIORISE
+      // le budget Details sur les prospects à plus fort signal (établis, bien
+      // notés) SANS jamais droper (on réordonne seulement — un commerce bien
+      // noté SANS Instagram reste un prospect en or, signal inconnu ici).
+      const preScore = (p: any) => (Number(p.rating) || 0) * Math.log10((Number(p.user_ratings_total) || 0) + 10);
+      const results = (rawResults as any[])
+        .filter((p: any) => p.business_status !== 'CLOSED_PERMANENTLY')
+        .sort((a: any, b: any) => preScore(b) - preScore(a));
       let comboImported = 0;
       let comboSkipped = 0;
 

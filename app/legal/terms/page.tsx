@@ -60,15 +60,16 @@ export default function TermsOfServicePage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-neutral-900 mb-4">5. User Content</h2>
+            <h2 className="text-2xl font-semibold text-neutral-900 mb-4">5. Content You Provide</h2>
             <p className="text-neutral-700 mb-4">
-              You retain all rights to the content you create using Keiro. By using the Service, you grant Keiro a
-              non-exclusive, worldwide, royalty-free license to:
+              You retain ownership of the materials <strong>you provide</strong> to Keiro (your own photos, videos,
+              logos and text). By using the Service, you grant Keiro a non-exclusive, worldwide, royalty-free license to:
             </p>
             <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
-              <li>Store and process your content to provide the Service</li>
-              <li>Display your content as necessary for Service functionality</li>
-              <li>Back up your content for data recovery purposes</li>
+              <li>Store and process your materials to provide the Service</li>
+              <li>Display your materials as necessary for Service functionality</li>
+              <li>Use your materials, in aggregated and anonymized form, to operate and improve the Service</li>
+              <li>Back up your materials for data recovery purposes</li>
             </ul>
           </section>
 
@@ -88,10 +89,17 @@ export default function TermsOfServicePage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-neutral-900 mb-4">7. AI-Generated Content</h2>
+            <h2 className="text-2xl font-semibold text-neutral-900 mb-4">7. AI-Generated Content &amp; Ownership</h2>
             <p className="text-neutral-700 mb-4">
-              Keiro uses artificial intelligence to generate content suggestions. While we strive for accuracy:
+              Content produced by Keiro&rsquo;s AI (images, videos, captions and other creative output generated
+              through the Service) is created and owned by Keiro. <strong>Keiro grants you a broad, perpetual,
+              worldwide, royalty-free license to use, publish, adapt and distribute this generated content for your
+              business</strong>, including after you stop using the Service. Keiro retains ownership of the underlying
+              models and the right to use the generated content and its performance data — in aggregated and/or
+              anonymized form — to operate and improve the Service. In short: you get full rights to use everything
+              Keiro creates for you; Keiro keeps the rights it needs to run and improve the product.
             </p>
+            <p className="text-neutral-700 mb-4">While we strive for accuracy:</p>
             <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
               <li>AI-generated content may contain errors or inaccuracies</li>
               <li>You are responsible for reviewing and approving all content before publication</li>
