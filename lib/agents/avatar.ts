@@ -53,11 +53,11 @@ const DEFAULT_PERSONALITY: AgentPersonality = {
 };
 
 const DEFAULT_AVATARS: Record<string, Pick<AgentAvatarConfig, 'display_name' | 'title' | 'gradient_from' | 'gradient_to' | 'badge_color'>> = {
-  ceo: { display_name: 'Noah', title: 'Stratège en Chef', gradient_from: '#7c3aed', gradient_to: '#4338ca', badge_color: '#7c3aed' },
+  ceo: { display_name: 'Ami', title: 'Stratège & Chef d\'orchestre', gradient_from: '#4338ca', gradient_to: '#6366f1', badge_color: '#4338ca' },
   commercial: { display_name: 'Léo', title: 'Lead Scraper & Pipeline', gradient_from: '#2563eb', gradient_to: '#0891b2', badge_color: '#2563eb' },
   email: { display_name: 'Hugo', title: 'Expert Prospection Email', gradient_from: '#059669', gradient_to: '#10b981', badge_color: '#059669' },
   content: { display_name: 'Léna', title: 'Créative Contenu & Publication', gradient_from: '#db2777', gradient_to: '#e11d48', badge_color: '#db2777' },
-  seo: { display_name: 'Oscar', title: 'Architecte SEO & Référencement', gradient_from: '#d97706', gradient_to: '#ea580c', badge_color: '#d97706' },
+  seo: { display_name: 'Théo', title: 'SEO & Référencement local', gradient_from: '#B7791F', gradient_to: '#F5B301', badge_color: '#B7791F' },
   onboarding: { display_name: 'Clara', title: 'Spécialiste Activation', gradient_from: '#0891b2', gradient_to: '#2563eb', badge_color: '#0891b2' },
   retention: { display_name: 'Théo', title: 'Gardien Fidélisation', gradient_from: '#7c3aed', gradient_to: '#a855f7', badge_color: '#8b5cf6' },
   marketing: { display_name: 'Ami', title: 'Marketing Intelligence Coach', gradient_from: '#0d9488', gradient_to: '#059669', badge_color: '#0d9488' },

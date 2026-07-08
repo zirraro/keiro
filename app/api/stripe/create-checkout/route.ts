@@ -61,6 +61,12 @@ export async function POST(request: NextRequest) {
     // Abonnement séparé qui débloque l'agent whatsapp (sans changer le plan).
     // Auth requise (on doit savoir à qui accorder l'add-on).
     if (planKey === 'stella_addon') {
+      // Garde-fou honnêteté (capability_status) : on NE facture JAMAIS une capacité
+      // qui n'est pas encore 'live'. Stella = 'soon' tant que le BSP n'est pas actif.
+      const { isBillable } = await import('@/lib/capability-status');
+      if (!isBillable('stella_whatsapp')) {
+        return NextResponse.json({ error: 'Stella arrive bientôt — pas encore facturable. On te préviendra dès son activation.' }, { status: 409 });
+      }
       const addonPrice = process.env.STRIPE_PRICE_STELLA_ADDON;
       if (!addonPrice) return NextResponse.json({ error: 'Add-on Stella non configuré' }, { status: 400 });
       if (!isAuthenticated) return NextResponse.json({ error: 'Connexion requise pour activer un add-on' }, { status: 401 });

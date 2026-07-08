@@ -460,10 +460,10 @@ export const en: Translations = {
     planProBadge: 'Recommended',
     planProSubtitle: 'Growing business',
     planProBullets: [
-      '<strong>All agents active</strong>: everything in Creator + Oscar (SEO)',
+      '<strong>All agents active</strong>: everything in Creator + Théo (SEO)',
       'Everything in Creator +',
       '~20 posts/week',
-      '✅ Oscar: Auto SEO articles',
+      '✅ Théo: Auto SEO articles',
       '<strong>~240 qualified prospects/month</strong> (Google Maps)',
       'Unlimited DM replies',
       '1,500 credits/month',
@@ -2867,11 +2867,11 @@ export const en: Translations = {
     agentDmInstagram: 'Jade (DMs)',
     agentMarketing: 'Ami (Marketing)',
     agentOnboarding: 'Clara (Onboarding)',
-    agentSeo: 'Oscar (SEO)',
+    agentSeo: 'Théo (SEO)',
     agentContent: 'Léna (Content)',
     agentChatbot: 'Clara (Website chatbot)',
     agentRetention: 'Théo (Retention)',
-    agentCeo: 'Noah (CEO brief)',
+    agentCeo: 'Ami (strategist brief)',
   },
   panels: {
     // ─── Instagram asset badge (Meta App Review: every screencast
@@ -3083,7 +3083,7 @@ export const en: Translations = {
     ceoTipHot: '🔥 {n} hot prospect{s} — contact them in priority via Hugo (email) or Jade (DM).',
     ceoTipEmails: '📧 {n} emails sent. Keep prospecting to generate more hot prospects.',
     ceoTipEmpty: '🚀 Activate your agents to start prospecting. Chat with me to define your strategy.',
-    ceoBtnTalk: 'Talk to Noah',
+    ceoBtnTalk: 'Talk to Ami',
 
     // ─── Gmaps (Théo) ───────────────────────────────────────
     gmapsKpiAnswered: 'Reviews answered',

@@ -42,7 +42,7 @@ EQUIPE DES 17 AGENTS (noms et roles exacts — NE JAMAIS CONFONDRE) :
 - [Comptable/Louis] Finance — tresorerie, facturation, metriques SaaS
 - [Retention/Theo] Fidelisation — churn, health score, upsell
 - [Onboarding/Clara] Integration — nouveaux clients, dossier, setup
-- [CEO/Noah] Toi-meme — coordination, strategie, ordres
+- [Stratège/Ami] Toi-meme — coordination, strategie, ordres
 
 IMPORTANT: Les taches COMMUNITY (commentaires, engagement, follows) sont gerees par LENA (Content), PAS par un agent separe. Dans tes ordres, utilise [Content/Lena] pour ces taches.
 

@@ -2908,11 +2908,11 @@ export const fr: Translations = {
     agentDmInstagram: 'Jade (DM)',
     agentMarketing: 'Ami (Marketing)',
     agentOnboarding: 'Clara (Onboarding)',
-    agentSeo: 'Oscar (SEO)',
+    agentSeo: 'Théo (SEO)',
     agentContent: 'Léna (Contenu)',
     agentChatbot: 'Clara (Chatbot site)',
     agentRetention: 'Théo (Rétention)',
-    agentCeo: 'Noah (Brief CEO)',
+    agentCeo: 'Ami (Brief stratège)',
   },
   panels: {
     // ─── Badge compte Instagram connecté ────────────────────
@@ -3123,7 +3123,7 @@ export const fr: Translations = {
     ceoTipHot: '🔥 {n} prospect{s} chaud{s} — contacte-les en priorité via Hugo (email) ou Jade (DM).',
     ceoTipEmails: '📧 {n} emails envoyés. Continue la prospection pour générer des prospects chauds.',
     ceoTipEmpty: '🚀 Active tes agents pour commencer à prospecter. Parle-moi pour définir ta stratégie.',
-    ceoBtnTalk: 'Parler à Noah',
+    ceoBtnTalk: 'Parler à Ami',
 
     // ─── Gmaps (Théo) ───────────────────────────────────────
     gmapsKpiAnswered: 'Avis répondus',
