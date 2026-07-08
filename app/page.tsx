@@ -470,7 +470,7 @@ function HomeKeiroInner() {
                     ['CRM intégré', '\u274C Non', '\u274C Non', '\u2705 Scoring auto'],
                     ['Emailing auto', '\u274C Non', '\u274C Non', '\u2705 Séquences 5 étapes'],
                     ['Avis Google', '\u274C Non', '\u274C Rarement', '\u2705 Réponse auto Théo'],
-                    ['SEO site web', '\u274C Non', '\u274C Non', '\u2705 Audit + reco'],
+                    ['SEO site web', '\u274C Non', '\u274C Non', '\u23F3 Bient\u00F4t'],
                     ['Temps requis', '5-10h/sem', '2h/sem briefing', '0h (100% auto)'],
                     ['Équipe IA complète', '\u274C', '\u274C', '\u2705'],
                   ] : [
@@ -481,7 +481,7 @@ function HomeKeiroInner() {
                     ['Integrated CRM', '\u274C No', '\u274C No', '\u2705 Auto scoring'],
                     ['Auto emailing', '\u274C No', '\u274C No', '\u2705 5-step sequences'],
                     ['Google reviews', '\u274C No', '\u274C Rarely', '\u2705 Auto reply by Theo'],
-                    ['Website SEO', '\u274C No', '\u274C No', '\u2705 Audit + recs'],
+                    ['Website SEO', '\u274C No', '\u274C No', '\u23F3 Soon'],
                     ['Time required', '5-10h/week', '2h/week briefing', '0h (100% auto)'],
                     ['Équipe IA complète', '\u274C', '\u274C', '\u2705'],
                   ]).map(([feature, chatgpt, cm, keiro], i) => (
@@ -845,7 +845,7 @@ function HomeKeiroInner() {
                 locale === 'fr' ? 'Équipe complète (7 agents) · volume ×2' : 'Full team (7 agents) · 2× volume',
                 locale === 'fr' ? '2 000 crédits/mois' : '2,000 credits/month',
                 locale === 'fr' ? 'Tout Pro + Finance' : 'All Pro + Finance',
-                locale === 'fr' ? 'LinkedIn, Ads, WhatsApp (bientôt)' : 'LinkedIn, Ads, WhatsApp (soon)',
+                locale === 'fr' ? 'LinkedIn · WhatsApp (bientôt)' : 'LinkedIn · WhatsApp (soon)',
               ]}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaBusinessAnnual : t.home.ctaChooseBusiness}
               trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
