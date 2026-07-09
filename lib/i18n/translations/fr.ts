@@ -2944,8 +2944,8 @@ export const fr: Translations = {
     verification: 'Vérification...',
 
     // ─── DM Instagram (Jade) ────────────────────────────────
-    dmHumanProtocolTitle: 'Human Agent Protocol (compatible Meta)',
-    dmHumanProtocolDesc: 'Chaque DM est **préparé par Jade et envoyé par toi**. Jade te propose un brouillon personnalisé, tu le relis, tu cliques "Envoyer" et le message part depuis ton propre compte Instagram. **Aucun envoi automatique** — c\'est toi, l\'humain, qui es l\'agent de service client. C\'est le mode "Human Agent" au sens des Politiques Plateforme Meta.',
+    dmHumanProtocolTitle: 'Tu valides, tu envoies',
+    dmHumanProtocolDesc: 'Chaque DM est **préparé par Jade et envoyé par toi**. Jade te propose un brouillon personnalisé, tu le relis, tu cliques "Envoyer" et le message part depuis ton propre compte Instagram. Tu gardes la main sur chaque envoi. À noter : Instagram n\'autorise l\'envoi que dans les 24h suivant le dernier message du client — au-delà, on te le signale (24h/48h/72h) pour que tu saches qu\'une réponse est en retard.',
     dmYouRespondBadge: 'Tu réponds — toujours humain',
     dmJadePreparesBadge: 'Jade prépare les brouillons',
     dmToggleAutoLabel: 'Brouillons prêts à envoyer',

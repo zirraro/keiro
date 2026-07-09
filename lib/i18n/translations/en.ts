@@ -2904,8 +2904,8 @@ export const en: Translations = {
     verification: 'Verification...',
 
     // ─── DM Instagram (Jade) ────────────────────────────────
-    dmHumanProtocolTitle: 'Human Agent Protocol (Meta compliant)',
-    dmHumanProtocolDesc: 'Every DM is **drafted by Jade and sent by you**. Jade suggests a personalized draft, you review it, you click "Send" and the message is delivered from your own Instagram account. **No automatic sending** — you, the human, are the customer service agent. This is the "Human Agent" mode under Meta Platform Policies.',
+    dmHumanProtocolTitle: 'You review, you send',
+    dmHumanProtocolDesc: 'Every DM is **drafted by Jade and sent by you**. Jade suggests a personalized draft, you review it, you click "Send" and the message is delivered from your own Instagram account. You keep control of every send. Note: Instagram only allows sending within 24h of the customer\'s last message — beyond that we flag it (24h/48h/72h) so you know a reply is overdue.',
     dmYouRespondBadge: 'You respond — always human',
     dmJadePreparesBadge: 'Jade prepares the drafts',
     dmToggleAutoLabel: 'Drafts ready to send',

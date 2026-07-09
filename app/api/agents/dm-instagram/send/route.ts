@@ -144,22 +144,14 @@ export async function POST(req: NextRequest) {
     });
     if (standard.ok) return { ok: true, status: standard.status, body: '' };
     const errBody = await standard.text().catch(() => '');
-    if (!isOutsideWindowError(errBody)) {
-      return { ok: false, status: standard.status, body: errBody };
+    // Human Agent RETIRÉ (founder 09/07 : permission human_agent rejetée par Meta,
+    // on ne la redemande pas). Hors fenêtre 24h → l'envoi via API n'est PAS
+    // possible ; on renvoie une erreur claire "outside_24h_window". L'UI affiche
+    // l'âge du message (24h/48h/72h) pour que le client sache qu'il est tard.
+    if (isOutsideWindowError(errBody)) {
+      return { ok: false, status: standard.status, body: 'outside_24h_window' };
     }
-    // Outside 24h — retry with HUMAN_AGENT tag (requires approved permission).
-    const tagged = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        ...base,
-        messaging_type: 'MESSAGE_TAG',
-        tag: 'HUMAN_AGENT',
-      }),
-    });
-    if (tagged.ok) return { ok: true, status: tagged.status, body: 'human_agent' };
-    const taggedBody = await tagged.text().catch(() => '');
-    return { ok: false, status: tagged.status, body: `outside-window + human_agent retry: ${taggedBody}` };
+    return { ok: false, status: standard.status, body: errBody };
   };
 
   // 1. IGAA token — the only one Meta lets us use for conversation content,

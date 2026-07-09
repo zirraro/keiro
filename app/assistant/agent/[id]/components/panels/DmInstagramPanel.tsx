@@ -1548,15 +1548,15 @@ function DmConversationsLive() {
                     className={`${cls} text-white text-xs font-medium rounded-xl disabled:opacity-40 transition-all active:scale-95 flex items-center gap-1.5`}
                     data-meta-review="dm-send"
                     title={outside
-                      ? 'Conversation is older than 24h. This send will use POST /me/messages with messaging_type=MESSAGE_TAG&tag=HUMAN_AGENT (requires the human_agent permission). The click is a manual human action — no automation.'
-                      : 'In the 24h messaging window. Standard POST /me/messages send. Manual click only — no automation, no cron.'}
+                      ? 'Ce message a plus de 24h. Instagram limite l\'envoi via l\'API à la fenêtre de 24h — au-delà, l\'envoi peut échouer. Signalé ici pour que tu saches qu\'une réponse est en retard.'
+                      : 'Dans la fenêtre de 24h. Envoi standard POST /me/messages. Clic manuel uniquement — aucune automatisation.'}
                   >
                     {sending ? (
                       <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
                     ) : (
                       <>
-                        {outside && <span className="text-[10px]">🧑</span>}
-                        <span className="hidden sm:inline">{outside ? 'Send (Human Agent)' : 'Send'}</span>
+                        {outside && <span className="text-[10px]">⏰</span>}
+                        <span className="hidden sm:inline">{outside ? 'Envoyer (>24h)' : 'Envoyer'}</span>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                       </>
                     )}
@@ -1567,7 +1567,7 @@ function DmConversationsLive() {
             {/* Demo-mode caption explaining the API call — visible only when ?demo=1 so a Meta App Review reviewer recording the screencast can see what each click triggers without any subtitles or narration. */}
             <div className="px-3 pb-2">
               <DemoCaption>
-                Manual click → POST /me/messages (recipient_id, message). Permission: instagram_business_manage_messages. If the customer&apos;s last message is older than 24h, we add messaging_type=MESSAGE_TAG&amp;tag=HUMAN_AGENT (permission: human_agent).
+                Manual click → POST /me/messages (recipient_id, message). Permission: instagram_business_manage_messages. Sending is only allowed within Instagram&apos;s 24h window; beyond 24h the conversation is flagged (⏰) so you know a reply is overdue.
               </DemoCaption>
             </div>
           </div>
