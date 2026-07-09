@@ -33,9 +33,10 @@ export interface ReelQCResult {
   continuity: number;     // 0-10 — do scenes flow as one evolving shot?
   coherence: number;      // 0-10 — visual link to the business
   realism: number;        // 0-10 — natural photo vs obvious AI
+  motion: number;         // 0-10 — real cinematic movement vs static slideshow
   issues: string[];       // concrete defects found
   summary: string;        // one-line verdict (FR)
-  pass: boolean;          // score >= threshold
+  pass: boolean;          // score>=threshold AND realism>=5 (anti-AI) AND motion>=4
 }
 
 const QC_THRESHOLD = 6; // /10 — below this the reel is held, not published
@@ -101,8 +102,10 @@ export async function assessReelQuality(
     const imageBlocks = frames.map((data) => ({
       type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data },
     }));
-    const sys = `Tu es un directeur artistique vidéo exigeant. On te donne des frames ORDONNÉES (début → fin) d'un reel vertical monté pour le business: "${opts.businessType || 'commerce local'}". Sujet voulu: "${(opts.subject || '').slice(0, 200)}".
-Juge UNIQUEMENT ce que tu vois. Note sévèrement comme un pro qui décide si on publie.`;
+    const sys = `Tu es un directeur artistique / chef opérateur vidéo TRÈS exigeant (niveau cinéaste). On te donne des frames ORDONNÉES (début → fin) d'un reel vertical monté pour le business: "${opts.businessType || 'commerce local'}". Sujet voulu: "${(opts.subject || '').slice(0, 200)}".
+Juge UNIQUEMENT ce que tu vois. Note SÉVÈREMENT comme un pro qui décide si on publie. Deux exigences NON négociables du fondateur :
+1. VRAI MOUVEMENT cinématique (caméra qui bouge OU sujet qui bouge réellement entre les frames) — surtout PAS un diaporama d'images quasi-figées.
+2. AUCUN aspect "IA" : pas de plastique/cireux, pas de morphing/déformation, pas de lumière irréaliste, pas de perfection synthétique. Ça doit ressembler à une vraie captation filmée par un humain.`;
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -114,15 +117,16 @@ Juge UNIQUEMENT ce que tu vois. Note sévèrement comme un pro qui décide si on
           type: 'object', properties: {
             continuity: { type: 'number', description: '0-10: les frames s\'enchaînent-elles comme UNE scène qui évolue (même lieu/sujet), pas des plans random ?' },
             coherence: { type: 'number', description: '0-10: lien visuel évident avec le business ?' },
-            realism: { type: 'number', description: '0-10: photo naturelle crédible (10) vs visiblement IA/artefacts/déformations (0) ?' },
+            realism: { type: 'number', description: '0-10: VRAIE photo/vidéo filmée par un humain (10) vs ça FAIT IA — plastique/cireux, morphing, déformations, lumière/perfection synthétique (0). Sois DUR : au moindre doute que ça fasse IA, note ≤4.' },
+            motion: { type: 'number', description: '0-10: VRAI mouvement cinématique entre les frames — caméra ou sujet qui bouge réellement (10) vs images quasi-figées qui défilent façon diaporama (0).' },
             score: { type: 'number', description: '0-10: note globale de publiabilité' },
             issues: { type: 'array', items: { type: 'string' }, description: 'défauts concrets vus (FR), vide si rien' },
             summary: { type: 'string', description: 'verdict en une phrase (FR)' },
-          }, required: ['continuity', 'coherence', 'realism', 'score', 'issues', 'summary'], additionalProperties: false,
+          }, required: ['continuity', 'coherence', 'realism', 'motion', 'score', 'issues', 'summary'], additionalProperties: false,
         } as any }],
         tool_choice: { type: 'tool', name: 'qc' },
         messages: [{ role: 'user', content: [
-          { type: 'text', text: `Voici ${frames.length} frames du reel, dans l'ordre. Évalue continuité, cohérence business, réalisme, et donne une note globale + les défauts.` },
+          { type: 'text', text: `Voici ${frames.length} frames du reel, dans l'ordre. Évalue : continuité, cohérence business, RÉALISME (est-ce que ça fait IA ? sois dur), MOUVEMENT (vrai mouvement cinématique entre les frames, ou diaporama figé ?), + note globale et défauts concrets.` },
           ...imageBlocks,
         ] }],
       }),
@@ -134,14 +138,20 @@ Juge UNIQUEMENT ce que tu vois. Note sévèrement comme un pro qui décide si on
     if (!v) return null;
     const clamp = (n: any) => Math.max(0, Math.min(10, Math.round(Number(n) || 0)));
     const score = clamp(v.score);
+    const realism = clamp(v.realism);
+    const motion = clamp(v.motion);
     return {
       score,
       continuity: clamp(v.continuity),
       coherence: clamp(v.coherence),
-      realism: clamp(v.realism),
+      realism,
+      motion,
       issues: Array.isArray(v.issues) ? v.issues.map((x: any) => String(x).slice(0, 200)).slice(0, 8) : [],
       summary: String(v.summary || '').slice(0, 300),
-      pass: score >= QC_THRESHOLD,
+      // BARRIÈRE DURE anti-IA (founder 09/07 : "ne doit pas faire IA du tout") :
+      // même avec une bonne note globale, on NE publie PAS si ça fait IA
+      // (realism < 5) ou si c'est un diaporama sans vrai mouvement (motion < 4).
+      pass: score >= QC_THRESHOLD && realism >= 5 && motion >= 4,
     };
   } catch {
     return null;

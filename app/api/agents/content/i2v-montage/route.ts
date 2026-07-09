@@ -249,6 +249,18 @@ export async function POST(req: NextRequest) {
     const maxShots = body.multiPlan === true ? Math.min(uniq.length, 3) : sceneN;
     const sc = uniq.length === 1 ? 1 : Math.min(uniq.length, maxShots);
     const pc = sc <= 1 ? plan.durationSec : Math.max(6, Math.round(plan.durationSec / sc));
+    // VRAI MOUVEMENT (founder 09/07) : sur UNE image hero cohérente (générée ou
+    // client), on l'ANIME en i2v — mouvement RÉEL de caméra/sujet — au lieu du
+    // Ken Burns (pan/zoom sur image figée = « images qui défilent »). i2v du HERO
+    // (PAS du stock, ce qui hallucinait) = mouvement réel + cohérent + zéro
+    // hallucination. Le QC (boucle ci-dessous) rejette le rendu « IA » et
+    // régénère ; Ken Burns reste le repli si l'i2v échoue. body.noMotion force KB.
+    if (sc === 1 && uniq.length === 1 && body.noMotion !== true) {
+      try {
+        const motion = await runI2vMontage({ scenes: scenes.slice(0, 1), pixabayQuery, perClipSec: Math.min(plan.perClipSec || 8, 10), postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: uniq[0], bakeAudio });
+        if (motion) return { method: clientPhotos.length ? 'client_i2v' : 'generated_i2v', url: motion };
+      } catch { /* repli Ken Burns ci-dessous */ }
+    }
     return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos: uniq, perClipSec: pc, sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
   }
 
