@@ -16,11 +16,17 @@ function getServiceClient() {
 // ─── GET: List user's prospects ─────────────────────────────
 
 export async function GET(req: NextRequest) {
+  // Auth robuste : en runtime edge, getAuthUser peut THROW s'il n'y a aucune
+  // session (au lieu de renvoyer une erreur) → on renvoie 401 proprement, pas 500.
+  let user: Awaited<ReturnType<typeof getAuthUser>>['user'];
   try {
-    const { user, error: authError } = await getAuthUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifie' }, { status: 401 });
-    }
+    const r = await getAuthUser();
+    if (r.error || !r.user) return NextResponse.json({ error: 'Non authentifie' }, { status: 401 });
+    user = r.user;
+  } catch {
+    return NextResponse.json({ error: 'Non authentifie' }, { status: 401 });
+  }
+  try {
 
     const supabase = getServiceClient();
     const { searchParams } = new URL(req.url);
