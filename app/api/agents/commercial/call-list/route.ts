@@ -47,6 +47,10 @@ export async function GET(req: NextRequest) {
       .limit(500);
     if (sector) q = q.ilike('business_type', `%${sector}%`);
     if (city) q = q.ilike('city', `%${city}%`);
+    // Ne pas re-proposer un prospect appelé dans les 2 derniers jours (évite qu'un
+    // "à relancer" réapparaisse aussitôt). null = jamais appelé = à appeler.
+    const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
+    q = q.or(`last_contacted_at.is.null,last_contacted_at.lt.${twoDaysAgo}`);
 
     const { data, error: qErr } = await q;
     if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
