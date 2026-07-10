@@ -416,7 +416,13 @@ export async function publishReelToInstagram(
         console.log('[publishReelToInstagram] Container status:', status.status_code || status.status);
         if (status.status_code === 'FINISHED') break;
         if (status.status_code === 'ERROR') {
-          throw new Error(`Instagram video processing failed: ${status.status || 'unknown error'}`);
+          // Diagnostic : le champ `status` d'IG contient souvent la vraie raison
+          // (code 2207026 format non supporté, aspect ratio, durée, audio…). On
+          // le loggue en entier + l'URL vidéo pour pouvoir diagnostiquer le pattern
+          // au lieu d'un « ERROR » opaque. La string est propagée dans le message
+          // pour que l'appelant décide du fallback (image) sans perdre le post.
+          console.error('[publishReelToInstagram] IG video ERROR — raw status:', JSON.stringify(status), '| video:', videoUrl.substring(0, 160));
+          throw new Error(`Instagram video processing failed: ${status.status || 'ERROR'} (video=${videoUrl.split('/').pop()?.split('?')[0] || 'n/a'})`);
         }
       } catch (pollErr: any) {
         // If status check fails, wait and retry

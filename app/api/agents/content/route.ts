@@ -1082,7 +1082,24 @@ async function publishToInstagram(
       // Reels/video: publish as Instagram Reel (video required)
       if (post.video_url) {
         console.log('[Content] Publishing Instagram REEL with video');
-        result = await publishReelToInstagram(igUserId, pageAccessToken, post.video_url, fullCaption);
+        try {
+          result = await publishReelToInstagram(igUserId, pageAccessToken, post.video_url, fullCaption);
+        } catch (reelErr: any) {
+          // Incident récurrent (digest admin) : IG rejette parfois la vidéo au
+          // traitement ('processing failed'). On NE PERD PAS le post — on republie
+          // l'image hero du reel pour que le client publie quand même, et on trace
+          // la cause pour diagnostic. Un rejet de FORMAT est irrécupérable en
+          // re-tentant la même vidéo → fallback image immédiat plutôt qu'échec sec.
+          const msg = String(reelErr?.message || '');
+          const isVideoReject = /processing failed|not supported|unsupported|invalid.*(format|video|media)|2207|aspect|duration/i.test(msg);
+          if (isVideoReject && post.visual_url) {
+            console.warn(`[Content] REEL rejeté par IG → fallback image (post ${post.id}). Raison: ${msg.slice(0, 180)}`);
+            result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url, fullCaption);
+            (result as any).__videoFallback = { reason: msg.slice(0, 300) };
+          } else {
+            throw reelErr;
+          }
+        }
       } else if (post.visual_url) {
         // No video available — fallback to image post
         console.log('[Content] Reel requested but no video — falling back to image post');
@@ -1155,6 +1172,28 @@ async function publishToInstagram(
 
     console.log(`[Content] Instagram publish success — media id: ${result.id}${result.permalink ? `, permalink: ${result.permalink}` : ''}`);
 
+    // Reel tombé en fallback image : incident ABSORBÉ (post publié), donc pas
+    // d'escalade P0/email. On trace la VRAIE raison IG en 'info' dans agent_logs
+    // → le digest la fait remonter (au lieu d'un 'ERROR' opaque) pour diagnostic
+    // du pattern format, et ça compte comme succès dégradé, pas comme échec.
+    const videoFellBack = !!(result as any).__videoFallback;
+    if (videoFellBack) {
+      try {
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'reel_video_fallback_to_image',
+          status: 'info',
+          data: {
+            reason: (result as any).__videoFallback.reason || 'Instagram video processing failed',
+            post_id: post.id,
+            note: 'Reel rejeté par IG → publié en IMAGE (client n\'a rien perdu). Cause probable: codec/aspect/durée/audio non supportés.',
+            video_url: (post.video_url || '').split('/').pop()?.split('?')[0] || null,
+          },
+          created_at: new Date().toISOString(),
+        });
+      } catch (e: any) { console.warn('[Content] fallback diagnostic log failed:', e?.message); }
+    }
+
     // Auto-save to instagram_posts table for instant gallery/thumbnail update.
     // Writes under the actual post owner (client or org owner) so the library
     // widget's `WHERE user_id = currentUser` query picks it up immediately.
@@ -1171,10 +1210,10 @@ async function publishToInstagram(
         user_id: ownerId,
         caption: fullCaption.substring(0, 2000),
         permalink: result.permalink || `https://www.instagram.com/p/${result.id}/`,
-        media_type: format === 'reel' || format === 'video' ? 'VIDEO' : format === 'story' ? 'STORY' : format === 'carrousel' ? 'CAROUSEL_ALBUM' : 'IMAGE',
+        media_type: videoFellBack ? 'IMAGE' : (format === 'reel' || format === 'video' ? 'VIDEO' : format === 'story' ? 'STORY' : format === 'carrousel' ? 'CAROUSEL_ALBUM' : 'IMAGE'),
         posted_at: new Date().toISOString(),
-        original_media_url: post.video_url || post.visual_url || '',
-        cached_media_url: post.video_url || post.visual_url || '',
+        original_media_url: (videoFellBack ? post.visual_url : (post.video_url || post.visual_url)) || '',
+        cached_media_url: (videoFellBack ? post.visual_url : (post.video_url || post.visual_url)) || '',
         synced_at: new Date().toISOString(),
       }, { onConflict: 'id' });
       console.log(`[Content] Post saved to instagram_posts under owner ${ownerId} for gallery auto-refresh`);
