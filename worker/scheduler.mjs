@@ -137,6 +137,7 @@ const GLOBAL_SCHEDULE = [
   { cron: '10 5 * * *',   path: '/api/cron/auto-remediate', label: 'Safe Auto-Remediation (invalid-email cleanup, low-risk data hygiene)' },
   { cron: '30 5,17 * * *', path: '/api/cron/tiktok-stats', label: 'TikTok real stats → engagement_data + outcome_events (moat)' },
   { cron: '0 10 * * *',   path: '/api/cron/trial-nurture', label: 'Trial Nurture J1/J3/J5 (essai→payant conversion)' },
+  { cron: '0 8 * * 1',    path: '/api/cron/client-health-score', label: 'Client Health-Score (anti-churn, admin alert Monday)' },
   // 2026-06-09 — Every 30min. Real-time anomaly detector (6 kinds:
   // error_burst, success_drop, publish_silence, agent_down,
   // new_error_pattern, token_expiring). P0 anomalies trigger an
