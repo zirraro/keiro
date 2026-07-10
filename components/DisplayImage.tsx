@@ -83,9 +83,13 @@ export default function DisplayImage({
   // If the transformed (render) URL fails for any reason, fall back to the
   // untouched original so a thumbnail is never broken.
   const [imgSrc, setImgSrc] = useState(finalSrc);
-  useEffect(() => { setImgSrc(finalSrc); }, [finalSrc]);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setImgSrc(finalSrc); setFailed(false); }, [finalSrc]);
 
-  if (!finalSrc) return null;
+  // Échec définitif (URL transformée ET originale cassées) → on se retire pour
+  // laisser apparaître le placeholder du parent, plutôt qu'une image cassée sur
+  // fond noir (founder vidéo 10/07).
+  if (!finalSrc || failed) return null;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -101,6 +105,7 @@ export default function DisplayImage({
       onClick={onClick}
       onError={(e) => {
         if (src && imgSrc !== src) { setImgSrc(src); return; } // retry with original
+        setFailed(true);
         onError?.(e);
       }}
       draggable={draggable}

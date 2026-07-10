@@ -95,14 +95,19 @@ export default function ImageCard({
       {/* Square aspect for IG-style consistency. Was aspect-video which
           made every gallery tile a wide cinema crop, very off for what
           is overwhelmingly square IG content. */}
-      <div className="relative aspect-square bg-neutral-900 cursor-pointer overflow-hidden" onClick={() => setShowPreview(true)}>
-        <DisplayImage
+      <div className="relative aspect-square bg-neutral-100 dark:bg-neutral-800 cursor-pointer overflow-hidden" onClick={() => setShowPreview(true)}>
+        {/* Placeholder propre (au lieu d'une vignette NOIRE) si l'image manque/casse. */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 text-neutral-400">
+          <span className="text-2xl">🖼️</span>
+          <span className="text-[10px] px-2 text-center line-clamp-1">{image.title || image.news_title || 'Visuel'}</span>
+        </div>
+        {(image.thumbnail_url || image.image_url) && <DisplayImage
           src={image.thumbnail_url || image.image_url}
           alt={image.title || image.news_title || 'Image'}
           width={400}
-          className="w-full h-full object-cover"
+          className="relative w-full h-full object-cover"
           loading="lazy"
-        />
+        />}
         {/* Zoom overlay on hover */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
           <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
