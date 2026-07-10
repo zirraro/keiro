@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Tailwind v4 : la variante dark: suit la CLASSE .dark de l'app (posée par le
+   script anti-flash de layout.tsx + ThemeProvider), et NON le prefers-color-scheme
+   de l'OS. Sans ça, sur un OS sombre + app en clair, le texte dark: (clair)
+   s'affichait sur fond clair = illisible (bug founder « mode clair cata »).
+   darkMode:'class' dans tailwind.config.js est ignoré par v4 → il FAUT ceci. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
