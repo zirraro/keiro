@@ -25,7 +25,7 @@ export const CAPABILITIES: Record<string, Capability> = {
   // ── Léna (contenu) ──
   content_tiktok:   { key: 'content_tiktok',   agent: 'content', status: 'live',  billable: true },
   content_linkedin: { key: 'content_linkedin', agent: 'content', status: 'live',  billable: true },
-  content_instagram:{ key: 'content_instagram',agent: 'content', status: 'soon',  billable: false }, // publish IG = approbation Meta PENDING → flip 'live' le jour J
+  content_instagram:{ key: 'content_instagram',agent: 'content', status: 'live',  billable: true }, // ✅ Meta a approuvé instagram_business_content_publish (10/07/2026) — flip Jour-J fait
   // ── Jade (DM/commentaires) ──
   dm_instagram:     { key: 'dm_instagram',     agent: 'dm_instagram', status: 'live', billable: true },
   // ── Théo (réputation + SEO) ──
