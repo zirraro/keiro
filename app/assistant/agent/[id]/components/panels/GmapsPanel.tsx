@@ -171,6 +171,19 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleNeedsLocation, setGoogleNeedsLocation] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  // Théo v2 — collecte d'avis (lien officiel + QR).
+  const [collectLink, setCollectLink] = useState<{ reviewUrl: string | null; qrUrl: string | null; source?: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  useEffect(() => {
+    if (!googleConnected) return;
+    let cancelled = false;
+    fetch('/api/agents/reviews/collect-link', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (!cancelled && d?.ok && d.reviewUrl) setCollectLink({ reviewUrl: d.reviewUrl, qrUrl: d.qrUrl, source: d.source }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [googleConnected]);
 
   useEffect(() => {
     let cancelled = false;
@@ -298,6 +311,50 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       </div>
 
       </div>{/* close google-reviews data-tour */}
+
+      {/* THÉO v2 — Collecte d'avis : lien officiel + QR (kit vitrine / post-visite) */}
+      {googleConnected && collectLink?.reviewUrl && (
+        <>
+          <SectionTitle>{isEn ? 'Collect new reviews' : 'Collecter de nouveaux avis'}</SectionTitle>
+          <div className="bg-white/5 rounded-xl border border-white/10 p-4 flex flex-col sm:flex-row gap-4 items-center">
+            {collectLink.qrUrl && (
+              <img
+                src={collectLink.qrUrl}
+                alt={isEn ? 'Review QR code' : 'QR code avis'}
+                className="w-32 h-32 rounded-lg bg-white p-1.5 flex-shrink-0"
+                loading="lazy"
+              />
+            )}
+            <div className="flex-1 min-w-0 w-full text-center sm:text-left">
+              <p className="text-sm text-white/80 font-medium mb-1">
+                {isEn ? 'Turn happy visits into 5★ reviews' : 'Transforme les visites contentes en avis 5★'}
+              </p>
+              <p className="text-xs text-white/50 leading-snug mb-3">
+                {isEn
+                  ? 'Print the QR for your counter/window, or send the link after a visit. Théo replies to every review → better local SEO.'
+                  : 'Imprime le QR pour ton comptoir/vitrine, ou envoie le lien après une visite. Théo répond à chaque avis → meilleur SEO local.'}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(collectLink.reviewUrl || ''); setCopiedLink(true); setTimeout(() => setCopiedLink(false), 1800); }}
+                  className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition-all active:scale-95"
+                >
+                  {copiedLink ? (isEn ? 'Copied ✓' : 'Copié ✓') : (isEn ? 'Copy review link' : 'Copier le lien d’avis')}
+                </button>
+                {collectLink.qrUrl && (
+                  <a
+                    href={collectLink.qrUrl}
+                    download="qr-avis-google.png"
+                    className="px-3 py-2 rounded-lg border border-white/15 text-white/80 hover:bg-white/5 text-xs font-medium text-center transition-all"
+                  >
+                    {isEn ? 'Download QR' : 'Télécharger le QR'}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Bottom padding for mobile nav */}
       <div className="pb-16 lg:pb-0" />
