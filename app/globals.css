@@ -1260,7 +1260,7 @@ html.light .dark-section [class*="text-[#"] { color: inherit; } /* laisse les he
    sombres subtiles). Spécificité `html.light .agent-panel-lightfix .text-white` (0,3,1)
    > base `html.light .text-white` (0,2,1), + !important → gagne à coup sûr. */
 html.light .agent-panel-lightfix .text-white { color: #1f2937 !important; }
-html.light .agent-panel-lightfix [class*="text-white\/"] { color: rgba(31,41,55,0.66) !important; }
+html.light .agent-panel-lightfix [class*="text-white\/"] { color: rgba(31,41,55,0.82) !important; }
 html.light .agent-panel-lightfix [class*="text-gray-"], html.light .agent-panel-lightfix [class*="text-slate-"],
 html.light .agent-panel-lightfix [class*="text-neutral-"], html.light .agent-panel-lightfix [class*="text-zinc-"] { color: #475569 !important; }
 /* cartes glass : teinte claire subtile + bordure pour les DÉFINIR sur fond clair */
@@ -1269,12 +1269,20 @@ html.light .agent-panel-lightfix [class*="border-white\/"] { border-color: rgba(
 /* placeholders + inputs foncés */
 html.light .agent-panel-lightfix input, html.light .agent-panel-lightfix textarea { color: #1f2937 !important; }
 html.light .agent-panel-lightfix input::placeholder, html.light .agent-panel-lightfix [class*="placeholder-"]::placeholder { color: rgba(31,41,55,0.4) !important; }
-/* EXCEPTION : garder le texte BLANC sur les boutons/badges à fond coloré (dégradé de
-   CLASSE from-/to-). Placé APRÈS → gagne à spécificité égale. Le header agent utilise un
-   dégradé INLINE (non ciblé) → il garde bien son texte foncé sur fond pâle. */
-html.light .agent-panel-lightfix [class*="from-"][class*="to-"],
-html.light .agent-panel-lightfix [class*="bg-gradient-to"],
-html.light .agent-panel-lightfix a[class*="bg-[#"], html.light .agent-panel-lightfix button[class*="bg-[#"] { color: #ffffff !important; }
+/* EXCEPTION : garder le texte BLANC UNIQUEMENT sur les vrais BOUTONS/LIENS à fond
+   coloré (button/a) — PAS sur les CARTES <div> à dégradé (header AMI, KPIs), qui
+   deviennent pâles en clair et dont le texte doit rester FONCÉ pour être lisible.
+   (Bug vidéo 10/07 : l'exception visait tout [class*=from-] → texte blanc invisible.) */
+html.light .agent-panel-lightfix button[class*="from-"][class*="to-"],
+html.light .agent-panel-lightfix button[class*="bg-gradient-to"],
+html.light .agent-panel-lightfix button[class*="bg-[#"],
+html.light .agent-panel-lightfix a[class*="from-"][class*="to-"],
+html.light .agent-panel-lightfix a[class*="bg-gradient-to"],
+html.light .agent-panel-lightfix a[class*="bg-[#"] { color: #ffffff !important; }
+/* Texte en dégradé (bg-clip-text) → solide foncé dans le panel en clair. */
+html.light .agent-panel-lightfix [class*="bg-clip-text"] {
+  color: #1f2937 !important; -webkit-text-fill-color: #1f2937 !important; background: none !important;
+}
 
 /* ===== FILET DE SÉCURITÉ MODE CLAIR — couverture exhaustive (audit Fable 5, 07/07) =====
    Le design est dark-first (2776 text-white, 621 gris clairs, 517 border-white…).
