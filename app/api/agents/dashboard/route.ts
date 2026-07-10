@@ -333,13 +333,16 @@ async function getCommercialData(
     supabase.from('crm_prospects').select('id', { count: 'exact', head: true }),
   );
 
-  // Activities for those prospects
-  const prospectIds = prospectList.map((p: any) => p.id);
+  // Activities for those prospects — PERF (10/07) : on ne remonte qu'un feed de
+  // 20 activités récentes, donc inutile de passer 2000 IDs dans un .in() (URL/
+  // requête énorme = lenteur de la page agent). On plafonne aux 200 prospects
+  // les plus récents + colonnes utiles.
+  const prospectIds = prospectList.slice(0, 200).map((p: any) => p.id);
   let activities: Array<Record<string, unknown>> = [];
   if (prospectIds.length > 0) {
     const { data: acts } = await supabase
       .from('crm_activities')
-      .select('*')
+      .select('id, prospect_id, type, description, created_at')
       .in('prospect_id', prospectIds)
       .order('created_at', { ascending: false })
       .limit(20);
