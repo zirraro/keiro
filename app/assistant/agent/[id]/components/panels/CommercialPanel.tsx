@@ -166,6 +166,99 @@ function completeness(p: any): { pct: number; missing: string[] } {
 }
 
 // Internal helper — standalone launch button for Leo's proactive scraping.
+// LÉO — Prospection téléphonique (founder 10/07) : sélectionne secteur/zone →
+// Léo empile les prospects à appeler avec l'action recommandée + les infos de
+// fiche ; le founder marque le résultat → la fiche se met à jour.
+function PhoneProspection() {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
+  const [sector, setSector] = useState('');
+  const [city, setCity] = useState('');
+  const [list, setList] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams({ ...(sector ? { sector } : {}), ...(city ? { city } : {}) }).toString();
+      const res = await fetch(`/api/agents/commercial/call-list?${qs}`, { credentials: 'include' });
+      const d = await res.json();
+      setList(d?.ok ? d.callList : []);
+    } catch { setList([]); }
+    setLoading(false);
+  }, [sector, city]);
+
+  const mark = useCallback(async (id: string, outcome: string) => {
+    setBusy(id);
+    try {
+      await fetch('/api/agents/commercial/call-outcome', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ prospectId: id, outcome }),
+      });
+      setList(prev => (prev || []).filter(p => p.id !== id)); // retiré de la file
+    } catch { /* noop */ }
+    setBusy(null);
+  }, []);
+
+  const TEMP: Record<string, string> = { hot: 'bg-red-500/20 text-red-300', warm: 'bg-amber-500/20 text-amber-200', cold: 'bg-white/10 text-white/50', dead: 'bg-white/5 text-white/30' };
+
+  return (
+    <div className="mt-4">
+      <SectionTitle>{isEn ? '📞 Phone prospecting — your call list' : '📞 Prospection téléphonique — ta liste à appeler'}</SectionTitle>
+      <p className="text-[11px] text-white/50 mb-2">{isEn ? 'Pick a sector/zone, Léo stacks the prospects to call (with a recommended action). Mark each result — the fiche updates and feeds the strategy.' : 'Choisis un secteur/zone, Léo empile les prospects à appeler (avec l\'action recommandée). Marque chaque résultat — la fiche se met à jour et nourrit la stratégie.'}</p>
+      <div className="flex flex-col sm:flex-row gap-2 mb-3">
+        <input value={sector} onChange={e => setSector(e.target.value)} placeholder={isEn ? 'Sector (e.g. beauty)' : 'Secteur (ex : institut)'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
+        <input value={city} onChange={e => setCity(e.target.value)} placeholder={isEn ? 'City/zone' : 'Ville/zone'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
+        <button onClick={load} disabled={loading} className="px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-semibold disabled:opacity-50 active:scale-95 transition-all">
+          {loading ? '…' : (isEn ? 'Load list' : 'Charger la liste')}
+        </button>
+      </div>
+
+      {list && list.length === 0 && (
+        <p className="text-xs text-white/40 py-3 text-center">{isEn ? 'No prospect to call for this selection.' : 'Aucun prospect à appeler pour cette sélection.'}</p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {(list || []).map((p: any) => (
+          <div key={p.id} className="rounded-xl bg-white/5 border border-white/10 p-3">
+            <div className="flex items-start justify-between gap-2 flex-wrap">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-white">{p.name}</span>
+                  {p.company && <span className="text-xs text-white/50">· {p.company}</span>}
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${TEMP[p.temperature] || TEMP.cold}`}>{p.temperature}</span>
+                </div>
+                <div className="text-[11px] text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>
+              </div>
+              <a href={`tel:${p.phone}`} className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 text-sm font-semibold whitespace-nowrap active:scale-95">📞 {p.phone}</a>
+            </div>
+            <div className="mt-2 text-[11px] text-orange-200 bg-orange-500/10 border border-orange-500/15 rounded-lg px-2 py-1.5">
+              <strong>{isEn ? 'Action:' : 'Action :'}</strong> {p.recommended_action}
+            </div>
+            {(p.fiche?.notes || p.fiche?.summary) && (
+              <p className="mt-1.5 text-[11px] text-white/50 line-clamp-2">{p.fiche.summary || p.fiche.notes}</p>
+            )}
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {[
+                { k: 'reached_interested', l: isEn ? '✅ Interested' : '✅ Intéressé' },
+                { k: 'follow_up', l: isEn ? '🔁 Follow up' : '🔁 À relancer' },
+                { k: 'not_reached', l: isEn ? '📵 No answer' : '📵 Pas joint' },
+                { k: 'reached_not_interested', l: isEn ? '🚫 Not interested' : '🚫 Pas intéressé' },
+              ].map(o => (
+                <button key={o.k} onClick={() => mark(p.id, o.k)} disabled={busy === p.id}
+                  className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-[11px] font-medium disabled:opacity-40 active:scale-95 transition-all">
+                  {o.l}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LaunchProspectionButton() {
   const { t } = useLanguage();
   const p = t.panels;
@@ -322,6 +415,8 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       {/* Direction controls — what to prospect & how to focus */}
       <SectionTitle>Direction de Léo</SectionTitle>
       <LeoDirectionPanel />
+
+      <PhoneProspection />
 
       {/* Latest additions — proves Léo is working, shows quality */}
       <SectionTitle>{'📋'} Derniers ajouts de Léo</SectionTitle>
