@@ -356,6 +356,10 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
         </div>
       </div>
 
+      {/* Prospection téléphonique — action PRIMAIRE, remontée en haut (founder :
+          l'onglet était trop bas/invisible). Le founder appelle, marque le résultat. */}
+      <PhoneProspection />
+
       <SectionTitle>{p.commercialSectionChannel}</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
@@ -415,8 +419,6 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       {/* Direction controls — what to prospect & how to focus */}
       <SectionTitle>Direction de Léo</SectionTitle>
       <LeoDirectionPanel />
-
-      <PhoneProspection />
 
       {/* Latest additions — proves Léo is working, shows quality */}
       <SectionTitle>{'📋'} Derniers ajouts de Léo</SectionTitle>
