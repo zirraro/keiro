@@ -955,7 +955,7 @@ export default function AssistantPage() {
       {/* Strategy onboarding popup — shows once for new paying clients */}
       <StrategyOnboarding />
 
-      <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8 agent-panel-lightfix">
 
         {/* ═══ WORKSPACE HEADER ═══ */}
         <div className="mb-6">
