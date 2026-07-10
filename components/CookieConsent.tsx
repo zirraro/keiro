@@ -16,13 +16,24 @@ export default function CookieConsent() {
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem('keiro_cookie_consent')) setVisible(true);
-    } catch { /* SSR / private mode */ }
+      // Persisté via COOKIE domaine-parent (.keiroai.com) → une seule demande par
+      // visiteur, partagée entre www / non-www (localStorage diffère entre eux et
+      // ne survit pas à la navigation privée). localStorage = secours.
+      const fromCookie = /(?:^|;\s*)keiro_cookie_consent=(granted|denied)/.exec(document.cookie);
+      let stored = fromCookie?.[1] || null;
+      if (!stored) { try { stored = localStorage.getItem('keiro_cookie_consent'); } catch { /* noop */ } }
+      if (!stored) setVisible(true);
+    } catch { /* SSR */ }
   }, []);
 
   const decide = (granted: boolean) => {
     try {
-      localStorage.setItem('keiro_cookie_consent', granted ? 'granted' : 'denied');
+      const val = granted ? 'granted' : 'denied';
+      // Cookie 1 an sur le domaine parent → jamais re-demandé sur tout keiroai.com.
+      const host = window.location.hostname;
+      const domain = host.endsWith('keiroai.com') ? '; domain=.keiroai.com' : '';
+      document.cookie = `keiro_cookie_consent=${val}; max-age=31536000; path=/${domain}; SameSite=Lax`;
+      try { localStorage.setItem('keiro_cookie_consent', val); } catch { /* noop */ }
       const w = window as any;
       if (typeof w.gtag === 'function') {
         w.gtag('consent', 'update', {

@@ -268,7 +268,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
   const Panel = config?.Panel ?? GenericPanel;
 
   return (
-    <div className="overflow-y-auto w-full">
+    <div className="overflow-y-auto w-full agent-panel-lightfix">
       {/* Agent identity band */}
       <div className="rounded-t-2xl px-5 py-4 mb-0" style={{ background: `linear-gradient(135deg, ${gradientFrom}25, ${gradientTo}15)`, borderBottom: `2px solid ${gradientFrom}40` }}>
         <div className="flex items-center justify-between">

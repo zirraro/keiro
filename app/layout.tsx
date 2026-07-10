@@ -98,7 +98,9 @@ export default function RootLayout({
                 security_storage:'granted', wait_for_update:500
               });
               try {
-                if (localStorage.getItem('keiro_cookie_consent') === 'granted') {
+                var m = /(?:^|;\\s*)keiro_cookie_consent=(granted|denied)/.exec(document.cookie);
+                var consent = (m && m[1]) || localStorage.getItem('keiro_cookie_consent');
+                if (consent === 'granted') {
                   gtag('consent','update',{
                     ad_storage:'granted', ad_user_data:'granted',
                     ad_personalization:'granted', analytics_storage:'granted'

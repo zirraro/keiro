@@ -1252,6 +1252,30 @@ html.light .dark-section [class*="text-gray-"], html.light .dark-section [class*
 html.light .dark-section [class*="text-neutral-"], html.light .dark-section [class*="text-zinc-"] { color: rgba(255, 255, 255, 0.82) !important; }
 html.light .dark-section [class*="text-[#"] { color: inherit; } /* laisse les hex décoratifs (déjà pensés clair sur navy) */
 
+/* ===== DASHBOARDS AGENTS — VRAI mode clair lisible (vidéo founder 10/07) =====
+   En mode clair, le dashboard doit être CLAIR (fond clair, texte FONCÉ), pas sombre.
+   Les panels sont dark-first (cartes dégradé inline pâle + text-white) → mon filet de
+   base les lavait (texte pâle sur carte pâle = illisible sur TOUS les agents). Ici on
+   force, DANS le panel, du texte FONCÉ + des surfaces claires définies (teinte + bordure
+   sombres subtiles). Spécificité `html.light .agent-panel-lightfix .text-white` (0,3,1)
+   > base `html.light .text-white` (0,2,1), + !important → gagne à coup sûr. */
+html.light .agent-panel-lightfix .text-white { color: #1f2937 !important; }
+html.light .agent-panel-lightfix [class*="text-white\/"] { color: rgba(31,41,55,0.66) !important; }
+html.light .agent-panel-lightfix [class*="text-gray-"], html.light .agent-panel-lightfix [class*="text-slate-"],
+html.light .agent-panel-lightfix [class*="text-neutral-"], html.light .agent-panel-lightfix [class*="text-zinc-"] { color: #475569 !important; }
+/* cartes glass : teinte claire subtile + bordure pour les DÉFINIR sur fond clair */
+html.light .agent-panel-lightfix [class*="bg-white\/"] { background-color: rgba(15,23,42,0.035) !important; }
+html.light .agent-panel-lightfix [class*="border-white\/"] { border-color: rgba(15,23,42,0.10) !important; }
+/* placeholders + inputs foncés */
+html.light .agent-panel-lightfix input, html.light .agent-panel-lightfix textarea { color: #1f2937 !important; }
+html.light .agent-panel-lightfix input::placeholder, html.light .agent-panel-lightfix [class*="placeholder-"]::placeholder { color: rgba(31,41,55,0.4) !important; }
+/* EXCEPTION : garder le texte BLANC sur les boutons/badges à fond coloré (dégradé de
+   CLASSE from-/to-). Placé APRÈS → gagne à spécificité égale. Le header agent utilise un
+   dégradé INLINE (non ciblé) → il garde bien son texte foncé sur fond pâle. */
+html.light .agent-panel-lightfix [class*="from-"][class*="to-"],
+html.light .agent-panel-lightfix [class*="bg-gradient-to"],
+html.light .agent-panel-lightfix a[class*="bg-[#"], html.light .agent-panel-lightfix button[class*="bg-[#"] { color: #ffffff !important; }
+
 /* ===== FILET DE SÉCURITÉ MODE CLAIR — couverture exhaustive (audit Fable 5, 07/07) =====
    Le design est dark-first (2776 text-white, 621 gris clairs, 517 border-white…).
    Migration composant-par-composant = des semaines → on force la lisibilité
