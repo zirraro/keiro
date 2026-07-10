@@ -29,18 +29,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (p === 'light' || p === 'dark') forced = p;
     } catch { /* noop */ }
     const saved = forced || (localStorage.getItem('keiro_theme') as Theme | null);
-    if (saved === 'light' || saved === 'dark') {
-      setThemeState(saved);
-      document.documentElement.classList.toggle('light', saved === 'light');
-      if (forced) { try { localStorage.setItem('keiro_theme', forced); } catch { /* noop */ } }
-    }
+    // Défaut = dark si rien de sauvegardé (aligné sur le script anti-flash).
+    const eff: Theme = (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    setThemeState(eff);
+    // On pose .light ET .dark (mutuellement exclusifs) : darkMode='class' → les
+    // variantes dark: suivent le thème app. Sans .dark, elles seraient inactives.
+    const el = document.documentElement;
+    el.classList.toggle('light', eff === 'light');
+    el.classList.toggle('dark', eff !== 'light');
+    if (forced) { try { localStorage.setItem('keiro_theme', forced); } catch { /* noop */ } }
     setMounted(true);
   }, []);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('keiro_theme', newTheme);
-    document.documentElement.classList.toggle('light', newTheme === 'light');
+    const el = document.documentElement;
+    el.classList.toggle('light', newTheme === 'light');
+    el.classList.toggle('dark', newTheme !== 'light');
   };
 
   const toggleTheme = () => {

@@ -80,8 +80,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <head>
+        {/* Thème AVANT peinture (anti-flash) — pose .dark/.light sur <html> en
+            lisant ?theme / cookie / localStorage. Défaut = dark. Indispensable
+            depuis que Tailwind darkMode='class' : les variantes dark: suivent
+            désormais le thème de l'APP (et non plus l'OS), donc la classe doit
+            être présente dès le 1er rendu, sinon flash + pages illisibles. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=new URLSearchParams(location.search).get('theme');var s=(p==='light'||p==='dark')?p:(localStorage.getItem('keiro_theme'));var light=s==='light';var el=document.documentElement;el.classList.toggle('light',light);el.classList.toggle('dark',!light);if(p==='light'||p==='dark'){try{localStorage.setItem('keiro_theme',p);}catch(e){}}}catch(e){document.documentElement.classList.add('dark');}})();`
+          }}
+        />
         {/* Consent Mode v2 — DÉFAUT refusé (conformité UE) : GTM/gtag ne posent
             aucun cookie tant que l'utilisateur n'a pas accepté via la bannière.
             Doit s'exécuter AVANT le chargement de GTM. */}

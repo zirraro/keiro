@@ -1,5 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Les variantes `dark:` suivent le thème de l'APP (classe .dark posée par le
+  // script anti-flash de layout.tsx + ThemeProvider), PAS l'OS. Avant, darkMode
+  // défaut='media' → sur un OS sombre mais app en clair, le texte dark: (clair)
+  // s'affichait sur fond clair = illisible (bug founder « mode clair cata »).
+  darkMode: 'class',
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
