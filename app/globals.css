@@ -1339,12 +1339,16 @@ html.light .placeholder-gray-300::placeholder, html.light .placeholder-gray-400:
 html.light .placeholder-slate-300::placeholder, html.light .placeholder-slate-400::placeholder { color: #6b7280 !important; }
 
 /* EXCEPTION : sur les surfaces sombres de marque (navy/purple, non éclaircies en
-   clair), garder les gris CLAIRS — sinon on les rend foncés = illisibles sur navy. */
+   clair), garder les gris CLAIRS — sinon on les rend foncés = illisibles sur navy.
+   IMPORTANT : on EXCLUT les cartes light-first (bg-white dark:bg-[#0c1a3a]) — leur
+   fond sombre n'est actif QU'EN mode sombre (préfixe dark:). En clair elles sont
+   BLANCHES, donc leur texte doit rester FONCÉ (bug carte essai pricing 10/07 :
+   [class*="bg-[#0c1a3a]"] matchait aussi la sous-chaîne "dark:bg-[#0c1a3a]"). */
 html.light :is(
   [class*="from-[#0c1a3a]"], [class*="to-[#0c1a3a]"], [class*="via-[#132d54]"],
   [class*="from-[#1e3a5f]"], [class*="to-[#1e3a5f]"], [class*="bg-[#0c1a3a]"],
   [class*="bg-[#1e3a5f]"], [class*="from-purple-6"], [class*="from-purple-7"]
-) :is([class*="text-gray-"], [class*="text-slate-"], [class*="text-zinc-"], [class*="text-neutral-"]) {
+):not([class*="dark:bg-"]):not([class*="dark:from-"]):not([class*="dark:to-"]):not([class*="dark:via-"]) :is([class*="text-gray-"], [class*="text-slate-"], [class*="text-zinc-"], [class*="text-neutral-"]) {
   color: rgba(255, 255, 255, 0.82) !important;
 }
 
@@ -1365,7 +1369,7 @@ html.light :is(
   [class*="bg-[#1e3a5f]"],
   [class*="from-purple-600"],
   [class*="from-purple-700"]
-).text-white,
+):not([class*="dark:bg-"]):not([class*="dark:from-"]):not([class*="dark:to-"]):not([class*="dark:via-"]).text-white,
 html.light :is(
   [class*="from-[#0c1a3a]"],
   [class*="via-[#132d54]"],
@@ -1376,7 +1380,7 @@ html.light :is(
   [class*="bg-[#1e3a5f]"],
   [class*="from-purple-600"],
   [class*="from-purple-700"]
-) [class*="text-white"] {
+):not([class*="dark:bg-"]):not([class*="dark:from-"]):not([class*="dark:to-"]):not([class*="dark:via-"]) [class*="text-white"] {
   color: #fff !important;
 }
 
