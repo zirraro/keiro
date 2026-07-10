@@ -496,29 +496,25 @@ export async function isAdmin(userId: string): Promise<boolean> {
 }
 
 /**
- * Extrait l'IP depuis les headers de la request.
+ * Extrait l'IP CLIENT réelle, non-spoofable pour NOTRE infra (vérifiée 10/07 :
+ * nginx en direct, PAS de Cloudflare).
  *
- * ⚠️ LIMITE DE SÉCURITÉ CONNUE (à corriger avec vérif du proxy) : on lit
- * X-Forwarded-For[0] (valeur la PLUS À GAUCHE), qui est CONTRÔLABLE par le
- * client → un attaquant peut spoofer une IP différente à chaque requête et
- * contourner le plafond gratuit + la garde anti-burst. Ma garde anti-burst
- * (checkFreeGeneration) n'arrête donc que l'abus naïf.
+ * nginx est configuré avec `X-Forwarded-For $proxy_add_x_forwarded_for`, ce qui
+ * APPENDE le vrai peer TCP ($remote_addr) à DROITE de tout XFF envoyé par le
+ * client. Donc :
+ *  - les valeurs de GAUCHE sont contrôlables par le client (spoofables) ;
+ *  - la DERNIÈRE valeur = celle posée par nginx = l'IP réelle, NON spoofable.
+ * On prend donc la dernière → la garde free-gen / anti-burst ne se contourne
+ * plus par un header X-Forwarded-For bidon.
  *
- * FIX CORRECT (à faire une fois la chaîne de proxy vérifiée sur le VPS) :
- *  - si derrière Cloudflare : utiliser `cf-connecting-ip` (CF écrase toute
- *    valeur client → non spoofable) ;
- *  - si nginx seul : configurer nginx pour SETTER x-real-ip = $remote_addr
- *    (non spoofable) et lire CE header, ou prendre la Nième valeur XFF depuis
- *    la droite selon le nb de proxys de confiance.
- * NE PAS préférer cf-connecting-ip/x-real-ip à l'aveugle : si on n'est PAS
- * derrière le proxy qui les pose, ces headers deviennent eux-mêmes spoofables.
- * Défense robuste finale = captcha au seuil (Fable 5 §5), IP/fingerprint étant
- * tous deux falsifiables.
+ * ⚠️ Si un jour on met Cloudflare devant : il faudra lire `cf-connecting-ip`
+ * (la dernière valeur XFF deviendrait l'IP de CF, plus celle du client).
  */
 export function getClientIP(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    const parts = forwarded.split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
   }
   return request.headers.get('x-real-ip') || '0.0.0.0';
 }
