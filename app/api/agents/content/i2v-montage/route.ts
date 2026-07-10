@@ -6,6 +6,7 @@ import { searchPixabayImages } from '@/lib/stock/pixabay';
 import { generateJadeImage, generateJadeImageFromReference } from '@/lib/visuals/jade-prompter';
 import { assessReelQuality } from '@/lib/visuals/reel-qc';
 import { curateCoherentPhotos } from '@/lib/visuals/photo-curator';
+import { getClientLanguage } from '@/lib/agents/client-language';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -149,6 +150,10 @@ export async function POST(req: NextRequest) {
   // Capture non-null values — TS loses `post` narrowing inside the closure below.
   const pId: string = post.id;
   const pUserId: string = (post.user_id || '') as string;
+  // Langue du client (business_dossiers.communication_language, défaut FR) pour
+  // le hook texte ET la voix — founder 10/07 : audio/texte dans la langue du
+  // client, jamais anglais par défaut sur un client FR. Fait partie du QC.
+  const clientLang: 'fr' | 'en' = ((await getClientLanguage(supabase, post.user_id)) === 'en' ? 'en' : 'fr');
   const cs: string = cronSecret;
   // TikTok PREPARE mode (founder): deliver the reel SILENT (no baked music) so a
   // trending TikTok sound is added in-app (top reach factor the API can't do),
@@ -158,12 +163,12 @@ export async function POST(req: NextRequest) {
 
   async function generateOnce(): Promise<{ url: string | null; method: string }> {
     if (clientVideos.length > 0) {
-      return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: pId, durationSec: plan.durationSec, hookTopic, hookLang: 'fr', bakeAudio }) };
+      return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: pId, durationSec: plan.durationSec, hookTopic, hookLang: clientLang, bakeAudio }) };
     }
     if (body.useI2v === true) {
       // Cap scenes to sceneN (≤3) like the other modes — i2v is the costliest
       // path (1 Seedance job + 150s poll per scene), don't run the full plan.
-      return { method: 'i2v', url: await runI2vMontage({ scenes: scenes.slice(0, sceneN), pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined, bakeAudio }) };
+      return { method: 'i2v', url: await runI2vMontage({ scenes: scenes.slice(0, sceneN), pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: clientLang, baseImageUrl: clientBaseImage || undefined, bakeAudio }) };
     }
     if (body.useStock === true) {
       let stock: string[] = [];
@@ -173,7 +178,7 @@ export async function POST(req: NextRequest) {
         const scored = imgs.map((im: any) => ({ url: im.largeImageURL, score: qWords.reduce((s, w) => s + ((im.tags || '').toLowerCase().includes(w) ? 1 : 0), 0) })).filter((x: any) => x.url && x.score > 0).sort((a: any, b: any) => b.score - a.score);
         stock = scored.length ? scored.map((x: any) => x.url) : imgs.map((i: any) => i.largeImageURL).filter(Boolean);
       } catch { /* optional */ }
-      return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
+      return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: clientLang, bakeAudio }) };
     }
     if (body.realShowcase === true) {
       // VRAI COMMERCE (founder): un commerce a déjà publié SES photos → même lieu
@@ -208,7 +213,7 @@ export async function POST(req: NextRequest) {
       photos = photos.slice(0, 3);
       if (!photos.length) return { method: 'real_showcase', url: null };
       const sc = Math.min(photos.length, 3);
-      return { method: usedClientPhotos ? 'client_photos' : 'real_business_photos', url: await runKenBurnsMontage({ photos, perClipSec: Math.max(6, Math.round(plan.durationSec / sc)), sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
+      return { method: usedClientPhotos ? 'client_photos' : 'real_business_photos', url: await runKenBurnsMontage({ photos, perClipSec: Math.max(6, Math.round(plan.durationSec / sc)), sceneCount: sc, postId: pId, hookTopic, hookLang: clientLang, bakeAudio }) };
     }
     // DEFAULT — client photos if any, else a GENERATED coherent hero image.
     let photos: string[] = clientPhotos.slice(0, 3);
@@ -260,11 +265,11 @@ export async function POST(req: NextRequest) {
     const wantMotion = body.forceMotion === true || (body.noMotion !== true && Math.random() < 0.6);
     if (sc === 1 && uniq.length === 1 && wantMotion) {
       try {
-        const motion = await runI2vMontage({ scenes: scenes.slice(0, 1), pixabayQuery, perClipSec: Math.min(plan.perClipSec || 8, 10), postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: uniq[0], bakeAudio });
+        const motion = await runI2vMontage({ scenes: scenes.slice(0, 1), pixabayQuery, perClipSec: Math.min(plan.perClipSec || 8, 10), postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: clientLang, baseImageUrl: uniq[0], bakeAudio });
         if (motion) return { method: clientPhotos.length ? 'client_i2v' : 'generated_i2v', url: motion };
       } catch { /* repli Ken Burns ci-dessous */ }
     }
-    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos: uniq, perClipSec: pc, sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
+    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos: uniq, perClipSec: pc, sceneCount: sc, postId: pId, hookTopic, hookLang: clientLang, bakeAudio }) };
   }
 
   // RETRY for showcase quality (founder): regenerate up to 3× until QC passes;
@@ -285,7 +290,7 @@ export async function POST(req: NextRequest) {
     const gen = await generateOnce();
     method = gen.method;
     if (!gen.url) continue;
-    const thisQc = await assessReelQuality(gen.url, { businessType: businessType || post.pillar, subject });
+    const thisQc = await assessReelQuality(gen.url, { businessType: businessType || post.pillar, subject, lang: clientLang });
     if (!best || (thisQc?.score ?? 0) > (best.qc?.score ?? 0)) best = { url: gen.url, qc: thisQc, method: gen.method };
     if (!thisQc || thisQc.pass) { finalUrl = gen.url; qc = thisQc; break; } // pass / QC down → ship
     if (NO_RETRY.has(gen.method)) { finalUrl = gen.url; qc = thisQc; break; } // fixed assets → no point retrying

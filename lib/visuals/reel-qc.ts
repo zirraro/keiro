@@ -84,8 +84,9 @@ async function probeDur(videoPath: string): Promise<number> {
  */
 export async function assessReelQuality(
   videoUrl: string,
-  opts: { businessType?: string; subject?: string; apiKey?: string } = {},
+  opts: { businessType?: string; subject?: string; apiKey?: string; lang?: 'fr' | 'en' } = {},
 ): Promise<ReelQCResult | null> {
+  const langName = opts.lang === 'en' ? 'anglais' : 'français';
   const apiKey = opts.apiKey || process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !videoUrl) return null;
   const tmp = path.join(os.tmpdir(), `reel-qc-${Date.now()}`);
@@ -105,7 +106,8 @@ export async function assessReelQuality(
     const sys = `Tu es un directeur artistique / chef opérateur vidéo TRÈS exigeant (niveau cinéaste). On te donne des frames ORDONNÉES (début → fin) d'un reel vertical monté pour le business: "${opts.businessType || 'commerce local'}". Sujet voulu: "${(opts.subject || '').slice(0, 200)}".
 Juge UNIQUEMENT ce que tu vois. Note SÉVÈREMENT comme un pro qui décide si on publie. Deux exigences NON négociables du fondateur :
 1. VRAI MOUVEMENT cinématique (caméra qui bouge OU sujet qui bouge réellement entre les frames) — surtout PAS un diaporama d'images quasi-figées.
-2. AUCUN aspect "IA" : pas de plastique/cireux, pas de morphing/déformation, pas de lumière irréaliste, pas de perfection synthétique. Ça doit ressembler à une vraie captation filmée par un humain.`;
+2. AUCUN aspect "IA" : pas de plastique/cireux, pas de morphing/déformation, pas de lumière irréaliste, pas de perfection synthétique. Ça doit ressembler à une vraie captation filmée par un humain.
+3. LANGUE : tout texte À L'ÉCRAN (hook, sous-titre) doit être en ${langName} (langue du client). Un texte dans une autre langue = défaut MAJEUR (réalisme ≤4).`;
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
