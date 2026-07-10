@@ -73,13 +73,16 @@ export async function GET(req: NextRequest) {
 
     const prospects = allProspects;
 
-    // Load activities for these prospects
-    const prospectIds = (prospects || []).map((p: any) => p.id);
+    // Load activities — PERF (10/07) : on ne précharge que pour les ~400 prospects
+    // les plus récents (les activités s'affichent à la demande par prospect). Un
+    // .in() avec des milliers d'IDs construisait une URL/requête énorme = lenteur
+    // majeure de la page CRM. On ne remonte que les colonnes utiles, pas '*'.
+    const prospectIds = (prospects || []).slice(0, 400).map((p: any) => p.id);
     let activities: any[] = [];
     if (prospectIds.length > 0) {
       const { data: acts } = await supabase
         .from('crm_activities')
-        .select('*')
+        .select('id, prospect_id, type, description, date_activite, created_at')
         .in('prospect_id', prospectIds)
         .order('date_activite', { ascending: false })
         .limit(500);
