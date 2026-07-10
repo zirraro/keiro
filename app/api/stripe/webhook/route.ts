@@ -859,6 +859,14 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     })
     .eq('id', profileId);
 
+  // WINBACK (Fable 5 B2) : on logue le churn (email + plan + date) → le cron
+  // winback relancera à J+30 (« voilà ce qui a changé ») puis J+90 (offre retour).
+  await supabase.from('agent_logs').insert({
+    agent: 'system', action: 'client_churn', status: 'info',
+    data: { user_id: profileId, email: userProfile?.email || null, old_plan: oldPlan, churned_at: new Date().toISOString(), winback_j30_sent: false, winback_j90_sent: false },
+    created_at: new Date().toISOString(),
+  }).then(() => {}, () => {});
+
   await supabase.from('credit_transactions').insert({
     user_id: profileId,
     amount: freeCredits,
