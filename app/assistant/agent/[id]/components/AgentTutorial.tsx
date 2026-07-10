@@ -42,13 +42,13 @@ function useAgentTours(): Record<string, TourStep[]> {
         { target: 'agent-dashboard', title: 'Your prospects', description: 'Léo sources and qualifies prospects automatically. See your pipeline per channel: email, Instagram, TikTok.', position: 'bottom' },
       ],
       seo: [
-        { target: 'agent-dashboard', title: 'SEO articles', description: 'Oscar writes blog articles optimised for Google. Each article targets a keyword to pull traffic to your site.', position: 'bottom' },
+        { target: 'agent-dashboard', title: 'SEO articles', description: 'Théo writes blog articles optimised for Google. Each article targets a keyword to pull traffic to your site.', position: 'bottom' },
       ],
       marketing: [
         { target: 'agent-dashboard', title: 'Marketing analysis', description: 'Ami analyses performance across all channels and recommends concrete actions to improve results.', position: 'bottom' },
       ],
       ceo: [
-        { target: 'agent-dashboard', title: 'Strategic view', description: 'Noah supervises every agent. He analyses results, sets direction, and adjusts strategy to your goals.', position: 'bottom' },
+        { target: 'agent-dashboard', title: 'Strategic view', description: 'Ami supervises every agent. He analyses results, sets direction, and adjusts strategy to your goals.', position: 'bottom' },
       ],
       chatbot: [
         { target: 'agent-dashboard', title: 'Chatbot on your site', description: 'Max greets visitors 24/7, answers questions and captures their contact details. Install it from the Settings tab.', position: 'bottom' },
@@ -101,13 +101,13 @@ function useAgentTours(): Record<string, TourStep[]> {
       { target: 'agent-dashboard', title: 'Tes prospects', description: 'Léo cherche et qualifie tes prospects automatiquement. Tu vois ici le pipeline par canal : email, Instagram, TikTok.', position: 'bottom' },
     ],
     seo: [
-      { target: 'agent-dashboard', title: 'Articles SEO', description: 'Oscar redige des articles blog optimises pour Google. Chaque article cible un mot-cle pour attirer du trafic vers ton site.', position: 'bottom' },
+      { target: 'agent-dashboard', title: 'Articles SEO', description: 'Théo redige des articles blog optimises pour Google. Chaque article cible un mot-cle pour attirer du trafic vers ton site.', position: 'bottom' },
     ],
     marketing: [
       { target: 'agent-dashboard', title: 'Analyse marketing', description: 'Ami analyse les performances de tous tes canaux et te recommande des actions concretes pour ameliorer tes resultats.', position: 'bottom' },
     ],
     ceo: [
-      { target: 'agent-dashboard', title: 'Vision strategique', description: 'Noah supervise tous tes agents. Il analyse les resultats, donne la direction et ajuste la strategie selon tes objectifs.', position: 'bottom' },
+      { target: 'agent-dashboard', title: 'Vision strategique', description: 'Ami supervise tous tes agents. Il analyse les resultats, donne la direction et ajuste la strategie selon tes objectifs.', position: 'bottom' },
     ],
     chatbot: [
       { target: 'agent-dashboard', title: 'Chatbot sur ton site', description: 'Max accueille tes visiteurs 24/7, repond a leurs questions et capture leurs coordonnees. Installe-le via l\u2019onglet Parametres.', position: 'bottom' },
@@ -256,7 +256,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
 
   const agentNames: Record<string, string> = {
     content: 'Lena', dm_instagram: 'Jade', email: 'Hugo', gmaps: 'Theo',
-    commercial: 'Leo', seo: 'Oscar', marketing: 'AMI', ads: 'Felix',
+    commercial: 'Leo', seo: 'Théo', marketing: 'AMI', ads: 'Felix',
     chatbot: 'Clara', whatsapp: 'Stella', tiktok_comments: 'Axel',
     instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara', linkedin: 'Lena',
   };
@@ -271,7 +271,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
       email: 'Hugo envoie des sequences email personnalisees a tes prospects et suit les ouvertures et clics.',
       gmaps: 'Theo repond a tes avis Google avec des reponses IA personnalisees et ameliore ta reputation.',
       commercial: 'Leo prospecte sur Google Maps, qualifie les leads et gere ton pipeline CRM.',
-      seo: 'Oscar analyse ton SEO, suit tes mots-cles et te donne des recommandations concretes.',
+      seo: 'Théo analyse ton SEO, suit tes mots-cles et te donne des recommandations concretes.',
       instagram_comments: 'Reponds automatiquement aux commentaires Instagram avec des reponses contextuelles.',
       tiktok_comments: 'Axel engage ta communaute TikTok en commentant et interagissant automatiquement.',
       chatbot: 'Max accueille tes visiteurs 24/7 sur ton site et capture leurs coordonnees.',
