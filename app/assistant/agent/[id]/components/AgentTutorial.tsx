@@ -24,7 +24,7 @@ function useAgentTours(): Record<string, TourStep[]> {
       content: [
         { target: 'auto-toggle', title: 'Auto publishing', description: 'Turn AUTO on so Léna publishes on your calendar. In MANUAL you approve every post before it ships.', position: 'bottom' },
         { target: 'agent-dashboard', title: 'Your posts', description: 'Every generated post lands here. Click to see the visual, caption and hashtags. Publish in one tap.', position: 'bottom' },
-        { target: 'tab-planning', title: 'Planning tab', description: 'Open the Planning tab for a 7-day editorial calendar with scheduled posts per platform. Click any post to preview, edit the caption/overlay, publish or reschedule.', position: 'bottom' },
+        { target: 'planning-view', switchTab: 'planning', title: 'Planning tab', description: 'Here is your 7-day editorial calendar with scheduled posts per platform. Click any post to preview, edit the caption/overlay, publish or reschedule.', position: 'bottom' },
       ],
       dm_instagram: [
         { target: 'auto-toggle', title: 'Auto DMs', description: 'In AUTO, Jade contacts prospects over Instagram DM and replies automatically. You are alerted when a prospect goes hot.', position: 'bottom' },
@@ -83,7 +83,7 @@ function useAgentTours(): Record<string, TourStep[]> {
     content: [
       { target: 'auto-toggle', title: 'Publication automatique', description: 'Active le mode AUTO pour que Léna publie selon ton calendrier. En MANUEL, tu valides chaque post avant publication.', position: 'bottom' },
       { target: 'agent-dashboard', title: 'Tes publications', description: 'Tous tes posts generes apparaissent ici. Clique pour voir le visuel, la legende et les hashtags. Publie en un clic.', position: 'bottom' },
-      { target: 'tab-planning', title: 'Onglet Planning', description: 'Va dans l\u2019onglet Planning pour ton calendrier editorial sur 7 jours. Clique une publication pour la previsualiser, modifier la legende ou le texte sur l\u2019image, publier ou reprogrammer.', position: 'bottom' },
+      { target: 'planning-view', switchTab: 'planning', title: 'Onglet Planning', description: 'Voici ton calendrier editorial sur 7 jours, avec les publications programmees par plateforme. Clique une publication pour la previsualiser, modifier la legende ou le texte sur l\u2019image, publier ou reprogrammer.', position: 'bottom' },
     ],
     dm_instagram: [
       { target: 'auto-toggle', title: 'DM automatique', description: 'En AUTO, Jade contacte tes prospects par DM Instagram et repond automatiquement. Tu es alerte quand un prospect est chaud.', position: 'bottom' },

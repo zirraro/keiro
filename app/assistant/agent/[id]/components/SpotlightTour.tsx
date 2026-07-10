@@ -7,6 +7,10 @@ export interface TourStep {
   title: string;
   description: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
+  /** Si défini, bascule l'onglet du workspace AVANT de mettre en évidence la
+   *  cible (ex: 'planning' → on affiche vraiment le calendrier, pas le tableau
+   *  de bord principal). Écouté par AgentWorkspacePage via 'keiro-switch-tab'. */
+  switchTab?: string;
 }
 
 interface SpotlightTourProps {
@@ -39,13 +43,24 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
     setTargetRect(valid ? rect : null);
   }, [active, step]);
 
-  // Scroll le target en vue (haut de l'écran) puis mesure — la carte étant en
-  // bas, l'élément mis en évidence reste visible au-dessus.
+  // Bascule d'onglet si l'étape le demande (ex: planning) → on montre le VRAI
+  // contenu concerné, pas le tableau de bord. Puis scroll + mesure avec un délai
+  // plus long pour laisser le nouvel onglet se monter.
   useEffect(() => {
     if (!active || !step) return;
-    const el = document.querySelector(`[data-tour="${step.target}"]`) as HTMLElement | null;
-    if (el) { try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { /* noop */ } }
-    const t = setTimeout(measure, 350);
+    let delay = 350;
+    if (step.switchTab) {
+      try { window.dispatchEvent(new CustomEvent('keiro-switch-tab', { detail: step.switchTab })); } catch { /* noop */ }
+      delay = 550; // laisser l'onglet rendre son contenu avant de cibler
+    }
+    const el0 = document.querySelector(`[data-tour="${step.target}"]`) as HTMLElement | null;
+    if (el0 && !step.switchTab) { try { el0.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { /* noop */ } }
+    const t = setTimeout(() => {
+      // re-scroll après le switch (l'élément n'existait pas avant)
+      const el = document.querySelector(`[data-tour="${step.target}"]`) as HTMLElement | null;
+      if (el) { try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* noop */ } }
+      measure();
+    }, delay);
     return () => clearTimeout(t);
   }, [active, step, currentStep, measure]);
 

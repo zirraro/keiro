@@ -1205,7 +1205,7 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
-        {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[38vh] object-contain bg-black" />}
+        {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[32vh] object-contain bg-black" />}
         <div className="px-4 py-3 space-y-2">
           {selected.hook && <p className="text-sm font-bold text-white">{selected.hook}</p>}
           {(selected.status === 'draft' || selected.status === 'approved') ? (
@@ -1276,7 +1276,7 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
           </div>
         )}
         {(selected.status === 'draft' || selected.status === 'approved') && (
-          <div className="px-4 pb-4 flex gap-2">
+          <div className="px-4 pb-4 pt-3 flex gap-2 sticky bottom-0 z-10 bg-gray-900 border-t border-white/10">
             <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'publish_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl min-h-[44px]">{'\uD83D\uDE80'} {tCal.publish}</button>
             <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'regenerate_single', postId: selected.id }) }); onClose(); } catch {} }} className="py-2.5 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDD04'} {tCal.regenerate}</button>
             <button onClick={async () => { if (!confirm(tCal.confirmDelete)) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} {tCal.delete}</button>
@@ -1352,6 +1352,17 @@ export default function AgentWorkspacePage() {
   const initialTab = (['dashboard', 'planning', 'history', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'settings' | 'profile' | 'documents' | 'editor'>(initialTab);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
+
+  // Le spotlight peut demander de basculer d'onglet pour montrer le VRAI endroit
+  // concerné (ex: étape "Planning" → affiche le calendrier, pas le dashboard).
+  useEffect(() => {
+    const onSwitch = (e: Event) => {
+      const tab = (e as CustomEvent).detail;
+      if (typeof tab === 'string') setActiveTab(tab as any);
+    };
+    window.addEventListener('keiro-switch-tab', onSwitch);
+    return () => window.removeEventListener('keiro-switch-tab', onSwitch);
+  }, []);
 
   // Open chat with notification message if redirected from notification
   useEffect(() => {
@@ -2291,14 +2302,14 @@ export default function AgentWorkspacePage() {
 
         {/* ═══ TAB: PLANNING ═══ */}
         {activeTab === 'planning' && agentId === 'email' && (
-          <EmailPlanningView />
+          <div data-tour="planning-view"><EmailPlanningView /></div>
         )}
         {activeTab === 'planning' && agentId !== 'email' && (
-          <>
+          <div data-tour="planning-view">
             {agentId === 'content' && <WeeklyPlanCard />}
             {agentId === 'content' && <PlanningReviewFlow />}
             <EditorialCalendarFull agentId={agentId} />
-          </>
+          </div>
         )}
         {false && (
           <div className="space-y-6">
