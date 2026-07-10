@@ -277,9 +277,15 @@ export async function publishCarouselToInstagram(
     // "Media ID is not available, error_subcode 2207027" because the
     // images haven't finished processing on their CDN. Founder
     // reported the bug after multiple silent IG carousel failures.
+    // 2026-07-10 (incident digest) : le traitement vidéo/carrousel IG dépasse
+    // souvent 90s → "did not finish in 90s". On passe à ~210s avec un intervalle
+    // adaptatif (3s au début, 5s ensuite) pour laisser le CDN Meta finir sans
+    // spammer l'API. Connaissance partagée dans le pool pour auto-réparation.
     const waitForFinished = async (containerId: string, label: string) => {
-      const maxAttempts = 30; // up to ~90s
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const maxMs = 210_000; // ~3min30 — vidéos IG traitent souvent en 60-180s
+      const started = Date.now();
+      let elapsed = 0;
+      while ((elapsed = Date.now() - started) < maxMs) {
         try {
           const status = await graphGET<{ status_code?: string; status?: string }>(
             `/${containerId}`,
@@ -294,9 +300,9 @@ export async function publishCarouselToInstagram(
         } catch (e: any) {
           if (e?.message?.includes('failed')) throw e;
         }
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, elapsed < 30_000 ? 3000 : 5000));
       }
-      throw new Error(`Container ${label} ${containerId} did not finish in 90s`);
+      throw new Error(`Container ${label} ${containerId} did not finish in ${Math.round(maxMs / 1000)}s`);
     };
 
     console.log('[publishCarouselToInstagram] Polling child containers until FINISHED...');
@@ -391,8 +397,10 @@ export async function publishReelToInstagram(
     console.log('[publishReelToInstagram] Container created:', container.id);
 
     // 2) Wait for video processing (Instagram needs time to process video)
+    // 2026-07-10 (incident digest) : 120s trop court pour des reels plus lourds
+    // → 180s. Une ERROR reste un rejet de format (pas un timeout) et échoue vite.
     console.log('[publishReelToInstagram] Waiting for video processing...');
-    const maxWait = 120_000; // 2 minutes max
+    const maxWait = 180_000; // 3 minutes max
     const pollInterval = 5_000;
     const start = Date.now();
 

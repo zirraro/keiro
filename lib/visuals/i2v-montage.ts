@@ -221,6 +221,7 @@ export async function finalizeReel(clipUrls: string[], opts: {
   if (!finalUrl) finalUrl = clips[0];
 
   // Jamendo music (always-audio rule) — skipped in TikTok prepare mode.
+  let hasAudio = false;
   if (opts.bakeAudio !== false) try {
     const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
     const mood: any = opts.mood || pickMoodFromContext({ motion: undefined as any });
@@ -228,9 +229,18 @@ export async function finalizeReel(clipUrls: string[], opts: {
     if (music?.url) {
       const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
       const mix = await muxReelAudio({ videoUrl: finalUrl, musicUrl: music.url, postId: opts.postId, durationSec: opts.durationSec });
-      if (mix.url && mix.url !== finalUrl) finalUrl = mix.url;
+      if (mix.url && mix.url !== finalUrl) { finalUrl = mix.url; hasAudio = true; }
     }
   } catch { /* ship without audio */ }
+
+  // GARANTIE PISTE AUDIO (incident 10/07) : IG Reels rejette une vidéo sans flux
+  // audio. Si aucune musique n'a été bakée (mux échoué OU mode prepare silencieux),
+  // on ajoute une piste SILENCIEUSE pour que la vidéo soit publiable partout.
+  if (!hasAudio) try {
+    const { ensureAudioTrack } = await import('@/lib/audio/reel-audio-mux');
+    const withAudio = await ensureAudioTrack({ videoUrl: finalUrl, postId: opts.postId });
+    if (withAudio && withAudio !== finalUrl) finalUrl = withAudio;
+  } catch { /* best-effort */ }
 
   // ~20% on-screen text hook (visual hook is primary).
   if (Math.random() < 0.2 && opts.hookTopic) {

@@ -249,13 +249,16 @@ export async function POST(req: NextRequest) {
     const maxShots = body.multiPlan === true ? Math.min(uniq.length, 3) : sceneN;
     const sc = uniq.length === 1 ? 1 : Math.min(uniq.length, maxShots);
     const pc = sc <= 1 ? plan.durationSec : Math.max(6, Math.round(plan.durationSec / sc));
-    // VRAI MOUVEMENT (founder 09/07) : sur UNE image hero cohérente (générée ou
-    // client), on l'ANIME en i2v — mouvement RÉEL de caméra/sujet — au lieu du
-    // Ken Burns (pan/zoom sur image figée = « images qui défilent »). i2v du HERO
-    // (PAS du stock, ce qui hallucinait) = mouvement réel + cohérent + zéro
-    // hallucination. Le QC (boucle ci-dessous) rejette le rendu « IA » et
-    // régénère ; Ken Burns reste le repli si l'i2v échoue. body.noMotion force KB.
-    if (sc === 1 && uniq.length === 1 && body.noMotion !== true) {
+    // MIX STRATÉGIQUE (founder 09/07) : varier VRAI MOUVEMENT i2v et Ken Burns
+    // pour un feed vivant, jamais monotone (les images STATIQUES = les formats
+    // POST, gérés ailleurs). Sur UNE image hero cohérente, on ANIME en i2v —
+    // mouvement RÉEL de caméra/sujet — dans ~60% des cas (le « waouh »), Ken
+    // Burns garde la variété dans les autres. i2v du HERO (PAS du stock, qui
+    // hallucinait) = mouvement réel + cohérent + zéro hallucination. Hooks trendy
+    // (generateReelHook) + transitions (finalizeReel) s'appliquent dans les deux.
+    // Le QC (boucle ci-dessous) rejette le rendu « IA ». forceMotion/noMotion overrident.
+    const wantMotion = body.forceMotion === true || (body.noMotion !== true && Math.random() < 0.6);
+    if (sc === 1 && uniq.length === 1 && wantMotion) {
       try {
         const motion = await runI2vMontage({ scenes: scenes.slice(0, 1), pixabayQuery, perClipSec: Math.min(plan.perClipSec || 8, 10), postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: uniq[0], bakeAudio });
         if (motion) return { method: clientPhotos.length ? 'client_i2v' : 'generated_i2v', url: motion };

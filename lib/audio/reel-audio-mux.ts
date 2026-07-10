@@ -178,3 +178,39 @@ export async function muxReelAudio(p: ReelAudioMuxParams): Promise<ReelAudioMuxR
     try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch {}
   }
 }
+
+/**
+ * GARANTIE PISTE AUDIO (incident 10/07) : Instagram Reels REJETTE une vidéo sans
+ * flux audio ("Instagram video processing failed: ERROR"). Quand aucune musique
+ * n'a été bakée (mux échoué OU mode prepare silencieux), on ajoute une piste
+ * audio SILENCIEUSE (anullsrc) — pas de son ajouté (le user peut toujours poser
+ * un son tendance), mais le flux audio existe → IG accepte. `-c:v copy` = aucun
+ * ré-encodage vidéo (rapide, qualité préservée). À n'appeler que si l'audio est
+ * réellement absent (le caller le sait).
+ */
+export async function ensureAudioTrack(p: { videoUrl: string; postId: string }): Promise<string> {
+  const tmpDir = path.join(os.tmpdir(), `ensure-audio-${p.postId}-${Date.now()}`);
+  try {
+    const buf = await fetchBuffer(p.videoUrl);
+    if (!buf || buf.length < 5000) return p.videoUrl;
+    await fs.mkdir(tmpDir, { recursive: true });
+    const inPath = path.join(tmpDir, 'in.mp4');
+    const outPath = path.join(tmpDir, 'out.mp4');
+    await fs.writeFile(inPath, buf);
+    const ff = getFfmpegPath();
+    const cmd = `"${ff}" -y -i "${inPath}" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -shortest "${outPath}"`;
+    await execPromise(cmd, { timeout: 60_000, maxBuffer: 1024 * 1024 * 50 });
+    const outBuf = await fs.readFile(outPath);
+    if (outBuf.length < 5000) return p.videoUrl;
+    const sb = admin();
+    const objectPath = `reels-audio/${p.postId}-silent-${Date.now()}.mp4`;
+    const { error } = await sb.storage.from('business-assets').upload(objectPath, outBuf, { contentType: 'video/mp4', upsert: true });
+    if (error) return p.videoUrl;
+    const { data: pub } = sb.storage.from('business-assets').getPublicUrl(objectPath);
+    return pub?.publicUrl || p.videoUrl;
+  } catch {
+    return p.videoUrl;
+  } finally {
+    try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch {}
+  }
+}
