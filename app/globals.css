@@ -1252,6 +1252,31 @@ html.light .dark-section [class*="text-gray-"], html.light .dark-section [class*
 html.light .dark-section [class*="text-neutral-"], html.light .dark-section [class*="text-zinc-"] { color: rgba(255, 255, 255, 0.82) !important; }
 html.light .dark-section [class*="text-[#"] { color: inherit; } /* laisse les hex décoratifs (déjà pensés clair sur navy) */
 
+/* ===== HERO ACCUEIL — VRAI mode clair (vidéo founder 10/07) =====
+   Bug : le hero (bg-[#0c1a3a] + texte bleu clair codé en dur #a4bdd4/#c8d8e8…)
+   remplissait tout le 1er écran en navy → "presque comme le mode sombre".
+   En clair on rend le hero CLAIR : fond dégradé pâle + texte foncé. La carte
+   preview à droite (.hero-preview-dark = .dark-section) reste un îlot navy
+   volontaire (mockup produit). Les textes hex ne sont PAS ciblés par le filet
+   global text-white, donc on les convertit ici, scopés à .hero-copy. */
+html.light .hero-section {
+  background: linear-gradient(180deg, #eef3fb 0%, #f6f9fd 55%, #ffffff 100%) !important;
+}
+html.light .hero-section .hero-copy .text-white,
+html.light .hero-section .hero-copy [class*="text-white"] { color: #0c1a3a !important; }
+/* tous les bleus décoratifs codés en dur → slate foncé lisible sur fond clair */
+html.light .hero-section .hero-copy [class*="text-[#"] { color: #334155 !important; }
+/* garder l'accent dégradé (titre + rotator) coloré, pas aplati en slate */
+html.light .hero-section .hero-copy .gradient-text,
+html.light .hero-section .hero-copy [class*="gradient-text"] { color: transparent !important; }
+/* pastilles glass : surface + bordure sombres subtiles pour les définir sur clair */
+html.light .hero-section .hero-copy [class*="bg-white\/"] { background-color: rgba(12,26,58,0.04) !important; }
+html.light .hero-section .hero-copy [class*="border-white\/"] { border-color: rgba(12,26,58,0.14) !important; }
+/* CTA outline "Voir l'exemple" / démo : texte + bordure foncés */
+html.light .hero-section .hero-copy a[class*="border-white"],
+html.light .hero-section .hero-copy [class*="!border-white"] { color: #0c1a3a !important; border-color: rgba(12,26,58,0.28) !important; }
+/* le CTA blanc principal garde son fond blanc + texte navy (cta-keep-white) : OK tel quel */
+
 /* ===== DASHBOARDS AGENTS — VRAI mode clair lisible (vidéo founder 10/07) =====
    En mode clair, le dashboard doit être CLAIR (fond clair, texte FONCÉ), pas sombre.
    Les panels sont dark-first (cartes dégradé inline pâle + text-white) → mon filet de

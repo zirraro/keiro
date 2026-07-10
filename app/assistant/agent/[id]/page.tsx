@@ -1196,16 +1196,16 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
   }, [selected.id, overlayText, overlayPos, overlayTone, cur, en]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
-      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center bg-black/80 backdrop-blur-sm px-2 pt-20 pb-4 sm:p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[calc(100dvh-6rem)] sm:max-h-[88vh] my-auto overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 sticky top-0 z-10 bg-gray-900 rounded-t-2xl">
           <div className="flex items-center gap-2">
             <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_DOT[selected.status] || 'bg-white/10'} text-white`}>{statusLabel(selected.status, en)}</span>
             <span className="text-[10px] text-white/40">{PLATFORM_META[selected.platform || 'instagram']?.label} · {selected.format} · {selected.scheduled_date}</span>
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
-        {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[50vh] object-contain bg-black" />}
+        {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[38vh] object-contain bg-black" />}
         <div className="px-4 py-3 space-y-2">
           {selected.hook && <p className="text-sm font-bold text-white">{selected.hook}</p>}
           {(selected.status === 'draft' || selected.status === 'approved') ? (
@@ -2126,6 +2126,7 @@ export default function AgentWorkspacePage() {
             ]).map(tab => (
               <button
                 key={tab.key}
+                data-tour={`tab-${tab.key}`}
                 onClick={() => {
                   setActiveTab(tab.key);
                   // Sync URL so back/forward + bookmarks work

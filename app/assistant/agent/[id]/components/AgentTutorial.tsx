@@ -24,7 +24,7 @@ function useAgentTours(): Record<string, TourStep[]> {
       content: [
         { target: 'auto-toggle', title: 'Auto publishing', description: 'Turn AUTO on so Léna publishes on your calendar. In MANUAL you approve every post before it ships.', position: 'bottom' },
         { target: 'agent-dashboard', title: 'Your posts', description: 'Every generated post lands here. Click to see the visual, caption and hashtags. Publish in one tap.', position: 'bottom' },
-        { target: 'agent-dashboard', title: 'Planning tab', description: 'Open the Planning tab for a 7-day editorial calendar with scheduled posts per platform.', position: 'top' },
+        { target: 'tab-planning', title: 'Planning tab', description: 'Open the Planning tab for a 7-day editorial calendar with scheduled posts per platform. Click any post to preview, edit the caption/overlay, publish or reschedule.', position: 'bottom' },
       ],
       dm_instagram: [
         { target: 'auto-toggle', title: 'Auto DMs', description: 'In AUTO, Jade contacts prospects over Instagram DM and replies automatically. You are alerted when a prospect goes hot.', position: 'bottom' },
@@ -83,7 +83,7 @@ function useAgentTours(): Record<string, TourStep[]> {
     content: [
       { target: 'auto-toggle', title: 'Publication automatique', description: 'Active le mode AUTO pour que Léna publie selon ton calendrier. En MANUEL, tu valides chaque post avant publication.', position: 'bottom' },
       { target: 'agent-dashboard', title: 'Tes publications', description: 'Tous tes posts generes apparaissent ici. Clique pour voir le visuel, la legende et les hashtags. Publie en un clic.', position: 'bottom' },
-      { target: 'agent-dashboard', title: 'Onglet Planning', description: 'Va dans l\u2019onglet Planning pour voir ton calendrier editorial sur 7 jours avec les publications programmees par plateforme.', position: 'top' },
+      { target: 'tab-planning', title: 'Onglet Planning', description: 'Va dans l\u2019onglet Planning pour ton calendrier editorial sur 7 jours. Clique une publication pour la previsualiser, modifier la legende ou le texte sur l\u2019image, publier ou reprogrammer.', position: 'bottom' },
     ],
     dm_instagram: [
       { target: 'auto-toggle', title: 'DM automatique', description: 'En AUTO, Jade contacte tes prospects par DM Instagram et repond automatiquement. Tu es alerte quand un prospect est chaud.', position: 'bottom' },
@@ -311,7 +311,21 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
 
   // Spotlight tour
   if (phase === 'tour') {
-    const steps = AGENT_TOURS[agentId] || [{ target: 'agent-dashboard', title: isEn ? 'Agent workspace' : 'Espace agent', description: isEn ? 'This is the agent workspace — explore the features!' : 'Voici l\u2019espace de travail de cet agent. Explore les fonctionnalites !', position: 'bottom' as const }];
+    const base = AGENT_TOURS[agentId] || [{ target: 'agent-dashboard', title: isEn ? 'Agent workspace' : 'Espace agent', description: isEn ? 'This is the agent workspace — explore the features!' : 'Voici l\u2019espace de travail de cet agent. Explore les fonctionnalites !', position: 'bottom' as const }];
+    // Étapes d'ONGLETS ajoutées dynamiquement (founder 10/07 : « montrer les
+    // endroits concernés, si y'a un onglet montrer l'onglet »). On pointe le vrai
+    // bouton d'onglet (data-tour="tab-xxx") pour que le halo tombe dessus.
+    const extra: TourStep[] = [];
+    if (['rh', 'comptable'].includes(agentId)) {
+      extra.push({ target: 'tab-editor', title: isEn ? 'Editor tab' : 'Onglet Editeur',
+        description: isEn ? 'Create and edit your documents/spreadsheets here — full editor with export.' : 'Cree et modifie tes documents/tableaux ici : editeur complet avec export.', position: 'bottom' });
+    }
+    // Tous les agents ont l'onglet Parametres : mis en evidence en dernier.
+    extra.push({ target: 'tab-settings', title: isEn ? 'Settings tab' : 'Onglet Parametres',
+      description: isEn ? 'Connect your accounts, set your preferences and the keywords you want to handle yourself. Everything is adjustable here.' : 'Connecte tes comptes, regle tes preferences et les mots-cles que tu veux gerer toi-meme. Tout est ajustable ici.', position: 'bottom' });
+
+    const seen = new Set(base.map(s => s.target));
+    const steps = [...base, ...extra.filter(s => !seen.has(s.target))];
     return <SpotlightTour steps={steps} active={true} onFinish={finishTour} />;
   }
 

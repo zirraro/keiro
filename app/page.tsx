@@ -29,9 +29,9 @@ function HomeKeiroInner() {
       <div className="relative" style={{ zIndex: 2 }}>
 
       {/* HERO — always dark, even in light mode */}
-      <section className="dark-section relative bg-[#0c1a3a] px-4 sm:px-6 pt-10 sm:pt-16 pb-8 sm:pb-12">
+      <section className="hero-section relative bg-[#0c1a3a] px-4 sm:px-6 pt-10 sm:pt-16 pb-8 sm:pb-12">
         <div className="relative mx-auto max-w-6xl grid lg:grid-cols-12 gap-4 sm:gap-8 items-center">
-          <div className="lg:col-span-7">
+          <div className="hero-copy lg:col-span-7">
             <ScaleIn>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#1e3a5f]/30 bg-[#0c1a3a]/10 px-3 py-1 text-xs text-[#93b4d4]">
               <span className="h-2 w-2 rounded-full bg-[#1e3a5f] animate-pulse"></span>
@@ -95,7 +95,7 @@ function HomeKeiroInner() {
                 response time) and demotes the avatars to a small footer.
                 Three function rows underneath explain WHAT each agent group
                 does for the business (acquisition / content / operations). */}
-            <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-[#0c1a3a]/80 via-[#0f1f4a]/60 to-[#0c1a3a]/80 backdrop-blur-sm border border-white/10">
+            <div className="hero-preview-dark dark-section rounded-2xl overflow-hidden bg-gradient-to-br from-[#0c1a3a]/80 via-[#0f1f4a]/60 to-[#0c1a3a]/80 backdrop-blur-sm border border-white/10">
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div>
