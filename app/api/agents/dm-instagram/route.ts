@@ -24,16 +24,20 @@ function getSupabaseAdmin() {
 async function verifyAuth(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) return { authorized: true, isCron: true };
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) return { authorized: true, isCron: true, userId: null as string | null, isAdmin: false };
 
   try {
     const { user, error } = await getAuthUser();
-    if (error || !user) return { authorized: false };
+    if (error || !user) return { authorized: false, isCron: false, userId: null as string | null, isAdmin: false };
     const supabase = getSupabaseAdmin();
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
-    if (profile?.is_admin) return { authorized: true, isAdmin: true };
+    // Founder 12/07 : le CLIENT peut PRÉPARER ses propres DM de prospection (des
+    // brouillons à copier-coller, JAMAIS d'envoi auto — interdit par Meta). On
+    // autorise donc tout utilisateur authentifié ; la préparation est ensuite
+    // scopée à SES prospects (clientUserId) plus bas.
+    return { authorized: true, isCron: false, userId: user.id, isAdmin: !!profile?.is_admin };
   } catch {}
-  return { authorized: false };
+  return { authorized: false, isCron: false, userId: null as string | null, isAdmin: false };
 }
 
 const MAX_DM_PER_DAY = 60;
@@ -189,12 +193,12 @@ async function generateDM(
  * Cron: prepare daily DM queue. Admin: return last report.
  */
 export async function GET(request: NextRequest) {
-  const { authorized, isCron } = await verifyAuth(request);
+  const { authorized, isCron, userId } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  // Multi-tenant: filter by client
+  // Multi-tenant: filter by client. Un client non-cron est scopé à SES prospects.
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
-  const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
+  const clientUserId = request.nextUrl.searchParams.get('user_id') || (isCron ? null : userId);
 
   if (isCron) {
     const url = new URL(request.url);
@@ -220,7 +224,7 @@ export async function GET(request: NextRequest) {
  * Body: { platform?: 'instagram' | 'tiktok' }
  */
 export async function POST(request: NextRequest) {
-  const { authorized } = await verifyAuth(request);
+  const { authorized, isCron, userId } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   let platform: 'instagram' | 'tiktok' = 'instagram';
@@ -239,7 +243,11 @@ export async function POST(request: NextRequest) {
   // que CHAQUE DM préparé inclue un visuel personnalisé.
   const withImage = url.searchParams.get('with_image') === '1';
 
-  return runDMPreparation(platform, orgId, null, withImage);
+  // Scope de préparation : un CLIENT prépare SES prospects (userId authentifié) ;
+  // un cron/global peut cibler un user_id via query. → plus de 401 pour le client.
+  const scopeUserId = url.searchParams.get('user_id') || (isCron ? null : userId);
+
+  return runDMPreparation(platform, orgId, scopeUserId, withImage);
 }
 
 /**

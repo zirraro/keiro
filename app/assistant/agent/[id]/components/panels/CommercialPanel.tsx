@@ -217,6 +217,10 @@ function PhoneProspection() {
     setBusy(null);
   }, []);
 
+  // Auto-charge la liste à l'ouverture (founder 12/07 : "je ne le vois pas") —
+  // les prospects + l'édition de fiche inline apparaissent direct, sans cliquer.
+  useEffect(() => { load(); }, [load]);
+
   const mark = useCallback(async (id: string, outcome: string) => {
     setBusy(id);
     try {

@@ -18,35 +18,35 @@ function TikTokPublishFlow({ post, onPublish, onCancel }: { post: any; onPublish
       {/* Step 1: Disclosure */}
       {step === 1 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white">Publier sur TikTok</h3>
-          <p className="text-[11px] text-white/60">Ce contenu sera publié sur votre compte TikTok. En continuant, vous acceptez que KeiroAI publie ce contenu en votre nom via l'API TikTok.</p>
+          <h3 className="text-sm font-bold text-white">{isEn ? 'Publish to TikTok' : 'Publier sur TikTok'}</h3>
+          <p className="text-[11px] text-white/60">{isEn ? 'This content will be published to your TikTok account. By continuing, you agree that KeiroAI publishes this content on your behalf to your TikTok account.' : 'Ce contenu sera publié sur votre compte TikTok. En continuant, vous acceptez que KeiroAI publie ce contenu en votre nom sur votre compte TikTok.'}</p>
           {post.visual_url && <img src={post.visual_url} alt="" className="w-full max-h-[150px] object-contain rounded-lg" />}
           <p className="text-[10px] text-white/40">{(post.caption || '').substring(0, 100)}</p>
-          <button onClick={() => setStep(2)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Continuer vers les paramètres</button>
+          <button onClick={() => setStep(2)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">{isEn ? 'Continue to settings' : 'Continuer vers les paramètres'}</button>
         </div>
       )}
 
       {/* Step 2: Privacy */}
       {step === 2 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white">Qui peut voir cette vidéo ?</h3>
+          <h3 className="text-sm font-bold text-white">{isEn ? 'Who can see this video?' : 'Qui peut voir cette vidéo ?'}</h3>
           {(['public', 'friends', 'private'] as const).map(opt => (
             <button key={opt} onClick={() => setPrivacy(opt)} className={`w-full text-left px-4 py-3 rounded-xl border text-xs transition ${privacy === opt ? 'border-white/40 bg-white/10 text-white' : 'border-white/10 text-white/50 hover:bg-white/5'}`}>
-              {opt === 'public' ? 'Tout le monde' : opt === 'friends' ? 'Amis uniquement' : 'Privé (moi seul)'}
+              {opt === 'public' ? (isEn ? 'Everyone' : 'Tout le monde') : opt === 'friends' ? (isEn ? 'Friends only' : 'Amis uniquement') : (isEn ? 'Private (only me)' : 'Privé (moi seul)')}
             </button>
           ))}
-          <button onClick={() => setStep(3)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Suivant</button>
+          <button onClick={() => setStep(3)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">{isEn ? 'Next' : 'Suivant'}</button>
         </div>
       )}
 
       {/* Step 3: Interactions */}
       {step === 3 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white">Paramètres d'interaction</h3>
+          <h3 className="text-sm font-bold text-white">{isEn ? 'Interaction settings' : 'Paramètres d\'interaction'}</h3>
           {[
-            { key: 'comments', label: 'Autoriser les commentaires', value: comments, set: setComments },
-            { key: 'duet', label: 'Autoriser les Duos', value: duet, set: setDuet },
-            { key: 'stitch', label: 'Autoriser le Stitch', value: stitch, set: setStitch },
+            { key: 'comments', label: isEn ? 'Allow comments' : 'Autoriser les commentaires', value: comments, set: setComments },
+            { key: 'duet', label: isEn ? 'Allow Duets' : 'Autoriser les Duos', value: duet, set: setDuet },
+            { key: 'stitch', label: isEn ? 'Allow Stitch' : 'Autoriser le Stitch', value: stitch, set: setStitch },
           ].map(s => (
             <div key={s.key} className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/5 border border-white/10">
               <span className="text-xs text-white/70">{s.label}</span>
@@ -55,23 +55,23 @@ function TikTokPublishFlow({ post, onPublish, onCancel }: { post: any; onPublish
               </button>
             </div>
           ))}
-          <button onClick={() => setStep(4)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Aperçu final</button>
+          <button onClick={() => setStep(4)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">{isEn ? 'Final preview' : 'Aperçu final'}</button>
         </div>
       )}
 
       {/* Step 4: Preview + Confirm */}
       {step === 4 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white">Confirmer la publication</h3>
+          <h3 className="text-sm font-bold text-white">{isEn ? 'Confirm publishing' : 'Confirmer la publication'}</h3>
           {post.visual_url && <img src={post.visual_url} alt="" className="w-full max-h-[150px] object-contain rounded-lg" />}
           <p className="text-[10px] text-white/50">{post.caption}</p>
           <div className="space-y-1 text-[10px] text-white/40">
-            <div>Visibilité : <span className="text-white/70 font-medium">{privacy === 'public' ? 'Tout le monde' : privacy === 'friends' ? 'Amis' : 'Privé'}</span></div>
-            <div>Commentaires : <span className="text-white/70">{comments ? 'Oui' : 'Non'}</span> | Duo : <span className="text-white/70">{duet ? 'Oui' : 'Non'}</span> | Stitch : <span className="text-white/70">{stitch ? 'Oui' : 'Non'}</span></div>
+            <div>{isEn ? 'Visibility:' : 'Visibilité :'} <span className="text-white/70 font-medium">{privacy === 'public' ? (isEn ? 'Everyone' : 'Tout le monde') : privacy === 'friends' ? (isEn ? 'Friends' : 'Amis') : (isEn ? 'Private' : 'Privé')}</span></div>
+            <div>{isEn ? 'Comments:' : 'Commentaires :'} <span className="text-white/70">{comments ? (isEn ? 'Yes' : 'Oui') : (isEn ? 'No' : 'Non')}</span> | {isEn ? 'Duet' : 'Duo'}: <span className="text-white/70">{duet ? (isEn ? 'Yes' : 'Oui') : (isEn ? 'No' : 'Non')}</span> | Stitch: <span className="text-white/70">{stitch ? (isEn ? 'Yes' : 'Oui') : (isEn ? 'No' : 'Non')}</span></div>
           </div>
           <div className="flex gap-2">
             <button onClick={onCancel} className="flex-1 py-2.5 bg-white/10 text-white/50 text-xs rounded-xl min-h-[44px]">{isEn ? 'Cancel' : 'Annuler'}</button>
-            <button onClick={() => onPublish({ privacy, comments, duet, stitch })} className="flex-1 py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Publier sur TikTok</button>
+            <button onClick={() => onPublish({ privacy, comments, duet, stitch })} className="flex-1 py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">{isEn ? 'Publish to TikTok' : 'Publier sur TikTok'}</button>
           </div>
         </div>
       )}
