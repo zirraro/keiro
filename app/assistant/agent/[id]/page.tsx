@@ -1196,8 +1196,8 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
   }, [selected.id, overlayText, overlayPos, overlayTone, cur, en]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center bg-black/80 backdrop-blur-sm px-2 pt-20 pb-4 sm:p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[calc(100dvh-6rem)] sm:max-h-[88vh] my-auto overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[200] flex items-start justify-center bg-black/80 backdrop-blur-sm px-3 pt-20 pb-6 overflow-y-auto" onClick={onClose}>
+      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[calc(100dvh-7rem)] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 sticky top-0 z-10 bg-gray-900 rounded-t-2xl">
           <div className="flex items-center gap-2">
             <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_DOT[selected.status] || 'bg-white/10'} text-white`}>{statusLabel(selected.status, en)}</span>

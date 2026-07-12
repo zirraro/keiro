@@ -136,8 +136,8 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
   }, [post.id, caption, hashtags]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center bg-black/80 backdrop-blur-sm px-2 pt-20 pb-4 sm:p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[calc(100dvh-6rem)] sm:max-h-[88vh] my-auto overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[200] flex items-start justify-center bg-black/80 backdrop-blur-sm px-3 pt-20 pb-6 overflow-y-auto" onClick={onClose}>
+      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[calc(100dvh-7rem)] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 sticky top-0 z-10 bg-gray-900 rounded-t-2xl">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
