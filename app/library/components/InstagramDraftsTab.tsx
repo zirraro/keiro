@@ -215,14 +215,34 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             <span className="text-xs font-semibold text-neutral-800 flex-1">Mon business</span>
             {draft.media_type === 'video' && <span className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
           </div>
-          {/* Image/Video */}
-          <div className="aspect-square bg-neutral-100 relative">
-            <img
-              src={draft.media_url}
-              alt="Instagram post preview"
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+          {/* Image/Video — un Reel a une URL VIDEO (.mp4) : un <img> ne peut pas
+              l'afficher → aperçu cassé. On rend un <video> (1re frame = poster)
+              pour les vidéos, un <img> pour les images, avec un placeholder
+              propre derrière si le média manque/casse (founder 12/07). */}
+          <div className="aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 relative overflow-hidden">
+            {/* Placeholder de fond (visible si média absent/cassé) */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-neutral-400 gap-1.5 pointer-events-none">
+              <span className="text-3xl">{draft.media_type === 'video' ? '🎬' : '🖼️'}</span>
+              <span className="text-[10px] font-medium px-2 text-center line-clamp-2">{(draft.caption || 'Aperçu').slice(0, 40)}</span>
+            </div>
+            {draft.media_url && (draft.media_type === 'video' || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(draft.media_url) ? (
+              <video
+                src={draft.media_url}
+                className="w-full h-full object-cover relative"
+                muted
+                playsInline
+                preload="metadata"
+                onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
+              />
+            ) : (
+              <img
+                src={draft.media_url}
+                alt=""
+                className="w-full h-full object-cover relative"
+                loading="lazy"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              />
+            ))}
             {/* Category Badge */}
             <div className="absolute top-2 right-2">
               {getCategoryBadge(draft.category, draft.media_type)}

@@ -957,8 +957,8 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                 {/* ═══ STEP 4/5 — Branded content (info only for carousel) ═══ */}
                 <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 4/5 — Contenu sponsorisé</div>
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  Pour les carrousels photos, l&apos;option <strong>contenu de marque</strong> n&apos;est pas exposée par TikTok via API.
-                  Si tu publies du contenu sponsorisé, ajoute le disclaimer directement dans la caption (ex: <code className="bg-white px-1 rounded">#ad</code>).
+                  Pour les carrousels photos, l&apos;option <strong>contenu de marque</strong> n&apos;est pas disponible sur TikTok.
+                  Si tu publies du contenu sponsorisé, ajoute la mention directement dans la légende (ex: <code className="bg-white px-1 rounded">#ad</code>).
                 </div>
 
                 {/* ═══ STEP 5/5 — Consent ═══ */}

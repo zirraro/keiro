@@ -212,8 +212,8 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
       {network === 'tiktok' && (
         <p className="text-[10px] text-white/30 mt-3">
           {en
-            ? "TikTok's API allows neither DMs nor comment replies — we focus on accounts to follow to keep your account active and boost our content's reach."
-            : "L'API TikTok ne permet ni DM ni réponse aux commentaires — on se concentre sur les comptes à suivre pour garder ton compte actif et booster la portée de nos contenus."}
+            ? "On TikTok, DMs and comment replies aren't available — so we focus on the accounts to follow to keep your account active and boost your content's reach."
+            : "Sur TikTok, les DM et réponses aux commentaires ne sont pas disponibles — on se concentre donc sur les comptes à suivre pour garder ton compte actif et booster la portée de tes contenus."}
         </p>
       )}
     </div>

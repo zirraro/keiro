@@ -642,8 +642,8 @@ function NetworkPreviewTab({
 
       <p className="text-[10px] text-white/30 mt-3 text-center">
         {en
-          ? <>Tap a thumbnail to see caption, stats and native link. Deleting on Instagram/TikTok is done in the native app (Meta does not allow deletion via API).</>
-          : <>Tap une vignette pour voir caption, stats et lien natif. La suppression côté Instagram/TikTok se fait dans l'app native (Meta n'autorise pas la suppression par API).</>}
+          ? <>Tap a thumbnail to see the caption, stats and link. To delete a post on Instagram or TikTok, do it directly in the app — we&apos;ll open it for you.</>
+          : <>Touche une vignette pour voir la légende, les stats et le lien. Pour supprimer un post sur Instagram ou TikTok, ça se fait directement dans l&apos;app — on t&apos;y emmène.</>}
       </p>
 
       {/* Lightbox — mobile-first bottom sheet, modal on desktop */}
