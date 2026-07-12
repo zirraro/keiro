@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
     .select('id, slug, title, content_html')
     .eq('status', 'published')
     .order('updated_at', { ascending: true, nullsFirst: true })
-    .limit(limit * 4); // on sur-fetch puis on filtre les déjà-aérés (skip si ≥1 table & ≥3 listes)
+    .limit(300); // fetch large : on filtre en JS les déjà-aérés (skip si ≥1 table & ≥3 listes)
+                 // → aucun article dense ne reste bloqué hors fenêtre (88 articles ≪ 300)
 
   const results: any[] = [];
   let done = 0;
