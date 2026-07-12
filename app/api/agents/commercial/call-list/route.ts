@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const sector = (searchParams.get('sector') || '').trim();
     const city = (searchParams.get('city') || '').trim();
+    const temperature = (searchParams.get('temperature') || '').trim();
     const limit = Math.min(100, parseInt(searchParams.get('limit') || '40', 10));
 
     let q = supabase
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
       .limit(500);
     if (sector) q = q.ilike('business_type', `%${sector}%`);
     if (city) q = q.ilike('city', `%${city}%`);
+    if (temperature && ['hot', 'warm', 'cold'].includes(temperature)) q = q.eq('temperature', temperature);
     // Ne pas re-proposer un prospect appelé dans les 2 derniers jours (évite qu'un
     // "à relancer" réapparaisse aussitôt). null = jamais appelé = à appeler.
     const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();

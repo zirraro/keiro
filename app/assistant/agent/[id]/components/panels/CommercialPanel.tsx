@@ -174,20 +174,48 @@ function PhoneProspection() {
   const isEn = locale === 'en';
   const [sector, setSector] = useState('');
   const [city, setCity] = useState('');
+  const [temp, setTemp] = useState(''); // filtre température ('', hot, warm, cold)
   const [list, setList] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  // Édition inline des fiches (founder 12/07) : commentaire + statut/température
+  // modifiables directement ici, écrits dans crm_prospects → lus par tous les agents.
+  const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [openEdit, setOpenEdit] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ ...(sector ? { sector } : {}), ...(city ? { city } : {}) }).toString();
+      const qs = new URLSearchParams({ ...(sector ? { sector } : {}), ...(city ? { city } : {}), ...(temp ? { temperature: temp } : {}) }).toString();
       const res = await fetch(`/api/agents/commercial/call-list?${qs}`, { credentials: 'include' });
       const d = await res.json();
       setList(d?.ok ? d.callList : []);
     } catch { setList([]); }
     setLoading(false);
-  }, [sector, city]);
+  }, [sector, city, temp]);
+
+  // Sauve un commentaire / statut / température sur la fiche (endpoint update-fiche).
+  const saveFiche = useCallback(async (id: string, patch: { comment?: string; status?: string; temperature?: string }) => {
+    setBusy(id);
+    try {
+      const res = await fetch('/api/agents/commercial/update-fiche', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ prospectId: id, ...patch }),
+      });
+      if (res.ok) {
+        setList(prev => (prev || []).map(p => p.id === id ? {
+          ...p,
+          temperature: patch.temperature || p.temperature,
+          status: patch.status || p.status,
+          fiche: { ...(p.fiche || {}), notes: patch.comment ? [(p.fiche?.notes || ''), patch.comment].filter(Boolean).join('\n') : p.fiche?.notes },
+        } : p));
+        if (patch.comment) setNoteDraft(prev => ({ ...prev, [id]: '' }));
+        setSavedId(id); setTimeout(() => setSavedId(s => s === id ? null : s), 1500);
+      }
+    } catch { /* noop */ }
+    setBusy(null);
+  }, []);
 
   const mark = useCallback(async (id: string, outcome: string) => {
     setBusy(id);
@@ -207,12 +235,26 @@ function PhoneProspection() {
     <div className="mt-4">
       <SectionTitle>{isEn ? '📞 Phone prospecting — your call list' : '📞 Prospection téléphonique — ta liste à appeler'}</SectionTitle>
       <p className="text-[11px] text-white/50 mb-2">{isEn ? 'Pick a sector/zone, Léo stacks the prospects to call (with a recommended action). Mark each result — the fiche updates and feeds the strategy.' : 'Choisis un secteur/zone, Léo empile les prospects à appeler (avec l\'action recommandée). Marque chaque résultat — la fiche se met à jour et nourrit la stratégie.'}</p>
-      <div className="flex flex-col sm:flex-row gap-2 mb-3">
-        <input value={sector} onChange={e => setSector(e.target.value)} placeholder={isEn ? 'Sector (e.g. beauty)' : 'Secteur (ex : institut)'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
-        <input value={city} onChange={e => setCity(e.target.value)} placeholder={isEn ? 'City/zone' : 'Ville/zone'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
+      <div className="flex flex-col sm:flex-row gap-2 mb-2">
+        <input value={sector} onChange={e => setSector(e.target.value)} placeholder={isEn ? 'Activity / domain (e.g. beauty)' : 'Activité / domaine (ex : institut)'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
+        <input value={city} onChange={e => setCity(e.target.value)} placeholder={isEn ? 'Region / city' : 'Région / ville'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
         <button onClick={load} disabled={loading} className="px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-semibold disabled:opacity-50 active:scale-95 transition-all">
           {loading ? '…' : (isEn ? 'Load list' : 'Charger la liste')}
         </button>
+      </div>
+      {/* Filtre température — pour cibler d'abord les chauds/tièdes */}
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+        {[
+          { k: '', l: isEn ? 'All' : 'Tous' },
+          { k: 'hot', l: '🔥 ' + (isEn ? 'Hot' : 'Chauds') },
+          { k: 'warm', l: '🌤️ ' + (isEn ? 'Warm' : 'Tièdes') },
+          { k: 'cold', l: '❄️ ' + (isEn ? 'Cold' : 'Froids') },
+        ].map(f => (
+          <button key={f.k} onClick={() => { setTemp(f.k); }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${temp === f.k ? 'bg-orange-500/30 text-orange-100 border border-orange-400/40' : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'}`}>
+            {f.l}
+          </button>
+        ))}
+        <span className="text-[10px] text-white/30 ml-1">{isEn ? '(reload to apply)' : '(recharge pour appliquer)'}</span>
       </div>
 
       {list && list.length === 0 && (
@@ -252,6 +294,51 @@ function PhoneProspection() {
                 </button>
               ))}
             </div>
+
+            {/* Édition fiche INLINE (founder 12/07) — commentaire + statut/température
+                sans ouvrir le CRM. Le commentaire est lu par tous les agents (Hugo…). */}
+            <button onClick={() => setOpenEdit(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
+              className="mt-2 text-[11px] text-orange-300 hover:text-orange-200 font-medium">
+              {openEdit[p.id] ? (isEn ? '▾ Close fiche' : '▾ Fermer la fiche') : (isEn ? '✏️ Edit fiche (note, status)' : '✏️ Modifier la fiche (note, statut)')}
+            </button>
+            {openEdit[p.id] && (
+              <div className="mt-2 space-y-2 rounded-lg bg-black/20 border border-white/10 p-2.5">
+                <textarea
+                  value={noteDraft[p.id] ?? ''}
+                  onChange={e => setNoteDraft(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  placeholder={isEn ? 'Add a comment (read by all agents: Hugo follow-ups, Léna…)' : 'Ajouter un commentaire (lu par tous les agents : relances Hugo, Léna…)'}
+                  rows={2}
+                  className="w-full px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] placeholder-white/30 resize-y focus:outline-none focus:ring-1 focus:ring-orange-500/40"
+                />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select value={p.status || 'identifie'} onChange={e => saveFiche(p.id, { status: e.target.value })}
+                    className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/80 text-[11px]">
+                    {[
+                      { v: 'identifie', l: isEn ? 'Identified' : 'Identifié' },
+                      { v: 'contacte', l: isEn ? 'Contacted' : 'Contacté' },
+                      { v: 'repondu', l: isEn ? 'Replied' : 'A répondu' },
+                      { v: 'demo', l: isEn ? 'Demo' : 'Démo' },
+                      { v: 'sprint', l: isEn ? 'Negotiation' : 'Négociation' },
+                      { v: 'client', l: 'Client' },
+                      { v: 'perdu', l: isEn ? 'Lost' : 'Perdu' },
+                    ].map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
+                  </select>
+                  <div className="flex items-center gap-1">
+                    {[{ v: 'hot', e: '🔥' }, { v: 'warm', e: '🌤️' }, { v: 'cold', e: '❄️' }].map(tp => (
+                      <button key={tp.v} onClick={() => saveFiche(p.id, { temperature: tp.v })}
+                        className={`w-7 h-7 rounded-lg text-sm transition-all ${p.temperature === tp.v ? 'bg-orange-500/30 border border-orange-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
+                        {tp.e}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => saveFiche(p.id, { comment: (noteDraft[p.id] || '').trim() })}
+                    disabled={busy === p.id || !(noteDraft[p.id] || '').trim()}
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-orange-500/80 hover:bg-orange-500 text-white text-[11px] font-semibold disabled:opacity-40 active:scale-95">
+                    {busy === p.id ? '…' : savedId === p.id ? (isEn ? '✓ Saved' : '✓ Enregistré') : (isEn ? '💾 Save note' : '💾 Enregistrer')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

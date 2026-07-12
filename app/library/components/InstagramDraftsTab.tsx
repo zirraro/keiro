@@ -227,7 +227,9 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             </div>
             {draft.media_url && (draft.media_type === 'video' || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(draft.media_url) ? (
               <video
-                src={draft.media_url}
+                // #t=0.1 force le navigateur à afficher la 1re frame comme poster
+                // (sinon preload=metadata rend souvent un cadre vide → aperçu "cassé").
+                src={`${draft.media_url}#t=0.1`}
                 className="w-full h-full object-cover relative"
                 muted
                 playsInline
