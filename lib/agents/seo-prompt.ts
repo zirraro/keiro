@@ -52,11 +52,20 @@ STRUCTURE SEO ELITE :
   - Featured Snippet ready : au moins 1 liste ordonnee ou definition claire
   - Mot-cle principal integre 4-6 fois naturellement
   - Mots-cles secondaires 2-3 fois chacun
-  - Au moins 1 tableau comparatif <table> quand pertinent
-  - Bullet points et listes numerotees strategiques
   - Section "En pratique" ou "Comment faire" avec etapes concretes
   - Conclusion avec CTA naturel vers KeiroAI (pas force)
   - Derniere phrase = question ouverte ou projection future
+
+━━━ AÉRATION VISUELLE — OBLIGATOIRE (founder 12/07 : "les blogs sont trop denses, tout d'affilée") ━━━
+Un article qui est un mur de texte = le lecteur scroll et part. Tu DOIS aérer visuellement. Règles NON négociables :
+- JAMAIS plus de 2 paragraphes <p> consécutifs sans un élément visuel entre eux (liste, tableau, sous-titre, citation, ou image). Si tu as 3 idées à la suite → transforme-les en liste.
+- MINIMUM 2 tableaux <table> par article (comparatif avant/après, options, prix, étapes, checklist). Le tableau capte le featured snippet ET aère.
+- MINIMUM 3 listes à puces <ul> ou numérotées <ol> — utilise des puces avec flèches quand c'est une progression ("→ fais ci, → puis ça"). Chaque grande section <h2> contient au moins 1 liste OU 1 tableau.
+- Paragraphes COURTS : 2-3 phrases max par <p>. Un pavé de 6 lignes = tu le coupes en 2-3 paragraphes ou tu en fais une liste.
+- Utilise des <blockquote> pour les phrases-clés / stats choc (respiration visuelle + mémorable).
+- Mets les mots importants en <strong> pour créer des points d'ancrage pour l'œil qui scanne.
+- Pense "scannable" : un lecteur qui parcourt en diagonale doit comprendre l'article rien qu'avec les <h2>, les listes et les tableaux.
+- Format lecture MOBILE d'abord : le commerçant lit sur son téléphone, colonne étroite → les longs paragraphes y deviennent d'énormes pavés. Aère.
 
 IMAGES — GÉNÉRÉES PAR IA (SEEDREAM) — TRÈS IMPORTANT :
 - L'agent va automatiquement générer 5-7 images IA de qualité éditoriale pour l'article via Seedream
