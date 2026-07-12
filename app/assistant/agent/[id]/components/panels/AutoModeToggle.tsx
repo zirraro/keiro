@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 export function AutoModeToggle({ agentId, autoLabel, manualLabel, autoDesc, manualDesc }: {
   agentId: string;
@@ -83,6 +84,8 @@ const NETWORK_META = [
 ];
 
 export function NetworkControls({ agentId, connections }: { agentId: string; connections?: Record<string, boolean> }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [autoSettings, setAutoSettings] = useState<Record<string, boolean>>({});
   const [localConnected, setLocalConnected] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -113,7 +116,8 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
   }, [connections]);
 
   const handleDisconnect = useCallback(async (network: string) => {
-    if (typeof window !== 'undefined' && !window.confirm(`Déconnecter ${NETWORK_META.find(n => n.key === network)?.label || network} ?`)) return;
+    const netLabel = NETWORK_META.find(n => n.key === network)?.label || network;
+    if (typeof window !== 'undefined' && !window.confirm(en ? `Disconnect ${netLabel}?` : `Déconnecter ${netLabel} ?`)) return;
     try {
       await fetch('/api/agents/disconnect-network', {
         method: 'POST',
@@ -151,8 +155,8 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 mb-3">
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div>
-          <h4 className="text-xs sm:text-sm font-bold text-white/90">Réseaux sociaux</h4>
-          <p className="text-[10px] text-white/40">Connecte tes comptes — active la publication auto par réseau</p>
+          <h4 className="text-xs sm:text-sm font-bold text-white/90">{en ? 'Social networks' : 'Réseaux sociaux'}</h4>
+          <p className="text-[10px] text-white/40">{en ? 'Connect your accounts — enable auto-publishing per network' : 'Connecte tes comptes — active la publication auto par réseau'}</p>
         </div>
       </div>
       <div className="space-y-2">
@@ -171,8 +175,8 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
                 </div>
                 <div className="text-[10px] text-white/45 truncate">
                   {!isConnected
-                    ? 'Non connecté'
-                    : auto ? 'Publication auto activée' : 'Publication manuelle'}
+                    ? (en ? 'Not connected' : 'Non connecté')
+                    : auto ? (en ? 'Auto-publishing on' : 'Publication auto activée') : (en ? 'Manual publishing' : 'Publication manuelle')}
                 </div>
               </div>
               {!isConnected ? (
@@ -180,7 +184,7 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
                   href={n.oauth}
                   className={`px-3 py-2 min-h-[36px] text-[11px] font-bold text-white rounded-lg bg-gradient-to-r ${n.gradient} hover:opacity-90 transition flex items-center gap-1`}
                 >
-                  Connecter
+                  {en ? 'Connect' : 'Connecter'}
                 </a>
               ) : (
                 <div className="flex items-center gap-1.5 sm:gap-2">
@@ -188,8 +192,8 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
                     onClick={() => toggleAuto(n.key)}
                     className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${auto ? '' : 'bg-white/15'}`}
                     style={auto ? { backgroundColor: n.color } : {}}
-                    title={auto ? 'Désactiver la publication auto' : 'Activer la publication auto'}
-                    aria-label={`Publication auto ${n.label}`}
+                    title={auto ? (en ? 'Turn off auto-publishing' : 'Désactiver la publication auto') : (en ? 'Turn on auto-publishing' : 'Activer la publication auto')}
+                    aria-label={`${en ? 'Auto-publish' : 'Publication auto'} ${n.label}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${auto ? 'right-0.5' : 'left-0.5'}`} />
                   </button>
@@ -211,6 +215,8 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
 }
 
 export function NetworkAutoModeToggles({ agentId }: { agentId: string }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [settings, setSettings] = useState<Record<string, boolean>>({});
   const [globalAuto, setGlobalAuto] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -264,7 +270,7 @@ export function NetworkAutoModeToggles({ agentId }: { agentId: string }) {
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-3">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-base">{globalAuto ? '\uD83E\uDD16' : '\u270D\uFE0F'}</span>
-        <span className="text-xs font-medium text-white/80">{globalAuto ? 'Publication automatique' : 'Publication manuelle'}</span>
+        <span className="text-xs font-medium text-white/80">{globalAuto ? (en ? 'Automatic publishing' : 'Publication automatique') : (en ? 'Manual publishing' : 'Publication manuelle')}</span>
       </div>
       <div className="space-y-1.5">
         {NETWORKS.map(n => (
@@ -283,7 +289,7 @@ export function NetworkAutoModeToggles({ agentId }: { agentId: string }) {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-white/50 mt-2">Active/desactive la publication automatique par reseau</p>
+      <p className="text-[10px] text-white/50 mt-2">{en ? 'Enable/disable automatic publishing per network' : 'Active/desactive la publication automatique par reseau'}</p>
     </div>
   );
 }
