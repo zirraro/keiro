@@ -2506,7 +2506,7 @@ export default function AgentWorkspacePage() {
               <span className="text-lg">{'\uD83D\uDCA1'}</span>
               <div className="flex-1">
                 <div className="text-purple-300 text-xs font-semibold">Parametrage recommande actif</div>
-                <div className="text-white/40 text-[10px]">Basé sur votre type de business et les meilleures pratiques</div>
+                <div className="text-white/40 text-[10px]">{isEn ? 'Based on your business type and best practices' : 'Basé sur votre type de business et les meilleures pratiques'}</div>
               </div>
             </div>
 
@@ -2518,7 +2518,7 @@ export default function AgentWorkspacePage() {
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-lg">{'\uD83D\uDCCA'}</span>
                   <div className="flex-1">
-                    <div className="text-emerald-300 text-xs font-semibold">Stratégie adaptative active</div>
+                    <div className="text-emerald-300 text-xs font-semibold">{isEn ? 'Adaptive strategy active' : 'Stratégie adaptative active'}</div>
                     <div className="text-white/50 text-[10px] mt-0.5">
                       Mise à jour chaque nuit à partir de l&apos;engagement IG de tes 30 derniers posts.
                       Confiance : {settings.performance_ranking.confidence === 'high' ? '\uD83D\uDFE2 élevée' : settings.performance_ranking.confidence === 'medium' ? '\uD83D\uDFE1 moyenne' : '\uD83D\uDD34 faible (patiente encore quelques jours)'}
@@ -2683,7 +2683,7 @@ export default function AgentWorkspacePage() {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Nom personnalisé</label>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">{isEn ? 'Custom name' : 'Nom personnalisé'}</label>
                   <input type="text" value={settings.custom_name || ''} onChange={e => setSettings(prev => ({ ...prev, custom_name: e.target.value }))} placeholder={dn} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-purple-500/50" />
                 </div>
                 <div>
@@ -2695,7 +2695,7 @@ export default function AgentWorkspacePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Avatar personnalisé</label>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">{isEn ? 'Custom avatar' : 'Avatar personnalisé'}</label>
                   <div className="flex items-center gap-3">
                     {settings.custom_avatar ? (
                       <img src={settings.custom_avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover border-2 border-white/20" />
@@ -2953,7 +2953,7 @@ export default function AgentWorkspacePage() {
                 title="Réduire (garde la conversation ouverte)"
               >
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" /></svg>
-                <span className="text-white text-xs font-medium hidden xs:inline sm:hidden">Réduire</span>
+                <span className="text-white text-xs font-medium hidden xs:inline sm:hidden">{isEn ? 'Collapse' : 'Réduire'}</span>
               </button>
               <button
                 onClick={() => { setChatOpen(false); setChatMinimised(false); }}

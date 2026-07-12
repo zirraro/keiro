@@ -10,16 +10,21 @@
 
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/i18n/context';
 
 export default function WeeklyPlanCard() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [planningWeekly, setPlanningWeekly] = useState(false);
   const [planningWeeks, setPlanningWeeks] = useState<number | null>(null);
   const [weeklyToast, setWeeklyToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
 
   const planWeek = async (weeks: 1 | 2 | 3 | 4) => {
     if (planningWeekly) return;
-    const daysLabel = weeks === 1 ? '7 jours' : weeks === 2 ? '14 jours' : weeks === 3 ? '21 jours' : '30 jours (1 mois)';
-    if (!window.confirm(`Léna va planifier ${daysLabel} de contenu (IG + TikTok + LinkedIn selon ce qui est connecté).\n\nTu pourras modifier ou supprimer chaque post avant sa date de publication.\n\nDémarrer la génération ?`)) return;
+    const daysLabel = weeks === 1 ? (en ? '7 days' : '7 jours') : weeks === 2 ? (en ? '14 days' : '14 jours') : weeks === 3 ? (en ? '21 days' : '21 jours') : (en ? '30 days (1 month)' : '30 jours (1 mois)');
+    if (!window.confirm(en
+      ? `Léna will schedule ${daysLabel} of content (IG + TikTok + LinkedIn depending on what's connected).\n\nYou can edit or delete each post before its publish date.\n\nStart generating?`
+      : `Léna va planifier ${daysLabel} de contenu (IG + TikTok + LinkedIn selon ce qui est connecté).\n\nTu pourras modifier ou supprimer chaque post avant sa date de publication.\n\nDémarrer la génération ?`)) return;
     setPlanningWeekly(true);
     setPlanningWeeks(weeks);
     try {
@@ -31,9 +36,9 @@ export default function WeeklyPlanCard() {
       });
       const d = await res.json();
       if (d.ok) {
-        setWeeklyToast({ kind: 'ok', msg: `✓ ${d.inserted || 0} posts planifiés sur ${daysLabel}. Édite ou supprime chaque post avant sa date.` });
+        setWeeklyToast({ kind: 'ok', msg: en ? `✓ ${d.inserted || 0} posts scheduled over ${daysLabel}. Edit or delete each post before its date.` : `✓ ${d.inserted || 0} posts planifiés sur ${daysLabel}. Édite ou supprime chaque post avant sa date.` });
       } else {
-        setWeeklyToast({ kind: 'err', msg: `Erreur : ${d.error || 'inconnu'}` });
+        setWeeklyToast({ kind: 'err', msg: en ? `Error: ${d.error || 'unknown'}` : `Erreur : ${d.error || 'inconnu'}` });
       }
     } catch (e: any) {
       setWeeklyToast({ kind: 'err', msg: e?.message || 'Plan failed' });
@@ -50,16 +55,16 @@ export default function WeeklyPlanCard() {
         <div className="flex items-center gap-3 mb-2">
           <div className="text-2xl">📅</div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-white">Planning à l&apos;avance</div>
-            <div className="text-[11px] text-white/50">Génère 1 à 4 semaines de posts — modifie/supprime chaque post avant sa date</div>
+            <div className="text-sm font-bold text-white">{en ? 'Plan ahead' : 'Planning à l’avance'}</div>
+            <div className="text-[11px] text-white/50">{en ? 'Generate 1 to 4 weeks of posts — edit/delete each post before its date' : 'Génère 1 à 4 semaines de posts — modifie/supprime chaque post avant sa date'}</div>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {([
-            { weeks: 1, label: '7 jours', sub: '1 semaine' },
-            { weeks: 2, label: '14 jours', sub: '2 semaines' },
-            { weeks: 3, label: '21 jours', sub: '3 semaines' },
-            { weeks: 4, label: '30 jours', sub: '1 mois' },
+            { weeks: 1, label: en ? '7 days' : '7 jours', sub: en ? '1 week' : '1 semaine' },
+            { weeks: 2, label: en ? '14 days' : '14 jours', sub: en ? '2 weeks' : '2 semaines' },
+            { weeks: 3, label: en ? '21 days' : '21 jours', sub: en ? '3 weeks' : '3 semaines' },
+            { weeks: 4, label: en ? '30 days' : '30 jours', sub: en ? '1 month' : '1 mois' },
           ] as const).map(opt => {
             const isLoading = planningWeeks === opt.weeks;
             return (
@@ -78,7 +83,7 @@ export default function WeeklyPlanCard() {
                 {isLoading ? (
                   <>
                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-1" />
-                    <div className="text-[9px] text-white/70">en cours…</div>
+                    <div className="text-[9px] text-white/70">{en ? 'working…' : 'en cours…'}</div>
                   </>
                 ) : (
                   <>
@@ -109,6 +114,8 @@ export default function WeeklyPlanCard() {
 }
 
 function TikTokPublishModeToggle() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [mode, setMode] = useState<'auto' | 'manual' | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -177,18 +184,20 @@ function TikTokPublishModeToggle() {
     <div>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-base">🎵</span>
-        <span className="text-sm font-bold text-white">Publication TikTok</span>
+        <span className="text-sm font-bold text-white">{en ? 'TikTok publishing' : 'Publication TikTok'}</span>
       </div>
       <div className="flex gap-2">
-        {opt('auto', '⚡', 'Auto (recommandé)', 'Léna publie directement, sans rien à faire de ta part.')}
-        {opt('manual', '🎵', 'Booster son tendance', 'Optionnel : Léna dépose le reel en brouillon dans ton app TikTok pour que tu y colles un son tendance (30s) avant de publier.')}
+        {opt('auto', '⚡', en ? 'Auto (recommended)' : 'Auto (recommandé)', en ? 'Léna publishes directly, nothing to do on your side.' : 'Léna publie directement, sans rien à faire de ta part.')}
+        {opt('manual', '🎵', en ? 'Boost with a trending sound' : 'Booster son tendance', en ? 'Optional: Léna drops the reel as a draft in your TikTok app so you can add a trending sound (30s) before publishing.' : 'Optionnel : Léna dépose le reel en brouillon dans ton app TikTok pour que tu y colles un son tendance (30s) avant de publier.')}
       </div>
-      <p className="text-[10px] text-white/35 mt-1.5">L&apos;auto publie tes reels tout seul. Le mode booster est juste une option si tu veux ajouter un son tendance à la main.</p>
+      <p className="text-[10px] text-white/35 mt-1.5">{en ? 'Auto publishes your reels on its own. Boost mode is just an option if you want to add a trending sound by hand.' : 'L’auto publie tes reels tout seul. Le mode booster est juste une option si tu veux ajouter un son tendance à la main.'}</p>
     </div>
   );
 }
 
 function ValidatePublicationsToggle() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [autoPublish, setAutoPublish] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -257,11 +266,11 @@ function ValidatePublicationsToggle() {
     <div className="flex items-center gap-3">
       <div className="text-2xl">{validateMode ? '✋' : '⚡'}</div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-bold text-white">Valider chaque publication</div>
+        <div className="text-sm font-bold text-white">{en ? 'Approve each post' : 'Valider chaque publication'}</div>
         <div className="text-[11px] text-white/50">
           {validateMode
-            ? 'Léna prépare les posts dans le planning. TU valides chaque post manuellement avant publication.'
-            : 'Léna publie automatiquement aux horaires planifiés. Pas de validation manuelle.'}
+            ? (en ? 'Léna prepares the posts in the planning. YOU approve each post manually before it goes live.' : 'Léna prépare les posts dans le planning. TU valides chaque post manuellement avant publication.')
+            : (en ? 'Léna publishes automatically at the scheduled times. No manual approval.' : 'Léna publie automatiquement aux horaires planifiés. Pas de validation manuelle.')}
         </div>
       </div>
       <button
