@@ -151,7 +151,7 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
   const { t, locale } = useLanguage();
   const p = t.panels;
   const en = locale === 'en';
-  const [tab, setTab] = useState<'dms' | 'comments' | 'follows'>('dms');
+  const [tab, setTab] = useState<'prospection' | 'dms' | 'comments' | 'follows'>('prospection');
   const followsLabel = en ? 'Accounts to follow' : 'Comptes à suivre';
 
   // 2026-06-25 — L'API TikTok ne permet NI DM NI réponse aux commentaires (que
@@ -168,10 +168,16 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
         {igFull && (
           <>
             <button
+              onClick={() => setTab('prospection')}
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'prospection' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
+            >
+              {'\u{1F3AF}'} {en ? 'Prospecting DMs' : 'DM de prospection'}
+            </button>
+            <button
               onClick={() => setTab('dms')}
               className={`flex-1 min-w-0 flex items-center justify-center gap-1 px-2 sm:px-3 py-2 rounded-md text-xs font-medium transition-all ${tab === 'dms' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'}`}
             >
-              {'\u{1F4AC}'} {p.dmTabsDms}
+              {'\u{1F4AC}'} {en ? 'General DMs' : 'DM généraux'}
             </button>
             <button
               onClick={() => setTab('comments')}
@@ -197,6 +203,16 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
           {network === 'linkedin' && <LinkedInDrafts />}
           <ManualFollowsList platform={network} />
           <FollowSuggestions platform={network} />
+        </div>
+      )}
+
+      {/* Instagram — DM de prospection (préparés par Jade, envoi MANUEL car Meta
+          interdit le DM à froid automatique). Une fois envoyé → rejoint les DM
+          généraux (conversation). */}
+      {igFull && tab === 'prospection' && (
+        <div data-tour="dm-prospection">
+          <p className="text-[11px] text-white/50 mb-2">{en ? 'Jade prepares a personalised opening DM for each new prospect. Send them manually (Instagram forbids cold auto-DMs) — once sent, the conversation moves to General DMs.' : 'Jade prépare un DM d’accroche personnalisé pour chaque nouveau prospect. Envoie-les à la main (Instagram interdit le DM à froid auto) — une fois envoyé, la conversation passe dans DM généraux.'}</p>
+          <PendingDMQueue gradientFrom="#ec4899" />
         </div>
       )}
 
@@ -3109,8 +3125,8 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
       {/* Hot prospects */}
       {/* HotProspectsAlert removed */}
 
-      {/* Pending DMs ready to send — client clicks to send */}
-      <PendingDMQueue gradientFrom={gradientFrom} />
+      {/* Les DM de prospection en attente sont désormais organisés dans l'onglet
+          "DM de prospection" de JadeTabs (founder 12/07) — plus de bloc dupliqué ici. */}
 
       {/* DMs / Comments / Follows switch — Instagram live data */}
       <JadeTabs network="instagram" />
