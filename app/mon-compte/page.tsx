@@ -563,7 +563,7 @@ function MonComptePage() {
                   </p>
                 )}
 
-                <div className="flex gap-3 mt-4">
+                <div className="flex gap-3 mt-4 flex-wrap">
                   {profile?.stripe_subscription_id ? (
                     <button
                       onClick={async () => {
@@ -585,6 +585,27 @@ function MonComptePage() {
                     >
                       {profile?.credits_expires_at ? 'S\'abonner pour garder mes avantages' : 'Choisir un plan'}
                     </Link>
+                  )}
+                  {/* Passer à l'annuel — 2 mois offerts (Fable 5 §levier 3).
+                      Proposé aux clients abonnés (fin d'essai + mois 2), jamais
+                      à l'inscription. Endpoint idempotent (déjà annuel = no-op). */}
+                  {profile?.stripe_subscription_id && profile?.subscription_plan && profile.subscription_plan !== 'free' && profile?.billing_interval !== 'year' && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Passer en facturation annuelle = 2 mois offerts (tu paies 10 mois au lieu de 12). Confirmer ?')) return;
+                        try {
+                          const res = await fetch('/api/stripe/switch-annual', { method: 'POST' });
+                          const data = await res.json();
+                          if (data.ok) {
+                            alert(data.already ? 'Tu es déjà en facturation annuelle 👍' : 'C\'est fait ! Tu es passé en annuel — 2 mois offerts 🎉');
+                            window.location.reload();
+                          } else alert(data.error || 'Erreur');
+                        } catch { alert('Erreur réseau'); }
+                      }}
+                      className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium"
+                    >
+                      💛 Passer à l&apos;annuel — 2 mois offerts
+                    </button>
                   )}
                 </div>
                 {profile?.credits_expires_at && (

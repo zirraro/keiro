@@ -32,7 +32,17 @@ const TEMP_WEIGHT: Record<string, number> = { hot: 3, warm: 2, cold: 1, dead: 0 
 function toText(v: any): string {
   if (v == null) return '';
   if (typeof v === 'string') return v;
-  try { return JSON.stringify(v); } catch { return String(v); }
+  if (typeof v === 'object') {
+    // Blob d'enrichissement (scrape site) → on extrait le texte lisible plutôt
+    // que du JSON brut : description, puis signaux/ambiance.
+    const parts: string[] = [];
+    if (v.website_description) parts.push(String(v.website_description));
+    if (Array.isArray(v.signals) && v.signals.length) parts.push(v.signals.join(' · '));
+    if (Array.isArray(v.ambiance) && v.ambiance.length) parts.push(`Ambiance: ${v.ambiance.join(', ')}`);
+    if (parts.length) return parts.join(' — ');
+    try { return JSON.stringify(v); } catch { return String(v); }
+  }
+  try { return String(v); } catch { return ''; }
 }
 
 export async function GET(req: NextRequest) {

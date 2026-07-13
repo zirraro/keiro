@@ -51,7 +51,12 @@ function emailFor(stage: number, name: string, produced: { posts: number; dms: n
   };
   return {
     subject: 'Avant la fin de ton essai — voilà ce que ton équipe a produit',
-    html: wrap('Ton équipe a fait ses preuves', `${hello}<p>Depuis le début de ton essai, ton équipe KeiroAI a produit : <strong>${recap}</strong> — sans que tu aies à t'en occuper.</p><p>Ton essai se termine le <strong>${trialEndStr}</strong>. Pour que ton équipe continue sans interruption, tout est déjà en place — tu n'as rien à faire.</p><p>Si tu veux ajuster ton plan ou poser une question, on est là.</p>${cta('Continuer avec mon équipe')}<p style="color:#6b7280;font-size:12px;">Tu peux annuler en 1 clic à tout moment depuis ton espace facturation.</p>`),
+    html: wrap('Ton équipe a fait ses preuves', `${hello}<p>Depuis le début de ton essai, ton équipe KeiroAI a produit : <strong>${recap}</strong> — sans que tu aies à t'en occuper.</p><p>Ton essai se termine le <strong>${trialEndStr}</strong>. Pour que ton équipe continue sans interruption, tout est déjà en place — tu n'as rien à faire.</p>${cta('Continuer avec mon équipe')}
+      <div style="margin:18px 0;padding:14px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;">
+        <div style="font-weight:bold;color:#92400e;margin-bottom:4px;">💛 Envie de t'engager sereinement ? Passe en annuel = 2 mois offerts</div>
+        <div style="font-size:13px;color:#78716c;">Tu paies 10 mois au lieu de 12, et ton équipe tourne toute l'année. <a href="https://keiroai.com/mon-compte?section=billing" style="color:#0c1a3a;font-weight:600;">Activer l'annuel →</a></div>
+      </div>
+      <p style="color:#6b7280;font-size:12px;">Tu peux annuler en 1 clic à tout moment depuis ton espace facturation.</p>`),
   };
 }
 
