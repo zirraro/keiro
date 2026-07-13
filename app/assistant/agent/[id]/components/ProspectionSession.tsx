@@ -106,11 +106,12 @@ export default function ProspectionSession() {
       const d = await res.json();
       items = d?.ok ? d.callList : [];
       setList(items);
-      if (items.length) { setActiveSession(null); await saveSession('crm', items.map((p: any) => p.id)); }
-    } catch { setList([]); }
+      if (items.length) { setActiveSession(null); await saveSession('crm', items.map((p: any) => p.id)); setSearchMsg(en ? `✓ ${items.length} prospects ready — Léo picked the highest-priority ones.` : `✓ ${items.length} prospects prêts — Léo a choisi les plus prioritaires.`); }
+      else setSearchMsg(en ? 'No callable prospect in your CRM yet. Run a Google search below to source fresh ones.' : 'Aucun prospect appelable dans ton CRM pour l\'instant. Lance une recherche Google ci-dessous pour en sourcer.');
+    } catch { setList([]); setSearchMsg(en ? 'Could not load the list. Retry.' : 'Impossible de charger la liste. Réessaie.'); }
     setLoading(false);
     return items;
-  }, [count, saveSession]);
+  }, [count, saveSession, en]);
 
   // Recherche Google : scrape Google Maps sur (activité + ville) → crée de
   // NOUVELLES fiches CRM (les plus complètes possible : nom, adresse, tél, note

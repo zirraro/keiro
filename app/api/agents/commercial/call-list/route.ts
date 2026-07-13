@@ -32,6 +32,10 @@ export async function GET(req: NextRequest) {
     if (error || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    // Admin/fondateur : Léo peut aussi travailler le POOL de prospection partagé
+    // (prospects sourcés sans propriétaire, user_id=null) pour son propre démarchage.
+    const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+    const isAdmin = !!prof?.is_admin;
     const { searchParams } = new URL(req.url);
     const sector = (searchParams.get('sector') || '').trim();
     const city = (searchParams.get('city') || '').trim();
@@ -48,8 +52,11 @@ export async function GET(req: NextRequest) {
     let q = supabase
       .from('crm_prospects')
       .select('id, first_name, last_name, company, phone, email, instagram, website, ville, type, status, temperature, score, notes, business_notes, last_contacted_at, created_at')
-      .eq('user_id', user.id)
       .limit(500);
+    // Scope propriétaire : le client voit SES prospects ; l'admin voit aussi le
+    // pool partagé (user_id null) pour son propre démarchage.
+    if (isAdmin) q = q.or(`user_id.eq.${user.id},user_id.is.null`);
+    else q = q.eq('user_id', user.id);
     if (ids.length) {
       q = q.in('id', ids);
     } else {
