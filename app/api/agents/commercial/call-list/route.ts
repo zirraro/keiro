@@ -40,15 +40,22 @@ export async function GET(req: NextRequest) {
     // on veut voir tout ce qu'on a en CRM, pas seulement les appelables). Le tel:
     // ne s'affiche côté UI que si un numéro existe.
     const includeNoPhone = searchParams.get('all') === '1';
+    // `ids=a,b,c` : recharger une SESSION sauvegardée par ses prospect_ids (fresh
+    // depuis le CRM, aucune requête Google → coût nul). Prioritaire sur les filtres.
+    const ids = (searchParams.get('ids') || '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 100);
     const limit = Math.min(100, parseInt(searchParams.get('limit') || '40', 10));
 
     let q = supabase
       .from('crm_prospects')
       .select('id, first_name, last_name, company, phone, email, instagram, website, city, business_type, status, temperature, score, notes, ai_summary, last_contacted_at, created_at')
       .eq('user_id', user.id)
-      .in('status', Object.keys(CALLABLE_STATUS))
       .limit(500);
-    if (!includeNoPhone) q = q.not('phone', 'is', null).neq('phone', '');
+    if (ids.length) {
+      q = q.in('id', ids);
+    } else {
+      q = q.in('status', Object.keys(CALLABLE_STATUS));
+      if (!includeNoPhone) q = q.not('phone', 'is', null).neq('phone', '');
+    }
     if (sector) q = q.ilike('business_type', `%${sector}%`);
     if (city) q = q.ilike('city', `%${city}%`);
     if (temperature && ['hot', 'warm', 'cold'].includes(temperature)) q = q.eq('temperature', temperature);

@@ -42,6 +42,33 @@ export default function ProspectionSession() {
   const [stats, setStats] = useState<{ today: Stats; week: Stats; reachRate: number; interestRate: number; history: any[] } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Sessions datées (mini-onglets) — chaque liste générée est sauvegardée avec sa
+  // date, pour la finaliser jour par jour. Priorité coût : recharge par ids (0 Google).
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+
+  const saveSession = useCallback(async (source: 'crm' | 'google', prospectIds: string[]) => {
+    if (!prospectIds.length) return;
+    try {
+      const r = await fetch('/api/agents/commercial/prospection-sessions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ source, params: { sector, city, temp }, prospect_ids: prospectIds }),
+      });
+      if (r.ok) { const d = await r.json(); setSessions(d.sessions || []); setActiveSession(d.session?.id || null); }
+    } catch { /* noop */ }
+  }, [sector, city, temp]);
+
+  const loadSession = useCallback(async (s: any) => {
+    setActiveSession(s.id); setLoading(true);
+    try {
+      const ids = (s.prospect_ids || []).join(',');
+      const res = await fetch(`/api/agents/commercial/call-list?ids=${encodeURIComponent(ids)}`, { credentials: 'include' });
+      const d = await res.json();
+      setList(d?.ok ? d.callList : []);
+    } catch { setList([]); }
+    setLoading(false);
+  }, []);
+
   const loadStats = useCallback(async () => {
     try {
       const r = await fetch('/api/agents/commercial/prospection-stats', { credentials: 'include' });
@@ -49,8 +76,9 @@ export default function ProspectionSession() {
     } catch { /* noop */ }
   }, []);
 
-  const launch = useCallback(async () => {
+  const launch = useCallback(async (save = false): Promise<any[]> => {
     setLoading(true);
+    let items: any[] = [];
     try {
       const qs = new URLSearchParams({
         ...(sector ? { sector } : {}), ...(city ? { city } : {}),
@@ -58,10 +86,14 @@ export default function ProspectionSession() {
       }).toString();
       const res = await fetch(`/api/agents/commercial/call-list?${qs}`, { credentials: 'include' });
       const d = await res.json();
-      setList(d?.ok ? d.callList : []);
+      items = d?.ok ? d.callList : [];
+      setList(items);
+      // save=true (clic sur "Charger depuis mon CRM") → nouvelle session datée.
+      if (save && items.length) { setActiveSession(null); await saveSession('crm', items.map((p: any) => p.id)); }
     } catch { setList([]); }
     setLoading(false);
-  }, [sector, city, temp, count]);
+    return items;
+  }, [sector, city, temp, count, saveSession]);
 
   // Recherche Google : scrape Google Maps sur (activité + ville) → crée de
   // NOUVELLES fiches CRM (les plus complètes possible : nom, adresse, tél, note
@@ -87,12 +119,25 @@ export default function ProspectionSession() {
         const imported = d.imported ?? d.added ?? d.prospects_added ?? d.totalImported ?? d.report?.imported ?? 0;
         setSearchMsg(en ? `✓ ${imported} new prospect(s) added from Google.` : `✓ ${imported} nouveau(x) prospect(s) ajouté(s) depuis Google.`);
       }
-      await launch();
+      const items = await launch(false);
+      if (items.length) { setActiveSession(null); await saveSession('google', items.map((p: any) => p.id)); }
     } catch (e: any) { setSearchMsg(e?.message || (en ? 'Search failed' : 'Recherche échouée')); }
     setSearching(false);
-  }, [sector, city, en, launch]);
+  }, [sector, city, en, launch, saveSession]);
 
-  useEffect(() => { loadStats(); launch(); }, [loadStats]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    loadStats();
+    (async () => {
+      try {
+        const r = await fetch('/api/agents/commercial/prospection-sessions', { credentials: 'include' });
+        const d = r.ok ? await r.json() : { sessions: [] };
+        const ss = d.sessions || [];
+        setSessions(ss);
+        if (ss.length) await loadSession(ss[0]); // reprendre la dernière session (0 coût)
+        else await launch(false);                // sinon liste CRM par défaut
+      } catch { await launch(false); }
+    })();
+  }, [loadStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mark = useCallback(async (id: string, outcome: string) => {
     setBusy(id);
@@ -181,16 +226,35 @@ export default function ProspectionSession() {
           </select>
         </div>
         <div className="mt-2 flex flex-col sm:flex-row gap-2">
-          <button onClick={launch} disabled={loading} className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold disabled:opacity-50 active:scale-[0.99] transition-all">
-            {loading ? '…' : (en ? '📋 Load from my CRM' : '📋 Charger depuis mon CRM')}
+          <button onClick={() => launch(true)} disabled={loading} className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold disabled:opacity-50 active:scale-[0.99] transition-all">
+            {loading ? '…' : (en ? '📋 Load from my CRM (free)' : '📋 Charger depuis mon CRM (gratuit)')}
           </button>
-          <button onClick={searchGoogle} disabled={searching} className="flex-1 py-2.5 rounded-lg bg-white/10 border border-white/15 hover:bg-white/15 text-white text-sm font-bold disabled:opacity-50 active:scale-[0.99] transition-all">
-            {searching ? (en ? '🔍 Searching Google…' : '🔍 Recherche Google…') : (en ? '🔍 Search Google (new prospects)' : '🔍 Rechercher sur Google (nouveaux)')}
+          <button
+            onClick={() => { if (window.confirm(en ? 'Google search costs (Places API). We prioritize your CRM first — only search Google if the area isn\'t there yet. Continue?' : 'La recherche Google a un coût (API Places). On privilégie ton CRM d\'abord — ne lance Google que si la zone n\'y est pas encore. Continuer ?')) searchGoogle(); }}
+            disabled={searching}
+            className="flex-1 py-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 text-sm font-semibold disabled:opacity-50 active:scale-[0.99] transition-all">
+            {searching ? (en ? '🔍 Searching…' : '🔍 Recherche…') : (en ? '🔍 Search Google (paid)' : '🔍 Rechercher sur Google (payant)')}
           </button>
         </div>
-        <p className="text-[10px] text-white/40 mt-1.5">{en ? 'Load pulls your existing CRM prospects for this targeting. Google search sources brand-new fiches (name, address, phone, Google rating…) when the area isn\'t in your CRM yet.' : 'Charger = tes prospects CRM existants pour ce ciblage. Recherche Google = crée de nouvelles fiches (nom, adresse, tél, note Google…) quand la zone n\'est pas encore dans ton CRM.'}</p>
+        <p className="text-[10px] text-white/40 mt-1.5">{en ? 'We prioritize your CRM (free). Google search creates brand-new, pre-filled fiches (name, address, phone, Google rating) — use it only when the area isn\'t in your CRM. Costs are capped per run.' : 'On privilégie ton CRM (gratuit). La recherche Google crée de nouvelles fiches déjà remplies (nom, adresse, tél, note Google) — à utiliser seulement si la zone n\'est pas dans ton CRM. Coûts plafonnés par recherche.'}</p>
         {searchMsg && <p className="text-[11px] text-cyan-200 mt-1.5">{searchMsg}</p>}
       </div>
+
+      {/* ── MINI-ONGLETS : sessions datées ── */}
+      {sessions.length > 0 && (
+        <div>
+          <div className="text-[10px] text-white/40 uppercase font-bold mb-1.5">{en ? 'Your lists (finish day by day)' : 'Tes listes (à finir jour par jour)'}</div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {sessions.map((s: any) => (
+              <button key={s.id} onClick={() => loadSession(s)}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${activeSession === s.id ? 'bg-orange-500/25 text-orange-100 border-orange-400/40' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'}`}
+                title={`${s.count} prospects · ${(s.at || '').slice(0, 10)}`}>
+                {s.source === 'google' ? '🔍' : '📋'} {(s.at || '').slice(5, 10).replace('-', '/')} · {s.label} <span className="text-white/40">({s.count})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── LISTE À APPELER ── */}
       {list && list.length === 0 && (
