@@ -200,6 +200,14 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
           pour les 3 réseaux (founder 2026-06-25). + warming/niche en complément. */}
       {tab === 'follows' && (
         <div data-tour="dm-follows">
+          {network === 'tiktok' && (
+            <div className="mb-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.06] p-3">
+              <div className="text-xs font-bold text-cyan-200 mb-1">{en ? '💡 Keep your TikTok ALIVE = more reach' : '💡 Garde ton TikTok VIVANT = plus de portée'}</div>
+              <p className="text-[11px] text-white/60 leading-snug">{en
+                ? 'A TikTok account that follows and likes regularly is far better distributed — and it protects your own posts from being throttled when you\'re inactive. 2 min/day: follow a few niche accounts below AND go like a few of their posts. Views follow activity.'
+                : 'Un compte TikTok qui suit et like régulièrement est bien mieux distribué — et ça protège tes propres posts du throttle quand tu es inactif. 2 min/jour : suis quelques comptes de ta niche ci-dessous ET va liker quelques-uns de leurs posts. Les vues suivent l\'activité.'}</p>
+            </div>
+          )}
           {network === 'linkedin' && <LinkedInDrafts />}
           <ManualFollowsList platform={network} />
           <FollowSuggestions platform={network} />
