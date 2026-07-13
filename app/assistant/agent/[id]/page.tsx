@@ -12,6 +12,7 @@ import CreditPackModal from '@/components/CreditPackModal';
 import CreditBalanceChip from '@/components/CreditBalanceChip';
 import WeeklyPlanCard from './components/WeeklyPlanCard';
 import PlanningReviewFlow from './components/PlanningReviewFlow';
+import ProspectionSession from './components/ProspectionSession';
 import InfoTooltip from '@/components/InfoTooltip';
 
 // Per-tab explanations shown by the "i" next to each agent tab (FR/EN).
@@ -1349,8 +1350,8 @@ export default function AgentWorkspacePage() {
 
   // Tabs — support ?tab=history from notification links
   const searchParams = useSearchParams();
-  const initialTab = (['dashboard', 'planning', 'history', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'settings' | 'profile' | 'documents' | 'editor'>(initialTab);
+  const initialTab = (['dashboard', 'prospection', 'planning', 'history', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'prospection' | 'planning' | 'history' | 'settings' | 'profile' | 'documents' | 'editor'>(initialTab);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   // Le spotlight peut demander de basculer d'onglet pour montrer le VRAI endroit
@@ -2126,6 +2127,7 @@ export default function AgentWorkspacePage() {
           <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
             {([
               { key: 'dashboard' as const, label: isEn ? 'Dashboard' : 'Tableau de bord', icon: '\uD83D\uDCCA' },
+              ...(agentId === 'commercial' ? [{ key: 'prospection' as const, label: isEn ? 'Prospecting' : 'Prospection', icon: '\uD83C\uDFAF' }] : []),
               ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: isEn ? 'My profile' : 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
               // Campaigns tab removed (empty/redundant — Launch button + agent inline lists do the job)
               ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: isEn ? 'Planning' : 'Planning', icon: '\uD83D\uDCC5' }] : []),
@@ -2181,6 +2183,10 @@ export default function AgentWorkspacePage() {
         </div>
 
         {/* ═══ TAB: DASHBOARD ═══ */}
+        {activeTab === 'prospection' && agentId === 'commercial' && (
+          <div data-tour="prospection-view"><ProspectionSession /></div>
+        )}
+
         {activeTab === 'dashboard' && (
           <div>
             <div className="space-y-4 min-w-0">
