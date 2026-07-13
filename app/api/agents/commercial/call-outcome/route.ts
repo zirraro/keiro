@@ -34,10 +34,12 @@ export async function POST(req: NextRequest) {
     const cfg = OUTCOMES[outcome];
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Vérifie la propriété du prospect (sécurité multi-tenant).
+    // Vérifie la propriété du prospect (sécurité multi-tenant, org-aware).
     const { data: prospect } = await supabase
-      .from('crm_prospects').select('id, user_id, status').eq('id', prospectId).maybeSingle();
-    if (!prospect || prospect.user_id !== user.id) {
+      .from('crm_prospects').select('id, user_id, org_id, status').eq('id', prospectId).maybeSingle();
+    const { data: om } = await supabase.from('organization_members').select('org_id').eq('user_id', user.id).maybeSingle();
+    const ownsIt = !!prospect && (prospect.user_id === user.id || (!!prospect.org_id && prospect.org_id === om?.org_id));
+    if (!ownsIt) {
       return NextResponse.json({ error: 'prospect introuvable' }, { status: 404 });
     }
 

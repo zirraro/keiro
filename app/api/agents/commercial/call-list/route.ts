@@ -32,10 +32,13 @@ export async function GET(req: NextRequest) {
     if (error || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-    // Admin/fondateur : Léo peut aussi travailler le POOL de prospection partagé
-    // (prospects sourcés sans propriétaire, user_id=null) pour son propre démarchage.
-    const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
-    const isAdmin = !!prof?.is_admin;
+    // MÊME scoping que /api/crm (source de vérité) : multi-tenant par ORG. Les
+    // prospects d'une équipe sont scopés par org_id (pas seulement le user_id du
+    // membre qui les a sourcés) → sinon la prospection est vide alors que le CRM
+    // affiche 5000+ (bug founder 13/07 : session ≠ user_id propriétaire des fiches).
+    const { data: orgMember } = await supabase
+      .from('organization_members').select('org_id').eq('user_id', user.id).maybeSingle();
+    const orgId = orgMember?.org_id || null;
     const { searchParams } = new URL(req.url);
     const sector = (searchParams.get('sector') || '').trim();
     const city = (searchParams.get('city') || '').trim();
@@ -53,9 +56,9 @@ export async function GET(req: NextRequest) {
       .from('crm_prospects')
       .select('id, first_name, last_name, company, phone, email, instagram, website, ville, type, status, temperature, score, notes, business_notes, last_contacted_at, created_at')
       .limit(500);
-    // Scope propriétaire : le client voit SES prospects ; l'admin voit aussi le
-    // pool partagé (user_id null) pour son propre démarchage.
-    if (isAdmin) q = q.or(`user_id.eq.${user.id},user_id.is.null`);
+    // Scope multi-tenant : membre d'org → prospects de l'org OU les siens (certaines
+    // fiches ont user_id sans org_id, d'autres l'inverse) ; sinon user_id seul.
+    if (orgId) q = q.or(`org_id.eq.${orgId},user_id.eq.${user.id}`);
     else q = q.eq('user_id', user.id);
     if (ids.length) {
       q = q.in('id', ids);
@@ -72,6 +75,7 @@ export async function GET(req: NextRequest) {
     q = q.or(`last_contacted_at.is.null,last_contacted_at.lt.${twoDaysAgo}`);
 
     const { data, error: qErr } = await q;
+    console.log(`[call-list] user=${user.id} org=${orgId || 'none'} ids=${ids.length} all=${includeNoPhone} sector="${sector}" city="${city}" → rows=${(data || []).length}${qErr ? ` ERR=${qErr.message}` : ''}`);
     if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
 
     const rows = (data || []).map((p: any) => {
