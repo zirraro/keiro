@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     let q = supabase
       .from('crm_prospects')
-      .select('id, first_name, last_name, company, phone, email, instagram, website, city, business_type, status, temperature, score, notes, ai_summary, last_contacted_at, created_at')
+      .select('id, first_name, last_name, company, phone, email, instagram, website, ville, type, status, temperature, score, notes, business_notes, last_contacted_at, created_at')
       .eq('user_id', user.id)
       .limit(500);
     if (ids.length) {
@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
       q = q.in('status', Object.keys(CALLABLE_STATUS));
       if (!includeNoPhone) q = q.not('phone', 'is', null).neq('phone', '');
     }
-    if (sector) q = q.ilike('business_type', `%${sector}%`);
-    if (city) q = q.ilike('city', `%${city}%`);
+    if (sector) q = q.ilike('type', `%${sector}%`);
+    if (city) q = q.ilike('ville', `%${city}%`);
     if (temperature && ['hot', 'warm', 'cold'].includes(temperature)) q = q.eq('temperature', temperature);
     // Ne pas re-proposer un prospect appelé dans les 2 derniers jours (évite qu'un
     // "à relancer" réapparaisse aussitôt). null = jamais appelé = à appeler.
@@ -73,13 +73,13 @@ export async function GET(req: NextRequest) {
       const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.company || 'Prospect';
       return {
         id: p.id, name, company: p.company || null, phone: p.phone,
-        city: p.city || null, business_type: p.business_type || null,
+        city: p.ville || null, business_type: p.type || null,
         status: p.status, temperature: p.temperature || 'cold', score: p.score || 0,
         recommended_action: cfg.action,
         fiche: {
           email: p.email || null, instagram: p.instagram || null, website: p.website || null,
           notes: (p.notes || '').slice(0, 400) || null,
-          summary: (p.ai_summary || '').slice(0, 400) || null,
+          summary: (p.business_notes || '').slice(0, 400) || null,
           last_contact: p.last_contacted_at || null,
         },
         _rank: rank,

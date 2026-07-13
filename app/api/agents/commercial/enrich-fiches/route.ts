@@ -20,7 +20,7 @@ export const runtime = 'nodejs';
 async function run(userId: string | null, limit: number) {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   let q = supabase.from('crm_prospects')
-    .select('id, address, city, quartier')
+    .select('id, address, quartier, ville')
     .or('quartier.is.null,quartier.eq.')
     .not('address', 'is', null)
     .limit(limit);
@@ -33,7 +33,7 @@ async function run(userId: string | null, limit: number) {
     const parsed = parseAddressDeterministic(p.address || null);
     const patch: Record<string, any> = {};
     if (parsed.quartier && parsed.confidence >= 70 && !p.quartier) patch.quartier = parsed.quartier;
-    if (parsed.ville && !p.city) patch.city = parsed.ville;
+    if (parsed.ville && !p.ville) patch.ville = parsed.ville;
     if (Object.keys(patch).length) {
       patch.updated_at = new Date().toISOString();
       await supabase.from('crm_prospects').update(patch).eq('id', p.id);
