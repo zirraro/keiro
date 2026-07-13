@@ -428,7 +428,7 @@ function PricingPageInner() {
                 <span>🏢</span> {t.pricing.planBusinessTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 990€' : '199€'}</span>
+                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 390€' : '139€'}</span>
                 <span className="text-cyan-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">{t.home.priceNoteBusiness}</span>}
               </div>
@@ -583,7 +583,7 @@ function PricingPageInner() {
                   <th className="text-left py-3 px-2">{locale === 'fr' ? 'Fonctionnalité' : 'Feature'}</th>
                   <th className="text-center py-3 px-2 text-purple-600">{locale === 'fr' ? 'Créateur' : 'Creator'} 49{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 text-blue-600">Pro 99{'\u20AC'}</th>
-                  <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 199{'\u20AC'}</th>
+                  <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 139{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 bg-yellow-50 font-bold">{locale === 'fr' ? 'Agence \u2014 Sur devis' : 'Agency \u2014 Quote'}</th>
                 </tr>
               </thead>

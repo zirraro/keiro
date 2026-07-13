@@ -178,7 +178,7 @@ export async function GET(req: NextRequest) {
 
   // ─── 4. Per-client cost attribution ──────────────────────────────────
   const REVENUE_PER_PLAN_EUR: Record<string, number> = {
-    free: 0, createur: 49, pro: 99, business: 199,
+    free: 0, createur: 49, pro: 99, business: 139,
     fondateurs: 149, elite: 999, agence: 999, admin: 0,
   };
 

@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
   const PLAN_REVENUE: Record<string, number> = {
     free: 0, gratuit: 0, sprint: 0,
     createur: 49, pro: 99, fondateurs: 149,
-    business: 199, elite: 999, agence: 0,
+    business: 139, elite: 999, agence: 0,
   };
 
   // Build response

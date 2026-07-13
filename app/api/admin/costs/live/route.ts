@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
     .neq('subscription_plan', 'free')
     .neq('subscription_plan', null);
   const PLAN_REV: Record<string, number> = {
-    createur: 49, pro: 99, fondateurs: 79, business: 199, elite: 299, agence: 499, admin: 0,
+    createur: 49, pro: 99, fondateurs: 79, business: 139, elite: 299, agence: 499, admin: 0,
   };
   let monthlyRevenue = 0;
   for (const c of (clients || []) as any[]) {

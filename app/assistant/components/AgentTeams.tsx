@@ -38,7 +38,7 @@ const TEAM_PACKS: AgentTeamPack[] = [
   },
   {
     name: 'Pack Business',
-    planLabel: 'Business 199\u20AC',
+    planLabel: 'Business 139\u20AC',
     price: '199\u20AC/mois',
     agentIds: ['seo', 'rh', 'gmaps', 'chatbot', 'comptable'],
     gradientFrom: '#0c1a3a',

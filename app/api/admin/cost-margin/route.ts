@@ -24,7 +24,7 @@ const PLAN_REVENUE: Record<string, number> = {
   createur: 49,
   pro: 99,
   fondateurs: 79,    // early bird locked
-  business: 199,
+  business: 139,
   elite: 299,        // legacy
   agence: 499,
   admin: 0,          // internal

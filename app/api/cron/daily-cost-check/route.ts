@@ -27,7 +27,7 @@ function authOk(req: NextRequest) {
 }
 
 const PLAN_REV: Record<string, number> = {
-  createur: 49, pro: 99, fondateurs: 79, business: 199, elite: 299, agence: 499, admin: 0,
+  createur: 49, pro: 99, fondateurs: 79, business: 139, elite: 299, agence: 499, admin: 0,
 };
 
 export async function GET(req: NextRequest) {

@@ -115,7 +115,7 @@ export async function GET() {
     commercial: 0.005, onboarding: 0.005, ads: 0.005,
   };
   const REVENUE_PER_PLAN_EUR: Record<string, number> = {
-    free: 0, createur: 49, pro: 99, business: 199,
+    free: 0, createur: 49, pro: 99, business: 139,
     fondateurs: 149, elite: 999, agence: 999, admin: 0,
   };
 

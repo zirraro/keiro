@@ -8,7 +8,7 @@ const PLAN_LABELS: Record<string, string> = {
   createur: 'Créateur (49\u20AC/mois)',
   pro: 'Pro (99\u20AC/mois)',
   fondateurs: 'Business (199\u20AC/mois)',
-  business: 'Business (199\u20AC/mois)',
+  business: 'Business (139\u20AC/mois)',
   elite: 'Elite (999\u20AC/mois)',
 };
 
@@ -16,7 +16,7 @@ const PLAN_SHORT: Record<string, string> = {
   createur: 'Créateur 49€',
   pro: 'Pro 99€',
   fondateurs: 'Business 199€',
-  business: 'Business 199€',
+  business: 'Business 139€',
   elite: 'Elite 999€',
 };
 

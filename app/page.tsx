@@ -836,7 +836,7 @@ function HomeKeiroInner() {
 
             <Plan
               title={`🏢 ${t.home.planBusinessTitle}`}
-              price={billingPeriod === 'annual' ? `1 990€ ${t.common.perYear}` : `199€ ${t.common.perMonth}`}
+              price={billingPeriod === 'annual' ? `1 390€ ${t.common.perYear}` : `139€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNoteBusiness : undefined}
               subtitle={locale === 'fr' ? 'PME, hotels, multi-sites' : 'SMEs, hotels, multi-site'}
               special
