@@ -9,6 +9,8 @@ import { useLanguage } from '@/lib/i18n/context';
 // "leo mes demandes se voient pas" — the controls were sitting in the
 // wrong file.
 function LeoDirection() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [sector, setSector] = useState('');
   const [city, setCity] = useState('');
   const [launching, setLaunching] = useState(false);
@@ -52,7 +54,7 @@ function LeoDirection() {
       const data = await res.json();
       setResult({
         ok: data.ok !== false,
-        message: data.message || data.error || `${data.imported || 0} prospects ajoutés depuis Google Maps`,
+        message: data.message || data.error || (en ? `${data.imported || 0} prospects added from Google Maps` : `${data.imported || 0} prospects ajoutés depuis Google Maps`),
       });
     } catch (e: any) {
       setResult({ ok: false, message: e.message });
@@ -78,24 +80,24 @@ function LeoDirection() {
   return (
     <div className="rounded-xl border border-blue-500/20 bg-blue-900/10 p-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h3 className="text-sm font-bold text-blue-300">{'🎯'} Diriger Léo</h3>
+        <h3 className="text-sm font-bold text-blue-300">{'🎯'} {en ? 'Steer Léo' : 'Diriger Léo'}</h3>
         {persisted && (persisted.sector || persisted.city) && (
           <span className="text-[10px] text-blue-300/60">
-            Focus : <strong>{persisted.sector || 'tous secteurs'}</strong>
+            {en ? 'Focus:' : 'Focus :'} <strong>{persisted.sector || (en ? 'all sectors' : 'tous secteurs')}</strong>
             {persisted.city && <> · {persisted.city}</>}
           </span>
         )}
       </div>
-      <p className="text-[11px] text-white/50">Concentre Léo sur un secteur et/ou une ville. Léo prospectera ces cibles à chaque passage (toutes les 6h).</p>
+      <p className="text-[11px] text-white/50">{en ? 'Focus Léo on a sector and/or a city. Léo will prospect these targets on every run (every 6h).' : 'Concentre Léo sur un secteur et/ou une ville. Léo prospectera ces cibles à chaque passage (toutes les 6h).'}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Secteur</label>
+          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">{en ? 'Sector' : 'Secteur'}</label>
           <input
             list="leo-sector-options"
             type="text"
             value={sector}
             onChange={e => setSector(e.target.value)}
-            placeholder="ex: coach, restaurant..."
+            placeholder={en ? 'e.g. coach, restaurant...' : 'ex: coach, restaurant...'}
             className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           />
           <datalist id="leo-sector-options">
@@ -103,12 +105,12 @@ function LeoDirection() {
           </datalist>
         </div>
         <div>
-          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Ville</label>
+          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">{en ? 'City' : 'Ville'}</label>
           <input
             type="text"
             value={city}
             onChange={e => setCity(e.target.value)}
-            placeholder="ex: Amiens, Paris..."
+            placeholder={en ? 'e.g. London, Paris...' : 'ex: Amiens, Paris...'}
             className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           />
         </div>
@@ -119,14 +121,14 @@ function LeoDirection() {
           disabled={launching}
           className="flex-1 min-w-[160px] px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 min-h-[44px]"
         >
-          {launching ? 'Recherche…' : `🔍 Lancer une recherche maintenant`}
+          {launching ? (en ? 'Searching…' : 'Recherche…') : `🔍 ${en ? 'Run a search now' : 'Lancer une recherche maintenant'}`}
         </button>
         <button
           onClick={saveFocus}
           disabled={persisting || (!sector && !city)}
           className="px-4 py-2 bg-white/10 text-white/80 text-xs font-bold rounded-xl hover:bg-white/15 transition-all disabled:opacity-40 min-h-[44px]"
         >
-          {persisting ? '…' : '💾 Sauvegarder le focus'}
+          {persisting ? '…' : `💾 ${en ? 'Save focus' : 'Sauvegarder le focus'}`}
         </button>
       </div>
       {result && (
@@ -221,6 +223,15 @@ const PIPELINE_STAGES: { key: string; label: string; color: string }[] = [
   { key: 'client', label: 'Client', color: 'bg-green-500' },
   { key: 'perdu', label: 'Perdu', color: 'bg-red-500/70' },
 ];
+
+// Libellés EN des étapes du pipeline (i18n — founder 12/07 "traduire le crm").
+const STAGE_LABELS_EN: Record<string, string> = {
+  identifie: 'Identified', contacte: 'Contacted', relance_1: 'Follow-up 1',
+  relance_2: 'Follow-up 2', relance_3: 'Follow-up 3', repondu: 'Replied',
+  demo: 'Demo', sprint: 'Sprint', client: 'Client', perdu: 'Lost',
+};
+const stageLabel = (key: string, en: boolean): string =>
+  en ? (STAGE_LABELS_EN[key] || key) : (PIPELINE_STAGES.find(s => s.key === key)?.label || key);
 
 const TEMP_CONFIG: Record<string, { emoji: string; label: string; bg: string; text: string }> = {
   hot:  { emoji: '\uD83D\uDD25', label: 'Hot',  bg: 'bg-red-500/20',    text: 'text-red-400' },
@@ -343,8 +354,9 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { locale } = useLanguage();
   const cls = STATUS_COLORS[status] || 'bg-white/10 text-white/60';
-  const label = PIPELINE_STAGES.find(s => s.key === status)?.label || status;
+  const label = stageLabel(status, locale === 'en');
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
       {label}
@@ -361,6 +373,8 @@ function PipelineFunnel({ pipeline, activeStage, onStageClick }: {
   activeStage: string | null;
   onStageClick: (stage: string | null) => void;
 }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const total = PIPELINE_STAGES.reduce((s, st) => s + (pipeline[st.key] || 0), 0);
 
   return (
@@ -368,7 +382,7 @@ function PipelineFunnel({ pipeline, activeStage, onStageClick }: {
       <h3 className="text-sm font-semibold text-white/70 mb-3">Pipeline</h3>
 
       {total === 0 ? (
-        <div className="text-white/40 text-sm text-center py-4">Aucun prospect dans le pipeline</div>
+        <div className="text-white/40 text-sm text-center py-4">{en ? 'No prospect in the pipeline' : 'Aucun prospect dans le pipeline'}</div>
       ) : (
         <>
           {/* Desktop: horizontal bar */}
@@ -387,7 +401,7 @@ function PipelineFunnel({ pipeline, activeStage, onStageClick }: {
                     isActive ? 'ring-2 ring-white ring-inset opacity-100' : 'opacity-80 hover:opacity-100'
                   }`}
                   style={{ width: `${pct}%` }}
-                  title={`${stage.label}: ${count}`}
+                  title={`${stageLabel(stage.key, en)}: ${count}`}
                 >
                   {pct > 8 && <span className="truncate px-1">{count}</span>}
                 </button>
@@ -412,7 +426,7 @@ function PipelineFunnel({ pipeline, activeStage, onStageClick }: {
                   } bg-white/5`}
                 >
                   <div className={`w-3 h-3 rounded-full flex-shrink-0 ${stage.color}`} />
-                  <span className="text-xs text-white/70 flex-1 text-left">{stage.label}</span>
+                  <span className="text-xs text-white/70 flex-1 text-left">{stageLabel(stage.key, en)}</span>
                   <span className="text-xs font-bold text-white">{count}</span>
                   <div className="w-20 h-1.5 rounded-full bg-white/10 overflow-hidden">
                     <div className={`h-full rounded-full ${stage.color}`} style={{ width: `${pct}%` }} />
@@ -430,7 +444,7 @@ function PipelineFunnel({ pipeline, activeStage, onStageClick }: {
               return (
                 <div key={stage.key} className="flex items-center gap-1.5 text-xs text-white/50">
                   <div className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-                  {stage.label} ({count})
+                  {stageLabel(stage.key, en)} ({count})
                 </div>
               );
             })}
@@ -456,13 +470,15 @@ function PipelineFunnel({ pipeline, activeStage, onStageClick }: {
 /* ------------------------------------------------------------------ */
 
 function ActivityTimeline({ activities }: { activities: Activity[] }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   if (activities.length === 0) {
-    return <div className="text-white/40 text-xs py-2">Aucune activite enregistree</div>;
+    return <div className="text-white/40 text-xs py-2">{en ? 'No activity recorded' : 'Aucune activite enregistree'}</div>;
   }
 
   return (
     <div className="space-y-3 mt-3">
-      <div className="text-xs font-semibold text-white/50 uppercase tracking-wider">Activites</div>
+      <div className="text-xs font-semibold text-white/50 uppercase tracking-wider">{en ? 'Activity' : 'Activites'}</div>
       <div className="relative pl-5 space-y-3">
         {/* Vertical line */}
         <div className="absolute left-[7px] top-1 bottom-1 w-px bg-white/10" />
@@ -508,6 +524,8 @@ function ProspectRow({ prospect, activities, isExpanded, onToggle, lastActivity 
   onToggle: () => void;
   lastActivity: Activity | undefined;
 }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   return (
     <>
       <tr
@@ -556,7 +574,7 @@ function ProspectRow({ prospect, activities, isExpanded, onToggle, lastActivity 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {prospect.phone && (
                 <div>
-                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Telephone</div>
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider">{en ? 'Phone' : 'Telephone'}</div>
                   <div className="text-sm text-white/80">{prospect.phone}</div>
                 </div>
               )}
@@ -611,6 +629,8 @@ function ProspectCard({ prospect, activities, isExpanded, onToggle, lastActivity
   onToggle: () => void;
   lastActivity: Activity | undefined;
 }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
       <button
@@ -653,7 +673,7 @@ function ProspectCard({ prospect, activities, isExpanded, onToggle, lastActivity
             )}
             {prospect.phone && (
               <div>
-                <div className="text-[10px] text-white/40 uppercase tracking-wider">Telephone</div>
+                <div className="text-[10px] text-white/40 uppercase tracking-wider">{en ? 'Phone' : 'Telephone'}</div>
                 <div className="text-xs text-white/70">{prospect.phone}</div>
               </div>
             )}
@@ -701,7 +721,8 @@ function FilterBar({ search, onSearch, tempFilter, onTempFilter, sourceFilter, o
   onSourceFilter: (v: string) => void;
   sources: string[];
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const nn = (t as any).notif || {};
   return (
     <div className="flex flex-col sm:flex-row gap-2">
@@ -712,7 +733,7 @@ function FilterBar({ search, onSearch, tempFilter, onTempFilter, sourceFilter, o
         </svg>
         <input
           type="text"
-          placeholder={nn.crmSearchProspect || 'Rechercher un prospect...'}
+          placeholder={nn.crmSearchProspect || (en ? 'Search a prospect...' : 'Rechercher un prospect...')}
           value={search}
           onChange={e => onSearch(e.target.value)}
           className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent min-h-[44px]"
@@ -752,7 +773,8 @@ function FilterBar({ search, onSearch, tempFilter, onTempFilter, sourceFilter, o
 /* ------------------------------------------------------------------ */
 
 export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const nn = (t as any).notif || {};
   const prospects = data?.prospects || [];
   const activities = data?.activities || [];
@@ -869,8 +891,8 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            <span className="hidden sm:inline">Ajouter un prospect</span>
-            <span className="sm:hidden">Ajouter</span>
+            <span className="hidden sm:inline">{en ? 'Add a prospect' : 'Ajouter un prospect'}</span>
+            <span className="sm:hidden">{en ? 'Add' : 'Ajouter'}</span>
           </button>
         )}
       </div>
@@ -924,12 +946,12 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-900/5 p-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h3 className="text-sm font-bold text-emerald-300">📋 Complétude des fiches</h3>
-            <span className="text-[10px] text-white/40">sur les {completenessStats.sampleSize} fiches les plus récentes</span>
+            <span className="text-[10px] text-white/40">{en ? `across the ${completenessStats.sampleSize} most recent records` : `sur les ${completenessStats.sampleSize} fiches les plus récentes`}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <div className="rounded-lg bg-white/5 p-3 text-center">
               <div className="text-2xl font-bold text-emerald-300">{completenessStats.avg}%</div>
-              <div className="text-[10px] text-white/50">Complétude moyenne</div>
+              <div className="text-[10px] text-white/50">{en ? 'Average completeness' : 'Complétude moyenne'}</div>
             </div>
             <div className="rounded-lg bg-white/5 p-3 text-center">
               <div className="text-2xl font-bold text-blue-300">{completenessStats.exhaustive}/{completenessStats.sampleSize}</div>
@@ -1016,7 +1038,7 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
       {hotProspects.length > 0 && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
           <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <span>{'\u{1F525}'}</span> {nn.crmHotHeaderPriority || 'Prospects chauds — Actions prioritaires'}
+            <span>{'\u{1F525}'}</span> {nn.crmHotHeaderPriority || (en ? 'Hot prospects — Priority actions' : 'Prospects chauds — Actions prioritaires')}
           </h3>
           <div className="space-y-2">
             {hotProspects.map(p => (
@@ -1064,8 +1086,8 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
       {/* Results count */}
       {(search || tempFilter || sourceFilter || stageFilter) && (
         <div className="text-xs text-white/40">
-          {filtered.length} resultat{filtered.length !== 1 ? 's' : ''}
-          {stageFilter && <span> &middot; Filtre : {PIPELINE_STAGES.find(s => s.key === stageFilter)?.label}</span>}
+          {filtered.length} {en ? `result${filtered.length !== 1 ? 's' : ''}` : `resultat${filtered.length !== 1 ? 's' : ''}`}
+          {stageFilter && <span> &middot; {en ? 'Filter' : 'Filtre'} : {stageLabel(stageFilter, en)}</span>}
         </div>
       )}
 
