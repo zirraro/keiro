@@ -1,14 +1,16 @@
 # KeiroAI — Architecture, Fonctionnalités & Doctrines (état 13 juil 2026)
 
-> Document de référence pour revue stratégique (Fable 5). Objectif : donner une vue complète de **ce qu'on fait**, **comment c'est construit**, **les fonctions par agent** et **les doctrines/stratégies** — afin d'évaluer à quel point nos axes d'amélioration/consolidation ont été challengés et bien adaptés.
+> Document de référence pour revue stratégique (Fable 5). Objectif : donner une vue **exacte et à jour** de ce qu'on fait, comment c'est construit, les fonctions par agent et les doctrines — pour évaluer à quel point nos axes d'amélioration/consolidation ont été challengés et bien adaptés.
+>
+> **Source de vérité** : `lib/agents/client-context.ts` (catalogue + visibilité), `lib/agents/avatar.ts` (personas), code de production.
 
 ---
 
 ## 1. Vision produit
 
-KeiroAI = **une équipe d'agents IA marketing "clé en main" pour les commerces locaux et PME francophones**. Le commerçant délègue : création de contenu, publication multi-réseaux, prospection, réponses (DM/commentaires/avis), SEO, docs juridiques/finance. Promesse : *"remplace ton community manager + ton commercial + ton service client"*, exécution régulière, qualité constante, valeur business.
+KeiroAI = **une équipe d'agents IA marketing "clé en main" pour les commerces locaux et PME francophones**. Le commerçant délègue : création & publication de contenu, prospection, réponses (DM/commentaires/avis), présence Google, docs RH/finance. Promesse : *"remplace ton community manager + ton commercial + ton service client"*. Exécution régulière, qualité constante, valeur business. Langue par défaut FR (i18n EN complet).
 
-Marché cible (ICP) : instituts de beauté, restaurants, coiffeurs, boutiques, coachs, artisans, fleuristes, cavistes… Langue par défaut FR (i18n EN complet).
+Marché cible (ICP) : instituts de beauté, restaurants, coiffeurs, boutiques, coachs, artisans, fleuristes, cavistes…
 
 ---
 
@@ -16,105 +18,112 @@ Marché cible (ICP) : instituts de beauté, restaurants, coiffeurs, boutiques, c
 
 | Couche | Choix |
 |---|---|
-| Frontend/Backend | **Next.js (App Router, TypeScript)** — un seul monolithe, API routes + Server Components |
-| Hébergement | **VPS OVH** (4 vCPU/8 Go, Gravelines) + **pm2** (app + worker) ; déploiement `git pull + build + pm2 reload` |
-| Données | **Supabase** : Postgres + PostgREST + Storage (buckets médias) + Auth |
-| Styles | **Tailwind v4** (`@custom-variant dark` sur classe `.dark`/`.light`, thème dark-first) |
-| LLM | **Router multi-modèle** (`lib/agents/llm-router.ts`) : Claude Sonnet 4.6 (qualité), Haiku 4.5 (volume), Gemini (fallback + gros contexte) |
-| Images | **Seedream** (génération éditoriale) + Supabase Image Transform (WebP display) |
-| Vidéo/Reels | **Kling / Seedance** (image-to-video), montage Ken Burns multi-mouvements, mux audio |
-| Audio | TTS + génération musique/narration (selon langue client) |
-| Email | Chaîne de fallback **Brevo API → Resend → Brevo SMTP** (`sendEmailWithFallback`) |
+| App | **Next.js (App Router, TypeScript)** — monolithe, API routes + Server Components |
+| Hébergement | **VPS OVH** (4 vCPU/8 Go) + **pm2** (app + worker) ; déploiement `git pull + build + pm2 reload` |
+| Données | **Supabase** : Postgres + PostgREST + Storage + Auth |
+| Styles | **Tailwind v4** (dark-first, `@custom-variant dark` sur `.dark`/`.light`) |
+| LLM | **Router multi-modèle** : Claude Sonnet 4.6 (qualité), Haiku 4.5 (volume), Gemini (fallback/gros contexte) |
+| Images | **Seedream** + Supabase Image Transform (WebP display) |
+| Reels/vidéo | **Kling / Seedance** (image-to-video) + Ken Burns multi-mouvements + mux audio |
+| Email | Fallback **Brevo API → Resend → Brevo SMTP** |
 | Paiement | **Stripe** (abonnements + add-ons + packs crédits) |
 
-**Automatisation** : ~**35 crons** (scheduler central + jobs dédiés) — publication programmée, refresh trends, health scores, digests admin, remédiation auto, token lifecycle, tiktok health, video-poll, winback, trial-nurture, etc.
-
-**Résilience** : `error-escalation` (log + RAG + analyse Claude + email admin), `auto-remediate` (marque emails sans MX invalides, auto-pause agents en tempête d'erreurs), `auto-fix`/`auto-improve`, garde-fous coût (budget caps, no-retry sur timeouts).
+**Automatisation** : ~35 crons (scheduler + jobs dédiés : publication programmée, trends, health scores, digests admin, auto-remédiation, token lifecycle, tiktok health, video-poll, winback, trial-nurture…). **Résilience** : escalade d'erreurs (log + RAG + analyse Claude + email admin), auto-remédiation (emails sans MX → invalides, auto-pause agent en tempête d'erreurs), garde-fous coût.
 
 ---
 
-## 3. Les agents (roster & fonctions)
+## 3. Les agents — VÉRITÉ À JOUR
 
-Chaque agent = persona nommé + panel dédié + doctrine. **Jamais "IA" dans la signature client-facing** ("Ton stratège", pas "ton strategist IA"). Agents proactifs (agissent automatiquement, ne demandent pas "raconte-moi ce que tu veux").
+Principe clé : on a **consolidé agressivement**. Beaucoup de personas historiques ont été **absorbés** dans un agent-parent pour simplifier l'offre client. Ce qui suit distingue clairement **ce que le client voit/achète** de ce qui tourne en **back-office**.
 
-| Agent | Persona | Fonction |
+### 3.1 — Agents visibles par le client : **10** (dont **8 payants** + **2 gratuits**)
+
+| Agent (id) | Persona | Fonction | Plan mini |
+|---|---|---|---|
+| `marketing` | **Ami** | Directrice stratégie : analyse cross-canal, recommande, coordonne les agents | **Gratuit** |
+| `onboarding` | **Clara** | Onboarding + suivi long terme (inactivité, milestones) — *inclut le chatbot site web et le moteur de rétention* | **Gratuit** |
+| `content` | **Léna** | Publie IG/TikTok/**LinkedIn**, génère visuels + reels (vrai i2v, QC anti-IA), légendes, planning 7–30 j, overlay | Créateur (49€) |
+| `dm_instagram` | **Jade** | DM + commentaires + engagement sur **IG, TikTok ET LinkedIn** dans un seul espace. Prospection = DM préparés à envoyer manuellement (Meta interdit le cold auto) ; conversations entrantes auto | Créateur |
+| `email` | **Hugo** | Prospection email value-first (conseil + aperçu blog → clic ; relances conversion ; pousse Créateur), réponses inbound, brouillons multi-provider | Créateur |
+| `commercial` | **Léo** | Sourcing/qualification prospects (Google Maps), onglet prospection filtrable (activité/région/température), appels enchaînés, **édition fiche CRM inline** partagée à tous les agents | Créateur |
+| `rh` | **Sara** | RH & juridique : contrats, CGV, RGPD, conseils prud'hommes/QVT, docs à la marque | Créateur |
+| `gmaps` | **Théo** | Réputation **& SEO** : répond aux avis Google, optimise la fiche GBP, référencement local + blog SEO (*a absorbé Oscar/SEO*) | Créateur |
+| `whatsapp` | **Stella** | WhatsApp Business (confirmations, rappels anti no-show). Inclus Business **ou add-on 19€/mois** | Business (139€) |
+| `comptable` | **Louis** | Finance : business plans, prévisionnels, Excel/PowerPoint à la marque. Inclus Business **ou add-on 12€/mois** | Business |
+
+→ **8 agents "en vente"** (Léna, Jade, Hugo, Léo, Sara, Théo, Stella, Louis) + **Ami & Clara offerts** (stratégie + activation) pour donner de la valeur dès le plan gratuit.
+
+### 3.2 — Back-office (non exposés au client)
+
+| id | Rôle | Statut |
 |---|---|---|
-| `content` | **Léna** | Génère visuels + reels (vrai mouvement i2v, QC anti-IA) + légendes/hooks, publie IG/TikTok/LinkedIn, planning 7–30 j, overlay texte, recyclage stories |
-| `dm_instagram` | **Jade** | DM Instagram : **prospection** (prépare des DM personnalisés à envoyer manuellement — Meta interdit le cold auto), **conversations** (répond aux DM entrants), commentaires, comptes à suivre |
-| `email` | **Hugo** | Prospection email (séquences value-first : conseil + aperçu article blog → clic ; relances de conversion ; pousse le plan Créateur), réponses inbound, brouillons multi-provider (Gmail/IMAP/Outlook) |
-| `commercial` | **Léo** | Sourcing + qualification de prospects (Google Maps / scraping), **onglet prospection** : liste filtrable (activité/région/température), enchaînement d'appels, **édition de fiche CRM inline** (commentaire → `crm_prospects.notes` lu par tous les agents) |
-| `gmaps` | **Théo (avis)** | Répond automatiquement aux avis Google (GBP), collecte d'avis, optimisation fiche |
-| `seo` | **Théo (SEO)** | Rédige des articles blog optimisés (structure aérée obligatoire : tableaux/bullets/flèches), maillage interne, FAQ schema, images IA |
-| `marketing` + `ceo` | **Ami** | Analyse cross-canal + stratégie, supervise tous les agents, briefs, ajuste selon objectifs |
-| `chatbot` | **Clara** | Chatbot site web 24/7 (accueil, réponses, capture leads) + onboarding guidé + rétention |
-| `rh` | **Sara** | Documents juridiques (CGV, RGPD, contrats, règlement intérieur) — éditeur + export à la marque |
-| `comptable` | **Louis** | Business plans, prévisionnels, inventaires, budgets (Excel/PowerPoint à la marque). **Add-on 12€** ou inclus Business |
-| `onboarding` | **Clara** | Profil business (dossier), plus il est complet, plus les agents sont précis |
-| `instagram_comments` | — | Réponses auto personnalisées aux commentaires IG |
-| `ads` | **Félix** | (bientôt) Meta/Google Ads |
-| `whatsapp` | **Stella** | (bientôt, add-on 19€) WhatsApp Business — gated par `capability-status` (jamais facturé tant que "soon") |
-| `tiktok_comments` | **Axel** | (bientôt) engagement communauté TikTok |
-| `linkedin` | — | (bientôt) contenu + engagement LinkedIn B2B |
+| `ceo` (**Noah**, alias Ami) | **Orchestrateur** : coordonne les agents, stratégies globales | `background` (invisible) |
+| `ads` (**Félix**) | Meta/Google Ads | `admin_only` — **réservé fondateur, PAS commercialisé** |
+| `tiktok_comments` (Axel) | Engagement TikTok | `admin_only` — **absorbé dans Jade** |
+| `linkedin` (Emma) | LinkedIn | `admin_only` — **absorbé dans Léna/Jade** |
+| `seo` (Oscar) | SEO | `admin_only` — **absorbé dans Théo** |
+| `chatbot` / `retention` | Widget site + relances | `admin_only` — **fusionnés dans Clara** |
+| `qa` | Testeur qualité auto | `admin_only` — outil interne |
 
-**Contexte partagé cross-agents** : les commentaires/notes sur une fiche prospect, le statut de canal (contacté sur tel réseau), la voix de marque (seed depuis le feed IG), le dossier business — tout est lu par les autres agents (coordination : follow=touch, inbound=toujours répondre, jamais de doublon multi-canal).
+**Bilan consolidation** : de ~17 personas historiques → **8 agents vendables** + 2 gratuits côté client, le reste tournant en coulisse ou fusionné. La complexité produit a déjà été fortement réduite.
 
-**Cerveaux partagés** (~80 modules `lib/agents/`) : `knowledge-rag` (apprentissage inter-agents), `sales-playbook` (langage par secteur), `hook-knowledge` (34 familles de hooks), `sector-knowledge`, `reach-strategy`, `client-language`, `scoring`, `prospect-qualification`/`-routes`/`-scraper`, `health-score`, `outcome-events` (moat data anonymisée), `channel-voice`, `business-timing`, etc.
+### 3.3 — Cerveaux partagés (~80 modules `lib/agents/`)
+
+`knowledge-rag` (apprentissage inter-agents), `sales-playbook` (langage par secteur), `hook-knowledge` (34 familles de hooks), `sector-knowledge`, `reach-strategy`, `scoring`, `prospect-qualification/-routes/-scraper`, `health-score`, `outcome-events` (data moat anonymisée K-anon=10), `channel-voice`, `client-language`, `business-timing`, `fiche-completeness`, etc. + contexte partagé cross-agents (note prospect lue par tous, statut de canal, voix de marque, dossier business).
 
 ---
 
 ## 4. Intégrations externes
 
-- **Meta / Instagram** : Instagram Login (migré depuis OAuth Facebook), Graph API — publish (image/carrousel/reel/story), insights, comments, messages (`manage_messages` approuvé). Human Agent retiré (rejeté), indicateur 24/48/72h conservé.
-- **TikTok** : Content Posting API — publication + flow de disclosure conforme UX guidelines. **Déclaration `is_aigc` obligatoire** (cause racine des 0 vues = contenu IA non déclaré ; déclarer = sans coût de portée).
-- **LinkedIn** : OAuth + publication (bientôt élargi).
+- **Meta / Instagram** : Instagram Login + Graph API — publish (image/carrousel/reel/story), insights, comments, messages (`manage_messages` approuvé). Human Agent retiré (rejeté), indicateur 24/48/72h conservé.
+- **TikTok** : Content Posting API + disclosure conforme. **Déclaration `is_aigc` obligatoire** (cause racine des 0 vues = IA non déclarée ; déclarer = sans coût de portée).
+- **LinkedIn** : OAuth + publication (via Léna/Jade).
 - **Google** : Business Profile (avis Théo), Search Console (SEO), OAuth (vérification Trust & Safety en cours — scopes minimisés + Limited Use).
-- **Stripe** : abonnements (Créateur/Pro/Business + annuel), add-ons (Stella, Louis), packs crédits, coupons upsell.
-- **Email** : Brevo (DKIM OK) + Resend backup ; SPF à compléter avec Brevo (action DNS).
+- **Stripe** : abonnements + add-ons (Stella, Louis) + packs crédits + coupons.
+- **Email** : Brevo (DKIM OK) + Resend backup ; SPF à compléter avec Brevo.
 
 ---
 
 ## 5. Modèle économique & pricing
 
-- Plans : **Créateur 49€ / Pro 99€ / Business 139€** (+ annuel = 2 mois offerts, onglet annuel pré-sélectionné). Add-ons : **Stella 19€** (WhatsApp), **Louis 12€** (finance). Packs de crédits ponctuels.
-- **Modèle crédits** : chaque génération (image/vidéo/post) consomme des crédits ; marge pilotée (~80% cible sur Pro), coût par post suivi, alertes admin marge.
+- Plans publics : **Créateur 49€ / Pro 99€ / Business 139€** (+ annuel = 2 mois offerts, onglet annuel pré-sélectionné). Add-ons : **Stella 19€**, **Louis 12€**. Packs de crédits ponctuels.
+- **Crédits** : chaque génération (image/vidéo/post) consomme des crédits ; marge pilotée (~80% cible Pro), coût/post suivi, alertes admin marge.
 - **Essai** : cold = génération gratuite sans carte (`/generate`) ; essai 7 j avec carte (0€ débité) mentionné seulement quand on parle d'automatisation.
-- **Anti-gaspillage** : budget caps sur APIs coûteuses (Places, vision QC), thinking sélectif, Sonnet→Haiku sur le volume, crons consolidés (46→9 sur un axe).
+- **Anti-gaspillage** : budget caps sur APIs coûteuses, thinking sélectif, Sonnet→Haiku sur le volume, crons consolidés.
 
 ---
 
 ## 6. Doctrines & stratégies (le "moat")
 
-1. **Qualité contenu (north star)** : réalisme anti-IA (personnes diverses, photo réaliste, jamais "IA" dans les captions), reels = **vrai mouvement i2v** + Ken Burns, **QC vision gate** (realism≥5 ET motion≥4, sinon rejet), cap overlay 20%, cohérence visuel-texte, préservation du lieu réel du client, réutilisation d'assets pénalisée. Qualité MAX / générations MIN.
-2. **Prospection conforme** : DM cold = **préparés, envoi manuel** (Meta interdit l'auto) ; email = **valeur d'abord** (blog → clic → visite) puis conversion ; CRM jamais supprimé (dead/perdu seulement).
-3. **Système commercial 4 étages** : ICP → qualification → routes → playbook/démo, avec feeders de signaux (dormance Insta, avis, géo) pour prioriser.
-4. **TikTok** : déclaration AIGC systématique, stratégie de portée compte neuf, A/B republication reels 0-vues sur IG.
-5. **SEO/Blog** : 88 articles catégorisés par métier, **forme aérée obligatoire** (tableaux/bullets/flèches, paragraphes courts, mobile-first), meta optimisées, liens cold→article.
+1. **Qualité contenu (north star)** : anti-IA (personnes diverses, photo réaliste, jamais "IA" dans les captions), reels = **vrai mouvement i2v** + Ken Burns, **QC vision gate** (realism≥5 ET motion≥4 sinon rejet), cap overlay 20%, cohérence visuel-texte, préservation du lieu réel du client, réutilisation d'assets pénalisée. Qualité MAX / générations MIN.
+2. **Prospection conforme** : DM cold = **préparés, envoi manuel** ; email = **valeur d'abord** (blog → clic → visite) puis conversion ; CRM jamais supprimé (dead/perdu seulement).
+3. **Système commercial 4 étages** : ICP → qualification → routes → playbook/démo, + feeders de signaux (dormance Insta, avis, géo).
+4. **TikTok** : AIGC systématique, stratégie portée compte neuf, A/B republication reels 0-vues sur IG.
+5. **SEO/Blog** : 88 articles catégorisés par métier, **forme aérée obligatoire** (tableaux/bullets/flèches, mobile-first), meta optimisées, cold→article.
 6. **Personal branding** : média réel requis, jamais de visage IA.
-7. **Data moat** (légal) : données anonymisées (K-anon=10) pour affiner LLM/vision.
-8. **Résilience/observabilité** : digests admin (santé, coût, marge), auto-remédiation, escalade + partage de connaissance dans le RAG pour auto-réparation.
+7. **Data moat** (légal) : données anonymisées pour affiner LLM/vision.
+8. **Résilience/observabilité** : digests admin (santé/coût/marge), auto-remédiation, escalade + partage de connaissance dans le RAG.
 
 ---
 
-## 7. Axes d'amélioration / consolidation identifiés (à challenger par Fable 5)
+## 7. Axes d'amélioration / consolidation (à challenger par Fable 5)
 
-Points ouverts / en cours où un regard critique est demandé :
-
-- **Consolidation des agents** : 17 personas — lesquels fusionner/prioriser ? (ex : Théo joue avis + SEO ; Clara joue chatbot + onboarding + présentation d'agents).
-- **i18n** : surfaces agents + CRM traduites ; reste une traîne mineure (quelques forms internes).
-- **Délivrabilité email** : SPF à aligner sur Brevo ; validation MX + bounce→invalid déjà en place ; DMARC `p=none` (à durcir ?).
-- **Stripe** : plans mensuels OK ; **annuel Créateur/Pro à créer**, **packs crédits à créer**, add-on Louis câblé (prix à créer).
-- **Fonctions "bientôt"** : Ads (Félix), WhatsApp (Stella, BSP), TikTok comments (Axel), LinkedIn — priorisation ?
-- **Throttle TikTok** : cause racine (AIGC non déclaré) corrigée — valider l'effet réel sur un compte neuf.
-- **Coût/marge** : arbitrage qualité vs coût de génération (i2v, vision QC) — jusqu'où pousser ?
+- **Consolidation agents** : déjà bien avancée (17→8 vendables). Reste-t-il à fusionner (ex : Léo prospection ↔ Hugo email ↔ Jade DM = un "pôle acquisition" unifié ?) ou au contraire à re-séparer pour la lisibilité ?
+- **i18n** : surfaces agents + CRM traduites ; traîne mineure (quelques forms internes).
+- **Délivrabilité email** : SPF à aligner sur Brevo ; validation MX + bounce→invalid en place ; DMARC `p=none` (durcir ?).
+- **Stripe** : mensuel Créateur/Pro/Business OK + Business annuel + add-on Stella ✓. **À créer** : annuel Créateur/Pro, prix add-on Louis, prix packs crédits, coupon upsell Pro.
+- **Fonctions non commercialisées** : Ads (Félix, fondateur only) — à ouvrir un jour ?
+- **Throttle TikTok** : cause racine (AIGC) corrigée — valider l'effet sur compte neuf.
+- **Coût/marge** : arbitrage qualité vs coût de génération (i2v, vision QC).
 - **Onboarding self-serve** : Clara guide jusqu'au 1er post live — taux d'activation ?
 
 ---
 
 ## 8. Questions pour Fable 5
 
-1. Notre découpage **fonctions par agent** est-il optimal, ou faut-il consolider ? Lesquels ?
+1. Notre consolidation **8 agents vendables** est-elle optimale, ou faut-il regrouper davantage (pôle acquisition) / clarifier davantage ?
 2. La **stratégie email value-first** (blog → conversion) est-elle la bonne priorité vs une approche plus directe ?
-3. Le **système commercial 4 étages** couvre-t-il les bons signaux, ou en manque-t-on (intention, timing) ?
-4. L'**architecture monolithe Next.js + VPS mono-nœud** tient-elle la montée en charge, ou faut-il découpler (worker queue, multi-région) ?
-5. Le **modèle crédits + marge** est-il lisible côté client et sain côté unit-economics ?
-6. Où sont nos **angles morts** de conformité (Meta/TikTok/Google/RGPD) avant de scaler le démarchage ?
+3. Le **système commercial 4 étages** capte-t-il les bons signaux (intention, timing) ?
+4. L'**architecture monolithe Next.js + VPS mono-nœud** tient-elle la montée en charge, ou découpler (worker queue, multi-région) ?
+5. Le **modèle crédits + marge** est-il lisible client et sain en unit-economics ?
+6. Où sont nos **angles morts conformité** (Meta/TikTok/Google/RGPD) avant de scaler le démarchage ?
