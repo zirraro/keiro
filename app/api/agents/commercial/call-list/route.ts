@@ -26,6 +26,15 @@ const CALLABLE_STATUS: Record<string, { action: string; priority: number }> = {
 
 const TEMP_WEIGHT: Record<string, number> = { hot: 3, warm: 2, cold: 1, dead: 0 };
 
+// business_notes/notes peuvent contenir du JSON (objet) selon l'enrichissement —
+// on coerce en texte SANS jeter (sinon .slice sur un objet → 500, cf bug 14/07
+// : la liste était vide pour le fondateur à cause de 26 fiches à notes=objet).
+function toText(v: any): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  try { return JSON.stringify(v); } catch { return String(v); }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { user, error } = await getAuthUser();
@@ -94,8 +103,8 @@ export async function GET(req: NextRequest) {
         recommended_action: cfg.action,
         fiche: {
           email: p.email || null, instagram: p.instagram || null, website: p.website || null,
-          notes: (p.notes || '').slice(0, 400) || null,
-          summary: (p.business_notes || '').slice(0, 400) || null,
+          notes: toText(p.notes).slice(0, 400) || null,
+          summary: toText(p.business_notes).slice(0, 400) || null,
           last_contact: p.last_contacted_at || null,
         },
         _rank: rank,
