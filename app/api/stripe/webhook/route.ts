@@ -358,10 +358,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       if (credits > 0) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('credits_balance')
+          .select('credits_balance, subscription_plan')
           .eq('id', profileId)
           .single();
 
+        // Acheteur de pack SANS abonnement payant = lead prioritaire à convertir
+        // vers l'autopilote (Fable 5 §3.1). free/null → priorité fondateur.
+        const isFreePlan = !profile?.subscription_plan || profile.subscription_plan === 'free';
         const currentBalance = profile?.credits_balance ?? 0;
         const newBalance = currentBalance + credits;
 
@@ -392,6 +395,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           amount: session.amount_total || undefined,
           type: 'pack',
           userId: profileId,
+          priorityLead: isFreePlan,
         });
 
         // 2026-06-09 — Email confirmation au CLIENT (Brevo) — accusé
@@ -522,6 +526,10 @@ async function notifyFounderPayment(info: {
   amount?: number;
   type: 'new' | 'renewal' | 'pack' | 'sprint';
   userId?: string;
+  // Fable 5 §3.1 — packs = rampe d'acquisition. Un acheteur de pack SANS
+  // abonnement = lead chaud à convertir vers un plan (l'autopilote). On le
+  // remonte en PRIORITÉ au fondateur pour un suivi commercial immédiat.
+  priorityLead?: boolean;
 }) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const BREVO_API_KEY = process.env.BREVO_API_KEY;
@@ -533,7 +541,7 @@ async function notifyFounderPayment(info: {
     pro: 'Pro (99€/mois)',
     fondateurs: 'Fondateurs (149€/mois)',
     standard: 'Standard (199€/mois)',
-    business: 'Business (349€/mois)',
+    business: 'Business (139€/mois)',
     elite: 'Elite (999€/mois)',
     pack_starter: 'Pack Starter (14,99€)',
     pack_pro: 'Pack Pro (39,99€)',
@@ -551,15 +559,18 @@ async function notifyFounderPayment(info: {
   const typeLabel = typeLabels[info.type] || info.type.toUpperCase();
   const amountStr = info.amount ? `${(info.amount / 100).toFixed(2)}€` : '';
 
-  const subject = `💰 ${typeLabel} — ${info.email} → ${label}`;
+  const subject = info.priorityLead
+    ? `🔥 LEAD PRIORITAIRE — ${info.email} a acheté un ${label} (sans abonnement)`
+    : `💰 ${typeLabel} — ${info.email} → ${label}`;
   const html = `
 <!DOCTYPE html>
 <html><body style="font-family:Arial,sans-serif;color:#333;padding:20px;">
 <div style="max-width:500px;margin:0 auto;">
   <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
-    <h2 style="margin:0;">💰 ${typeLabel}</h2>
+    <h2 style="margin:0;">${info.priorityLead ? '🔥 LEAD PRIORITAIRE' : `💰 ${typeLabel}`}</h2>
   </div>
   <div style="background:#f9fafb;padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+    ${info.priorityLead ? `<div style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:12px;border-radius:8px;font-size:13px;margin-bottom:14px;">A acheté un pack de crédits <strong>sans abonnement</strong> → il teste à la main. C'est le moment de lui montrer l'autopilote (un plan = les agents publient/prospectent tout seuls). <strong>Appelle-le / relance-le.</strong></div>` : ''}
     <table style="width:100%;font-size:14px;">
       <tr><td style="padding:8px 0;color:#6b7280;">Client</td><td style="padding:8px 0;font-weight:bold;">${info.email}</td></tr>
       <tr><td style="padding:8px 0;color:#6b7280;">Plan</td><td style="padding:8px 0;font-weight:bold;">${label}</td></tr>
