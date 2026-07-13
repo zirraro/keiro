@@ -788,10 +788,11 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   // org_agent_configs), sans toucher au plan/crédits du client. Générique pour
   // TOUS les add-ons (founder 06/07). Détection : metadata.addon, sinon prix.
   const stellaPrice = process.env.STRIPE_PRICE_STELLA_ADDON;
+  const louisPrice = process.env.STRIPE_PRICE_LOUIS_ADDON;
+  const itemHasPrice = (pid?: string) => !!pid && ((subscription as any).items?.data || []).some((it: any) => it.price?.id === pid);
   let addonName = subscription.metadata?.addon || '';
-  if (!addonName && stellaPrice && ((subscription as any).items?.data || []).some((it: any) => it.price?.id === stellaPrice)) {
-    addonName = 'stella';
-  }
+  if (!addonName && itemHasPrice(stellaPrice)) addonName = 'stella';
+  if (!addonName && itemHasPrice(louisPrice)) addonName = 'louis';
   const addonAgent = addonName ? ADDON_TO_AGENT[addonName] : undefined;
   if (addonAgent) {
     try {

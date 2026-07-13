@@ -85,6 +85,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: addonSession.url });
     }
 
+    // ---- ADD-ON LOUIS (Comptable/finance) 12€/mois ----
+    // Abonnement séparé qui débloque l'agent comptable (Louis) sans changer le
+    // plan. Le webhook active l'add-on générique (ADDON_TO_AGENT: louis→comptable).
+    if (planKey === 'louis_addon') {
+      const addonPrice = process.env.STRIPE_PRICE_LOUIS_ADDON;
+      if (!addonPrice) return NextResponse.json({ error: 'Add-on Louis non configuré' }, { status: 400 });
+      if (!isAuthenticated) return NextResponse.json({ error: 'Connexion requise pour activer un add-on' }, { status: 401 });
+      const addonMeta = { addon: 'louis', userId: user!.id };
+      const addonSession = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        line_items: [{ price: addonPrice, quantity: 1 }],
+        customer: customerId,
+        metadata: addonMeta,
+        subscription_data: { metadata: addonMeta },
+        payment_method_collection: 'always',
+        allow_promotion_codes: true,
+        success_url: `${SITE_URL}/assistant/agent/comptable?addon=success`,
+        cancel_url: `${SITE_URL}/assistant/agent/comptable?addon=cancelled`,
+      });
+      return NextResponse.json({ url: addonSession.url });
+    }
+
     // Détecter si c'est un plan annuel (ex: pro_annual → basePlan=pro, annual=true)
     const isAnnual = planKey.endsWith(ANNUAL_PLAN_SUFFIX);
     const basePlan = isAnnual ? planKey.replace(ANNUAL_PLAN_SUFFIX, '') : planKey;
