@@ -39,6 +39,10 @@ export async function GET(req: NextRequest) {
     const { data: orgMember } = await supabase
       .from('organization_members').select('org_id').eq('user_id', user.id).maybeSingle();
     const orgId = orgMember?.org_id || null;
+    // L'ADMIN/fondateur (contact@keiroai.com) démarche le POOL COMPLET (tous les
+    // prospects sourcés, quel que soit le propriétaire) — c'est son outil de vente.
+    const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+    const isAdmin = !!prof?.is_admin;
     const { searchParams } = new URL(req.url);
     const sector = (searchParams.get('sector') || '').trim();
     const city = (searchParams.get('city') || '').trim();
@@ -56,9 +60,10 @@ export async function GET(req: NextRequest) {
       .from('crm_prospects')
       .select('id, first_name, last_name, company, phone, email, instagram, website, ville, type, status, temperature, score, notes, business_notes, last_contacted_at, created_at')
       .limit(500);
-    // Scope multi-tenant : membre d'org → prospects de l'org OU les siens (certaines
-    // fiches ont user_id sans org_id, d'autres l'inverse) ; sinon user_id seul.
-    if (orgId) q = q.or(`org_id.eq.${orgId},user_id.eq.${user.id}`);
+    // Scope multi-tenant : admin → pool complet (aucun filtre propriétaire) ;
+    // membre d'org → org OU ses fiches ; sinon user_id seul.
+    if (isAdmin) { /* pas de filtre propriétaire — tout le pool */ }
+    else if (orgId) q = q.or(`org_id.eq.${orgId},user_id.eq.${user.id}`);
     else q = q.eq('user_id', user.id);
     if (ids.length) {
       q = q.in('id', ids);

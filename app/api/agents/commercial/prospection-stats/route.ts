@@ -24,14 +24,17 @@ export async function GET(_req: NextRequest) {
     const startOfDay = new Date(new Date().toISOString().slice(0, 10)).toISOString();
     const weekAgo = new Date(now - 7 * 86400000).toISOString();
 
-    const { data: acts } = await supabase
+    // Admin/fondateur : stats sur TOUT le pool (son démarchage) ; client : les siennes.
+    const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+    let aq = supabase
       .from('crm_activities')
       .select('type, description, date_activite, prospect_id, created_at')
-      .eq('user_id', user.id)
       .in('type', OUTCOME_TYPES)
       .gte('date_activite', weekAgo)
       .order('date_activite', { ascending: false })
       .limit(500);
+    if (prof?.is_admin !== true) aq = aq.eq('user_id', user.id);
+    const { data: acts } = await aq;
 
     const rows = acts || [];
     const inRange = (iso: string, from: string) => (iso || '') >= from;

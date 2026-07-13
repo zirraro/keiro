@@ -43,9 +43,11 @@ export async function POST(req: NextRequest) {
     // Sécurité multi-tenant : la fiche doit appartenir au client.
     const { data: prospect } = await supabase
       .from('crm_prospects').select('id, user_id, org_id, status, notes').eq('id', prospectId).maybeSingle();
-    // Ownership org-aware : le membre d'une org peut éditer les fiches de son org.
+    // Ownership org-aware (+ admin = pool complet) : membre d'org édite les fiches
+    // de son org ; l'admin/fondateur édite tout le pool de prospection.
     const { data: om } = await supabase.from('organization_members').select('org_id').eq('user_id', user.id).maybeSingle();
-    const ownsIt = !!prospect && (prospect.user_id === user.id || (!!prospect.org_id && prospect.org_id === om?.org_id));
+    const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+    const ownsIt = !!prospect && (prof?.is_admin === true || prospect.user_id === user.id || (!!prospect.org_id && prospect.org_id === om?.org_id));
     if (!ownsIt) {
       return NextResponse.json({ error: 'prospect introuvable' }, { status: 404 });
     }
