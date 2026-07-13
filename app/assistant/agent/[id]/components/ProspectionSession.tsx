@@ -127,6 +127,9 @@ export default function ProspectionSession() {
 
   useEffect(() => {
     loadStats();
+    // Enrichissement GRATUIT (0 coût API) : complète le quartier des fiches depuis
+    // l'adresse → fait monter la complétude. Fire-and-forget, non bloquant.
+    fetch('/api/agents/commercial/enrich-fiches?limit=200', { method: 'POST', credentials: 'include' }).catch(() => {});
     (async () => {
       try {
         const r = await fetch('/api/agents/commercial/prospection-sessions', { credentials: 'include' });
