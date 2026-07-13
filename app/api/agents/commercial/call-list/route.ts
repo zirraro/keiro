@@ -36,16 +36,19 @@ export async function GET(req: NextRequest) {
     const sector = (searchParams.get('sector') || '').trim();
     const city = (searchParams.get('city') || '').trim();
     const temperature = (searchParams.get('temperature') || '').trim();
+    // `all=1` : inclure aussi les fiches SANS téléphone (session prospection Léo —
+    // on veut voir tout ce qu'on a en CRM, pas seulement les appelables). Le tel:
+    // ne s'affiche côté UI que si un numéro existe.
+    const includeNoPhone = searchParams.get('all') === '1';
     const limit = Math.min(100, parseInt(searchParams.get('limit') || '40', 10));
 
     let q = supabase
       .from('crm_prospects')
       .select('id, first_name, last_name, company, phone, email, instagram, website, city, business_type, status, temperature, score, notes, ai_summary, last_contacted_at, created_at')
       .eq('user_id', user.id)
-      .not('phone', 'is', null)
-      .neq('phone', '')
       .in('status', Object.keys(CALLABLE_STATUS))
       .limit(500);
+    if (!includeNoPhone) q = q.not('phone', 'is', null).neq('phone', '');
     if (sector) q = q.ilike('business_type', `%${sector}%`);
     if (city) q = q.ilike('city', `%${city}%`);
     if (temperature && ['hot', 'warm', 'cold'].includes(temperature)) q = q.eq('temperature', temperature);

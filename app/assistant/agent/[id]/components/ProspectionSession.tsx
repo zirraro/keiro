@@ -32,6 +32,8 @@ export default function ProspectionSession() {
 
   const [list, setList] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchMsg, setSearchMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
   const [openEdit, setOpenEdit] = useState<Record<string, boolean>>({});
@@ -52,7 +54,7 @@ export default function ProspectionSession() {
     try {
       const qs = new URLSearchParams({
         ...(sector ? { sector } : {}), ...(city ? { city } : {}),
-        ...(temp ? { temperature: temp } : {}), limit: String(count),
+        ...(temp ? { temperature: temp } : {}), limit: String(count), all: '1',
       }).toString();
       const res = await fetch(`/api/agents/commercial/call-list?${qs}`, { credentials: 'include' });
       const d = await res.json();
@@ -60,6 +62,35 @@ export default function ProspectionSession() {
     } catch { setList([]); }
     setLoading(false);
   }, [sector, city, temp, count]);
+
+  // Recherche Google : scrape Google Maps sur (activité + ville) → crée de
+  // NOUVELLES fiches CRM (les plus complètes possible : nom, adresse, tél, note
+  // Google, site…), puis recharge la liste. Founder 13/07 : "si je tape une ville
+  // pas dans le CRM ça lance une recherche Google et crée des fiches".
+  const searchGoogle = useCallback(async () => {
+    if (!sector && !city) { setSearchMsg(en ? 'Enter an activity and/or a city first.' : 'Renseigne une activité et/ou une ville d\'abord.'); return; }
+    setSearching(true); setSearchMsg(null);
+    try {
+      const query = [sector, city].filter(Boolean).join(' ');
+      const res = await fetch('/api/agents/gmaps', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ query }),
+      });
+      const d = await res.json();
+      if (d.ok === false) {
+        setSearchMsg(d.error || (en ? 'Search failed' : 'Recherche échouée'));
+      } else if (d.skipped) {
+        setSearchMsg(d.reason === 'plan_disabled'
+          ? (en ? 'Google sourcing needs a higher plan.' : 'La recherche Google nécessite un plan supérieur.')
+          : (en ? 'Search skipped (already scanned recently).' : 'Recherche ignorée (zone déjà scannée récemment).'));
+      } else {
+        const imported = d.imported ?? d.added ?? d.prospects_added ?? d.totalImported ?? d.report?.imported ?? 0;
+        setSearchMsg(en ? `✓ ${imported} new prospect(s) added from Google.` : `✓ ${imported} nouveau(x) prospect(s) ajouté(s) depuis Google.`);
+      }
+      await launch();
+    } catch (e: any) { setSearchMsg(e?.message || (en ? 'Search failed' : 'Recherche échouée')); }
+    setSearching(false);
+  }, [sector, city, en, launch]);
 
   useEffect(() => { loadStats(); launch(); }, [loadStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -149,9 +180,16 @@ export default function ProspectionSession() {
             {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n} {en ? 'prospects' : 'prospects'}</option>)}
           </select>
         </div>
-        <button onClick={launch} disabled={loading} className="mt-2 w-full py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold disabled:opacity-50 active:scale-[0.99] transition-all">
-          {loading ? '…' : (en ? '🚀 Launch the session' : '🚀 Lancer la session')}
-        </button>
+        <div className="mt-2 flex flex-col sm:flex-row gap-2">
+          <button onClick={launch} disabled={loading} className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold disabled:opacity-50 active:scale-[0.99] transition-all">
+            {loading ? '…' : (en ? '📋 Load from my CRM' : '📋 Charger depuis mon CRM')}
+          </button>
+          <button onClick={searchGoogle} disabled={searching} className="flex-1 py-2.5 rounded-lg bg-white/10 border border-white/15 hover:bg-white/15 text-white text-sm font-bold disabled:opacity-50 active:scale-[0.99] transition-all">
+            {searching ? (en ? '🔍 Searching Google…' : '🔍 Recherche Google…') : (en ? '🔍 Search Google (new prospects)' : '🔍 Rechercher sur Google (nouveaux)')}
+          </button>
+        </div>
+        <p className="text-[10px] text-white/40 mt-1.5">{en ? 'Load pulls your existing CRM prospects for this targeting. Google search sources brand-new fiches (name, address, phone, Google rating…) when the area isn\'t in your CRM yet.' : 'Charger = tes prospects CRM existants pour ce ciblage. Recherche Google = crée de nouvelles fiches (nom, adresse, tél, note Google…) quand la zone n\'est pas encore dans ton CRM.'}</p>
+        {searchMsg && <p className="text-[11px] text-cyan-200 mt-1.5">{searchMsg}</p>}
       </div>
 
       {/* ── LISTE À APPELER ── */}
@@ -170,7 +208,9 @@ export default function ProspectionSession() {
                 </div>
                 <div className="text-[11px] text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>
               </div>
-              <a href={`tel:${p.phone}`} className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 text-sm font-semibold whitespace-nowrap active:scale-95">📞 {p.phone}</a>
+              {p.phone
+                ? <a href={`tel:${p.phone}`} className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 text-sm font-semibold whitespace-nowrap active:scale-95">📞 {p.phone}</a>
+                : <span className="px-3 py-1.5 rounded-lg bg-white/5 text-white/40 text-[11px] whitespace-nowrap">{en ? 'No phone' : 'Pas de tél'}</span>}
             </div>
             <div className="mt-2 text-[11px] text-orange-200 bg-orange-500/10 border border-orange-500/15 rounded-lg px-2 py-1.5">
               <strong>{en ? 'Action:' : 'Action :'}</strong> {p.recommended_action}
