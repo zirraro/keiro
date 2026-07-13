@@ -842,6 +842,33 @@ export default function GeneratePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUserId]);
 
+  // Préremplissage métier depuis le blog : les CTA d'articles pointent vers
+  // /generate?metier=<verticale> (maillage SEO → génération, cf stratégie
+  // acquisition §levier 2). On lit le param côté client (pas de useSearchParams
+  // → évite d'imposer un Suspense boundary sur cette grosse page) et on
+  // préremplit le type d'activité si vide. La saisie/le profil restent
+  // prioritaires (on ne écrase jamais une valeur existante).
+  useEffect(() => {
+    if (businessType) return;
+    try {
+      const metier = new URLSearchParams(window.location.search).get('metier');
+      if (!metier) return;
+      const LABELS: Record<string, string> = {
+        'restaurant': 'Restaurant',
+        'coach-sportif': 'Coach sportif',
+        'institut-beaute': 'Institut de beauté',
+        'coiffeur': 'Salon de coiffure',
+        'boutique-mode': 'Boutique de mode',
+        'fleuriste': 'Fleuriste',
+        'freelance': 'Freelance',
+        'immobilier': 'Agence immobilière',
+      };
+      const label = LABELS[metier];
+      if (label) setBusinessType(label);
+    } catch { /* window indisponible / param absent — no-op */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* --- Charger les stats mensuelles (visuels + vidéos créés ce mois) --- */
   useEffect(() => {
     const fetchMonthlyStats = async () => {

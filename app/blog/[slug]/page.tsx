@@ -123,6 +123,59 @@ function injectHeadingIds(html: string, headings: Array<{ id: string; text: stri
   return result;
 }
 
+// Mots ultra-fréquents du blog (présents partout) → exclus du score de
+// proximité pour éviter que tous les articles se relient entre eux.
+const STOP_TOKENS = new Set([
+  'marketing', 'digital', 'comment', 'pour', 'faire', 'des', 'les', 'une', 'un', 'sans',
+  'avec', 'ia', 'ai', 'outil', 'outils', 'strategie', 'stratégie', 'visuels', 'visuel',
+  'reseaux', 'réseaux', 'sociaux', 'social', 'contenu', 'clients', 'client', 'entreprise',
+  'pme', 'commerce', 'local', 'locaux', 'gratuit', 'meilleur', 'meilleure', '2026', 'que',
+  'quelle', 'quel', 'creer', 'créer', 'utiliser', 'attirer', 'trouver', 'plus', 'son', 'sa',
+]);
+
+function normTokens(s: string): string[] {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .split(/[^a-z0-9]+/u)
+    .filter(t => t.length >= 3 && !STOP_TOKENS.has(t));
+}
+
+/** Ensemble des tokens significatifs (primary pondéré 2×) d'un article. */
+function keywordTokens(primary: string, secondary?: string[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const t of normTokens(primary || '')) m.set(t, (m.get(t) || 0) + 2);
+  for (const kw of secondary || []) for (const t of normTokens(kw)) m.set(t, (m.get(t) || 0) + 1);
+  return m;
+}
+
+/** Score de recouvrement thématique entre deux articles. */
+function overlapScore(a: Map<string, number>, b: Map<string, number>): number {
+  let score = 0;
+  for (const [t, wa] of a) { const wb = b.get(t); if (wb) score += wa * wb; }
+  return score;
+}
+
+// Verticales connues (préremplissage /generate). Ordre = priorité de détection.
+const METIERS: Array<[string, string[]]> = [
+  ['restaurant', ['restaurant', 'restauration', 'traiteur', 'brasserie', 'bar']],
+  ['coach-sportif', ['coach', 'sportif', 'fitness', 'salle', 'sport']],
+  ['institut-beaute', ['institut', 'beaute', 'esthetique', 'esthéticienne', 'spa', 'ongle', 'onglerie']],
+  ['coiffeur', ['coiffeur', 'coiffure', 'salon', 'barbier']],
+  ['boutique-mode', ['boutique', 'mode', 'vetements', 'vetement', 'pret-a-porter']],
+  ['fleuriste', ['fleuriste', 'fleurs']],
+  ['freelance', ['freelance', 'independant', 'consultant']],
+  ['immobilier', ['immobilier', 'agent', 'agence']],
+];
+function detectMetier(tokens: Map<string, number>): string | null {
+  let best: string | null = null, bestScore = 0;
+  for (const [slug, kws] of METIERS) {
+    let s = 0; for (const kw of kws) if (tokens.has(kw)) s += tokens.get(kw)!;
+    if (s > bestScore) { bestScore = s; best = slug; }
+  }
+  return best;
+}
+
 /** Calculate reading time */
 function getReadingTime(html: string): number {
   const text = html.replace(/<[^>]+>/g, '');
@@ -245,22 +298,45 @@ export default async function BlogPostPage({ params }: PageProps) {
       }
     : null;
 
-  // Get related articles
+  // Get related articles — TOPIQUEMENT liés (maillage interne / topic clusters).
+  // Google récompense les clusters thématiques : au lieu des 3 derniers publiés,
+  // on relie les articles qui partagent la même verticale (restaurant, coach,
+  // boutique, freelance…) via le recouvrement de mots-clés. Fallback = récents.
   const supabase = getSupabase();
-  const { data: relatedPostsRaw } = await supabase
+  const { data: candidates } = await supabase
     .from('blog_posts')
-    .select('slug, title, excerpt, keywords_primary, published_at, content_html')
+    .select('slug, title, excerpt, keywords_primary, keywords_secondary, published_at')
     .eq('status', 'published')
     .neq('slug', post.slug)
-    .order('published_at', { ascending: false })
-    .limit(3);
+    .limit(200);
 
-  // Extract thumbnails for related posts
-  const relatedPosts = (relatedPostsRaw || []).map((rp: any) => {
-    const imgMatches = [...(rp.content_html || '').matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi)];
+  const selfTokens = keywordTokens(post.keywords_primary, post.keywords_secondary);
+  const scored = (candidates || []).map((c: any) => ({
+    c,
+    score: overlapScore(selfTokens, keywordTokens(c.keywords_primary, c.keywords_secondary)),
+    ts: c.published_at ? new Date(c.published_at).getTime() : 0,
+  }));
+  // Priorité au recouvrement thématique, puis au plus récent en cas d'égalité.
+  scored.sort((a, b) => (b.score - a.score) || (b.ts - a.ts));
+  const topRelated = scored.slice(0, 3).map(s => s.c);
+
+  // Thumbnails : une seule requête ciblée sur les 3 gagnants (pas de content_html
+  // sur les 200 candidats → coût mémoire maîtrisé).
+  const relatedSlugs = topRelated.map((r: any) => r.slug);
+  const { data: relatedFull } = relatedSlugs.length
+    ? await supabase.from('blog_posts').select('slug, content_html').in('slug', relatedSlugs)
+    : { data: [] as any[] };
+  const htmlBySlug = new Map((relatedFull || []).map((r: any) => [r.slug, r.content_html || '']));
+  const relatedPosts = topRelated.map((rp: any) => {
+    const imgMatches = [...(htmlBySlug.get(rp.slug) || '').matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi)];
     const validImg = imgMatches.find((m: any) => m[1] && !m[1].includes('bytepluses.com') && m[1].includes('supabase'));
-    return { ...rp, thumbnail: validImg?.[1] || null, content_html: undefined };
+    return { ...rp, thumbnail: validImg?.[1] || null };
   });
+
+  // CTA orienté métier : dérive la verticale de l'article pour préremplir /generate
+  // (article → génération preset métier, cf stratégie SEO §levier 2).
+  const metier = detectMetier(selfTokens);
+  const generateHref = metier ? `/generate?metier=${metier}` : '/generate';
 
   return (
     <>
@@ -416,7 +492,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
-                  href="/generate"
+                  href={generateHref}
                   className="inline-flex items-center gap-2 bg-white text-purple-700 font-bold px-8 py-3.5 rounded-xl hover:bg-neutral-100 transition-colors shadow-lg shadow-purple-900/20"
                 >
                   Essayer gratuitement
