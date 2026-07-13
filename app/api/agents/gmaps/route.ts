@@ -360,7 +360,7 @@ export async function GET(request: NextRequest) {
  * Body: { query?: string, city?: string, org_id?: string }
  */
 export async function POST(request: NextRequest) {
-  const { authorized, userId, isCron } = await verifyAuth(request);
+  const { authorized, userId, isCron, isAdmin } = await verifyAuth(request) as any;
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   let body: any = {};
@@ -375,10 +375,24 @@ export async function POST(request: NextRequest) {
   const queryUserId = request.nextUrl.searchParams.get('user_id') || null;
   const effectiveUserId = isCron && queryUserId ? queryUserId : userId;
 
-  return runGMapsScan(orgId, effectiveUserId, customQuery);
+  // Refacturation (founder 13/07) : quand un CLIENT lance une recherche Google
+  // depuis l'onglet prospection (body.charge=true), on consomme ses crédits (le
+  // Places API nous coûte de l'argent). Ni cron ni admin ne sont facturés.
+  const chargeUserId = (body?.charge === true && !isCron && !isAdmin && userId) ? userId : null;
+  if (chargeUserId) {
+    const { getCreditsBalance } = await import('@/lib/credits/server');
+    const { CREDIT_COSTS } = await import('@/lib/credits/constants');
+    const perProspect = (CREDIT_COSTS as any).prospection_search || 3;
+    const bal = await getCreditsBalance(chargeUserId);
+    if (bal < perProspect) {
+      return NextResponse.json({ ok: false, error: 'insufficient_credits', needed: perProspect, balance: bal }, { status: 402 });
+    }
+  }
+
+  return runGMapsScan(orgId, effectiveUserId, customQuery, chargeUserId);
 }
 
-async function runGMapsScan(orgId: string | null = null, userId: string | null = null, customQuery: string | null = null): Promise<NextResponse> {
+async function runGMapsScan(orgId: string | null = null, userId: string | null = null, customQuery: string | null = null, chargeUserId: string | null = null): Promise<NextResponse> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: 'GOOGLE_MAPS_API_KEY non configurée' }, { status: 500 });
@@ -850,5 +864,18 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
     } catch {}
   }
 
-  return NextResponse.json({ ok: true, ...report });
+  // Refacturation client : on débite APRÈS coup, au prorata des prospects
+  // réellement importés (× tarif/prospect). Si 0 importé → 0 débit.
+  let creditsCharged = 0;
+  if (chargeUserId && totalImported > 0) {
+    try {
+      const { deductCredits } = await import('@/lib/credits/server');
+      const { CREDIT_COSTS } = await import('@/lib/credits/constants');
+      const perProspect = (CREDIT_COSTS as any).prospection_search || 3;
+      creditsCharged = totalImported * perProspect;
+      await deductCredits(chargeUserId, 'prospection_search', `Recherche prospection Google — ${totalImported} prospects`, undefined, creditsCharged);
+    } catch (e: any) { console.warn('[GMaps] credit charge failed:', e?.message); creditsCharged = 0; }
+  }
+
+  return NextResponse.json({ ok: true, ...report, credits_charged: creditsCharged });
 }

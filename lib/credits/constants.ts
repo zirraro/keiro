@@ -34,6 +34,10 @@ export const CREDIT_COSTS = {
   video_60s: 235,
   video_90s: 320,
   audio_tts: 3,
+  // Recherche prospection Google (Léo) : refacture le coût Places API au client.
+  // ~0,017€/prospect × ratio 110 cr/€ ≈ 2 cr → 3 cr/prospect (coût + marge).
+  // Utilisé comme coût PAR PROSPECT importé (via costOverride = N × 3).
+  prospection_search: 3,
   text_suggest: 1,
   narration_suggest: 1,
   marketing_chat: 1,

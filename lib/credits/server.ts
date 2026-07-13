@@ -180,12 +180,16 @@ export async function deductCredits(
   userId: string,
   feature: string,
   description?: string,
-  duration?: number
+  duration?: number,
+  costOverride?: number
 ): Promise<{ success: boolean; newBalance: number }> {
   const supabase = getAdminClient();
 
   let cost: number;
-  if (feature === 'video_t2v' || feature === 'video_i2v') {
+  if (typeof costOverride === 'number' && costOverride > 0) {
+    // Coût variable (ex: recherche prospection Google = N prospects × tarif/prospect).
+    cost = Math.round(costOverride);
+  } else if (feature === 'video_t2v' || feature === 'video_i2v') {
     cost = getVideoCreditCost(duration || 5);
   } else {
     cost = (CREDIT_COSTS as any)[feature] ?? 0;

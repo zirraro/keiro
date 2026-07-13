@@ -95,6 +95,23 @@ export default function ProspectionSession() {
     return items;
   }, [sector, city, temp, count, saveSession]);
 
+  // "Léo décide" : liste prête à prospecter, SANS filtre — Léo choisit les
+  // meilleurs prospects du CRM (déjà classés par priorité × température × score
+  // côté call-list) et adapte à l'instant. 1 clic, 0 réflexion. Coût nul (CRM).
+  const launchSmart = useCallback(async () => {
+    setLoading(true);
+    let items: any[] = [];
+    try {
+      const res = await fetch(`/api/agents/commercial/call-list?limit=${count}&all=1`, { credentials: 'include' });
+      const d = await res.json();
+      items = d?.ok ? d.callList : [];
+      setList(items);
+      if (items.length) { setActiveSession(null); await saveSession('crm', items.map((p: any) => p.id)); }
+    } catch { setList([]); }
+    setLoading(false);
+    return items;
+  }, [count, saveSession]);
+
   // Recherche Google : scrape Google Maps sur (activité + ville) → crée de
   // NOUVELLES fiches CRM (les plus complètes possible : nom, adresse, tél, note
   // Google, site…), puis recharge la liste. Founder 13/07 : "si je tape une ville
@@ -106,18 +123,21 @@ export default function ProspectionSession() {
       const query = [sector, city].filter(Boolean).join(' ');
       const res = await fetch('/api/agents/gmaps', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, charge: true }),
       });
       const d = await res.json();
-      if (d.ok === false) {
+      if (res.status === 402 || d.error === 'insufficient_credits') {
+        setSearchMsg(en ? '⚠️ Not enough credits for a Google search. Top up your credits and retry.' : '⚠️ Crédits insuffisants pour une recherche Google. Recharge tes crédits puis réessaie.');
+      } else if (d.ok === false) {
         setSearchMsg(d.error || (en ? 'Search failed' : 'Recherche échouée'));
       } else if (d.skipped) {
         setSearchMsg(d.reason === 'plan_disabled'
           ? (en ? 'Google sourcing needs a higher plan.' : 'La recherche Google nécessite un plan supérieur.')
-          : (en ? 'Search skipped (already scanned recently).' : 'Recherche ignorée (zone déjà scannée récemment).'));
+          : (en ? 'Search skipped (already scanned recently, no charge).' : 'Recherche ignorée (zone déjà scannée récemment, non facturée).'));
       } else {
         const imported = d.imported ?? d.added ?? d.prospects_added ?? d.totalImported ?? d.report?.imported ?? 0;
-        setSearchMsg(en ? `✓ ${imported} new prospect(s) added from Google.` : `✓ ${imported} nouveau(x) prospect(s) ajouté(s) depuis Google.`);
+        const charged = d.credits_charged ?? 0;
+        setSearchMsg(en ? `✓ ${imported} new prospect(s) added from Google${charged ? ` — ${charged} credits used` : ''}.` : `✓ ${imported} nouveau(x) prospect(s) ajouté(s) depuis Google${charged ? ` — ${charged} crédits utilisés` : ''}.`);
       }
       const items = await launch(false);
       if (items.length) { setActiveSession(null); await saveSession('google', items.map((p: any) => p.id)); }
@@ -214,7 +234,15 @@ export default function ProspectionSession() {
       {/* ── LANCER UNE SESSION ── */}
       <div className="rounded-xl border border-orange-500/25 bg-orange-500/[0.05] p-3">
         <div className="text-xs font-bold text-orange-200 mb-1">{en ? '🎯 Launch a prospecting session' : '🎯 Lancer une session de démarchage'}</div>
-        <p className="text-[11px] text-white/50 mb-2">{en ? 'Pick your targeting — Léo stacks the prospects to call, with the recommended action per fiche.' : 'Choisis ton ciblage — Léo empile les prospects à appeler, avec l\'action recommandée par fiche.'}</p>
+        <p className="text-[11px] text-white/50 mb-2">{en ? 'One click and let Léo decide, or fine-tune the targeting below.' : 'Un clic et laisse Léo décider, ou affine le ciblage ci-dessous.'}</p>
+
+        {/* Léo décide — liste prête, sans réflexion (le plus rapide, coût nul) */}
+        <button onClick={launchSmart} disabled={loading}
+          className="w-full mb-3 py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white text-sm font-extrabold disabled:opacity-50 active:scale-[0.99] transition-all shadow-lg shadow-orange-900/20">
+          {loading ? '…' : (en ? '⚡ My list to prospect now (Léo decides)' : '⚡ Ma liste à prospecter maintenant (Léo décide)')}
+        </button>
+        <div className="text-[10px] text-white/35 mb-2 text-center">{en ? '— or target it yourself —' : '— ou cible toi-même —'}</div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <input value={sector} onChange={e => setSector(e.target.value)} placeholder={en ? 'Activity (e.g. beauty)' : 'Activité (ex : institut)'} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
           <input value={city} onChange={e => setCity(e.target.value)} placeholder={en ? 'Region / city' : 'Région / ville'} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
@@ -233,13 +261,13 @@ export default function ProspectionSession() {
             {loading ? '…' : (en ? '📋 Load from my CRM (free)' : '📋 Charger depuis mon CRM (gratuit)')}
           </button>
           <button
-            onClick={() => { if (window.confirm(en ? 'Google search costs (Places API). We prioritize your CRM first — only search Google if the area isn\'t there yet. Continue?' : 'La recherche Google a un coût (API Places). On privilégie ton CRM d\'abord — ne lance Google que si la zone n\'y est pas encore. Continuer ?')) searchGoogle(); }}
+            onClick={() => { if (window.confirm(en ? 'Google search uses credits (~3 per new prospect found — it costs us the Places API). We prioritize your CRM first (free). Continue?' : 'La recherche Google consomme des crédits (~3 par nouveau prospect trouvé — l\'API Places nous coûte). On privilégie ton CRM d\'abord (gratuit). Continuer ?')) searchGoogle(); }}
             disabled={searching}
             className="flex-1 py-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 text-sm font-semibold disabled:opacity-50 active:scale-[0.99] transition-all">
             {searching ? (en ? '🔍 Searching…' : '🔍 Recherche…') : (en ? '🔍 Search Google (paid)' : '🔍 Rechercher sur Google (payant)')}
           </button>
         </div>
-        <p className="text-[10px] text-white/40 mt-1.5">{en ? 'We prioritize your CRM (free). Google search creates brand-new, pre-filled fiches (name, address, phone, Google rating) — use it only when the area isn\'t in your CRM. Costs are capped per run.' : 'On privilégie ton CRM (gratuit). La recherche Google crée de nouvelles fiches déjà remplies (nom, adresse, tél, note Google) — à utiliser seulement si la zone n\'est pas dans ton CRM. Coûts plafonnés par recherche.'}</p>
+        <p className="text-[10px] text-white/40 mt-1.5">{en ? 'We prioritize your CRM (free). Google search creates brand-new, pre-filled fiches (name, address, phone, Google rating) and uses ~3 credits per new prospect — use it only when the area isn\'t in your CRM. Capped per run.' : 'On privilégie ton CRM (gratuit). La recherche Google crée de nouvelles fiches déjà remplies (nom, adresse, tél, note Google) et consomme ~3 crédits par nouveau prospect — à utiliser seulement si la zone n\'est pas dans ton CRM. Plafonné par recherche.'}</p>
         {searchMsg && <p className="text-[11px] text-cyan-200 mt-1.5">{searchMsg}</p>}
       </div>
 
