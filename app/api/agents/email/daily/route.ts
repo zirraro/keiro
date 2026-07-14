@@ -1144,6 +1144,26 @@ async function sendEmail(
       } catch { /* bloc article best-effort, ne bloque pas l'envoi */ }
     }
 
+    // VISUEL À L'ENGAGEMENT (founder 14/07) : si le prospect a CLIQUÉ depuis le
+    // dernier envoi (forte intention), on lui JOINT un visuel perso de SON
+    // business → il reçoit une preuve de valeur concrète au moment chaud. Coût
+    // borné aux cliqueurs (rares en cold) ; visuel affiché en petit dans le mail.
+    try {
+      const clickedAt = prospect.last_email_clicked_at ? new Date(prospect.last_email_clicked_at).getTime() : 0;
+      const sentAt = prospect.last_email_sent_at ? new Date(prospect.last_email_sent_at).getTime() : 0;
+      if (clickedAt && clickedAt > sentAt) {
+        const { generateProspectVisual } = await import('@/app/api/agents/dm-instagram/route');
+        const vurl = await generateProspectVisual(prospect, null);
+        if (vurl) {
+          const name = prospect.company || 'votre commerce';
+          const vBlock = `<div style="margin:18px 0;text-align:center;"><img src="${vurl}" alt="Visuel ${name}" width="280" style="max-width:280px;width:100%;border-radius:10px;border:1px solid #e5e7eb;"/><div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.5;">Un aperçu de ce qu'on pourrait créer pour <strong>${name}</strong> — généré en quelques secondes. Avec KeiroAI, c'est automatique, tous les jours.</div></div>`;
+          if (/<\/body>/i.test(template.htmlBody)) template.htmlBody = template.htmlBody.replace(/<\/body>/i, `${vBlock}</body>`);
+          else template.htmlBody += vBlock;
+          template.textBody = (template.textBody || '') + `\n\nJe t'ai fait un aperçu de visuel pour ${name} : ${vurl}`;
+        }
+      }
+    } catch { /* visuel best-effort — ne bloque jamais l'envoi */ }
+
     // Priority 1: Gmail API (client's own email) — if connected
     const ownerUserId = clientUserId || prospect.user_id || prospect.created_by || null;
     if (ownerUserId) {
