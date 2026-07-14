@@ -101,3 +101,45 @@ export function isValidEmailFormat(email: string | null | undefined): boolean {
   const domain = e.split('@')[1];
   return !DISPOSABLE_DOMAINS.has(domain);
 }
+
+/**
+ * AUTO-REPAIR délivrabilité (founder : "répare en auto"). Re-valide format+MX
+ * les prospects ACTIFS d'un client et flague `email_invalid` les non-délivrables
+ * — sans jamais supprimer (règle CRM) ni mettre en pause. Déclenché quand le
+ * taux de bounce 7j dépasse le seuil : la base se nettoie immédiatement au lieu
+ * d'attendre le cron quotidien. MX mis en cache (mxCache) → 1 lookup / domaine.
+ */
+export async function revalidateClientEmails(
+  supabase: any,
+  clientId: string,
+  cap = 500,
+): Promise<{ checked: number; flagged: number }> {
+  if (!clientId) return { checked: 0, flagged: 0 };
+  const { data } = await supabase
+    .from('crm_prospects')
+    .select('id, email')
+    .eq('user_id', clientId)
+    .not('email', 'is', null)
+    .not('email_sequence_status', 'in', '("email_invalid","bounced","stopped")')
+    .limit(cap);
+  const rows: Array<{ id: string; email: string }> = data || [];
+  const invalidIds: string[] = [];
+  for (const r of rows) {
+    const v = await validateEmail(r.email, { checkMx: true });
+    // On ne flague QUE les certitudes (format/disposable/no_mx). Les SERVFAIL/
+    // timeouts renvoient valid:true (bénéfice du doute) → jamais flagués à tort.
+    if (!v.valid) invalidIds.push(r.id);
+  }
+  let flagged = 0;
+  if (invalidIds.length > 0) {
+    // Par lots de 200 pour rester sous les limites d'URL PostgREST.
+    for (let i = 0; i < invalidIds.length; i += 200) {
+      const batch = invalidIds.slice(i, i + 200);
+      await supabase.from('crm_prospects')
+        .update({ email_sequence_status: 'email_invalid', active_channel: null, updated_at: new Date().toISOString() })
+        .in('id', batch);
+      flagged += batch.length;
+    }
+  }
+  return { checked: rows.length, flagged };
+}

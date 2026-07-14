@@ -524,10 +524,19 @@ export async function checkAndPauseOnBounce(supabase: SupabaseClient, clientId: 
       .select('id').eq('agent', 'email').eq('action', 'hugo_bounce_high').eq('user_id', clientId)
       .gte('created_at', since24).limit(1);
     if (!recent || recent.length === 0) {
+      // AUTO-REPAIR (founder : "répare en auto") : au lieu de seulement alerter
+      // "relancer le backfill", on re-valide MX la base du client MAINTENANT et
+      // on flague les non-délivrables → le taux retombe sans attendre le cron.
+      let repaired = { checked: 0, flagged: 0 };
+      try {
+        const { revalidateClientEmails } = await import('@/lib/agents/email-validation');
+        repaired = await revalidateClientEmails(supabase, clientId);
+      } catch { /* best-effort, ne bloque jamais l'envoi */ }
+
       await supabase.from('agent_logs').insert({
         agent: 'email', action: 'hugo_bounce_high', status: 'warning', user_id: clientId,
-        error_message: `Bounce élevé ${(rate * 100).toFixed(1)}% (${bounced}/${total}) — validation renforcée, PAS de pause`,
-        data: { severity: 'warning', rate, sent: total, bounced, action_taken: 'no_pause_validation_enforced' },
+        error_message: `Bounce élevé ${(rate * 100).toFixed(1)}% (${bounced}/${total}) — auto-repair: ${repaired.flagged} email(s) purgé(s), PAS de pause`,
+        data: { severity: 'warning', rate, sent: total, bounced, action_taken: 'auto_revalidate_mx', repaired },
         created_at: new Date().toISOString(),
       });
       // Partage RAG — tous les agents apprennent la règle (founder).
@@ -544,10 +553,10 @@ export async function checkAndPauseOnBounce(supabase: SupabaseClient, clientId: 
         const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
         await sendEmailWithFallback({
           to: 'contact@keiroai.com', toName: 'Admin KeiroAI',
-          subject: `⚠️ Bounce élevé ${(rate * 100).toFixed(1)}% (${(prof2 as any)?.email || clientId}) — validation renforcée, PAS de pause`,
+          subject: `⚠️ Bounce ${(rate * 100).toFixed(1)}% (${(prof2 as any)?.email || clientId}) — auto-repair lancé, PAS de pause`,
           html: `<p>Bounce 7j à <strong>${(rate * 100).toFixed(1)}%</strong> (${bounced}/${total}) pour <strong>${(prof2 as any)?.full_name || (prof2 as any)?.email || clientId}</strong>.</p>
-            <p>Conformément à la règle, <strong>les envois ne sont PAS mis en pause</strong>. La validation amont (format + MX à l'insert et à l'envoi) écarte les adresses invalides → le taux doit retomber à mesure que la base nettoyée roule sur la fenêtre 7j.</p>
-            <p>Si ça persiste : vérifier l'auth domaine (SPF/DKIM/DMARC) + relancer le backfill de validation.</p>`,
+            <p>✅ <strong>Auto-repair exécuté</strong> : re-validation MX de la base → <strong>${repaired.flagged}</strong> adresse(s) non-délivrable(s) purgée(s) sur ${repaired.checked} vérifiée(s). Les envois ne sont <strong>PAS mis en pause</strong> (la délivrabilité se protège par la validation, pas par l'arrêt).</p>
+            <p>Si ça persiste malgré la purge : vérifier l'auth domaine (SPF/DKIM/DMARC).</p>`,
           textContent: `Bounce ${(rate * 100).toFixed(1)}% (${bounced}/${total}) — PAS de pause, validation renforcée.`,
           fromName: 'KeiroAI Ops', fromEmail: 'contact@keiroai.com', tags: ['hugo_bounce_high'],
         });
