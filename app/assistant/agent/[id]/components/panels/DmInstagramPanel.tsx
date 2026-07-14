@@ -220,6 +220,9 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
       {igFull && tab === 'prospection' && (
         <div data-tour="dm-prospection">
           <p className="text-[11px] text-white/50 mb-2">{en ? 'Jade prepares a personalised opening DM for each new prospect. Send them manually (Instagram forbids cold auto-DMs) — once sent, the conversation moves to General DMs.' : 'Jade prépare un DM d’accroche personnalisé pour chaque nouveau prospect. Envoie-les à la main (Instagram interdit le DM à froid auto) — une fois envoyé, la conversation passe dans DM généraux.'}</p>
+          <div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-2.5 py-2">
+            <p className="text-[10px] text-amber-200/80 leading-snug">{en ? '⚠️ Some accounts don\'t accept message invitations ("This account can\'t receive your messages"). That\'s an Instagram privacy setting on their side — nothing to fix. Just tap 🚫 to remove them and move to the next.' : '⚠️ Certains comptes n\'acceptent pas les invitations par message (« Ce compte ne peut pas recevoir vos messages »). C\'est un réglage de confidentialité Instagram de LEUR côté — rien à réparer. Clique 🚫 pour le retirer et passe au suivant.'}</p>
+          </div>
           <PendingDMQueue gradientFrom="#ec4899" />
         </div>
       )}
@@ -2580,9 +2583,12 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
             {/* Visuel de prospection à l'image du business. Optionnel : le client
                 choisit de le générer (bouton) ; s'il existe déjà, on l'affiche. */}
             {(dm as any).visual_url ? (
-              <a href={(dm as any).visual_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
+              // Aperçu PETIT — tel que le prospect le verra dans son DM (vignette),
+              // pas plein cadre (founder 15/07). Clic = ouvrir en grand.
+              <a href={(dm as any).visual_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mb-2 group" title={en ? 'Open full size' : 'Ouvrir en grand'}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={(dm as any).visual_url} alt={en ? 'Prospecting visual' : 'Visuel de prospection'} className="w-full max-h-52 object-cover rounded-lg border border-white/10" loading="lazy" />
+                <img src={(dm as any).visual_url} alt={en ? 'Prospecting visual' : 'Visuel de prospection'} className="w-20 h-20 object-cover rounded-lg border border-white/10 group-hover:opacity-90 transition" loading="lazy" />
+                <span className="text-[10px] text-white/40">{en ? 'Visual attached · tap to enlarge' : 'Visuel joint · appuie pour agrandir'}</span>
               </a>
             ) : (
               <button

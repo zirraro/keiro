@@ -141,6 +141,10 @@ const GLOBAL_SCHEDULE = [
   // gratuit : pitch "crédits vs autopilote" quand ils s'épuisent + relance
   // J+14 dormance. Idempotent, petite cohorte → coût négligeable.
   { cron: '30 10 * * *',  path: '/api/cron/pack-lead-nurture', label: 'Pack Lead Nurture (pack gratuit → plan autopilote)' },
+  // Attribution inscription → prospect (même avec un autre email, via domaine) :
+  // un prospecté qui s'inscrit passe 'client' + démarchage stoppé. 3×/jour pour
+  // réagir vite (ne pas relancer quelqu'un qui vient de signer).
+  { cron: '5 8,14,20 * * *', path: '/api/cron/match-signups-to-prospects', label: 'Match signups → prospects (stop démarchage des convertis)' },
   { cron: '0 8 * * 1',    path: '/api/cron/client-health-score', label: 'Client Health-Score (anti-churn, admin alert Monday)' },
   { cron: '0 11 * * *',   path: '/api/cron/winback', label: 'Winback churned clients (J+30 changelog, J+90 free retry)' },
   // 2026-06-09 — Every 30min. Real-time anomaly detector (6 kinds:
