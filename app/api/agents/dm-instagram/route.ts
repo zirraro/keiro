@@ -405,14 +405,15 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     // Vivant : exclure clients & sprint (déjà gagnés / en cours), DM si frais.
     return !p.status || !['client', 'client_pro', 'client_fondateurs', 'sprint'].includes(p.status);
   });
-  // PRIORITÉ AUX PROSPECTS VIVANTS. Les morts "revivables" passent le filtre
-  // ci-dessus mais sont rejetés plus bas par verifyDMProspectData (dead/perdu) →
-  // si on trie par score seul, le cap quick (8) se remplit de fiches mortes à
-  // haut score et on prépare 0 DM (bug founder 14/07 : CRM plein de 'perdu' à
-  // score élevé). On met donc les vivants d'abord, morts en dernier.
+  // PRIORITÉ AUX PROSPECTS DM-ÉLIGIBLES. verifyDMProspectData (plus bas) rejette
+  // temperature='dead' OU status='perdu'. isDeadProspect (revival) a une déf plus
+  // LÂCHE → si on l'utilise, le cap quick (8) se remplit de fiches que verify va
+  // rejeter → 0 DM (bug founder 14/07 : CRM plein de 'perdu'/'dead' à score élevé).
+  // On utilise donc EXACTEMENT le même prédicat que verify pour prioriser.
+  const isDmEligible = (p: any) => p.temperature !== 'dead' && p.status !== 'perdu';
   const prospects = [
-    ...filtered.filter(p => !isDeadProspect(p)),
-    ...filtered.filter(p => isDeadProspect(p)),
+    ...filtered.filter(isDmEligible),
+    ...filtered.filter(p => !isDmEligible(p)),
   ].slice(0, quick ? 8 : MAX_DM_PER_DAY * 3);
 
   if (!prospects || prospects.length === 0) {
