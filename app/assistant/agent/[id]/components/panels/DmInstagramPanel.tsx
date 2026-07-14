@@ -2313,21 +2313,33 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   const prepareNow = useCallback(async () => {
     if (preparing) return;
     setPreparing(true);
-    setPrepareInfo(en ? 'Jade is analysing your prospects\' Instagram profiles and preparing personalised DMs with a visual…' : 'Jade analyse les profils Instagram de tes prospects et prépare des DM personnalisés avec un visuel…');
+    setPrepareInfo(en ? 'Jade is analysing your prospects\' Instagram profiles and writing personalised DMs…' : 'Jade analyse les profils Instagram de tes prospects et rédige des DM personnalisés…');
     try {
-      const res = await fetch('/api/agents/dm-instagram?with_image=1', {
+      // Mode quick : réponse rapide (texte inséré tout de suite), visuels générés
+      // en arrière-plan. On recharge dès le retour puis on poll pour voir les
+      // images se remplir dans les cartes.
+      const res = await fetch('/api/agents/dm-instagram?with_image=1&quick=1', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ platform: 'instagram' }),
       });
       const d = await res.json().catch(() => ({} as any));
       const n = d?.prepared || 0;
+      await loadQueue(showAll ? 200 : 50);
       if (n > 0) {
-        setPrepareInfo(en ? `✅ ${n} DM prepared — ready to send below.` : `✅ ${n} DM préparés — prêts à envoyer ci-dessous.`);
+        setPrepareInfo(en ? `✅ ${n} DM prepared — visuals are generating (a few seconds)…` : `✅ ${n} DM préparés — les visuels se génèrent (quelques secondes)…`);
+        // Poll silencieux : les visuels apparaissent au fur et à mesure.
+        let tries = 0;
+        const poll = async () => {
+          tries++;
+          await loadQueue(showAll ? 200 : 50);
+          if (tries < 9) setTimeout(poll, 8000);
+          else setPrepareInfo(en ? `✅ ${n} DM ready to send below.` : `✅ ${n} DM prêts à envoyer ci-dessous.`);
+        };
+        setTimeout(poll, 8000);
       } else {
         setPrepareInfo(d?.message || (en ? 'No new eligible prospect right now. Add Instagram handles via Léo prospection, then retry.' : 'Aucun nouveau prospect éligible pour l\'instant. Ajoute des comptes Instagram via la prospection Léo, puis réessaie.'));
       }
-      await loadQueue(showAll ? 200 : 50);
     } catch {
       setPrepareInfo(en ? 'Preparation failed — please retry.' : 'La préparation a échoué — réessaie.');
     } finally {

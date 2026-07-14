@@ -58,6 +58,39 @@ const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/
  * prompt with concrete observations from the IG scrape (bio,
  * ambiance, signature items) when present.
  */
+/**
+ * Génère les visuels de prospection EN ARRIÈRE-PLAN (mode quick) et attache
+ * l'URL à la ligne dm_queue déjà insérée. Tourne comme promesse flottante après
+ * la réponse (serveur Node/pm2 long-running → l'event loop continue). Le client
+ * qui poll voit d'abord le DM (texte), puis l'image apparaît au fur et à mesure.
+ */
+async function attachVisualsInBackground(
+  supabase: any,
+  items: Array<{ prospect: any; snapshot: any }>,
+  channelName: string,
+): Promise<void> {
+  const BATCH = 3;
+  for (let i = 0; i < items.length; i += BATCH) {
+    const batch = items.slice(i, i + BATCH);
+    await Promise.all(batch.map(async ({ prospect, snapshot }) => {
+      try {
+        const url = await generateProspectVisual(prospect, snapshot);
+        if (!url) return;
+        // Récupère la ligne pending la plus récente pour ce prospect/canal.
+        const { data: row } = await supabase.from('dm_queue')
+          .select('id, personalization')
+          .eq('prospect_id', prospect.id).eq('channel', channelName).eq('status', 'pending')
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if (!row) return;
+        let pj: any = {};
+        try { pj = typeof row.personalization === 'string' ? JSON.parse(row.personalization) : (row.personalization || {}); } catch { pj = {}; }
+        pj.visual_url = url;
+        await supabase.from('dm_queue').update({ personalization: JSON.stringify(pj) }).eq('id', row.id);
+      } catch { /* visuel best-effort — n'empêche pas l'envoi du DM */ }
+    }));
+  }
+}
+
 async function generateProspectVisual(prospect: any, snapshot: IgProfileSnapshot | null = null): Promise<string | null> {
   try {
     const businessName = prospect.company || 'commerce local';
@@ -242,12 +275,17 @@ export async function POST(request: NextRequest) {
   // 2026-06-04 — with_image=1 boost: visual cap monte de 10 → 30 pour
   // que CHAQUE DM préparé inclue un visuel personnalisé.
   const withImage = url.searchParams.get('with_image') === '1';
+  // `quick=1` — mode ON-DEMAND (bouton client). Prépare un PETIT lot vite (texte
+  // + insertion immédiate) et génère les visuels EN ARRIÈRE-PLAN → la réponse
+  // revient en quelques secondes, les DM apparaissent tout de suite (le visuel se
+  // remplit ensuite). Évite le timeout nginx sur le run complet (180 prospects).
+  const quick = url.searchParams.get('quick') === '1';
 
   // Scope de préparation : un CLIENT prépare SES prospects (userId authentifié) ;
   // un cron/global peut cibler un user_id via query. → plus de 401 pour le client.
   const scopeUserId = url.searchParams.get('user_id') || (isCron ? null : userId);
 
-  return runDMPreparation(platform, orgId, scopeUserId, withImage);
+  return runDMPreparation(platform, orgId, scopeUserId, withImage, quick);
 }
 
 /**
@@ -275,7 +313,7 @@ function verifyDMProspectData(prospect: any, platform: 'instagram' | 'tiktok' = 
   return { valid: issues.length === 0, issues };
 }
 
-async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', orgId: string | null = null, clientUserId: string | null = null, withImageBoost: boolean = false): Promise<NextResponse> {
+async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', orgId: string | null = null, clientUserId: string | null = null, withImageBoost: boolean = false, quick: boolean = false): Promise<NextResponse> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
   const isTikTok = platform === 'tiktok';
@@ -366,7 +404,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     }
     // Vivant : exclure clients & sprint (déjà gagnés / en cours), DM si frais.
     return !p.status || !['client', 'client_pro', 'client_fondateurs', 'sprint'].includes(p.status);
-  }).slice(0, MAX_DM_PER_DAY * 3);
+  }).slice(0, quick ? 8 : MAX_DM_PER_DAY * 3);
 
   if (!prospects || prospects.length === 0) {
     const { count: totalHandle } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not(handleField, 'is', null).neq(handleField, '').neq(handleField, 'A_VERIFIER');
@@ -442,7 +480,9 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
   const topProspects = dmResults.filter(r => r.dm).slice(0, visualCap);
   const visualUrls = new Map<string, string>();
 
-  if (topProspects.length > 0) {
+  // Mode QUICK : on n'attend PAS les visuels (lents) → on insère les DM tout de
+  // suite et on remplit les images en arrière-plan après la réponse.
+  if (topProspects.length > 0 && !quick) {
     console.log(`[DMAgent] Generating personalized visuals for ${topProspects.length} prospects...`);
     const VISUAL_BATCH_SIZE = 3;
     for (let vb = 0; vb < topProspects.length; vb += VISUAL_BATCH_SIZE) {
@@ -457,6 +497,10 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     }
     console.log(`[DMAgent] ${visualUrls.size}/${topProspects.length} visuals generated`);
   }
+
+  // En mode quick, on mémorise les prospects insérés pour générer leurs visuels
+  // APRÈS la réponse (arrière-plan) et mettre à jour leur ligne dm_queue.
+  const quickVisualQueue: Array<{ prospect: any; snapshot: any }> = [];
 
   for (const { prospect, category, dm: rawDm, snapshot } of dmResults) {
     let dm = rawDm;
@@ -604,6 +648,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
 
     prepared++;
     sent++;
+    if (quick) quickVisualQueue.push({ prospect, snapshot });
     preparedNames.push(`${prospect.company} (@${handle})`);
 
     if (!byBusinessType[category]) byBusinessType[category] = { count: 0, handles: [] };
@@ -723,5 +768,13 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
       console.warn(`[DMAgent] Feedback save error:`, fbErr.message);
     }
 
-  return NextResponse.json({ ok: true, platform, ...report });
+  // Mode quick : génère les visuels APRÈS la réponse (promesse flottante — le
+  // serveur pm2 continue l'event loop). Les DM (texte) sont déjà en file ; le
+  // client qui poll voit l'image se remplir dans les cartes ~30-90s plus tard.
+  if (quick && withImageBoost && quickVisualQueue.length > 0) {
+    attachVisualsInBackground(supabase, quickVisualQueue, channelName)
+      .catch(e => console.warn('[DMAgent] background visual attach error:', e?.message));
+  }
+
+  return NextResponse.json({ ok: true, platform, quick, ...report });
 }
