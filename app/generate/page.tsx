@@ -805,12 +805,15 @@ export default function GeneratePage() {
   }, []);
 
   // Récupère les visuels générés avant la création du compte (associés à l'IP)
-  // et les rattache à la librairie du nouveau compte (founder 03/07).
+  // et les rattache à la librairie du nouveau compte (founder 03/07). On le
+  // REND VISIBLE (« tes visuels t'attendaient ») — la sécurisation des
+  // générations est un argument de conversion (founder 15/07).
+  const [claimedVisuals, setClaimedVisuals] = useState(0);
   useEffect(() => {
     if (!authUserId) return;
     fetch('/api/anon-gen/claim', { method: 'POST', credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d?.claimed > 0) console.log(`[Generate] ${d.claimed} visuel(s) gratuit(s) récupéré(s) dans ta librairie`); })
+      .then(d => { if (d?.claimed > 0) setClaimedVisuals(d.claimed); })
       .catch(() => { /* non-fatal */ });
   }, [authUserId]);
 
@@ -7347,6 +7350,21 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
         <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
         <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
+
+        {/* Visuels anonymes récupérés dans la galerie après création de compte —
+            « tes visuels t'attendaient » (sécurisation = argument de conversion). */}
+        {claimedVisuals > 0 && (
+          <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-[70] sm:max-w-sm bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-2xl shadow-2xl p-4 border border-emerald-300/40 animate-in slide-in-from-bottom duration-300">
+            <button onClick={() => setClaimedVisuals(0)} className="absolute top-2 right-2 text-white/70 hover:text-white text-base px-2 min-h-[32px]">×</button>
+            <div className="font-bold text-sm mb-1">🎁 {claimedVisuals} {claimedVisuals > 1 ? (t.generate?.claimedVisualsPlural || 'visuels récupérés') : (t.generate?.claimedVisualsSingular || 'visuel récupéré')}</div>
+            <p className="text-xs text-white/90 leading-relaxed mb-3">
+              {t.generate?.claimedVisualsBody || 'Les visuels que tu avais créés avant ton compte sont sauvegardés dans ta galerie. Rien de perdu.'}
+            </p>
+            <a href="/library" className="block w-full text-center bg-white text-green-700 font-bold py-2 min-h-[40px] rounded-lg text-xs hover:bg-emerald-50 flex items-center justify-center">
+              {t.generate?.claimedVisualsCta || 'Voir ma galerie →'}
+            </a>
+          </div>
+        )}
 
         {/* Welcome popup after email confirmation - auto-dismiss 10s */}
         {showWelcome && (
