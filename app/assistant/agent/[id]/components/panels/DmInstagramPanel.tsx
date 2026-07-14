@@ -2315,10 +2315,10 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
     setPreparing(true);
     setPrepareInfo(en ? 'Jade is analysing your prospects\' Instagram profiles and writing personalised DMs…' : 'Jade analyse les profils Instagram de tes prospects et rédige des DM personnalisés…');
     try {
-      // Mode quick : réponse rapide (texte inséré tout de suite), visuels générés
-      // en arrière-plan. On recharge dès le retour puis on poll pour voir les
-      // images se remplir dans les cartes.
-      const res = await fetch('/api/agents/dm-instagram?with_image=1&quick=1', {
+      // Texte d'abord (rapide) : on prépare les DM avec le compte + le message
+      // perso, SANS visuel. Le client choisit ensuite, DM par DM, s'il veut
+      // générer un visuel (bouton par carte) — founder 15/07.
+      const res = await fetch('/api/agents/dm-instagram?quick=1', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ platform: 'instagram' }),
@@ -2327,16 +2327,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
       const n = d?.prepared || 0;
       await loadQueue(showAll ? 200 : 50);
       if (n > 0) {
-        setPrepareInfo(en ? `✅ ${n} DM prepared — visuals are generating (a few seconds)…` : `✅ ${n} DM préparés — les visuels se génèrent (quelques secondes)…`);
-        // Poll silencieux : les visuels apparaissent au fur et à mesure.
-        let tries = 0;
-        const poll = async () => {
-          tries++;
-          await loadQueue(showAll ? 200 : 50);
-          if (tries < 9) setTimeout(poll, 8000);
-          else setPrepareInfo(en ? `✅ ${n} DM ready to send below.` : `✅ ${n} DM prêts à envoyer ci-dessous.`);
-        };
-        setTimeout(poll, 8000);
+        setPrepareInfo(en ? `✅ ${n} DM ready below — generate a visual per prospect if you want.` : `✅ ${n} DM prêts ci-dessous — génère un visuel par prospect si tu veux.`);
       } else {
         setPrepareInfo(d?.message || (en ? 'No new eligible prospect right now. Add Instagram handles via Léo prospection, then retry.' : 'Aucun nouveau prospect éligible pour l\'instant. Ajoute des comptes Instagram via la prospection Léo, puis réessaie.'));
       }
@@ -2383,6 +2374,24 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   };
   const [verifying, setVerifying] = useState<string | null>(null);
   const [statuses, setStatuses] = useState<Record<string, DmStatus>>({});
+  const [genVisual, setGenVisual] = useState<string | null>(null);
+
+  // Génère À LA DEMANDE un visuel pertinent + personnalisé pour ce prospect
+  // (choix du client, DM par DM). Met à jour la carte sans recharger toute la file.
+  const handleGenerateVisual = useCallback(async (dmId: string) => {
+    setGenVisual(dmId);
+    try {
+      const res = await fetch('/api/agents/dm-instagram/generate-visual', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dm_id: dmId }),
+      });
+      const d = await res.json().catch(() => ({} as any));
+      if (d?.ok && d.visual_url) {
+        setQueue(prev => prev.map(x => x.id === dmId ? { ...x, visual_url: d.visual_url } : x));
+      }
+    } catch { /* silencieux — le DM reste envoyable sans visuel */ } finally { setGenVisual(null); }
+  }, []);
 
   const handleEnvoyerDM = useCallback(async (dm: { id: string; handle: string; message: string }) => {
     const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
@@ -2568,14 +2577,23 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               )}
               {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
             </div>
-            {/* Visuel de prospection généré à l'image du business analysé
-                (stocké dans personalization.visual_url) — c'est l'image que
-                le client joint au DM pour accrocher le prospect. */}
-            {(dm as any).visual_url && (
+            {/* Visuel de prospection à l'image du business. Optionnel : le client
+                choisit de le générer (bouton) ; s'il existe déjà, on l'affiche. */}
+            {(dm as any).visual_url ? (
               <a href={(dm as any).visual_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={(dm as any).visual_url} alt={en ? 'Prospecting visual' : 'Visuel de prospection'} className="w-full max-h-52 object-cover rounded-lg border border-white/10" loading="lazy" />
               </a>
+            ) : (
+              <button
+                onClick={() => handleGenerateVisual(dm.id)}
+                disabled={genVisual === dm.id}
+                className="mb-2 w-full px-3 py-2 min-h-[40px] text-xs font-semibold rounded-lg border border-dashed border-white/20 text-white/70 hover:text-white hover:border-white/40 hover:bg-white/[0.04] transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {genVisual === dm.id
+                  ? (en ? '⏳ Generating a tailored visual…' : '⏳ Génération d\'un visuel sur mesure…')
+                  : (en ? '🎨 Generate a visual for this prospect' : '🎨 Générer un visuel pour ce prospect')}
+              </button>
             )}
             <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
             {(dm as any).personalization_detail && (

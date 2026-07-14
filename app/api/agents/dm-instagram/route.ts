@@ -91,7 +91,7 @@ async function attachVisualsInBackground(
   }
 }
 
-async function generateProspectVisual(prospect: any, snapshot: IgProfileSnapshot | null = null): Promise<string | null> {
+export async function generateProspectVisual(prospect: any, snapshot: IgProfileSnapshot | null = null): Promise<string | null> {
   try {
     const businessName = prospect.company || 'commerce local';
     const businessType = prospect.type || 'commerce';
