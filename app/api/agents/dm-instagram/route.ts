@@ -369,6 +369,15 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     prospectQuery.eq('org_id', orgId);
   }
 
+  // Mode QUICK : cible directement les prospects DM-éligibles au niveau DB. Sinon
+  // la requête (ordre score DESC, limit 500) ne ramène que le TOP score — qui,
+  // dans un CRM mûr, est saturé de fiches 'perdu'/'dead' à haut score → le cap se
+  // remplit de morts → 0 DM (bug founder 14/07 : 495 vivants existaient mais au-
+  // delà de la ligne 500, jamais récupérés). On restreint aux statuts appelables.
+  if (quick) {
+    prospectQuery.in('status', ['identifie', 'contacte', 'relance_1', 'relance_2', 'relance_3', 'repondu', 'demo']);
+  }
+
   const { data: allWithHandle, error } = await prospectQuery;
 
   if (error) {
