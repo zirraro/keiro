@@ -389,7 +389,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
 
   // Filter in JS for reliability
   // For TikTok DMs, also check that we haven't already queued a TikTok DM for this prospect
-  const prospects = (allWithHandle || []).filter(p => {
+  const filtered = (allWithHandle || []).filter(p => {
     // EXCLUDE admin-owned prospects
     if (p.user_id && adminUserIds.has(p.user_id)) return false;
     const dmOk = isTikTok ? true : (!p.dm_status || p.dm_status === 'none'); // TikTok DMs are separate from IG dm_status
@@ -404,7 +404,16 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     }
     // Vivant : exclure clients & sprint (déjà gagnés / en cours), DM si frais.
     return !p.status || !['client', 'client_pro', 'client_fondateurs', 'sprint'].includes(p.status);
-  }).slice(0, quick ? 8 : MAX_DM_PER_DAY * 3);
+  });
+  // PRIORITÉ AUX PROSPECTS VIVANTS. Les morts "revivables" passent le filtre
+  // ci-dessus mais sont rejetés plus bas par verifyDMProspectData (dead/perdu) →
+  // si on trie par score seul, le cap quick (8) se remplit de fiches mortes à
+  // haut score et on prépare 0 DM (bug founder 14/07 : CRM plein de 'perdu' à
+  // score élevé). On met donc les vivants d'abord, morts en dernier.
+  const prospects = [
+    ...filtered.filter(p => !isDeadProspect(p)),
+    ...filtered.filter(p => isDeadProspect(p)),
+  ].slice(0, quick ? 8 : MAX_DM_PER_DAY * 3);
 
   if (!prospects || prospects.length === 0) {
     const { count: totalHandle } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not(handleField, 'is', null).neq(handleField, '').neq(handleField, 'A_VERIFIER');
