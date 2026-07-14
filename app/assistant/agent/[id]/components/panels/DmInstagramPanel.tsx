@@ -2290,6 +2290,8 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   const [sending, setSending] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [prepareInfo, setPrepareInfo] = useState<string | null>(null);
 
   const loadQueue = useCallback(async (limit = 50) => {
     try {
@@ -2303,6 +2305,35 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   }, []);
 
   useEffect(() => { loadQueue(showAll ? 200 : 50); }, [loadQueue, showAll]);
+
+  // Déclenche Jade : analyse les profils Instagram des prospects + prépare des
+  // DM d'accroche personnalisés AVEC un visuel à l'image du business. C'est ce
+  // qui manquait : la file était vide → l'onglet n'affichait rien. Maintenant
+  // le client voit l'agent EN ACTION et les DM apparaissent quand c'est prêt.
+  const prepareNow = useCallback(async () => {
+    if (preparing) return;
+    setPreparing(true);
+    setPrepareInfo(en ? 'Jade is analysing your prospects\' Instagram profiles and preparing personalised DMs with a visual…' : 'Jade analyse les profils Instagram de tes prospects et prépare des DM personnalisés avec un visuel…');
+    try {
+      const res = await fetch('/api/agents/dm-instagram?with_image=1', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'instagram' }),
+      });
+      const d = await res.json().catch(() => ({} as any));
+      const n = d?.prepared || 0;
+      if (n > 0) {
+        setPrepareInfo(en ? `✅ ${n} DM prepared — ready to send below.` : `✅ ${n} DM préparés — prêts à envoyer ci-dessous.`);
+      } else {
+        setPrepareInfo(d?.message || (en ? 'No new eligible prospect right now. Add Instagram handles via Léo prospection, then retry.' : 'Aucun nouveau prospect éligible pour l\'instant. Ajoute des comptes Instagram via la prospection Léo, puis réessaie.'));
+      }
+      await loadQueue(showAll ? 200 : 50);
+    } catch {
+      setPrepareInfo(en ? 'Preparation failed — please retry.' : 'La préparation a échoué — réessaie.');
+    } finally {
+      setPreparing(false);
+    }
+  }, [preparing, en, loadQueue, showAll]);
 
   const sendDM = useCallback(async (dmId: string) => {
     setSending(dmId);
@@ -2442,12 +2473,57 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
     setTotal(prev => prev - 1);
   }, []);
 
-  if (loading || queue.length === 0) return null;
-
   const displayed = showAll ? queue : queue.slice(0, 10);
+
+  // Bouton "Préparer maintenant" — toujours visible (déclenche Jade + montre
+  // l'état d'action). Résout le "il ne se passe rien" quand la file est vide.
+  const prepareBtn = (
+    <button
+      onClick={prepareNow}
+      disabled={preparing}
+      className="px-3 py-2 min-h-[40px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 flex items-center gap-1.5"
+    >
+      {preparing ? (en ? '⏳ Jade prépare…' : '⏳ Jade prépare…') : (en ? '⚡ Prepare prospecting DMs' : '⚡ Préparer des DM de prospection')}
+    </button>
+  );
+
+  const infoBanner = prepareInfo && (
+    <div className={`mb-2 rounded-lg p-2.5 text-[11px] leading-relaxed border ${preparing ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200' : 'bg-white/[0.04] border-white/10 text-white/70'}`}>
+      {preparing && <span className="inline-block w-3 h-3 mr-1.5 rounded-full border-2 border-cyan-300 border-t-transparent animate-spin align-[-2px]" />}
+      {prepareInfo}
+    </div>
+  );
+
+  // État de CHARGEMENT initial.
+  if (loading) {
+    return (
+      <div className="mb-3">
+        <div className="animate-pulse space-y-2">
+          <div className="h-16 bg-white/[0.04] rounded-xl" />
+          <div className="h-16 bg-white/[0.04] rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  // File VIDE → on montre quand même de quoi lancer l'agent + l'explication.
+  if (queue.length === 0) {
+    return (
+      <div className="mb-3">
+        {infoBanner}
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-center">
+          <div className="text-2xl mb-2">{'\u{1F3AF}'}</div>
+          <p className="text-xs text-white/70 mb-1 font-semibold">{en ? 'No prospecting DM ready yet' : 'Aucun DM de prospection prêt pour l\'instant'}</p>
+          <p className="text-[11px] text-white/45 mb-3 max-w-sm mx-auto">{en ? 'Jade analyses your prospects\' Instagram profiles and writes a personalised opening DM with a visual matching their business. Launch it below.' : 'Jade analyse les profils Instagram de tes prospects et rédige un DM d\'accroche personnalisé avec un visuel à l\'image de leur business. Lance-le ci-dessous.'}</p>
+          <div className="flex justify-center">{prepareBtn}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-3">
+      {infoBanner}
       {/* Header + campaign actions */}
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -2459,6 +2535,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               {p.seeAll} ({total})
             </button>
           )}
+          {prepareBtn}
         </div>
       </div>
 
@@ -2479,7 +2556,19 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               )}
               {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
             </div>
+            {/* Visuel de prospection généré à l'image du business analysé
+                (stocké dans personalization.visual_url) — c'est l'image que
+                le client joint au DM pour accrocher le prospect. */}
+            {(dm as any).visual_url && (
+              <a href={(dm as any).visual_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={(dm as any).visual_url} alt={en ? 'Prospecting visual' : 'Visuel de prospection'} className="w-full max-h-52 object-cover rounded-lg border border-white/10" loading="lazy" />
+              </a>
+            )}
             <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
+            {(dm as any).personalization_detail && (
+              <p className="text-[10px] text-white/35 italic mb-2 line-clamp-2">{'\u{1F50E}'} {(dm as any).personalization_detail}</p>
+            )}
 
             {/* Pre-flight status banner — shown inline after "Envoyer" click */}
             {status && (

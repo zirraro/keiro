@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   // unverified DMs still appear after them so nothing gets lost.
   const { data: queue, count: totalPending } = await supabase
     .from('dm_queue')
-    .select('id, prospect_id, handle, message, channel, priority, created_at, verified_exists, verified_at', { count: 'exact' })
+    .select('id, prospect_id, handle, message, channel, priority, created_at, verified_exists, verified_at, personalization', { count: 'exact' })
     .eq('status', 'pending')
     .eq('channel', 'instagram')
     .in('prospect_id', prospectIds.slice(0, 500))
@@ -45,10 +45,26 @@ export async function GET(req: NextRequest) {
     .order('priority', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  const result = (queue || []).map(dm => ({
-    ...dm,
-    company: prospectMap.get(dm.prospect_id) || null,
-  }));
+  const result = (queue || []).map(({ personalization, ...dm }) => {
+    // Le visuel de prospection (image à l'image du business analysé) + le
+    // détail de personnalisation sont stockés DANS le JSON personalization.
+    // On les remonte au top-level pour que la carte les affiche.
+    let visual_url: string | null = null;
+    let personalization_detail: string | null = null;
+    try {
+      const pj = typeof personalization === 'string' ? JSON.parse(personalization) : personalization;
+      if (pj && typeof pj === 'object') {
+        visual_url = pj.visual_url || null;
+        personalization_detail = pj.detail || null;
+      }
+    } catch { /* personalization malformé → ignoré */ }
+    return {
+      ...dm,
+      company: prospectMap.get(dm.prospect_id) || null,
+      visual_url,
+      personalization_detail,
+    };
+  });
 
   return NextResponse.json({ ok: true, queue: result, total: totalPending ?? result.length });
 }
