@@ -506,7 +506,7 @@ function HomeKeiroInner() {
               {locale === 'fr' ? 'Une équipe d’agents IA spécialisés qui travaillent 24/7 : création, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatisé.' : 'A team of specialised AI agents working 24/7: creation, publishing, DMs, emails, SEO, Google reviews, CRM, analytics. All automated.'}
             </p>
             <Link href="/essai?plan=createur" className="inline-block px-6 sm:px-10 py-3 sm:py-4 bg-white text-[#0c1a3a] font-extrabold text-sm sm:text-base rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
-              {locale === 'fr' ? 'Essai gratuit 7 jours \u2014 0\u20AC ' : 'Free trial 7 days \u2014 \u20AC0 '}{'\u2192'}
+              {locale === 'fr' ? 'Essai gratuit 7 jours \— 0\u20AC ' : 'Free trial 7 days \— \u20AC0 '}{'\→'}
             </Link>
             <p className="text-xs text-white/40 mt-2">{locale === 'fr' ? 'Carte requise, aucun débit. Annulation en 1 clic.' : 'Card required, no charge. Cancel in 1 click.'}</p>
           </div>

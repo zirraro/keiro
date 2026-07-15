@@ -227,11 +227,11 @@ function PricingPageInner() {
 
             <ul className="space-y-4 mb-8">
               {(locale === 'fr' ? [
-                '<strong>Tous les agents</strong> d\u00e9bloqu\u00e9s pendant 7 jours',
-                '<strong>Vid\u00e9os</strong> + images + narration audio',
+                '<strong>Tous les agents</strong> d\ébloqu\és pendant 7 jours',
+                '<strong>Vid\éos</strong> + images + narration audio',
                 'Publication sur Instagram, LinkedIn, TikTok',
                 'Assistant marketing Ami inclus',
-                'Carte requise \u2014 <strong>\u20AC0 d\u00e9bit\u00e9</strong>',
+                'Carte requise \— <strong>\u20AC0 d\ébit\é</strong>',
               ] : [
                 '<strong>All agents</strong> unlocked for 7 days',
                 '<strong>Videos</strong> + images + audio narration',
@@ -252,7 +252,7 @@ function PricingPageInner() {
               href="/checkout/upsell?plan=createur"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-100 sm:hover:scale-105"
             >
-              {t.pricing.freeTrialCta || (locale === 'fr' ? '\u2192 Essai gratuit 7 jours' : '\u2192 Start free trial')}
+              {t.pricing.freeTrialCta || (locale === 'fr' ? '\→ Essai gratuit 7 jours' : '\→ Start free trial')}
             </Link>
             <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || (locale === 'fr' ? '0\u20AC pendant 7 jours \u2022 Carte requise \u2022 Annulation à tout moment' : '\u20AC0 for 7 days \u2022 Card required \u2022 Cancel anytime')}</p>
           </div>
@@ -459,10 +459,10 @@ function PricingPageInner() {
         <div className="max-w-2xl mx-auto mb-10">
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 text-white text-center hover:shadow-xl transition-all">
             <h3 className="text-xl font-bold mb-2 flex items-center justify-center gap-2">
-              <span>🏗️</span> {locale === 'fr' ? 'Agence \u2014 Sur devis' : 'Agency \u2014 Custom quote'}
+              <span>🏗️</span> {locale === 'fr' ? 'Agence \— Sur devis' : 'Agency \— Custom quote'}
             </h3>
             <p className="text-slate-300 text-sm mb-4">
-              {locale === 'fr' ? 'Réseau, agence, marque multi-points de vente \u2014 marque blanche, espace partagé entre comptes, crédits illimités, formation équipe et SLA dédié. Inclut les cas d’usage avancés autrefois couverts par le plan Elite.' : 'Network, agency, multi-location brand \u2014 white label, shared workspace across accounts, unlimited credits, team training and dedicated SLA. Covers the advanced use cases previously bundled in the Elite plan.'}
+              {locale === 'fr' ? 'Réseau, agence, marque multi-points de vente \— marque blanche, espace partagé entre comptes, crédits illimités, formation équipe et SLA dédié. Inclut les cas d’usage avancés autrefois couverts par le plan Elite.' : 'Network, agency, multi-location brand \— white label, shared workspace across accounts, unlimited credits, team training and dedicated SLA. Covers the advanced use cases previously bundled in the Elite plan.'}
             </p>
             <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="inline-block py-3 px-8 rounded-xl bg-white text-slate-800 font-bold hover:bg-slate-100 transition-all shadow-lg">
               {locale === 'fr' ? 'Nous contacter' : 'Get in touch'}
@@ -479,14 +479,14 @@ function PricingPageInner() {
         {/* Concrètement, c'est quoi la différence ? */}
 
         <div className="mb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">{locale === 'fr' ? 'Concrètement, c\u2019est quoi la différence ?' : 'In plain terms \u2014 what\u2019s the difference?'}</h3>
+          <h3 className="text-2xl font-bold text-center mb-8">{locale === 'fr' ? 'Concrètement, c\u2019est quoi la différence ?' : 'In plain terms \— what\u2019s the difference?'}</h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {/* Créateur card */}
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
               <h4 className="text-lg font-bold text-purple-900 mb-1">{locale === 'fr' ? 'Ta vitrine Instagram, pro et autonome' : 'Your Instagram storefront, professional and autonomous'}</h4>
-              <p className="text-sm text-purple-600 font-semibold mb-4">{locale === 'fr' ? 'Créateur \u2014 49\u20AC/mois après essai' : 'Creator \u2014 \u20AC49/month after trial'}</p>
+              <p className="text-sm text-purple-600 font-semibold mb-4">{locale === 'fr' ? 'Créateur \— 49\u20AC/mois après essai' : 'Creator \— \u20AC49/month after trial'}</p>
               <ul className="space-y-3 text-sm text-neutral-700">
-                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Un flyer distribué à 5 000 personnes \u2014 pro, ciblé et mesurable' : 'A flyer handed to 5,000 people \u2014 pro, targeted, measurable'}</li>
+                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Un flyer distribué à 5 000 personnes \— pro, ciblé et mesurable' : 'A flyer handed to 5,000 people \— pro, targeted, measurable'}</li>
                 <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</span> {locale === 'fr' ? 'Le neveu qui poste 1x/mois + Canva' : 'The nephew posting 1×/month + Canva'}</li>
                 <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'En concret...' : 'Concretely...'}</span> {locale === 'fr' ? 'LÉNA + JADE + AMI basique + vidéos + trend surfing' : 'LÉNA + JADE + basic AMI + videos + trend surfing'}</li>
                 <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'Ça coûte...' : 'It costs...'}</span> {locale === 'fr' ? 'Le prix de 2 dîners au restaurant' : 'The price of 2 dinners out'}</li>
@@ -496,7 +496,7 @@ function PricingPageInner() {
             {/* Business value card */}
             <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border-2 border-cyan-300 p-6 shadow-lg">
               <h4 className="text-lg font-bold text-cyan-900 mb-1">{locale === 'fr' ? 'Automatisation complète pour PME et multi-sites' : 'Complete automation for SMEs and multi-site'}</h4>
-              <p className="text-sm text-cyan-600 font-semibold mb-4">{locale === 'fr' ? 'Business \u2014 199\u20AC/mois \u2014 15+ agents' : 'Business \u2014 \u20AC199/month \u2014 15+ agents'}</p>
+              <p className="text-sm text-cyan-600 font-semibold mb-4">{locale === 'fr' ? 'Business \— 199\u20AC/mois \— 15+ agents' : 'Business \— \u20AC199/month \— 15+ agents'}</p>
               <ul className="space-y-3 text-sm text-neutral-700">
                 <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Avoir une équipe marketing complète à temps plein' : 'Having a full-time complete marketing team'}</li>
                 <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</span> {locale === 'fr' ? 'Un graphiste (800\u20AC) + un CM (1 500\u20AC) + un comptable (200\u20AC) + 3 outils SaaS' : 'A designer (\u20AC800) + a CM (\u20AC1,500) + an accountant (\u20AC200) + 3 SaaS tools'}</li>
@@ -512,7 +512,7 @@ function PricingPageInner() {
         <div className="bg-gradient-to-br from-[#0c1a3a] to-purple-900 rounded-2xl border border-purple-500/20 p-6 mb-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
           <h3 className="text-lg font-bold mb-2 flex items-center gap-2 relative z-10">
-            <span>🤖</span> {locale === 'fr' ? 'Agents \u2014 Automatisation incluse' : 'Agents \u2014 Automation included'}
+            <span>🤖</span> {locale === 'fr' ? 'Agents \— Automatisation incluse' : 'Agents \— Automation included'}
           </h3>
           <p className="text-purple-200 text-sm mb-4 relative z-10">
             {locale === 'fr' ? 'Pas un chatbot. Des agents qui ' : 'Not a chatbot. Agents that '}<strong>{locale === 'fr' ? 'exécutent' : 'execute'}</strong>{locale === 'fr' ? ' les tâches à ta place, 24/7.' : ' tasks for you, 24/7.'}
@@ -523,15 +523,15 @@ function PricingPageInner() {
               <p className="text-[11px] text-purple-200">AMI ({locale === 'fr' ? 'basique' : 'basic'}) + CLARA</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-purple-300 mb-1">{locale === 'fr' ? 'Créateur \u2014 49\u20AC/mois après essai' : 'Creator \u2014 \u20AC49/month after trial'}</p>
+              <p className="text-xs font-bold text-purple-300 mb-1">{locale === 'fr' ? 'Créateur \— 49\u20AC/mois après essai' : 'Creator \— \u20AC49/month after trial'}</p>
               <p className="text-[11px] text-purple-200">{locale === 'fr' ? 'LÉNA + JADE + AMI + CLARA' : 'LÉNA + JADE + AMI + CLARA'}</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-blue-300 mb-1">{locale === 'fr' ? 'Pro \u2014 99\u20AC/mois après essai' : 'Pro \u2014 \u20AC99/month after trial'}</p>
+              <p className="text-xs font-bold text-blue-300 mb-1">{locale === 'fr' ? 'Pro \— 99\u20AC/mois après essai' : 'Pro \— \u20AC99/month after trial'}</p>
               <p className="text-[11px] text-purple-200">{locale === 'fr' ? '+ HUGO + LÉO + THÉO + Branding IG/TT/LI' : '+ HUGO + LÉO + THÉO + Branding IG/TT/LI'}</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-amber-300 mb-1">{locale === 'fr' ? 'Business \u2014 199\u20AC/mois après essai' : 'Business \u2014 \u20AC199/month after trial'}</p>
+              <p className="text-xs font-bold text-amber-300 mb-1">{locale === 'fr' ? 'Business \— 199\u20AC/mois après essai' : 'Business \— \u20AC199/month after trial'}</p>
               <p className="text-[11px] text-purple-200">+ {locale === 'fr' ? 'Multi-comptes, crédits ×4, support prioritaire' : 'Multi-account, 4× credits, priority support'}</p>
             </div>
           </div>
@@ -584,63 +584,63 @@ function PricingPageInner() {
                   <th className="text-center py-3 px-2 text-purple-600">{locale === 'fr' ? 'Créateur' : 'Creator'} 49{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 text-blue-600">Pro 99{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 139{'\u20AC'}</th>
-                  <th className="text-center py-3 px-2 bg-yellow-50 font-bold">{locale === 'fr' ? 'Agence \u2014 Sur devis' : 'Agency \u2014 Quote'}</th>
+                  <th className="text-center py-3 px-2 bg-yellow-50 font-bold">{locale === 'fr' ? 'Agence \— Sur devis' : 'Agency \— Quote'}</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Crédits */}
                 {(locale === 'fr' ? [
-                  // 2026-06-04 \u2014 Aligned with backend service-guarantees.ts so the marketing matches what Lena/Jade/Hugo/L\u00e9o actually deliver.
+                  // 2026-06-04 \— Aligned with backend service-guarantees.ts so the marketing matches what Lena/Jade/Hugo/L\éo actually deliver.
                   { name: 'Publications/mois (IG + TikTok + LinkedIn)', c: '~30 (1/jour)', p: '~60 (2/jour)', b: '~90 (3/jour)', e: '120+ (4/jour)', bold: true },
-                  { name: 'Vid\u00e9os TikTok/Reels', c: '1/jour max 15-30s', p: '1-2/jour 7-60s', b: '2-3/jour libre', e: 'Illimit\u00e9' },
-                  { name: 'Mix format auto (photo + carrousel + vid\u00e9o)', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Planning programm\u00e9 \u00e0 l\u2019avance', c: '7 jours', p: '7 / 14 / 21 / 30 jours', b: '7 / 14 / 21 / 30 jours', e: 'Custom' },
+                  { name: 'Vid\éos TikTok/Reels', c: '1/jour max 15-30s', p: '1-2/jour 7-60s', b: '2-3/jour libre', e: 'Illimit\é' },
+                  { name: 'Mix format auto (photo + carrousel + vid\éo)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Planning programm\é \à l\u2019avance', c: '7 jours', p: '7 / 14 / 21 / 30 jours', b: '7 / 14 / 21 / 30 jours', e: 'Custom' },
                   { name: 'Agents inclus', c: '4', p: '6', b: '7+', e: '8+', bold: true },
-                  { name: 'L\u00c9NA Contenu IG/TT/LI', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'JADE DMs + commentaires', c: '\u2713 (2 DMs/j auto-reply)', p: '\u2713 (12 DMs/j)', b: '\u2713 (18 DMs/j)', e: '\u2713 (22 DMs/j)' },
-                  { name: 'CLARA Onboarding + Suivi', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'AMI Strat\u00e9gie + Calendrier', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'HUGO Email Marketing', c: '\u2014', p: '\u2713 (45 emails/j)', b: '\u2713 (70 emails/j)', e: '\u2713 (90 emails/j)', pro: true },
-                  { name: 'L\u00c9O CRM & Prospection automatique', c: '\u2014', p: '\u2713 (~300/mois)', b: '\u2713 (~750/mois)', e: '\u2713 (~1 200/mois)', pro: true },
-                  { name: 'TH\u00c9O R\u00e9putation Google + SEO', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
-                  { name: 'STELLA WhatsApp (confirmations, rappels, r\u00e9ponses auto)', c: '\u2014', p: '+19\u20ac/mois (option)', b: '\u2713 inclus', e: '\u2713', biz: true },
-                  { name: 'SARA RH & Juridique (contrats, documents)', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
-                  { name: 'Scrape Insta + TikTok prospects (ambiance/domaine)', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Tendances temps r\u00e9el + Trend Winners', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Calendrier adaptatif data-driven', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'R\u00e9utilisation cross-platform IG \u2194 TikTok', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Edit / Supprimer chaque post avant publication', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimit\u00e9', biz: true },
-                  { name: 'Marque blanche', c: '\u2014', p: '\u2014', b: '\u2014', e: '\u2713' },
+                  { name: 'L\u00c9NA Contenu IG/TT/LI', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'JADE DMs + commentaires', c: '\✓ (2 DMs/j auto-reply)', p: '\✓ (12 DMs/j)', b: '\✓ (18 DMs/j)', e: '\✓ (22 DMs/j)' },
+                  { name: 'CLARA Onboarding + Suivi', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'AMI Strat\égie + Calendrier', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'HUGO Email Marketing', c: '\—', p: '\✓ (45 emails/j)', b: '\✓ (70 emails/j)', e: '\✓ (90 emails/j)', pro: true },
+                  { name: 'L\u00c9O CRM & Prospection automatique', c: '\—', p: '\✓ (~300/mois)', b: '\✓ (~750/mois)', e: '\✓ (~1 200/mois)', pro: true },
+                  { name: 'TH\u00c9O R\éputation Google + SEO', c: '\—', p: '\—', b: '\✓', e: '\✓', biz: true },
+                  { name: 'STELLA WhatsApp (confirmations, rappels, r\éponses auto)', c: '\—', p: '+19\u20ac/mois (option)', b: '\✓ inclus', e: '\✓', biz: true },
+                  { name: 'SARA RH & Juridique (contrats, documents)', c: '\—', p: '\—', b: '\✓', e: '\✓', biz: true },
+                  { name: 'Scrape Insta + TikTok prospects (ambiance/domaine)', c: '\—', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Tendances temps r\éel + Trend Winners', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Calendrier adaptatif data-driven', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'R\éutilisation cross-platform IG \u2194 TikTok', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Edit / Supprimer chaque post avant publication', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Multi-comptes', c: '\—', p: '\—', b: '1+5', e: 'Illimit\é', biz: true },
+                  { name: 'Marque blanche', c: '\—', p: '\—', b: '\—', e: '\✓' },
                 ] : [
                   { name: 'Posts/month (IG + TikTok + LinkedIn)', c: '~30 (1/day)', p: '~60 (2/day)', b: '~90 (3/day)', e: '120+ (4/day)', bold: true },
                   { name: 'TikTok/Reel videos', c: '1/day max 15-30s', p: '1-2/day 7-60s', b: '2-3/day free', e: 'Unlimited' },
-                  { name: 'Auto format mix (photo + carousel + video)', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Auto format mix (photo + carousel + video)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Schedule planned ahead', c: '7 days', p: '7 / 14 / 21 / 30 days', b: '7 / 14 / 21 / 30 days', e: 'Custom' },
                   { name: 'Included agents', c: '4', p: '6', b: '7+', e: '8+', bold: true },
-                  { name: 'L\u00c9NA Content IG/TT/LI', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'JADE DMs + comments', c: '\u2713 (2/d auto-reply)', p: '\u2713 (12/d)', b: '\u2713 (18/d)', e: '\u2713 (22/d)' },
-                  { name: 'CLARA Onboarding + Support', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'AMI Strategy + Calendar', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'HUGO Email Marketing', c: '\u2014', p: '\u2713 (45 emails/d)', b: '\u2713 (70 emails/d)', e: '\u2713 (90 emails/d)', pro: true },
-                  { name: 'L\u00c9O CRM & auto-prospecting', c: '\u2014', p: '\u2713 (~300/mo)', b: '\u2713 (~750/mo)', e: '\u2713 (~1,200/mo)', pro: true },
-                  { name: 'TH\u00c9O Google reputation + SEO', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
-                  { name: 'STELLA WhatsApp (confirmations, reminders, auto-replies)', c: '\u2014', p: '+\u20ac19/mo (add-on)', b: '\u2713 included', e: '\u2713', biz: true },
-                  { name: 'SARA HR & Legal (contracts, documents)', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
-                  { name: 'Scrape Insta + TikTok prospects (vibe/niche)', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Real-time trends + Trend Winners', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Data-driven adaptive calendar', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Cross-platform reuse IG \u2194 TikTok', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Edit / delete posts before publication', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Multi-account', c: '\u2014', p: '\u2014', b: '1+5', e: 'Unlimited', biz: true },
-                  { name: 'White label', c: '\u2014', p: '\u2014', b: '\u2014', e: '\u2713' },
+                  { name: 'L\u00c9NA Content IG/TT/LI', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'JADE DMs + comments', c: '\✓ (2/d auto-reply)', p: '\✓ (12/d)', b: '\✓ (18/d)', e: '\✓ (22/d)' },
+                  { name: 'CLARA Onboarding + Support', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'AMI Strategy + Calendar', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'HUGO Email Marketing', c: '\—', p: '\✓ (45 emails/d)', b: '\✓ (70 emails/d)', e: '\✓ (90 emails/d)', pro: true },
+                  { name: 'L\u00c9O CRM & auto-prospecting', c: '\—', p: '\✓ (~300/mo)', b: '\✓ (~750/mo)', e: '\✓ (~1,200/mo)', pro: true },
+                  { name: 'TH\u00c9O Google reputation + SEO', c: '\—', p: '\—', b: '\✓', e: '\✓', biz: true },
+                  { name: 'STELLA WhatsApp (confirmations, reminders, auto-replies)', c: '\—', p: '+\u20ac19/mo (add-on)', b: '\✓ included', e: '\✓', biz: true },
+                  { name: 'SARA HR & Legal (contracts, documents)', c: '\—', p: '\—', b: '\✓', e: '\✓', biz: true },
+                  { name: 'Scrape Insta + TikTok prospects (vibe/niche)', c: '\—', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Real-time trends + Trend Winners', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Data-driven adaptive calendar', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Cross-platform reuse IG \u2194 TikTok', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Edit / delete posts before publication', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
+                  { name: 'Multi-account', c: '\—', p: '\—', b: '1+5', e: 'Unlimited', biz: true },
+                  { name: 'White label', c: '\—', p: '\—', b: '\—', e: '\✓' },
                 ]).map((row, i) => (
                   <tr key={i} className={`border-b ${row.pro ? 'bg-blue-50/30' : row.biz ? 'bg-amber-50/30' : ''}`}>
                     <td className="py-3 px-2 font-medium">{row.name}</td>
-                    <td className="text-center py-3 px-2">{row.bold ? <strong>{row.c}</strong> : row.c === '\u2713' ? <span className="text-green-600">{row.c}</span> : row.c === '\u2014' ? <span className="text-neutral-400">{row.c}</span> : row.c}</td>
-                    <td className="text-center py-3 px-2">{row.bold ? <strong>{row.p}</strong> : row.p === '\u2713' ? <span className="text-green-600">{row.p}</span> : row.p === '\u2014' ? <span className="text-neutral-400">{row.p}</span> : row.p}</td>
-                    <td className="text-center py-3 px-2 bg-amber-50">{row.bold ? <strong>{row.b}</strong> : row.b === '\u2713' ? <span className="text-green-600">{row.b}</span> : row.b === '\u2014' ? <span className="text-neutral-400">{row.b}</span> : (row.b === 'Bientôt' || row.b === 'Soon') ? <span className="text-amber-500 text-xs">{row.b}</span> : row.b}</td>
-                    <td className="text-center py-3 px-2 bg-yellow-50">{row.bold ? <strong>{row.e}</strong> : row.e === '\u2713' ? <span className="text-green-600">{row.e}</span> : row.e === '\u2014' ? <span className="text-neutral-400">{row.e}</span> : (row.e === 'Bientôt' || row.e === 'Soon') ? <span className="text-amber-500 text-xs">{row.e}</span> : row.e}</td>
+                    <td className="text-center py-3 px-2">{row.bold ? <strong>{row.c}</strong> : row.c === '\✓' ? <span className="text-green-600">{row.c}</span> : row.c === '\—' ? <span className="text-neutral-400">{row.c}</span> : row.c}</td>
+                    <td className="text-center py-3 px-2">{row.bold ? <strong>{row.p}</strong> : row.p === '\✓' ? <span className="text-green-600">{row.p}</span> : row.p === '\—' ? <span className="text-neutral-400">{row.p}</span> : row.p}</td>
+                    <td className="text-center py-3 px-2 bg-amber-50">{row.bold ? <strong>{row.b}</strong> : row.b === '\✓' ? <span className="text-green-600">{row.b}</span> : row.b === '\—' ? <span className="text-neutral-400">{row.b}</span> : (row.b === 'Bientôt' || row.b === 'Soon') ? <span className="text-amber-500 text-xs">{row.b}</span> : row.b}</td>
+                    <td className="text-center py-3 px-2 bg-yellow-50">{row.bold ? <strong>{row.e}</strong> : row.e === '\✓' ? <span className="text-green-600">{row.e}</span> : row.e === '\—' ? <span className="text-neutral-400">{row.e}</span> : (row.e === 'Bientôt' || row.e === 'Soon') ? <span className="text-amber-500 text-xs">{row.e}</span> : row.e}</td>
                   </tr>
                 ))}
                 {/* Prix */}
@@ -674,7 +674,7 @@ function PricingPageInner() {
                 <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Résultat :' : 'Result:'}</span> {locale === 'fr' ? 'Invisible en ligne' : 'Invisible online'}</p>
                 <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Clients via Instagram :' : 'Customers via Instagram:'}</span> 0</p>
               </div>
-              <p className="text-xs text-neutral-400 mt-3 italic">{locale === 'fr' ? '« Les 72% de 18-35 ans qui choisissent un commerce sur Instagram ne te trouveront jamais. »' : '"72% of 18-35 year-olds pick a business on Instagram \u2014 they\u2019ll never find you."'}</p>
+              <p className="text-xs text-neutral-400 mt-3 italic">{locale === 'fr' ? '« Les 72% de 18-35 ans qui choisissent un commerce sur Instagram ne te trouveront jamais. »' : '"72% of 18-35 year-olds pick a business on Instagram \— they\u2019ll never find you."'}</p>
             </div>
 
             {/* Card 2 - Le neveu / le stagiaire */}
@@ -806,7 +806,7 @@ function PricingPageInner() {
 
         <div className="mb-16">
           <h3 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            {locale === 'fr' ? 'KeiroAI vs outils gratuits \u2014 comparaison détaillée' : 'KeiroAI vs free AI tools \u2014 detailed comparison'}
+            {locale === 'fr' ? 'KeiroAI vs outils gratuits \— comparaison détaillée' : 'KeiroAI vs free AI tools \— detailed comparison'}
           </h3>
 
           {/* Banner highlight */}

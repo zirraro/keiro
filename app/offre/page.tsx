@@ -32,8 +32,8 @@ export default function OffrePage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { avant: 'Pas de visibilit\u00e9 en ligne', apres: 'Des visuels pro chaque semaine' },
-              { avant: 'Des heures sur Canva', apres: 'G\u00e9n\u00e9r\u00e9 en 3 minutes' },
+              { avant: 'Pas de visibilit\é en ligne', apres: 'Des visuels pro chaque semaine' },
+              { avant: 'Des heures sur Canva', apres: 'G\én\ér\é en 3 minutes' },
               { avant: 'Aucun engagement', apres: '+347% d\u2019engagement moyen' },
             ].map((item, i) => (
               <div key={i} className="rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
