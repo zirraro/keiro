@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { exchangeGmailCode, getGmailProfile } from '@/lib/gmail-oauth';
+import { exchangeGmailCode } from '@/lib/gmail-oauth';
 
 export const runtime = 'nodejs';
+
+// Base des redirections : JAMAIS req.url (derrière nginx il vaut localhost:3000
+// → ERR_CONNECTION_REFUSED). On force le domaine de prod.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.keiroai.com';
 
 /**
  * GET /api/auth/gmail-callback
@@ -16,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   if (errorParam || !code) {
     console.error('[Gmail Callback] Error:', errorParam);
-    return NextResponse.redirect(new URL('/assistant/agent/email?error=gmail_denied', req.url));
+    return NextResponse.redirect(new URL('/assistant/agent/email?error=gmail_denied', SITE_URL));
   }
 
   // Decode state
@@ -29,7 +33,7 @@ export async function GET(req: NextRequest) {
     returnTo = state.returnTo || returnTo;
     redirectUri = state.redirectUri || ''; // Exact URI used during authorization
   } catch {
-    return NextResponse.redirect(new URL('/assistant/agent/email?error=invalid_state', req.url));
+    return NextResponse.redirect(new URL('/assistant/agent/email?error=invalid_state', SITE_URL));
   }
 
   // Use redirectUri from state (matches exactly what was sent to Google)
@@ -48,8 +52,18 @@ export async function GET(req: NextRequest) {
       console.error('[Gmail Callback] No refresh_token received — user may need to re-consent');
     }
 
-    // Get user's email from Gmail profile
-    const profile = await getGmailProfile(tokens.access_token);
+    // Email via l'endpoint USERINFO (scope userinfo.email) — PAS via l'API Gmail
+    // getProfile qui exige un scope de LECTURE (gmail.readonly), qu'on n'a plus
+    // en option A (gmail.send seul). getProfile échouait → "Failed to get Gmail
+    // profile" + connexion impossible.
+    let email = '';
+    try {
+      const uiRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      });
+      if (uiRes.ok) { const ui = await uiRes.json(); email = ui.email || ''; }
+    } catch { /* best-effort */ }
+    const profile = { email };
 
     // Store in profiles table
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -65,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     if (!userId) {
       console.error('[Gmail Callback] No userId — cannot save tokens');
-      return NextResponse.redirect(new URL('/assistant/agent/email?error=no_user', req.url));
+      return NextResponse.redirect(new URL('/assistant/agent/email?error=no_user', SITE_URL));
     }
 
     console.log(`[Gmail Callback] Saving Gmail tokens for userId=${userId}, email=${profile.email}, hasRefresh=${!!tokens.refresh_token}`);
@@ -98,11 +112,11 @@ export async function GET(req: NextRequest) {
     console.log(`[Gmail Callback] Connected ${profile.email} for user ${userId}`);
 
     // Redirect back to agent page with success flag
-    const returnUrl = new URL(returnTo, req.url);
+    const returnUrl = new URL(returnTo, SITE_URL);
     returnUrl.searchParams.set('just_connected', 'gmail');
     return NextResponse.redirect(returnUrl);
   } catch (e: any) {
     console.error('[Gmail Callback] Error:', e.message);
-    return NextResponse.redirect(new URL(`/assistant/agent/email?error=gmail_failed&msg=${encodeURIComponent(e.message)}`, req.url));
+    return NextResponse.redirect(new URL(`/assistant/agent/email?error=gmail_failed&msg=${encodeURIComponent(e.message)}`, SITE_URL));
   }
 }

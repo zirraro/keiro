@@ -48,6 +48,9 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
     ].join(' '),
+    hl: 'en', // écran de consentement FORCÉ en anglais (exigence vidéo Google
+              // + cohérence : le reviewer verra l'écran en anglais quel que soit
+              // son compte). À rendre dynamique après validation si besoin FR.
     access_type: 'offline',
     prompt: 'consent',
     state,
