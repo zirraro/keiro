@@ -235,22 +235,31 @@ async function generateDM(
   }
 
   try {
+    // thinking:false + budget suffisant : avec thinking:true et maxTokens:1000,
+    // le raisonnement consommait tout le budget → JSON tronqué → « No JSON found »
+    // → repli sur le template générique (bug latent : la perso ne partait jamais).
     const rawText = await callGemini({
       system: getDMSystemPrompt(platform) + directivesBlock,
       message: prospectData + liveContext,
-      maxTokens: 1000,
-      thinking: true,
+      maxTokens: 1600,
+      thinking: false,
     });
     // Strip markdown code fences: ```json ... ``` or ``` ... ```
     let cleanText = rawText.trim();
     cleanText = cleanText.replace(/^```[\w]*\s*\n?/gm, '').replace(/\n?```\s*$/gm, '');
-    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.warn(`[DMAgent] No JSON found in AI response for ${prospect.company}:`, rawText.substring(0, 200));
+    // Prend du premier { au dernier } (robuste au bruit avant/après).
+    const first = cleanText.indexOf('{');
+    const last = cleanText.lastIndexOf('}');
+    if (first === -1 || last <= first) {
+      console.warn(`[DMAgent] No JSON found in AI response for ${prospect.company}:`, rawText.substring(0, 160));
       return null;
     }
-
-    return JSON.parse(jsonMatch[0]);
+    try {
+      return JSON.parse(cleanText.slice(first, last + 1));
+    } catch (parseErr: any) {
+      console.warn(`[DMAgent] JSON parse failed for ${prospect.company}:`, parseErr?.message, '| head:', cleanText.slice(first, first + 120));
+      return null;
+    }
   } catch (e: any) {
     console.error(`[DMAgent] AI error for ${prospect.company}:`, e.message);
     return null;
