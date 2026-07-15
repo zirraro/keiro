@@ -35,14 +35,16 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     //                      nécessite l'audit CASA pour la prod >100 users (gratuit en
     //                      mode test). On NE demande PAS gmail.modify (jamais).
     //   - userinfo.email/profile → identifier la boîte connectée (nom/photo affichés).
-    // OPTION A (15/07, lancement rapide) : compose SEUL = sensible = pas de CASA.
-    // Les réponses sont routées vers KeiroAI via Reply-To (interim, cf send) →
-    // Hugo lit + répond quand même, sans lire directement la boîte du client.
-    // OPTION B (juste après A) : décommenter gmail.readonly → lecture native de
-    // la boîte + repasser GMAIL_INBOUND_POLL=on + soumettre l'audit CASA.
+    // CORRECTION 15/07 : Google classe gmail.compose ET gmail.readonly en
+    // RESTREINT (→ CASA). Le SEUL scope Gmail sensible = gmail.send (envoi seul,
+    // pas de CASA). OPTION A (lancement rapide) = gmail.send : Hugo envoie depuis
+    // l'adresse du client ; les brouillons-à-valider vivent dans l'UI KeiroAI (pas
+    // le dossier Brouillons Gmail) ; les réponses reviennent via Reply-To (webhook).
+    // OPTION B (plus tard, avec CASA) : remplacer par gmail.compose + gmail.readonly
+    // → brouillons natifs dans Gmail + lecture native de la boîte.
     scope: [
-      'https://www.googleapis.com/auth/gmail.compose',
-      // 'https://www.googleapis.com/auth/gmail.readonly', // ← B : réactiver + CASA
+      'https://www.googleapis.com/auth/gmail.send',
+      // OPTION B (CASA) : 'gmail.compose' + 'gmail.readonly' à la place de send.
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
     ].join(' '),
