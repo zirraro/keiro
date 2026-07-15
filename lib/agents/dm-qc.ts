@@ -32,6 +32,10 @@ const FORBIDDEN: Array<[string, RegExp]> = [
 // Personnalisation générique = échec (doit citer un détail réel).
 const GENERIC_DETAIL = /^(leur|ton|ta|tes|votre|vos|le|la|les|ce|cette)\s+(compte|page|profil|style|contenu|feed|univers|activit[eé]|business|com|présence)\.?$/i;
 
+// Sur-familiarité = ton trop décontracté (founder 15/07 : pro mais décontracté).
+// Soft-flag (baisse le score via le LLM), pas hard-fail.
+const OVER_CASUAL = /\b(yo|frr+|wesh|grave|insane|dead|ça claque|trop de la balle|c'est chaud|askip|mdr|lol)\b/i;
+
 /** Le nom du commerce, s'il apparaît, doit correspondre (au moins un token fort). */
 function nameLooksWrong(text: string, company?: string | null): boolean {
   const c = String(company || '').trim();
@@ -58,6 +62,7 @@ export function deterministicDMChecks(dm: any, prospect: any): { hardFail: boole
   // on le remonte en flag informatif pour le score LLM, pas en hardFail.
   const softFlags: string[] = [];
   if (nameLooksWrong(text, prospect?.company)) softFlags.push('name_absent');
+  if (OVER_CASUAL.test(text)) softFlags.push('over_casual');
   return { hardFail: flags.length > 0, flags: [...flags, ...softFlags] };
 }
 
@@ -83,7 +88,7 @@ export async function assessDMQuality(dm: any, prospect: any): Promise<DMQC> {
 Barème (10 = un humain expert l'aurait écrit, 6 = envoyable, <6 = à régénérer) :
 - VÉRIDIQUE : aucune affirmation fausse. Le DM ne doit PAS prétendre avoir déjà fait un visuel/avant-après, ni remercier d'un follow (c'est l'expéditeur qui découvre le prospect). Nom du commerce = "${prospect?.company || '?'}" — s'il cite un AUTRE nom = invented_name, score ≤ 3.
 - PERSONNALISÉ : cite un détail RÉEL et spécifique (plat, post, produit, déco). "ta page"/"ton compte" seul = no_specific_detail, score ≤ 5.
-- NATUREL : ton DM humain, pas corporate ni "IA". Tutoiement, court.
+- NATUREL + TON JUSTE : indistinguable d'un humain. Registre PROFESSIONNEL MAIS DÉCONTRACTÉ — sérieux et crédible, jamais sur-familier. Pénalise FORT ("over_casual", score ≤ 5) le slang d'ado : "yo", "frr", "grave", "insane", "dead", "ça claque", "c'est chaud", excès de "haha". Tutoiement OK, ponctuation normale, pas de langage SMS.
 Contexte réel du commerce : "${realCtx || 'inconnu'}". Type : ${prospect?.type || 'commerce'}.`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {

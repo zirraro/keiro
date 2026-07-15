@@ -55,6 +55,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // HORAIRES DE TRAVAIL (founder 15/07) : Jade ne répond pas aux DM entre 22h
+  // et 7h (Paris) — on répond le lendemain matin. Répondre à 3h du mat = signal
+  // bot évident. Le prochain poll après 7h traitera les messages en attente
+  // (ils restent dans la fenêtre 24h de Meta). Imite une vraie journée de travail.
+  const parisHour = (new Date().getUTCHours() + 2) % 24; // Paris ≈ UTC+2 (convention repo)
+  if (parisHour >= 22 || parisHour < 7) {
+    return NextResponse.json({
+      ok: true, skipped_reason: 'off_hours', replied: 0, skipped: 0, total_conversations: 0,
+      message: `Hors horaires (${parisHour}h Paris) — les réponses reprennent à 7h.`,
+    });
+  }
+
   // Get IG tokens — IGAA token (graph.instagram.com) takes priority since
   // it's the only one Meta lets read conversation content.
   let igToken: string | null = null;
@@ -213,6 +225,17 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        // DÉLAI DE RÉPONSE VARIABLE (founder 15/07) : on ne répond pas dans la
+        // seconde — un humain met quelques minutes. Si le message est trop frais
+        // (< 1 à 5 min, aléatoire), on attend le prochain poll → réponses
+        // espacées et crédibles, "comme un humain qui bosse derrière".
+        const minDelayMs = (60 + Math.floor(Math.random() * 240)) * 1000; // 1 à 5 min
+        if (msgAge < minDelayMs) {
+          skipReasons.push({ conv_id: conv.id, sender: senderName, reason: 'natural_delay', detail: `msg il y a ${Math.round(msgAge / 1000)}s, on laisse passer ~${Math.round(minDelayMs / 1000)}s` });
+          skipped++;
+          continue;
+        }
+
         // Build conversation history as proper multi-turn chat (last message
         // will be sent as the current user input, so we exclude it here).
         const historyMsgs = messages.slice(0, -1);
@@ -300,6 +323,8 @@ export async function POST(req: NextRequest) {
         const systemPrompt = `${langDirective}${dmLangLock}
 
 Tu parles au nom du business owner. Tu es son assistant qui repond a ses DMs Instagram comme si c'etait lui.
+
+TON (règle founder 15/07) : PROFESSIONNEL MAIS DÉCONTRACTÉ, ultra-naturel, INDISTINGUABLE d'un humain. Tutoiement, phrases courtes et posées. PAS sur-familier : évite "yo", "frr", "grave", "insane", "ça claque", l'excès de "haha". Sérieux et crédible tout en restant accessible. Ponctuation normale (pas de langage SMS), 0 à 1 emoji.
 
 CE QUE KEIROAI PROPOSE (DEUX OFFRES distinctes selon le profil) :
 
@@ -434,7 +459,7 @@ ${ragContext}`;
             if (replyLang === 'fr' || (replyLang !== dmDetectedLang && replyLang !== 'unknown')) {
               console.warn(`[DM-AutoReply] Lang mismatch: expected ${dmDetectedLang}, got ${replyLang}. Regenerating in ${dmTargetLang}.`);
               try {
-                const retrySystem = `You are the business owner replying to an Instagram DM. The prospect wrote in ${dmTargetLang}. Reply ONLY in ${dmTargetLang}. 2-3 short sentences. Casual, conversational, no AI mention, no formal closings, 1 emoji max. Mirror their language perfectly.`;
+                const retrySystem = `You are the business owner replying to an Instagram DM. The prospect wrote in ${dmTargetLang}. Reply ONLY in ${dmTargetLang}. 2-3 short sentences. Professional yet relaxed and natural — indistinguishable from a human, never over-familiar slang, no AI mention, no formal closings, 1 emoji max. Mirror their language perfectly.`;
                 aiReply = await callGeminiChat({ system: retrySystem, message: lastMsgText, history, thinking: false });
               } catch { /* keep original */ }
             }
