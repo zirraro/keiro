@@ -1179,6 +1179,10 @@ async function sendEmail(
             .single();
           const senderName = clientProfile?.full_name || clientProfile?.company_name || 'KeiroAI';
 
+          // Option A (compose only) : Reply-To → KeiroAI route les réponses vers
+          // le webhook (Hugo répond quand même, sans lire la boîte). Option B
+          // (readonly) : pas d'override, réponses natives dans le Gmail du client.
+          const gmailReplyTo = process.env.GMAIL_INBOUND_POLL === 'off' ? 'contact@keiroai.com' : undefined;
           const result = await sendViaGmail(
             gmailAuth.accessToken,
             prospect.email,
@@ -1186,8 +1190,7 @@ async function sendEmail(
             template.htmlBody,
             senderName,
             gmailAuth.email,
-            // Pas de Reply-To override : réponses dans le Gmail du client (lu via
-            // poll-inbound + gmail.readonly) → Hugo répond en auto.
+            gmailReplyTo,
           );
           if (result.sent) {
             messageId = result.id;

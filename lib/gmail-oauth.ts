@@ -35,9 +35,14 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     //                      nécessite l'audit CASA pour la prod >100 users (gratuit en
     //                      mode test). On NE demande PAS gmail.modify (jamais).
     //   - userinfo.email/profile → identifier la boîte connectée (nom/photo affichés).
+    // OPTION A (15/07, lancement rapide) : compose SEUL = sensible = pas de CASA.
+    // Les réponses sont routées vers KeiroAI via Reply-To (interim, cf send) →
+    // Hugo lit + répond quand même, sans lire directement la boîte du client.
+    // OPTION B (juste après A) : décommenter gmail.readonly → lecture native de
+    // la boîte + repasser GMAIL_INBOUND_POLL=on + soumettre l'audit CASA.
     scope: [
       'https://www.googleapis.com/auth/gmail.compose',
-      'https://www.googleapis.com/auth/gmail.readonly',
+      // 'https://www.googleapis.com/auth/gmail.readonly', // ← B : réactiver + CASA
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
     ].join(' '),
