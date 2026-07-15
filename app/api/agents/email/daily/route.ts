@@ -1210,7 +1210,8 @@ async function sendEmail(
     // (founder 15/07 : "ça part de brevo/resend" → non, ça doit partir de chez eux).
     if (!sendSuccess && ownerUserId) {
       try {
-        const { data: smtpProfile } = await supabase
+        const sbSmtp = getSupabaseAdmin();
+        const { data: smtpProfile } = await sbSmtp
           .from('profiles')
           .select('smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from_email')
           .eq('id', ownerUserId).single();
