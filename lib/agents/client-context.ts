@@ -444,7 +444,8 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     displayName: 'Stella',
     title: 'WhatsApp Business',
     description: 'Confirmations de réservation, rappels anti no-show, réponses auto aux questions clients sur WhatsApp. Inclus dans Business, ou en add-on (+19€/mois).',
-    visibility: 'active',
+    // À venir (founder 15/07) : en attente de la validation BSP WhatsApp.
+    visibility: 'coming_soon',
     minPlan: 'business',
     gradientFrom: '#25D366',
     gradientTo: '#128C7E',

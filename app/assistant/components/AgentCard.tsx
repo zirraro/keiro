@@ -73,9 +73,9 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
         if (isComingSoon) {
           return (
             <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
-              <span className="text-2xl">{'\u{1F6A7}'}</span>
-              <span className="text-white/90 text-xs font-semibold text-center">Bientot disponible</span>
-              <span className="text-white/40 text-[10px] text-center">Cet agent est en cours de developpement</span>
+              <span className="text-2xl">{'✨'}</span>
+              <span className="text-white/90 text-xs font-semibold text-center">Disponible sous peu</span>
+              <span className="text-white/40 text-[10px] text-center">Arrive d&apos;ici quelques jours — 1 mois max</span>
             </div>
           );
         }

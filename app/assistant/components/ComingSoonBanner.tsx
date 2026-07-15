@@ -13,12 +13,15 @@ export default function ComingSoonBanner() {
 
     setSubmitting(true);
     try {
-      // Store notification request (can be connected to Brevo/CRM later)
-      const stored = JSON.parse(localStorage.getItem('keiro_agent_notify_emails') || '[]');
-      if (!stored.includes(email)) {
-        stored.push(email);
-        localStorage.setItem('keiro_agent_notify_emails', JSON.stringify(stored));
-      }
+      // Persistance serveur (lead actionnable) + garde localStorage en secours.
+      await fetch('/api/waitlist', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, feature: 'launch' }),
+      }).catch(() => {});
+      try {
+        const stored = JSON.parse(localStorage.getItem('keiro_agent_notify_emails') || '[]');
+        if (!stored.includes(email)) { stored.push(email); localStorage.setItem('keiro_agent_notify_emails', JSON.stringify(stored)); }
+      } catch { /* ignore */ }
       setSubmitted(true);
     } catch {
       // Silent
@@ -53,11 +56,11 @@ export default function ComingSoonBanner() {
         </div>
 
         <h2 className="text-white font-bold text-lg mb-1">
-          Votre Equipe IA arrive tres prochainement
+          Ton équipe IA est disponible sous peu
         </h2>
         <p className="text-white/60 text-sm mb-5 max-w-md mx-auto">
-          10 agents IA specialises pour votre business : marketing, contenu, SEO, prospection, et bien plus.
-          Remplissez votre dossier business des maintenant pour etre pret le jour du lancement.
+          Des agents IA spécialisés pour ton business : contenu, DMs, prospection, SEO, et plus.
+          Dispo d&apos;ici quelques jours (1 mois max). Remplis ton dossier business maintenant pour être prêt le jour J.
         </p>
 
         {/* Email notification form */}
