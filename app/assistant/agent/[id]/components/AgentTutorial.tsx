@@ -333,12 +333,13 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
   if (phase !== 'confirm') return null;
 
   // What connection does this agent need?
+  const c = (fr: string, en: string) => (isEn ? en : fr);
   const agentConnections: Record<string, { label: string; url: string } | null> = {
-    content: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth' },
-    dm_instagram: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth' },
-    instagram_comments: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth' },
-    gmaps: { label: 'Connecter Google Business', url: '/api/auth/google-oauth' },
-    tiktok_comments: { label: 'Connecter TikTok', url: '/api/auth/tiktok-oauth' },
+    content: { label: c('Connecter Instagram', 'Connect Instagram'), url: '/api/auth/instagram-oauth' },
+    dm_instagram: { label: c('Connecter Instagram', 'Connect Instagram'), url: '/api/auth/instagram-oauth' },
+    instagram_comments: { label: c('Connecter Instagram', 'Connect Instagram'), url: '/api/auth/instagram-oauth' },
+    gmaps: { label: c('Connecter Google Business', 'Connect Google Business'), url: '/api/auth/google-oauth' },
+    tiktok_comments: { label: c('Connecter TikTok', 'Connect TikTok'), url: '/api/auth/tiktok-oauth' },
     email: null, // Already configured
     commercial: null,
     seo: null,
@@ -349,7 +350,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
     rh: null,
     comptable: null,
     onboarding: null,
-    linkedin: { label: 'Connecter LinkedIn', url: '/api/auth/linkedin-oauth' },
+    linkedin: { label: c('Connecter LinkedIn', 'Connect LinkedIn'), url: '/api/auth/linkedin-oauth' },
   };
 
   const connection = agentConnections[agentId];

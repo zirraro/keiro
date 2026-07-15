@@ -192,8 +192,14 @@ function DraftsCard() {
   );
 }
 
+// OPTION A (gmail.send seul) vs B (compose+readonly, CASA). En A on masque les
+// UI qui impliquent la lecture/brouillons Gmail pour rester cohérent avec le
+// scope demandé à Google. Passer NEXT_PUBLIC_GMAIL_FULL=on quand B est validé.
+const GMAIL_FULL = process.env.NEXT_PUBLIC_GMAIL_FULL === 'on';
+
 export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const stats = data.emailStats || { sent: 0, opened: 0, clicked: 0, openRate: 0, clickRate: 0, sequences: {}, recentEmails: [] };
 
@@ -221,14 +227,17 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Auto mode toggle */}
       <div data-tour="auto-toggle"><AutoModeToggle agentId="email" autoLabel="Automatic emails" manualLabel="Manual emails" autoDesc="Hugo sends email sequences automatically" manualDesc="You validate each email before sending" /></div>
 
-      {/* Reply mode: auto-send vs draft-for-review (scope gmail.compose) */}
-      <ReplyModeToggle />
+      {/* Reply mode + Gmail drafts : dépendent de gmail.readonly/compose (scopes
+          RESTREINTS). En OPTION A (gmail.send seul), on les MASQUE pour que la
+          fonctionnalité visible corresponde exactement au scope demandé à Google
+          (sinon incohérence = rejet). Réaffichés en B (NEXT_PUBLIC_GMAIL_FULL=on). */}
+      {GMAIL_FULL && <ReplyModeToggle />}
 
       {/* Email connection banner */}
       <EmailConnectBanner connections={(data as any).connections} />
 
-      {/* Drafts Hugo prepared / you started */}
-      <DraftsCard />
+      {/* Drafts Hugo prepared / you started (scope gmail.compose — option B) */}
+      {GMAIL_FULL && <DraftsCard />}
 
       {/* ── UNIFIED STATS SECTION ─────────────────────────────────
           User feedback: too many stat blocks repeated in different
@@ -267,7 +276,7 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         </div>
         {seqEntries.length > 0 && (
           <div className="mt-3 pt-3 border-t border-white/5">
-            <div className="text-[10px] text-white/50 mb-1.5">Séquences en cours</div>
+            <div className="text-[10px] text-white/50 mb-1.5">{en ? 'Active sequences' : 'Séquences en cours'}</div>
             <div className="flex h-4 rounded-full overflow-hidden">
               {seqEntries.map(([name, count], i) => (
                 <div
