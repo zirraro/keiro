@@ -1204,6 +1204,45 @@ async function sendEmail(
       }
     }
 
+    // Priority 1.5 : SMTP domaine perso du client — envoi NATIF depuis SON
+    // domaine (apparaît dans ses « Envoyés » via IMAP APPEND). AVANT Brevo, pour
+    // que les clients à domaine connecté n'utilisent pas notre infra partagée
+    // (founder 15/07 : "ça part de brevo/resend" → non, ça doit partir de chez eux).
+    if (!sendSuccess && ownerUserId) {
+      try {
+        const { data: smtpProfile } = await supabase
+          .from('profiles')
+          .select('smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from_email')
+          .eq('id', ownerUserId).single();
+        if (smtpProfile?.smtp_host && smtpProfile?.smtp_user && smtpProfile?.smtp_pass) {
+          const { checkDomainAuth, domainOf } = await import('@/lib/email/domain-auth');
+          const sendDomain = domainOf(smtpProfile.smtp_from_email || smtpProfile.smtp_user);
+          const auth = await checkDomainAuth(sendDomain).catch(() => ({ ok: true } as any));
+          if (auth.ok) {
+            const nodemailer = await import('nodemailer');
+            const transport = nodemailer.default.createTransport({
+              host: smtpProfile.smtp_host, port: smtpProfile.smtp_port || 587,
+              secure: (smtpProfile.smtp_port || 587) === 465,
+              auth: { user: smtpProfile.smtp_user, pass: smtpProfile.smtp_pass },
+            });
+            const info = await transport.sendMail({
+              from: smtpProfile.smtp_from_email || smtpProfile.smtp_user,
+              to: prospect.email, subject: template.subject,
+              html: template.htmlBody, text: template.textBody,
+            });
+            messageId = info.messageId || 'smtp'; provider = 'smtp'; sendSuccess = true;
+            console.log(`[EmailDaily] Email sent via SMTP (${smtpProfile.smtp_from_email})`);
+            try {
+              const { appendToSent } = await import('@/lib/agents/imap-drafts');
+              appendToSent(ownerUserId, { to: prospect.email, subject: template.subject, html: template.htmlBody }).catch(() => {});
+            } catch { /* non-fatal */ }
+          } else {
+            console.warn(`[EmailDaily] SMTP domain ${sendDomain} non authentifié → fallback Brevo`);
+          }
+        }
+      } catch (e: any) { console.warn('[EmailDaily] SMTP send failed:', e.message); }
+    }
+
     // Priority 2: Brevo. keiroai.com est authentifié dans Brevo (SPF+DKIM,
     // 02/07) → l'expéditeur est bien contact@keiroai.com (plus de brevosend.com).
     if (!sendSuccess && process.env.BREVO_API_KEY) {

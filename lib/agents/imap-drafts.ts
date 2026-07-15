@@ -97,6 +97,43 @@ async function draftsPath(client: ImapFlow): Promise<string> {
   return 'Drafts';
 }
 
+/** Find the special-use \Sent mailbox path, falling back to common names. */
+async function sentPath(client: ImapFlow): Promise<string> {
+  try {
+    const boxes = await client.list();
+    const special = boxes.find(b => (b as any).specialUse === '\\Sent');
+    if (special) return special.path;
+    const byName = boxes.find(b => /^(sent|sent items|sent messages|envoy[eé]s|éléments envoyés|\[gmail\]\/sent mail|inbox\.sent)$/i.test(b.path));
+    if (byName) return byName.path;
+  } catch { /* fall through */ }
+  return 'Sent';
+}
+
+/**
+ * SENT NATIF (founder 15/07) : après un envoi SMTP, on APPEND une copie dans le
+ * dossier \Sent de la boîte du client → l'email apparaît dans ses « Envoyés »
+ * comme s'il l'avait envoyé lui-même (nodemailer/SMTP seul ne le fait pas).
+ * Best-effort : n'échoue jamais l'envoi.
+ */
+export async function appendToSent(userId: string, params: {
+  to: string; subject: string; html: string; inReplyTo?: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const cfg = await loadImapConfig(userId);
+  if (!cfg) return { ok: false, reason: 'imap_not_configured' };
+  const client = newClient(cfg);
+  try {
+    await client.connect();
+    const path = await sentPath(client);
+    const raw = await buildRaw(cfg, { to: params.to, subject: params.subject, html: params.html, inReplyTo: params.inReplyTo });
+    await client.append(path, raw, ['\\Seen']);
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, reason: e?.message?.slice(0, 100) };
+  } finally {
+    try { await client.logout(); } catch { /* ignore */ }
+  }
+}
+
 /** Build a raw RFC822 message (Buffer) for APPEND. */
 async function buildRaw(cfg: ImapConfig, params: {
   to: string; subject: string; html: string; inReplyTo?: string;

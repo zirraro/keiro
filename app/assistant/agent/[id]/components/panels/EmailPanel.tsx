@@ -201,6 +201,12 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   const { t, locale } = useLanguage();
   const en = locale === 'en';
   const p = t.panels;
+  // Fonctions boîte complète (lecture des reçus + brouillons) : dispo pour SMTP
+  // domaine perso + Outlook (via IMAP/Graph, hors périmètre Google) et pour Gmail
+  // en option B. En option A (Gmail send-only), on les masque pour rester cohérent
+  // avec le scope demandé à Google. → dépend de la connexion, pas d'un flag global.
+  const conn = (data as any).connections || {};
+  const showMailboxFeatures = GMAIL_FULL || !!conn.smtp || !!conn.outlook;
   const stats = data.emailStats || { sent: 0, opened: 0, clicked: 0, openRate: 0, clickRate: 0, sequences: {}, recentEmails: [] };
 
   const seqEntries = Object.entries(stats.sequences ?? {}) as Array<[string, number]>;
@@ -231,13 +237,13 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           RESTREINTS). En OPTION A (gmail.send seul), on les MASQUE pour que la
           fonctionnalité visible corresponde exactement au scope demandé à Google
           (sinon incohérence = rejet). Réaffichés en B (NEXT_PUBLIC_GMAIL_FULL=on). */}
-      {GMAIL_FULL && <ReplyModeToggle />}
+      {showMailboxFeatures && <ReplyModeToggle />}
 
       {/* Email connection banner */}
       <EmailConnectBanner connections={(data as any).connections} />
 
-      {/* Drafts Hugo prepared / you started (scope gmail.compose — option B) */}
-      {GMAIL_FULL && <DraftsCard />}
+      {/* Drafts Hugo prepared / you started (SMTP/IMAP ou Gmail option B) */}
+      {showMailboxFeatures && <DraftsCard />}
 
       {/* ── UNIFIED STATS SECTION ─────────────────────────────────
           User feedback: too many stat blocks repeated in different

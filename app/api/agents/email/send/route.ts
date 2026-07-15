@@ -315,6 +315,14 @@ export async function POST(request: NextRequest) {
           provider = 'smtp';
           sendSuccess = true;
           console.log(`[EmailAgent] Email sent via SMTP (${smtpProfile.smtp_from_email})`);
+          // Copie native dans le dossier « Envoyés » du client (IMAP APPEND) →
+          // l'email apparaît dans son webmail comme un envoi manuel. Best-effort.
+          try {
+            const { appendToSent } = await import('@/lib/agents/imap-drafts');
+            appendToSent(clientUserId, { to: prospect.email, subject: template.subject, html: template.htmlBody })
+              .then(r => { if (!r.ok) console.warn('[EmailAgent] append-to-Sent skipped:', r.reason); })
+              .catch(() => {});
+          } catch { /* non-fatal */ }
         }
       } catch (e: any) {
         console.warn('[EmailAgent] SMTP send failed:', e.message);

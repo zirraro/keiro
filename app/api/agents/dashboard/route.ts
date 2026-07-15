@@ -1584,7 +1584,7 @@ export async function GET(request: NextRequest) {
     // Check if admin + connection status
     const { data: userProfile } = await supabase
       .from('profiles')
-      .select('is_admin, instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id, google_business_location_id, subscription_plan, linkedin_access_token, tiktok_access_token, gmail_email, gmail_refresh_token, gmail_access_token')
+      .select('is_admin, instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id, google_business_location_id, subscription_plan, linkedin_access_token, tiktok_access_token, gmail_email, gmail_refresh_token, gmail_access_token, smtp_host, outlook_refresh_token')
       .eq('id', user.id)
       .single();
     const isAdmin = !!userProfile?.is_admin;
@@ -1606,6 +1606,11 @@ export async function GET(request: NextRequest) {
       tiktok: !!userProfile?.tiktok_access_token,
       gmail: !!(userProfile?.gmail_refresh_token || (userProfile as any)?.gmail_access_token),
       gmail_email: userProfile?.gmail_email || null,
+      // Boîtes à fonctionnalités complètes (lecture + brouillons via IMAP/Graph) :
+      // SMTP domaine perso et Outlook. Sert à afficher les cartes lecture/brouillons
+      // pour ces clients même quand Gmail est en option A (send only, cf EmailPanel).
+      smtp: !!(userProfile as any)?.smtp_host,
+      outlook: !!(userProfile as any)?.outlook_refresh_token,
       subscription_plan: userProfile?.subscription_plan || 'free',
     };
 
