@@ -519,6 +519,8 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
   // posts with captions + engagement) and hand it to generateDM so the
   // opener references something real instead of template filler.
   const DM_BATCH_SIZE = 5;
+  // CONTRÔLE QUALITÉ DM (founder 15/07, comme le vision-gate des visuels).
+  const { assessDMQuality } = await import('@/lib/agents/dm-qc');
   const dmResults: Array<{ prospect: any; category: string; dm: any; snapshot: IgProfileSnapshot | null }> = [];
   for (let b = 0; b < eligibleProspects.length; b += DM_BATCH_SIZE) {
     const batch = eligibleProspects.slice(b, b + DM_BATCH_SIZE);
@@ -530,7 +532,25 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
         // AI call to write a DM that won't be delivered.
         if (!snapshot.exists) return { prospect, category, dm: null, snapshot };
       }
-      const dm = await generateDM(prospect, platform, snapshot, clientUserId, supabase);
+      let dm = await generateDM(prospect, platform, snapshot, clientUserId, supabase);
+      // Gate qualité : score le DM ; si < seuil → 1 régénération ; toujours mauvais
+      // → on repli sur le template honnête (dm=null) plutôt qu'un DM avec faute.
+      if (dm) {
+        let qc = await assessDMQuality(dm, prospect);
+        if (!qc.pass) {
+          const retry = await generateDM(prospect, platform, snapshot, clientUserId, supabase);
+          if (retry) {
+            const qc2 = await assessDMQuality(retry, prospect);
+            if (qc2.score > qc.score) { dm = retry; qc = qc2; }
+          }
+        }
+        if (!qc.pass) {
+          console.warn(`[DMAgent] QC FAIL ${prospect.company} (${qc.score}/10): ${qc.notes} [${qc.flags.join(',')}] → fallback`);
+          dm = null;
+        } else {
+          console.log(`[DMAgent] QC ok ${prospect.company}: ${qc.score}/10`);
+        }
+      }
       return { prospect, category, dm, snapshot };
     }));
     dmResults.push(...batchDms);
