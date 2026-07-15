@@ -113,14 +113,37 @@ export async function generateProspectVisual(prospect: any, snapshot: IgProfileS
       boulangerie: `Baker at dawn in apron pulling a tray of fresh baguettes from the oven, flour on apron and hands, warm steam visible, traditional bakery interior — early morning documentary moment`,
     };
 
+    // Contexte RÉEL du business scrapé (site web + signaux) — pour un visuel
+    // CIBLÉ sur CE commerce précis, pas un stock générique du secteur (founder
+    // 15/07 : « bien analyser + se renseigner sur l'activité »).
+    const scrapeCtx = (() => {
+      const bn: any = prospect.business_notes;
+      if (bn && typeof bn === 'object') {
+        const parts: string[] = [];
+        if (bn.website_description) parts.push(String(bn.website_description));
+        if (Array.isArray(bn.signals) && bn.signals.length) parts.push(bn.signals.join(' · '));
+        if (Array.isArray(bn.ambiance) && bn.ambiance.length) parts.push(`Ambiance: ${bn.ambiance.join(', ')}`);
+        if (bn.audience) parts.push(`Audience: ${bn.audience}`);
+        return parts.join(' | ').slice(0, 260);
+      }
+      return typeof bn === 'string' ? bn.replace(/\s+/g, ' ').slice(0, 180) : '';
+    })();
+    const specialite = prospect.specialite || prospect.specialty || '';
+
     const basePrompt = sceneMap[businessType] || `A real shopkeeper of a French local business engaged in a working moment, natural light from a real window, candid documentary photography style`;
     const locationLine = quartier ? `Set in ${quartier}, France.` : 'Set in a French neighbourhood.';
     const bioLine = bio ? `Business identity (from their Insta bio): "${bio.substring(0, 140)}". Reflect the same vibe.` : '';
+    const specialiteLine = specialite ? `Specialty to feature: ${specialite}.` : '';
+    const scrapeLine = scrapeCtx ? `Real specifics about THIS exact business (from their website): ${scrapeCtx}. The scene must fit THIS business specifically, not a generic ${businessType}.` : '';
     const ambianceLine = snapshot?.recent_posts && snapshot.recent_posts.length > 0
       ? `Inspiration cues from their actual recent posts: ${snapshot.recent_posts.slice(0, 3).map((p: any) => (p.caption || '').substring(0, 60)).filter(Boolean).join(' | ')}.`
       : '';
 
-    const prompt = `${basePrompt}. ${locationLine} ${bioLine} ${ambianceLine}`.trim();
+    // Garde-fous : image AUTHENTIQUE (pas d'avant/après, pas de faux résultat,
+    // pas de texte/logo inventé) — cohérent avec la règle vérité des DM.
+    const truthGuard = `Single authentic documentary photo — NOT a before/after, NOT a split image, NO invented brand name or logo, NO text overlay, NO fake UI or stats. Just one real, believable moment.`;
+
+    const prompt = `${basePrompt}. ${locationLine} ${specialiteLine} ${bioLine} ${scrapeLine} ${ambianceLine} ${truthGuard}`.replace(/\s+/g, ' ').trim();
 
     const { generateImage } = await import('@/lib/visuals/image-provider');
     const result = await generateImage({
@@ -170,6 +193,19 @@ async function generateDM(
     has_website: !!prospect.website,
     website: prospect.website || null,
     specialite: prospect.specialite || prospect.specialty || null,
+    // Contexte RÉEL scrapé (site web) pour ancrer le DM sur des faits vérifiables
+    // et éviter les inventions (founder 15/07).
+    real_business_context: (() => {
+      const bn: any = prospect.business_notes;
+      if (bn && typeof bn === 'object') {
+        const parts: string[] = [];
+        if (bn.website_description) parts.push(String(bn.website_description));
+        if (Array.isArray(bn.signals) && bn.signals.length) parts.push(bn.signals.join(' · '));
+        if (Array.isArray(bn.ambiance) && bn.ambiance.length) parts.push(`Ambiance: ${bn.ambiance.join(', ')}`);
+        return parts.join(' | ').slice(0, 300) || null;
+      }
+      return typeof bn === 'string' && bn.trim() ? bn.replace(/\s+/g, ' ').slice(0, 220) : null;
+    })(),
     temperature: prospect.temperature || 'cold',
     score: prospect.score || 0,
     previous_interactions: prospect.dm_followup_count || 0,
