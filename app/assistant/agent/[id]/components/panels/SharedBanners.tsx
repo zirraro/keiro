@@ -105,7 +105,7 @@ export function SocialConnectBanners({ agentId, networks, connections }: {
 }
 
 // Email connection banner — Gmail OAuth, custom SMTP form, or book a setup call.
-export function EmailConnectBanner({ connections }: { connections?: Record<string, boolean> }) {
+export function EmailConnectBanner({ connections, onStatus }: { connections?: Record<string, boolean>; onStatus?: (s: { gmail: boolean; smtp: boolean; outlook: boolean }) => void }) {
   const { locale } = useLanguage();
   const en = locale === 'en';
   const [gmailConnected, setGmailConnected] = useState(false);
@@ -130,6 +130,9 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
       setOutlookEmail(outlookRes.email || null);
       setSmtpConnected(!!smtpRes.connected);
       setSmtpFromEmail(smtpRes.from_email || null);
+      // Remonte l'état LIVE au parent (EmailPanel) pour que les cartes lecture/
+      // brouillons disparaissent à la déconnexion et réapparaissent à la connexion.
+      onStatus?.({ gmail: !!gmailRes.gmail_connected, smtp: !!smtpRes.connected, outlook: !!outlookRes.connected });
       if (typeof window !== 'undefined') (window as any).__gmailConnected = gmailRes.gmail_connected;
     } finally {
       setLoading(false);
@@ -151,8 +154,8 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
 
   const handleDisconnectSmtp = useCallback(async () => {
     const msg = en
-      ? 'Disconnect SMTP credentials? Hugo will fall back to Gmail or contact@keiroai.com.'
-      : 'Déconnecter les identifiants SMTP ? Hugo basculera sur Gmail ou contact@keiroai.com.';
+      ? 'Disconnect your custom domain? Hugo will fall back to Gmail or contact@keiroai.com.'
+      : 'Déconnecter ton domaine personnalisé ? Hugo basculera sur Gmail ou contact@keiroai.com.';
     if (typeof window !== 'undefined' && !window.confirm(msg)) return;
     try {
       await fetch('/api/auth/smtp', { method: 'DELETE', credentials: 'include' });
@@ -198,7 +201,7 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
           <div className="flex items-center gap-3">
             <span className="text-lg">{'\u2699\uFE0F'}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-emerald-400">{en ? 'Custom SMTP connected' : 'SMTP personnalisé connecté'}</p>
+              <p className="text-xs font-bold text-emerald-400">{en ? 'Custom domain connected' : 'Domaine personnalisé connecté'}</p>
               <p className="text-[10px] text-white/50">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{smtpFromEmail}</strong></p>
             </div>
             <button onClick={handleDisconnectSmtp} className="text-[10px] text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
@@ -219,8 +222,8 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
           </p>
           <p className="text-[10px] text-white/50 mb-3 leading-relaxed">
             {en
-              ? <>Hugo is sending from contact@keiroai.com for now. Connect your Gmail or custom SMTP so emails leave from <strong className="text-white/70">your own address</strong> — better open rate, more trust.</>
-              : <>Hugo envoie actuellement depuis contact@keiroai.com. Connecte ton Gmail ou ton SMTP perso pour que les emails partent de <strong className="text-white/70">ton propre email</strong> — meilleur taux d&apos;ouverture et plus de confiance.</>}
+              ? <>Hugo is sending from contact@keiroai.com for now. Connect your Gmail or your own domain so emails leave from <strong className="text-white/70">your own address</strong> — better open rate, more trust.</>
+              : <>Hugo envoie actuellement depuis contact@keiroai.com. Connecte ton Gmail ou ton domaine perso pour que les emails partent de <strong className="text-white/70">ta propre adresse</strong> — meilleur taux d&apos;ouverture et plus de confiance.</>}
           </p>
           <div className="flex flex-wrap gap-2 mb-2">
             <a href="/api/auth/gmail-oauth" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
@@ -231,7 +234,7 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
               {'\u{1F310}'} {en ? 'Connect Outlook' : 'Connecter Outlook'}
             </a>
             <button onClick={() => setShowSmtpForm(v => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
-              {'\u2699\uFE0F'} {en ? (showSmtpForm ? 'Hide form' : 'Custom SMTP (my own domain)') : (showSmtpForm ? 'Masquer' : 'SMTP perso (domaine à moi)')}
+              {'\u2699\uFE0F'} {en ? (showSmtpForm ? 'Hide form' : 'My custom domain') : (showSmtpForm ? 'Masquer' : 'Mon domaine personnalisé')}
             </button>
             <a
               href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}

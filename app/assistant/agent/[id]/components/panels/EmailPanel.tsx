@@ -205,7 +205,11 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   // domaine perso + Outlook (via IMAP/Graph, hors périmètre Google) et pour Gmail
   // en option B. En option A (Gmail send-only), on les masque pour rester cohérent
   // avec le scope demandé à Google. → dépend de la connexion, pas d'un flag global.
-  const conn = (data as any).connections || {};
+  // État LIVE de connexion (remonté par EmailConnectBanner) → les cartes lecture/
+  // brouillons disparaissent à la déconnexion et réapparaissent à la connexion,
+  // sans recharger la page. Fallback = snapshot serveur data.connections.
+  const [liveConn, setLiveConn] = useState<{ gmail: boolean; smtp: boolean; outlook: boolean } | null>(null);
+  const conn = liveConn || (data as any).connections || {};
   const showMailboxFeatures = GMAIL_FULL || !!conn.smtp || !!conn.outlook;
   const stats = data.emailStats || { sent: 0, opened: 0, clicked: 0, openRate: 0, clickRate: 0, sequences: {}, recentEmails: [] };
 
@@ -239,8 +243,8 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           (sinon incohérence = rejet). Réaffichés en B (NEXT_PUBLIC_GMAIL_FULL=on). */}
       {showMailboxFeatures && <ReplyModeToggle />}
 
-      {/* Email connection banner */}
-      <EmailConnectBanner connections={(data as any).connections} />
+      {/* Email connection banner — remonte l'état live pour gater les cartes */}
+      <EmailConnectBanner connections={(data as any).connections} onStatus={setLiveConn} />
 
       {/* Drafts Hugo prepared / you started (SMTP/IMAP ou Gmail option B) */}
       {showMailboxFeatures && <DraftsCard />}
