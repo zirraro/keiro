@@ -1010,8 +1010,8 @@ function FullInbox() {
       {/* Header — title + view toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h3 className="text-sm font-bold text-white">{en ? 'Hugo mailbox' : 'Boîte mail Hugo'}</h3>
-          <p className="text-[10px] text-white/40">{en ? 'Sent + received, including non-CRM' : 'Envoyés + reçus, même hors CRM'}</p>
+          <h3 className="text-sm font-bold text-white">{en ? 'Hugo conversations' : 'Conversations Hugo'}</h3>
+          <p className="text-[10px] text-white/40">{en ? 'Emails Hugo sent + prospect replies — not your full Gmail inbox' : 'Emails envoyés par Hugo + réponses des prospects — pas ta boîte Gmail complète'}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
