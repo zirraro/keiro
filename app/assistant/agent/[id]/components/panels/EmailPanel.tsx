@@ -844,11 +844,21 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
 // FullInbox — unified Hugo mailbox: sent + received + non-CRM senders.
 // View toggle: 'list' (compact rows + popup modal) for mobile,
 // 'split' (Gmail-style two-pane) for desktop. Stats banner up top.
+// Aperçu EXEMPLE affiché quand aucune boîte n'est connectée (founder 15/07 :
+// "quand déconnecté ça doit être des données sample pour montrer le rendu").
+// Shape alignée sur les items réels de FullInbox (id/direction/from/to/subject/body).
+const FULLINBOX_DEMO = [
+  { id: 'demo_r1', direction: 'inbox', from_name: 'Boulangerie Dupont', from_email: 'contact@boulangerie-dupont.fr', subject: 'Re: Une idée pour votre boulangerie', body: 'Merci pour votre message, ça nous intéresse ! On peut en discuter cette semaine ?', date: new Date(Date.now() - 1 * 3600000).toISOString(), auto: false },
+  { id: 'demo_s1', direction: 'sent', to_email: 'contact@boulangerie-dupont.fr', subject: 'Une idée pour votre boulangerie', body: 'Bonjour, j\'ai découvert votre boulangerie et j\'ai pensé à un moyen simple de gagner en visibilité en ligne…', date: new Date(Date.now() - 26 * 3600000).toISOString(), auto: false },
+  { id: 'demo_a1', direction: 'sent', to_email: 'info@salon-elegance.fr', subject: 'Re: votre demande', body: 'Avec plaisir ! Voici un exemple de ce qu\'on pourrait faire pour votre salon.', date: new Date(Date.now() - 30 * 3600000).toISOString(), auto: true },
+];
+
 function FullInbox() {
   const { locale } = useLanguage();
   const en = locale === 'en';
   const dateLocale = en ? 'en-US' : 'fr-FR';
   const [items, setItems] = useState<any[]>([]);
+  const [connected, setConnected] = useState(true); // vrai par défaut pour éviter un flash de démo
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'inbox' | 'sent'>('all');
   const [view, setView] = useState<'list' | 'split'>(() => {
@@ -898,19 +908,23 @@ function FullInbox() {
     setLoading(true);
     fetch(`/api/me/inbox?direction=${filter}&limit=80`, { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.ok) setItems(d.items || []); })
+      .then(d => { if (d.ok) { setItems(d.items || []); setConnected(d.mailboxConnected !== false); } })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [filter]);
 
   useEffect(() => { load(); }, [load]);
 
+  // Liste affichée : vraies données si une boîte est connectée, sinon aperçu
+  // exemple (le client voit à quoi ressemblera sa messagerie une fois connectée).
+  const listItems = connected ? items : FULLINBOX_DEMO;
+
   // Auto-select first item in split view when items arrive
   useEffect(() => {
-    if (view === 'split' && items.length > 0 && !selected) {
-      setSelected(items[0]);
+    if (view === 'split' && listItems.length > 0 && !selected) {
+      setSelected(listItems[0]);
     }
-  }, [view, items, selected]);
+  }, [view, listItems, selected]);
 
   const sendReply = useCallback(async () => {
     if (!selected || !replyText.trim()) return;
@@ -944,21 +958,21 @@ function FullInbox() {
     }
   }, [selected, replyText, load]);
 
-  const inboxCount = items.filter(i => i.direction === 'inbox').length;
-  const sentCount = items.filter(i => i.direction === 'sent').length;
-  const aiSentCount = items.filter(i => i.direction === 'sent' && i.auto).length;
+  const inboxCount = listItems.filter(i => i.direction === 'inbox').length;
+  const sentCount = listItems.filter(i => i.direction === 'sent').length;
+  const aiSentCount = listItems.filter(i => i.direction === 'sent' && i.auto).length;
   const humanSentCount = sentCount - aiSentCount;
-  const unsubCount = items.filter(i => i.classification === 'unsubscribe' || i.blacklisted).length;
+  const unsubCount = listItems.filter(i => i.classification === 'unsubscribe' || i.blacklisted).length;
 
   // Reusable list rendering used by both views
   const ListRows = ({ compact = false }: { compact?: boolean }) => (
     <>
       {loading ? (
         <div className="text-center py-6 text-white/40 text-xs">{en ? 'Loading…' : 'Chargement…'}</div>
-      ) : items.length === 0 ? (
+      ) : listItems.length === 0 ? (
         <div className="text-center py-6 text-white/40 text-xs">{en ? 'No emails yet' : 'Aucun email'}</div>
       ) : (
-        items.map((it: any) => (
+        listItems.map((it: any) => (
           <button
             key={it.id}
             onClick={() => { setSelected(it); setReplyText(''); }}
@@ -986,6 +1000,13 @@ function FullInbox() {
 
   return (
     <div className="mt-4 space-y-2">
+      {/* Aperçu exemple quand aucune boîte connectée */}
+      {!connected && !loading && (
+        <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 flex items-center gap-2">
+          <span className="text-sm">{'\u{1F440}'}</span>
+          <p className="text-[11px] text-amber-200/80 leading-snug">{en ? 'Preview (sample data). Connect your email above to see your real conversations here.' : 'Aperçu (données exemple). Connecte ton email ci-dessus pour voir tes vrais échanges ici.'}</p>
+        </div>
+      )}
       {/* Header — title + view toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>

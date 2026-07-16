@@ -118,13 +118,13 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
               <li>
-                <strong>Gmail</strong> &mdash; so you can send prospecting and follow-up emails from your
-                own Gmail address, and so our assistant can read incoming replies in order to
-                auto-respond on your behalf.
+                <strong>Gmail</strong> &mdash; so our assistant can send prospecting and follow-up emails
+                from your own Gmail address, on your behalf. Emails are sent only after you review or
+                configure them in the Keiro app. We do <strong>not</strong> read, label, archive or
+                delete your mailbox &mdash; we request no read access.
                 <ul className="list-disc pl-6 mt-2 space-y-1">
-                  <li><code>gmail.send</code> &mdash; send and reply to emails from your address.</li>
-                  <li><code>gmail.readonly</code> &mdash; read incoming replies to route them to the auto-reply assistant.</li>
-                  <li><code>userinfo.email</code> &mdash; identify the connected mailbox.</li>
+                  <li><code>gmail.send</code> &mdash; send emails from your address, on your behalf.</li>
+                  <li><code>userinfo.email</code> / <code>userinfo.profile</code> &mdash; identify the connected mailbox (name and email shown in the app).</li>
                 </ul>
               </li>
               <li>

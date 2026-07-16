@@ -136,8 +136,20 @@ export async function GET(req: NextRequest) {
 
   items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Une boîte est-elle connectée (Gmail / domaine perso SMTP / Outlook) ? Sert à
+  // l'UI : si NON connecté → afficher un aperçu EXEMPLE au lieu des vrais mails
+  // (founder 15/07 : "quand déconnecté ça doit être des données sample").
+  let mailboxConnected = false;
+  try {
+    const { data: prof } = await sb.from('profiles')
+      .select('gmail_refresh_token, smtp_host, outlook_refresh_token')
+      .eq('id', user.id).maybeSingle();
+    mailboxConnected = !!(prof?.gmail_refresh_token || prof?.smtp_host || prof?.outlook_refresh_token);
+  } catch { /* best-effort */ }
+
   return NextResponse.json({
     ok: true,
+    mailboxConnected,
     items: items.slice(0, limit),
     counts: {
       inbox: items.filter(i => i.direction === 'inbox').length,
