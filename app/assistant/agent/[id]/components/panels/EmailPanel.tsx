@@ -858,7 +858,10 @@ function FullInbox() {
   const en = locale === 'en';
   const dateLocale = en ? 'en-US' : 'fr-FR';
   const [items, setItems] = useState<any[]>([]);
-  const [connected, setConnected] = useState(true); // vrai par défaut pour éviter un flash de démo
+  // canRead = accès LECTURE réel de la boîte (SMTP/Outlook, ou Gmail readonly en
+  // option B). En option A (gmail.send) = false → on affiche un aperçu exemple
+  // étiqueté (pas de vrais mails reçus → cohérent pour le reviewer Google).
+  const [canRead, setCanRead] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'inbox' | 'sent'>('all');
   const [view, setView] = useState<'list' | 'split'>(() => {
@@ -908,7 +911,7 @@ function FullInbox() {
     setLoading(true);
     fetch(`/api/me/inbox?direction=${filter}&limit=80`, { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.ok) { setItems(d.items || []); setConnected(d.mailboxConnected !== false); } })
+      .then(d => { if (d.ok) { setItems(d.items || []); setCanRead(d.canReadInbox === true); } })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [filter]);
@@ -917,7 +920,7 @@ function FullInbox() {
 
   // Liste affichée : vraies données si une boîte est connectée, sinon aperçu
   // exemple (le client voit à quoi ressemblera sa messagerie une fois connectée).
-  const listItems = connected ? items : FULLINBOX_DEMO;
+  const listItems = canRead ? items : FULLINBOX_DEMO;
 
   // Auto-select first item in split view when items arrive
   useEffect(() => {
@@ -1000,11 +1003,14 @@ function FullInbox() {
 
   return (
     <div className="mt-4 space-y-2">
-      {/* Aperçu exemple quand aucune boîte connectée */}
-      {!connected && !loading && (
+      {/* Aperçu EXEMPLE quand on n'a pas d'accès lecture (option A gmail.send).
+          Étiqueté clairement = le reviewer Google comprend que ce n'est PAS une
+          lecture de boîte réelle, et le client voit le rendu de la future
+          lecture native (option B / domaine perso). */}
+      {!canRead && !loading && (
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 flex items-center gap-2">
           <span className="text-sm">{'\u{1F440}'}</span>
-          <p className="text-[11px] text-amber-200/80 leading-snug">{en ? 'Preview (sample data). Connect your email above to see your real conversations here.' : 'Aperçu (données exemple). Connecte ton email ci-dessus pour voir tes vrais échanges ici.'}</p>
+          <p className="text-[11px] text-amber-200/80 leading-snug">{en ? 'Sample data (preview). This shows what your mailbox will look like — native inbox reading arrives with full mailbox access.' : 'Données exemple (aperçu). Voici à quoi ressemblera ta messagerie — la lecture native de ta boîte arrive avec l\'accès complet.'}</p>
         </div>
       )}
       {/* Header — title + view toggle */}
