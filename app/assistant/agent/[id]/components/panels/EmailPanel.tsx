@@ -920,7 +920,14 @@ function FullInbox() {
 
   // Liste affichée : vraies données si une boîte est connectée, sinon aperçu
   // exemple (le client voit à quoi ressemblera sa messagerie une fois connectée).
-  const listItems = canRead ? items : FULLINBOX_DEMO;
+  // Logique founder 17/07 : on demande SEULEMENT gmail.send → les emails ENVOYÉS
+  // sont RÉELS (on les envoie vraiment), les emails REÇUS sont des EXEMPLES quand
+  // on n'a pas d'accès lecture (on ne lit pas la boîte). Explicite pour le reviewer.
+  const demoReceived = FULLINBOX_DEMO.filter((d: any) => d.direction === 'inbox');
+  const listItems = canRead
+    ? items
+    : [...items.filter((i: any) => i.direction === 'sent'), ...demoReceived]
+        .sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
   // Auto-select first item in split view when items arrive
   useEffect(() => {
@@ -1008,9 +1015,11 @@ function FullInbox() {
           lecture de boîte réelle, et le client voit le rendu de la future
           lecture native (option B / domaine perso). */}
       {!canRead && !loading && (
-        <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 flex items-center gap-2">
-          <span className="text-sm">{'\u{1F440}'}</span>
-          <p className="text-[11px] text-amber-200/80 leading-snug">{en ? 'Sample data (preview). This shows what your mailbox will look like — native inbox reading arrives with full mailbox access.' : 'Données exemple (aperçu). Voici à quoi ressemblera ta messagerie — la lecture native de ta boîte arrive avec l\'accès complet.'}</p>
+        <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 flex items-start gap-2">
+          <span className="text-sm">{'ℹ️'}</span>
+          <p className="text-[11px] text-amber-200/80 leading-snug">{en
+            ? <><strong>Sent</strong> emails are real (KeiroAI has send-only Gmail access). <strong>Received</strong> emails shown here are <strong>examples</strong> — KeiroAI does <strong>not</strong> read your Gmail inbox. Native inbox reading arrives with full mailbox access.</>
+            : <>Les emails <strong>envoyés</strong> sont réels (KeiroAI a un accès Gmail en envoi seul). Les emails <strong>reçus</strong> affichés ici sont des <strong>exemples</strong> — KeiroAI ne <strong>lit pas</strong> ta boîte Gmail. La lecture native arrive avec l'accès complet.</>}</p>
         </div>
       )}
       {/* Header — title + view toggle */}
