@@ -849,8 +849,11 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
 // Shape alignée sur les items réels de FullInbox (id/direction/from/to/subject/body).
 const FULLINBOX_DEMO = [
   { id: 'demo_r1', direction: 'inbox', from_name: 'Boulangerie Dupont', from_email: 'contact@boulangerie-dupont.fr', subject: 'Re: Une idée pour votre boulangerie', body: 'Merci pour votre message, ça nous intéresse ! On peut en discuter cette semaine ?', date: new Date(Date.now() - 1 * 3600000).toISOString(), auto: false },
+  { id: 'demo_r2', direction: 'inbox', from_name: 'Salon Élégance', from_email: 'info@salon-elegance.fr', subject: 'Re: votre proposition', body: 'Intéressant, envoyez-moi plus de détails et vos tarifs svp.', date: new Date(Date.now() - 5 * 3600000).toISOString(), auto: false },
   { id: 'demo_s1', direction: 'sent', to_email: 'contact@boulangerie-dupont.fr', subject: 'Une idée pour votre boulangerie', body: 'Bonjour, j\'ai découvert votre boulangerie et j\'ai pensé à un moyen simple de gagner en visibilité en ligne…', date: new Date(Date.now() - 26 * 3600000).toISOString(), auto: false },
-  { id: 'demo_a1', direction: 'sent', to_email: 'info@salon-elegance.fr', subject: 'Re: votre demande', body: 'Avec plaisir ! Voici un exemple de ce qu\'on pourrait faire pour votre salon.', date: new Date(Date.now() - 30 * 3600000).toISOString(), auto: true },
+  { id: 'demo_s2', direction: 'sent', to_email: 'info@salon-elegance.fr', subject: 'Re: votre demande', body: 'Avec plaisir ! Voici un exemple de ce qu\'on pourrait faire pour votre salon.', date: new Date(Date.now() - 30 * 3600000).toISOString(), auto: true },
+  { id: 'demo_d1', direction: 'draft', to_email: 'coach@fitnesspro.fr', subject: 'Booster ta visibilité (brouillon)', body: 'Salut, je prépare une proposition pour ton studio — à finaliser avant envoi.', date: new Date(Date.now() - 2 * 3600000).toISOString(), auto: false },
+  { id: 'demo_t1', direction: 'trash', from_name: 'Newsletter', from_email: 'no-reply@promo.com', subject: 'Offre expirée', body: 'Email supprimé.', date: new Date(Date.now() - 72 * 3600000).toISOString(), auto: false },
 ];
 
 function FullInbox() {
@@ -863,7 +866,7 @@ function FullInbox() {
   // étiqueté (pas de vrais mails reçus → cohérent pour le reviewer Google).
   const [canRead, setCanRead] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'inbox' | 'sent'>('all');
+  const [filter, setFilter] = useState<'inbox' | 'sent' | 'draft' | 'trash'>('sent');
   const [view, setView] = useState<'list' | 'split'>(() => {
     if (typeof window === 'undefined') return 'list';
     return window.innerWidth >= 768 ? 'split' : 'list';
@@ -927,20 +930,23 @@ function FullInbox() {
   //  - ENVOYÉS = RÉELS (on les envoie vraiment) → dans TOUS les cas.
   //  - REÇUS = EXEMPLES tant qu'on n'a pas d'accès lecture (on ne lit pas la boîte).
   // Et DÉPENDANT de l'onglet : l'exemple reçu n'apparaît PAS dans « Envoyés ».
-  const demoReceived = FULLINBOX_DEMO.filter((d: any) => d.direction === 'inbox');
+  const demoByDir = (dir: string) => FULLINBOX_DEMO.filter((d: any) => d.direction === dir);
   const realSent = items.filter((i: any) => i.direction === 'sent');
   const realReceived = items.filter((i: any) => i.direction === 'inbox');
-  // Reçus affichés : réels si accès lecture, sinon exemples.
-  const displayedReceived = canRead ? realReceived : demoReceived;
+  const realDrafts = items.filter((i: any) => i.direction === 'draft');
+  const realTrash = items.filter((i: any) => i.direction === 'trash');
+  // ENVOYÉS = toujours réels (on a l'accès send). REÇUS/BROUILLONS/POUBELLE =
+  // réels si accès lecture (domaine perso / Outlook / option B), sinon EXEMPLES
+  // (on ne lit pas la boîte Gmail). Reflète une vraie messagerie tout en restant
+  // honnête pour le reviewer.
+  const displayedReceived = canRead ? realReceived : demoByDir('inbox');
+  const displayedDrafts = (canRead && realDrafts.length) ? realDrafts : demoByDir('draft');
+  const displayedTrash = (canRead && realTrash.length) ? realTrash : demoByDir('trash');
   let listItems: any[];
-  if (filter === 'sent') {
-    listItems = realSent; // onglet Envoyés → uniquement les vrais envoyés
-  } else if (filter === 'inbox') {
-    listItems = displayedReceived; // onglet Reçus → réels ou exemples
-  } else {
-    listItems = [...realSent, ...displayedReceived]
-      .sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-  }
+  if (filter === 'sent') listItems = realSent;
+  else if (filter === 'inbox') listItems = displayedReceived;
+  else if (filter === 'draft') listItems = displayedDrafts;
+  else listItems = displayedTrash;
 
   // Reset la sélection quand on change d'onglet → évite qu'un « Reçu » reste
   // affiché quand on passe sur « Envoyés » (bug founder 18/07).
@@ -988,7 +994,8 @@ function FullInbox() {
   // Compteurs STABLES (indépendants de l'onglet actif).
   const sentCount = realSent.length;
   const inboxCount = displayedReceived.length;
-  const allCount = realSent.length + displayedReceived.length;
+  const draftCount = displayedDrafts.length;
+  const trashCount = displayedTrash.length;
   const aiSentCount = realSent.filter((i: any) => i.auto).length;
   const humanSentCount = sentCount - aiSentCount;
   const unsubCount = realReceived.filter((i: any) => i.classification === 'unsubscribe' || i.blacklisted).length;
@@ -1007,13 +1014,13 @@ function FullInbox() {
             onClick={() => { setSelected(it); setReplyText(''); }}
             className={`w-full text-left ${compact ? 'px-2.5 py-2' : 'px-3 py-2.5'} hover:bg-white/5 transition flex items-center gap-2 ${selected?.id === it.id ? 'bg-cyan-500/10' : ''}`}
           >
-            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
-              {it.direction === 'inbox' ? '✉' : (it.auto ? '🤖' : '✍')}
+            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : it.direction === 'draft' ? 'bg-white/10 text-white/60' : it.direction === 'trash' ? 'bg-red-500/15 text-red-300/70' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
+              {it.direction === 'inbox' ? '✉' : it.direction === 'draft' ? '✍️' : it.direction === 'trash' ? '🗑' : (it.auto ? '🤖' : '✍')}
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-white truncate">
-                  {it.direction === 'inbox' ? (it.from_name || it.from_email) : it.to_email}
+                  {(it.direction === 'inbox' || it.direction === 'trash') ? (it.from_name || it.from_email) : it.to_email}
                 </span>
                 {it.blacklisted && <span className="text-[10px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">BL</span>}
                 {it.classification === 'unsubscribe' && <span className="text-[10px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">{en ? 'unsub' : 'désabo'}</span>}
@@ -1146,9 +1153,10 @@ function FullInbox() {
       {/* Filter chips */}
       <div className="flex gap-1.5 items-center">
         {[
-          { key: 'all', label: en ? 'All' : 'Tous', count: allCount },
           { key: 'inbox', label: en ? 'Received' : 'Reçus', count: inboxCount },
           { key: 'sent', label: en ? 'Sent' : 'Envoyés', count: sentCount },
+          { key: 'draft', label: en ? 'Drafts' : 'Brouillons', count: draftCount },
+          { key: 'trash', label: en ? 'Trash' : 'Poubelle', count: trashCount },
         ].map(t => (
           <button
             key={t.key}
@@ -1170,6 +1178,12 @@ function FullInbox() {
       )}
       {filter === 'inbox' && canRead && (
         <p className="text-[11px] text-cyan-300/80 px-1">{en ? '✅ Real received emails from your connected mailbox.' : '✅ Emails reçus réels depuis ta boîte connectée.'}</p>
+      )}
+      {(filter === 'draft' || filter === 'trash') && !canRead && (
+        <p className="text-[11px] text-amber-300/80 px-1">{en ? 'ℹ️ Examples — with full mailbox access (custom domain or Gmail read access), your real ones would show here.' : 'ℹ️ Exemples — avec l\'accès complet (domaine perso ou lecture Gmail), les tiens s\'afficheraient ici.'}</p>
+      )}
+      {(filter === 'draft' || filter === 'trash') && canRead && (
+        <p className="text-[11px] text-cyan-300/80 px-1">{en ? '✅ From your connected mailbox.' : '✅ Depuis ta boîte connectée.'}</p>
       )}
 
       {view === 'list' && (
