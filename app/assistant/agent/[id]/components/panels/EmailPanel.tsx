@@ -907,27 +907,44 @@ function FullInbox() {
     } finally { setCBusy(''); }
   }, [cTo, cSubject, cBody]);
 
+  // On récupère TOUT une fois (envoyés + reçus) et on filtre côté client par
+  // onglet → les compteurs des onglets restent stables (bug founder 18/07 : les
+  // compteurs changeaient selon l'onglet actif).
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`/api/me/inbox?direction=${filter}&limit=80`, { credentials: 'include' })
+    fetch(`/api/me/inbox?direction=all&limit=120`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => { if (d.ok) { setItems(d.items || []); setCanRead(d.canReadInbox === true); } })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [filter]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
   // Liste affichée : vraies données si une boîte est connectée, sinon aperçu
   // exemple (le client voit à quoi ressemblera sa messagerie une fois connectée).
-  // Logique founder 17/07 : on demande SEULEMENT gmail.send → les emails ENVOYÉS
-  // sont RÉELS (on les envoie vraiment), les emails REÇUS sont des EXEMPLES quand
-  // on n'a pas d'accès lecture (on ne lit pas la boîte). Explicite pour le reviewer.
+  // Logique founder 17-18/07 : on demande SEULEMENT gmail.send.
+  //  - ENVOYÉS = RÉELS (on les envoie vraiment) → dans TOUS les cas.
+  //  - REÇUS = EXEMPLES tant qu'on n'a pas d'accès lecture (on ne lit pas la boîte).
+  // Et DÉPENDANT de l'onglet : l'exemple reçu n'apparaît PAS dans « Envoyés ».
   const demoReceived = FULLINBOX_DEMO.filter((d: any) => d.direction === 'inbox');
-  const listItems = canRead
-    ? items
-    : [...items.filter((i: any) => i.direction === 'sent'), ...demoReceived]
-        .sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+  const realSent = items.filter((i: any) => i.direction === 'sent');
+  const realReceived = items.filter((i: any) => i.direction === 'inbox');
+  // Reçus affichés : réels si accès lecture, sinon exemples.
+  const displayedReceived = canRead ? realReceived : demoReceived;
+  let listItems: any[];
+  if (filter === 'sent') {
+    listItems = realSent; // onglet Envoyés → uniquement les vrais envoyés
+  } else if (filter === 'inbox') {
+    listItems = displayedReceived; // onglet Reçus → réels ou exemples
+  } else {
+    listItems = [...realSent, ...displayedReceived]
+      .sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+  }
+
+  // Reset la sélection quand on change d'onglet → évite qu'un « Reçu » reste
+  // affiché quand on passe sur « Envoyés » (bug founder 18/07).
+  useEffect(() => { setSelected(null); }, [filter]);
 
   // Auto-select first item in split view when items arrive
   useEffect(() => {
@@ -968,11 +985,13 @@ function FullInbox() {
     }
   }, [selected, replyText, load]);
 
-  const inboxCount = listItems.filter(i => i.direction === 'inbox').length;
-  const sentCount = listItems.filter(i => i.direction === 'sent').length;
-  const aiSentCount = listItems.filter(i => i.direction === 'sent' && i.auto).length;
+  // Compteurs STABLES (indépendants de l'onglet actif).
+  const sentCount = realSent.length;
+  const inboxCount = displayedReceived.length;
+  const allCount = realSent.length + displayedReceived.length;
+  const aiSentCount = realSent.filter((i: any) => i.auto).length;
   const humanSentCount = sentCount - aiSentCount;
-  const unsubCount = listItems.filter(i => i.classification === 'unsubscribe' || i.blacklisted).length;
+  const unsubCount = realReceived.filter((i: any) => i.classification === 'unsubscribe' || i.blacklisted).length;
 
   // Reusable list rendering used by both views
   const ListRows = ({ compact = false }: { compact?: boolean }) => (
@@ -1127,9 +1146,9 @@ function FullInbox() {
       {/* Filter chips */}
       <div className="flex gap-1.5 items-center">
         {[
-          { key: 'all', label: en ? 'Tous' : 'Tous', count: items.length },
-          { key: 'inbox', label: en ? 'Reçus' : 'Reçus', count: inboxCount },
-          { key: 'sent', label: en ? 'Envoyés' : 'Envoyés', count: sentCount },
+          { key: 'all', label: en ? 'All' : 'Tous', count: allCount },
+          { key: 'inbox', label: en ? 'Received' : 'Reçus', count: inboxCount },
+          { key: 'sent', label: en ? 'Sent' : 'Envoyés', count: sentCount },
         ].map(t => (
           <button
             key={t.key}
@@ -1141,6 +1160,17 @@ function FullInbox() {
         ))}
         <button onClick={load} className="ml-auto px-2 py-2 min-h-[40px] text-base text-white/40 hover:text-white/70" title={en ? 'Refresh' : 'Rafraîchir'} aria-label="Refresh">↻</button>
       </div>
+
+      {/* Message clair PAR ONGLET (explicite pour le reviewer + le client) */}
+      {filter === 'sent' && (
+        <p className="text-[11px] text-emerald-300/80 px-1">{en ? '✅ Real emails sent from your connected mailbox (Gmail / your domain).' : '✅ Emails réellement envoyés depuis ta boîte connectée (Gmail / ton domaine).'}</p>
+      )}
+      {filter === 'inbox' && !canRead && (
+        <p className="text-[11px] text-amber-300/80 px-1">{en ? 'ℹ️ Examples — with full mailbox access, your real received emails would show here. KeiroAI does not read your Gmail inbox.' : 'ℹ️ Exemples — avec l\'accès complet, tes vrais emails reçus s\'afficheraient ici. KeiroAI ne lit pas ta boîte Gmail.'}</p>
+      )}
+      {filter === 'inbox' && canRead && (
+        <p className="text-[11px] text-cyan-300/80 px-1">{en ? '✅ Real received emails from your connected mailbox.' : '✅ Emails reçus réels depuis ta boîte connectée.'}</p>
+      )}
 
       {view === 'list' && (
         <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden divide-y divide-white/5 max-h-[400px] overflow-y-auto">
