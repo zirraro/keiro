@@ -901,6 +901,10 @@ function FullInbox() {
       const j = await res.json();
       if (j.ok) {
         setCDone(mode === 'send' ? 'Envoyé ✓' : 'Brouillon enregistré ✓');
+        // Bascule sur l'onglet correspondant + refetch pour que le mail apparaisse
+        // tout de suite (bug founder 19/07 : envoi manuel invisible dans Envoyés).
+        setFilter(mode === 'send' ? 'sent' : 'draft');
+        setTimeout(() => { load(); }, 900);
         setTimeout(() => { setComposeOpen(false); setCTo(''); setCSubject(''); setCBody(''); setCDone(''); }, 1400);
       } else if (typeof window !== 'undefined') {
         window.alert(j.error || 'Erreur');

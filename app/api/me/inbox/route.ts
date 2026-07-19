@@ -108,6 +108,11 @@ export async function GET(req: NextRequest) {
         d.source === 'daily_cron' ||
         d.source === 'sequence'
       );
+      // Skip les envois manuels ici : ils sont couverts par agent_logs
+      // (manual_send) ci-dessous, source COMPLÈTE — y compris les mails vers une
+      // adresse hors-CRM (prospect_id=null) que l'inner-join ci-dessus rate.
+      // Évite aussi les doublons pour un envoi manuel vers un vrai prospect.
+      if (isManual) continue;
       items.push({
         id: row.id,
         direction: 'sent',
@@ -118,6 +123,33 @@ export async function GET(req: NextRequest) {
         message_id: d.message_id,
         auto: isAi || (!isManual && !isAi), // default → AI when ambiguous
         prospect_id: row.prospect_id,
+      });
+    }
+
+    // Envois MANUELS depuis le panneau (bouton "Nouveau mail" / réponse). Source
+    // complète et fiable : agent_logs action='manual_send' (écrit par
+    // /api/me/send-email). Corrige le bug founder 19/07 : un mail manuel vers une
+    // adresse hors-CRM n'apparaissait PAS dans « Envoyés » (l'inner-join
+    // crm_prospects le supprimait). Ici on a le user_id direct, aucun join.
+    const { data: manualSends } = await sb
+      .from('agent_logs')
+      .select('id, data, created_at')
+      .eq('user_id', user.id)
+      .eq('action', 'manual_send')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    for (const row of (manualSends || []) as any[]) {
+      const d = row.data || {};
+      if (!d.to) continue;
+      items.push({
+        id: `manual_${row.id}`,
+        direction: 'sent',
+        date: row.created_at,
+        to_email: d.to,
+        subject: d.subject || '(sans objet)',
+        body: d.body || '',
+        message_id: d.message_id,
+        auto: false, // envoi manuel = humain (Toi)
       });
     }
   }
