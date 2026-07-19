@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
     // LinkedIn returns the URN of the activity (e.g. urn:li:share:123…
     // or urn:li:ugcPost:123…). Convert to the public share URL so
     // downstream UI / audit log can deep-link the post.
-    const activityUrn = result?.id || result?.activity || result?.urn || null;
+    const activityUrn = result?.id || result?.postId || result?.activity || result?.urn || null;
     const shareUrl = activityUrn
       ? `https://www.linkedin.com/feed/update/${encodeURIComponent(activityUrn)}/`
       : null;

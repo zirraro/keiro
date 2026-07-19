@@ -39,6 +39,84 @@ export interface ImageGenResult {
   reason: string;
 }
 
+// 2026-07-19 — Founder ask: "quand on arrive sur un fallback je veux être
+// prévenu sur contact@keiroai.com sur TOUS les fallback". Seedream est le
+// provider primaire (qualité top). Dès qu'une génération tombe sur Kling ou
+// Flux (ou échoue complètement), on :
+//   1. log le fallback dans agent_logs (audit "quel provider a servi")
+//   2. envoie un mail admin à contact@keiroai.com (throttlé pour ne pas
+//      spammer si un provider reste down).
+// Fire-and-forget : ne bloque jamais la génération.
+const _lastFallbackAlert: Record<string, number> = {};
+const FALLBACK_ALERT_COOLDOWN_MS = 15 * 60 * 1000; // 15 min par type de transition
+
+async function notifyProviderFallback(payload: {
+  used: 'kling' | 'flux_schnell' | 'none';
+  seedreamError?: string;
+  klingError?: string;
+  reason: string;
+  callTag?: string;
+}): Promise<void> {
+  try {
+    const transitionKey = payload.used; // kling | flux_schnell | none
+    const now = Date.now();
+    const last = _lastFallbackAlert[transitionKey] || 0;
+
+    // Toujours logger l'événement (audit non throttlé), même si l'email l'est.
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      await sb.from('agent_logs').insert({
+        agent: 'content',
+        action: 'image_provider_fallback',
+        status: payload.used === 'none' ? 'error' : 'warning',
+        data: {
+          used_provider: payload.used,
+          seedream_error: payload.seedreamError?.substring(0, 300) || null,
+          kling_error: payload.klingError?.substring(0, 300) || null,
+          reason: payload.reason,
+          call_tag: payload.callTag || null,
+        },
+      });
+    } catch { /* audit best-effort */ }
+
+    // Email admin throttlé (sinon flood si Seedream reste down).
+    if (now - last < FALLBACK_ALERT_COOLDOWN_MS) return;
+    _lastFallbackAlert[transitionKey] = now;
+
+    const isCritical = payload.used === 'none';
+    const subject = isCritical
+      ? '🚨 [KeiroAI] Génération image ÉCHOUÉE — tous les providers down'
+      : `⚠️ [KeiroAI] Image en fallback ${payload.used === 'kling' ? 'Kling' : 'Flux Schnell'} (Seedream a échoué)`;
+    const qualityNote = payload.used === 'flux_schnell'
+      ? 'Qualité DÉGRADÉE (Flux Schnell = dernier recours, moins bon que Seedream).'
+      : payload.used === 'kling'
+        ? 'Qualité correcte (Kling) mais Seedream — le provider premium — est indisponible.'
+        : 'AUCUNE image générée : Seedream, Kling ET Flux ont tous échoué. Des posts peuvent partir sans visuel.';
+    const html = `
+      <h2>${isCritical ? '🚨 Échec total génération image' : '⚠️ Fallback provider image'}</h2>
+      <p><strong>Provider utilisé :</strong> ${payload.used}</p>
+      <p><strong>${qualityNote}</strong></p>
+      <p><strong>Erreur Seedream :</strong> ${payload.seedreamError || 'n/a'}</p>
+      ${payload.klingError ? `<p><strong>Erreur Kling :</strong> ${payload.klingError}</p>` : ''}
+      <p><strong>Raison :</strong> ${payload.reason}</p>
+      ${payload.callTag ? `<p><strong>Contexte :</strong> ${payload.callTag}</p>` : ''}
+      <hr>
+      <p style="color:#888;font-size:12px">Alerte throttlée à 1 mail / 15 min par type de fallback. Vérifie la clé Seedream (ARK_API_KEY) et le quota BytePlus.</p>
+    `;
+    const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+    await sendEmailWithFallback({
+      to: 'contact@keiroai.com',
+      subject,
+      html,
+    });
+  } catch { /* never let alerting break generation */ }
+}
+
 /**
  * Generate an image picking the best price/quality provider for the task.
  * Falls back to Seedream if Flux fails (or REPLICATE_API_TOKEN missing).
@@ -54,6 +132,9 @@ export interface ImageGenResult {
 export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResult | null> {
   const complexity = opts.complexity || 'standard';
   const size = opts.size || '1024x1024';
+  // Erreurs capturées pour l'alerte fallback (founder 2026-07-19).
+  let seedreamError: string | undefined;
+  let klingError: string | undefined;
 
   // Provider 1: Seedream (PRIMARY) — quality top, $0.03/image
   if (!opts.forceProvider || opts.forceProvider === 'seedream') {
@@ -101,11 +182,18 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
               reason: `seedream_primary (complexity=${complexity})`,
             };
           }
+          seedreamError = `HTTP ${res.status}: no url in response`;
+        } else {
+          const errTxt = await res.text().catch(() => '');
+          seedreamError = `HTTP ${res.status}: ${errTxt.substring(0, 200)}`;
         }
-        console.warn('[image-provider] Seedream failed → trying Kling fallback');
+        console.warn('[image-provider] Seedream failed → trying Kling fallback:', seedreamError);
       } catch (e: any) {
-        console.warn('[image-provider] Seedream error → Kling fallback:', e.message?.substring(0, 150));
+        seedreamError = e?.message?.substring(0, 200) || 'unknown seedream error';
+        console.warn('[image-provider] Seedream error → Kling fallback:', seedreamError);
       }
+    } else {
+      seedreamError = 'ARK_API_KEY / SEEDREAM_API_KEY manquante';
     }
   }
 
@@ -117,6 +205,8 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
       const aspectRatio = size === '1024x1792' ? '9:16' : size === '1792x1024' ? '16:9' : '1:1';
       const result = await generateKlingT2I({ prompt: opts.prompt, aspectRatio });
       if (result?.imageUrl) {
+        // Fallback Seedream → Kling : prévenir l'admin (throttlé).
+        void notifyProviderFallback({ used: 'kling', seedreamError, reason: 'kling_fallback_seedream_failed', callTag: opts.callTag });
         return {
           url: result.imageUrl,
           provider: 'flux_dev' as any, // reuse slot for kling — TODO: extend provider type
@@ -124,8 +214,10 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
           reason: 'kling_fallback_seedream_failed',
         };
       }
+      klingError = 'Kling returned no imageUrl';
     } catch (e: any) {
-      console.warn('[image-provider] Kling failed → Flux Schnell fallback:', e.message?.substring(0, 150));
+      klingError = e?.message?.substring(0, 200) || 'unknown kling error';
+      console.warn('[image-provider] Kling failed → Flux Schnell fallback:', klingError);
     }
   }
 
@@ -153,6 +245,8 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
       const data = await res.json();
       const url = Array.isArray(data.output) ? data.output[0] : data.output;
       if (url && typeof url === 'string' && url.startsWith('http')) {
+        // Fallback jusqu'à Flux Schnell (dernier recours, qualité dégradée) : alerte.
+        void notifyProviderFallback({ used: 'flux_schnell', seedreamError, klingError, reason: 'flux_schnell_last_resort_fallback', callTag: opts.callTag });
         return {
           url,
           provider: 'flux_schnell',
@@ -166,6 +260,8 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
     }
   }
 
+  // Échec TOTAL des 3 providers → alerte critique (des posts peuvent partir sans visuel).
+  void notifyProviderFallback({ used: 'none', seedreamError, klingError, reason: 'all_providers_failed', callTag: opts.callTag });
   return null;
 }
 
