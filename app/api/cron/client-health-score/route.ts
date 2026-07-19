@@ -138,7 +138,7 @@ async function run() {
     remediated.push(u.company);
   }
   if (remediated.length > 0) {
-    await sb.from('agent_logs').insert({
+    await supabase.from('agent_logs').insert({
       agent: 'system', action: 'volume_auto_remediation', status: 'ok',
       data: { count: remediated.length, clients: remediated.slice(0, 40), note: 'catch_up posts + email daily déclenchés pour tenir le volume promis' },
       created_at: new Date().toISOString(),

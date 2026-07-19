@@ -145,7 +145,7 @@ const GLOBAL_SCHEDULE = [
   // un prospecté qui s'inscrit passe 'client' + démarchage stoppé. 3×/jour pour
   // réagir vite (ne pas relancer quelqu'un qui vient de signer).
   { cron: '5 8,14,20 * * *', path: '/api/cron/match-signups-to-prospects', label: 'Match signups → prospects (stop démarchage des convertis)' },
-  { cron: '0 8 * * 1',    path: '/api/cron/client-health-score', label: 'Client Health-Score (anti-churn, admin alert Monday)' },
+  { cron: '0 8 * * *',    path: '/api/cron/client-health-score', label: 'Client Health-Score + AUTO-rattrapage volume (quotidien)' },
   { cron: '0 11 * * *',   path: '/api/cron/winback', label: 'Winback churned clients (J+30 changelog, J+90 free retry)' },
   // 2026-06-09 — Every 30min. Real-time anomaly detector (6 kinds:
   // error_burst, success_drop, publish_silence, agent_down,
