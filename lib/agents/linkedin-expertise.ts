@@ -214,6 +214,13 @@ expertise, pour SON audience. Objectif = faire du client une RÉFÉRENCE de son
 domaine (thought leadership). Le "je"/"on" est celui du client, pas de KeiroAI.
 Ne mentionne JAMAIS KeiroAI, ni "IA", ni un outil dans le corps du post.
 
+PRIORITÉ ABSOLUE À LA MATIÈRE DU CLIENT : si le DOSSIER CLIENT contient
+« expertise pointue », « points de vue », « histoires signature », « objectif
+linkedin » ou « audience professionnelle » (collectés par Clara), ils PRIMENT sur
+tout. Construis le post à partir de SES sujets, SES convictions, SES vraies
+histoires (anonymisées, jamais inventées) et pour SON audience. Les registres
+génériques ci-dessous ne servent que si le dossier ne dit rien de précis.
+
 ${expertiseBlock}
 
 BANQUE D’ANGLES (fais-les TOURNER — jamais 2 fois le même dans 4 posts consécutifs ;
