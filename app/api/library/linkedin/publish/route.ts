@@ -157,6 +157,23 @@ export async function POST(req: NextRequest) {
         .update({ status: 'published', category: 'published' })
         .eq('id', draftId)
         .eq('user_id', userId);
+    } else {
+      // 2026-07-19 — Founder: "je veux qu'il soit ajouté au brouillon dans la
+      // galerie même si je le supprime ensuite, qu'il soit pas perdu". Aucun
+      // draftId (publication directe / test / cron sans brouillon d'origine) →
+      // on archive AUTOMATIQUEMENT le post publié dans la galerie pour qu'il
+      // soit toujours retrouvable, indépendamment de LinkedIn. Non-fatal.
+      try {
+        await supabase.from('linkedin_drafts').insert({
+          user_id: userId,
+          media_url: mediaUrl || '',
+          media_type: mediaType || 'text-only',
+          category: 'published',
+          caption: caption || '',
+          hashtags: hashtags || [],
+          status: 'published',
+        });
+      } catch { /* archivage best-effort, ne bloque pas la publication */ }
     }
 
     // LinkedIn returns the URN of the activity (e.g. urn:li:share:123…
