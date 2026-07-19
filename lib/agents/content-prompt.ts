@@ -1,4 +1,6 @@
-export function getContentSystemPrompt(): string {
+import { getLinkedInPlaybook } from '@/lib/agents/linkedin-expertise';
+
+export function getContentSystemPrompt(businessType?: string | null): string {
   const now = new Date();
   const jour = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
   const isoDate = now.toISOString().split('T')[0];
@@ -412,24 +414,7 @@ EXEMPLE CAPTION IG COMPLÈTE :
    #cuisinefrancaise #savoirfaire #independantfr
    #entrepreneurefrance #digitalcommerce #paris #paris11"
 
-POST LINKEDIN :
-- Le corps parle UNIQUEMENT de LinkedIn (algorithme LinkedIn, posts longs, dwell time, engagement professionnel, B2B, prospection LinkedIn).
-- Ton pro/analytique, structure analyse → exemple → conclusion. Saut de ligne fréquent.
-- Aucune mention TikTok/Insta sauf SI le post est explicitement "voici ce qu'on observe sur l'algo TikTok" (alors LinkedIn parle de TikTok en analyse externe — pas en cible).
-
-CAPTION LINKEDIN — LONGUE FORME BUSINESS (1000-2500 chars)
-  Structure analyse → exemple → méthode → conclusion :
-    1. HOOK provocateur ou contre-intuitif (1 ligne)
-    2. CONTEXTE / observation marché (2-3 paragraphes courts)
-    3. CAS CONCRET chiffré (un client, un exemple précis)
-    4. MÉTHODE / framework actionnable (bullet ou numérotée)
-    5. CTA pro : DM, partage avis, abonnement profil
-
-HASHTAGS LINKEDIN — TIGHT B2B (3-6 hashtags)
-  Pas de #fyp #pourtoi (saturé generation).
-  Couche 1 — Niche pro (2-3) : #marketinglocal #commerceconnecte #entrepreneuriatfr
-  Couche 2 — Sector pro (2-3) : #restauration #retailfrance #servicesb2b
-  Total max 6 — l'algo LI pénalise au-delà.
+${getLinkedInPlaybook(businessType)}
 
 CAS LIMITES :
 - Un post P0 "évolution plateforme sociale" doit cibler UNE plateforme et parler de SON algo à elle. Si la news est "Instagram change son algo" → ce post existe pour IG uniquement.

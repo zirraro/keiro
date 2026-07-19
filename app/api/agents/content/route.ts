@@ -4947,6 +4947,16 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   const now = new Date();
   const nowISO = now.toISOString();
 
+  // Domaine du client — sert à injecter l'expertise LinkedIn ciblée (voix du
+  // consultant dans son métier) dans le system prompt (founder 2026-07-19).
+  let planBizType: string | null = null;
+  if (userId) {
+    try {
+      const { data: bizProf } = await supabase.from('profiles').select('business_type').eq('id', userId).maybeSingle();
+      planBizType = (bizProf as any)?.business_type || null;
+    } catch { /* generic playbook fallback */ }
+  }
+
   // Get last 10 published posts for context (avoid repetition)
   const { data: recentPosts } = await supabase
     .from('content_calendar')
@@ -4998,7 +5008,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   const prompt = getWeeklyPlanPrompt({ existingPlanned });
 
   // The elite system prompt already contains all visual rules, timing, and brand guidelines
-  const enhancedSystemPrompt = getContentSystemPrompt();
+  const enhancedSystemPrompt = getContentSystemPrompt(planBizType);
 
   let rawText: string;
   try {
@@ -5274,7 +5284,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
   }
 
   const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + newsHistoryContext + cadenceBlock + knowledgeBlock;
-  const systemPrompt = getContentSystemPrompt();
+  const systemPrompt = getContentSystemPrompt(planBizType);
 
   let rawText: string;
   try {
@@ -6654,7 +6664,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   let rawText: string;
   try {
     rawText = await callClaude({
-      system: getContentSystemPrompt(),
+      system: getContentSystemPrompt(detectedBusinessType || (clientSettings as any)?.business_type),
       message: enhancedPrompt,
       maxTokens: 2000,
     });
