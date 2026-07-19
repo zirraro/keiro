@@ -276,7 +276,10 @@ async function handleIncomingMessage(
           whatsapp_phone: senderPhone,
           whatsapp_opted_in: true,
           whatsapp_last_message_at: now,
-          source: 'whatsapp',
+          // 'whatsapp' n'est PAS dans l'allowlist du CHECK crm_prospects_source_check
+          // (comme 'google_maps' pour Léo) → insert rejeté en silence. On utilise
+          // 'other' (autorisé) ; le canal reste identifiable via whatsapp_phone.
+          source: 'other',
           status: 'identifie',
           score,
           temperature,
