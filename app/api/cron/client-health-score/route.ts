@@ -98,7 +98,7 @@ async function run() {
     const postsShort = activity > 0 && posts7d < floor;
     if (postsShort) {
       underDelivered.push({
-        company: c.company_name || c.email, plan: c.subscription_plan,
+        id: c.id, company: c.company_name || c.email, plan: c.subscription_plan,
         posts7d, floor, prospects7d, emails7d,
       });
     }
@@ -114,21 +114,35 @@ async function run() {
     }).then(() => {}, () => {});
   }
 
-  // Alerte ADMIN — SOUS-LIVRAISON de volume (le client paie, il doit recevoir le
-  // volume promis). Séparée du churn : ici le problème est OPÉRATIONNEL (génération/
-  // publication qui décroche), à corriger tout de suite, pas un signal de rétention.
-  if (underDelivered.length > 0) {
-    try {
-      const { sendBrevoCompat } = await import('@/lib/email/brevo-compat');
-      const rows = underDelivered.sort((a, b) => (a.posts7d - a.floor) - (b.posts7d - b.floor)).slice(0, 30)
-        .map(r => `<tr><td style="padding:4px 8px;">${r.company}</td><td style="padding:4px 8px;">${r.plan}</td><td style="padding:4px 8px;text-align:right;color:#ef4444;font-weight:bold;">${r.posts7d}/${r.floor}</td><td style="padding:4px 8px;text-align:right;">${r.prospects7d}</td><td style="padding:4px 8px;text-align:right;">${r.emails7d}</td></tr>`).join('');
-      await sendBrevoCompat({
-        sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
-        to: [{ email: 'contact@keiroai.com' }],
-        subject: `🚨 ${underDelivered.length} client(s) SOUS-LIVRÉS en posts (7j) — volume promis non tenu`,
-        htmlContent: `<div style="font-family:Arial,sans-serif;color:#333;"><h3>Sous-livraison de volume (7 derniers jours)</h3><p style="color:#6b7280;font-size:13px;">Posts publiés sous le plancher du plan. Cause probable : plan hebdo non généré (parse), publication échouée, ou toggle réseau off par erreur. À corriger — le client paie pour ce volume.</p><table style="border-collapse:collapse;font-size:13px;width:100%;"><thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Client</th><th style="padding:6px 8px;text-align:left;">Plan</th><th style="padding:6px 8px;text-align:right;">Posts/plancher</th><th style="padding:6px 8px;text-align:right;">Prospects 7j</th><th style="padding:6px 8px;text-align:right;">Mails 7j</th></tr></thead><tbody>${rows}</tbody></table></div>`,
-      });
-    } catch { /* best-effort */ }
+  // AUTO-RATTRAPAGE du volume (founder 2026-07-19 : "pas d'alerte à contact, on
+  // contrôle en AUTO et on actionne ce qu'il faut pour arriver aux volumes prévus.
+  // Super important de livrer."). Pour chaque client sous-livré, on DÉCLENCHE le
+  // rattrapage — il réutilise TOUS les gardes existants (toggles réseau, caps
+  // journaliers, espacement, quality gate, publish-mode auto/manuel). Fire-and-
+  // forget : on ne bloque pas le cron sur les générations (lourdes).
+  const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
+  const cron = process.env.CRON_SECRET || '';
+  const remediated: string[] = [];
+  for (const u of underDelivered.slice(0, 40)) {
+    if (!u.id) continue;
+    // 1) POSTS — slot catch_up : génère le prochain post manquant (respecte les gardes).
+    fetch(`${site}/api/agents/content?slot=catch_up&user_id=${u.id}`, {
+      headers: { Authorization: `Bearer ${cron}` },
+    }).catch(() => {});
+    // 2) MAILS — Hugo daily (self-cap 20/j/domaine, warm-up respecté) si 0 mail sur 7j.
+    if (u.emails7d === 0) {
+      fetch(`${site}/api/agents/email/daily?user_id=${u.id}`, {
+        headers: { Authorization: `Bearer ${cron}` },
+      }).catch(() => {});
+    }
+    remediated.push(u.company);
+  }
+  if (remediated.length > 0) {
+    await sb.from('agent_logs').insert({
+      agent: 'system', action: 'volume_auto_remediation', status: 'ok',
+      data: { count: remediated.length, clients: remediated.slice(0, 40), note: 'catch_up posts + email daily déclenchés pour tenir le volume promis' },
+      created_at: new Date().toISOString(),
+    }).then(() => {}, () => {});
   }
 
   // Alerte ADMIN groupée si des clients sont à risque (jamais côté client).
