@@ -190,11 +190,16 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                 ) : (
                   <img src={draft.media_url} alt="LinkedIn post preview" className="w-full h-full object-cover" loading="lazy" />
                 )}
+                {/* UN SEUL badge d'état fiable (status + category unifiés) — évite
+                    l'ancien double-badge contradictoire "Publié" + "Brouillon"
+                    (bug founder 20/07). À droite, juste l'icône du type de média. */}
                 <div className="absolute top-2 left-2">
-                  {getStatusBadge(draft.status)}
+                  {getStatusBadge((draft.category === 'published' || draft.status === 'published') ? 'published' : draft.status)}
                 </div>
                 <div className="absolute top-2 right-2">
-                  {getCategoryBadge(draft.category, draft.media_type)}
+                  <span className="px-2 py-1 rounded-full bg-white/90 text-neutral-700 text-xs font-medium shadow-sm">
+                    {draft.media_type === 'video' ? '🎬' : draft.media_type === 'text-only' ? '📝' : '📸'}
+                  </span>
                 </div>
                 {draft.media_type === 'video' && (
                   <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded flex items-center gap-1">
