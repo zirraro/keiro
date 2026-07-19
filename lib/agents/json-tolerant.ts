@@ -99,27 +99,21 @@ export function tryParse<T = any>(raw: string): T | undefined {
  * Heuristic: track brace depth and string state, slice on each
  * top-level closing brace, attempt to parse each slice as an object.
  */
-export function tolerantArrayParse<T = any>(raw: string): TolerantParseResult<T[]> {
-  if (!raw) return { ok: false, reason: 'empty' };
-  const cleaned = preClean(raw);
-  // Try clean parse first
-  const direct = tryParse<T[]>(cleaned);
-  if (Array.isArray(direct)) return { ok: true, data: direct };
-
-  // Find array bounds
-  const firstBracket = cleaned.indexOf('[');
-  const lastBracket = cleaned.lastIndexOf(']');
-  if (firstBracket < 0) return { ok: false, reason: 'no array bracket' };
-  const inside = cleaned.slice(firstBracket + 1, lastBracket >= 0 ? lastBracket : cleaned.length);
-
-  // Walk the inside, splitting at top-level (depth=0 between objects).
+/**
+ * Scan the WHOLE string and slice out every TOP-LEVEL {...} object.
+ * Works whether or not there is a `[ ]` wrapper, and tolerates prose
+ * before/after or between objects (the model sometimes narrates). If
+ * the LAST object is truncated (stream cut mid-array), we recover it
+ * by closing the open braces.
+ */
+function extractTopLevelObjects(s: string): string[] {
   const objects: string[] = [];
   let depth = 0;
   let start = -1;
   let inStr = false;
   let escape = false;
-  for (let i = 0; i < inside.length; i++) {
-    const c = inside[i];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
     if (escape) { escape = false; continue; }
     if (c === '\\' && inStr) { escape = true; continue; }
     if (c === '"') { inStr = !inStr; continue; }
@@ -128,19 +122,54 @@ export function tolerantArrayParse<T = any>(raw: string): TolerantParseResult<T[
       if (depth === 0) start = i;
       depth++;
     } else if (c === '}') {
-      depth--;
-      if (depth === 0 && start >= 0) {
-        objects.push(inside.slice(start, i + 1));
-        start = -1;
+      if (depth > 0) {
+        depth--;
+        if (depth === 0 && start >= 0) {
+          objects.push(s.slice(start, i + 1));
+          start = -1;
+        }
       }
     }
   }
+  // Truncated last object (array cut off mid-stream): close it.
+  if (depth > 0 && start >= 0) {
+    let tail = s.slice(start);
+    // drop a dangling trailing comma / partial key, then close braces
+    tail = tail.replace(/,\s*"[^"]*"\s*:?\s*$/,'').replace(/,\s*$/, '');
+    tail += '}'.repeat(depth);
+    objects.push(tail);
+  }
+  return objects;
+}
+
+export function tolerantArrayParse<T = any>(raw: string): TolerantParseResult<T[]> {
+  if (!raw) return { ok: false, reason: 'empty' };
+  const cleaned = preClean(raw);
+
+  // 1. Direct parse — array is the happy path.
+  const direct = tryParse<any>(cleaned);
+  if (Array.isArray(direct)) return { ok: true, data: direct as T[] };
+  // 1b. Wrapper object: the model returned {"posts":[…]} / {"plan":[…]} /
+  //     {"week":[…]} / {"days":[…]} instead of a bare array. Take the first
+  //     non-empty array property. If none, but it's a single post-like
+  //     object, wrap it so the client still gets ≥1 post (no lost slot).
+  if (direct && typeof direct === 'object') {
+    const arrProp = Object.values(direct).find((v) => Array.isArray(v) && (v as any[]).length > 0);
+    if (Array.isArray(arrProp)) return { ok: true, data: arrProp as T[], partial: true };
+    if (Object.keys(direct).length > 0) return { ok: true, data: [direct as T], partial: true };
+  }
+
+  // 2. Salvage: extract every well-formed top-level {…} object from the
+  //    whole response (tolerates prose, missing/duplicated brackets, and a
+  //    truncated final object). Ships the partial set so we never drop a
+  //    whole week of posts to one formatting hiccup.
+  const objects = extractTopLevelObjects(cleaned);
   if (objects.length === 0) return { ok: false, reason: 'no objects extracted' };
 
   const parsed: T[] = [];
   for (const objText of objects) {
     const obj = tryParse<T>(objText);
-    if (obj !== undefined) parsed.push(obj);
+    if (obj !== undefined && obj !== null && typeof obj === 'object') parsed.push(obj);
   }
   if (parsed.length === 0) return { ok: false, reason: 'no objects parsed' };
   return { ok: true, data: parsed, partial: true };
