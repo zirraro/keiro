@@ -258,12 +258,20 @@ async function handleIncomingMessage(
         })
         .eq('id', prospect.id);
     } else {
-      // Create new prospect
+      // Create new prospect. crm_prospects requires an owner (user_id) — resolve
+      // the KeiroAI client that owns this WhatsApp number. Multi-tenant mapping
+      // (phone_number_id → client) will come later; for now a default owner from
+      // env unblocks single-tenant + the test number (founder 2026-07-20).
+      const ownerUserId =
+        process.env.WHATSAPP_DEFAULT_OWNER_USER_ID ||
+        process.env.WHATSAPP_OWNER_USER_ID ||
+        null;
       const score = calculateScore({ source: 'whatsapp', phone: senderPhone });
       const temperature = calculateTemperature(score);
-      const { data: newProspect } = await supabase
+      const { data: newProspect, error: insErr } = await supabase
         .from('crm_prospects')
         .insert({
+          user_id: ownerUserId,
           phone: senderPhone,
           whatsapp_phone: senderPhone,
           whatsapp_opted_in: true,
@@ -279,6 +287,7 @@ async function handleIncomingMessage(
         })
         .select()
         .single();
+      if (insErr) console.error('[WhatsApp] prospect insert failed:', insErr.message, '(owner=', ownerUserId, ')');
       prospect = newProspect;
     }
   }
