@@ -9,7 +9,11 @@ export const runtime = 'edge';
  * Handle LinkedIn OAuth callback
  */
 export async function GET(req: NextRequest) {
-  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  // TOUJOURS rediriger vers l'URL publique. Derrière nginx, req.nextUrl.host et
+  // l'`origin` stocké dans le state valent `localhost:3000` → le navigateur du
+  // client atterrissait sur localhost (ERR_CONNECTION_REFUSED) alors que la
+  // connexion avait RÉUSSI côté serveur. On ignore donc l'origin du state.
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.keiroai.com';
 
   try {
     const { searchParams } = new URL(req.url);
@@ -17,16 +21,6 @@ export async function GET(req: NextRequest) {
     const state = searchParams.get('state');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
-
-    // Extract origin from state early
-    if (state) {
-      try {
-        const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
-        if (decoded.origin) {
-          baseUrl = decoded.origin;
-        }
-      } catch {}
-    }
 
     console.log('[LinkedInCallback] Starting callback', {
       baseUrl,
@@ -55,10 +49,6 @@ export async function GET(req: NextRequest) {
       const stateDecoded = Buffer.from(state, 'base64').toString('utf-8');
       const statePayload = JSON.parse(stateDecoded);
       userId = statePayload.userId;
-
-      if (statePayload.origin) {
-        baseUrl = statePayload.origin;
-      }
 
       if (!userId) throw new Error('User ID not found in state');
 
