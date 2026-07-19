@@ -198,7 +198,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                 </div>
                 <div className="absolute top-2 right-2">
                   <span className="px-2 py-1 rounded-full bg-white/90 text-neutral-700 text-xs font-medium shadow-sm">
-                    {draft.media_type === 'video' ? '🎬' : draft.media_type === 'text-only' ? '📝' : '📸'}
+                    {draft.media_type === 'video' ? '🎬' : '📸'}
                   </span>
                 </div>
                 {draft.media_type === 'video' && (
