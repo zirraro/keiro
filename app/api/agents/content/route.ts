@@ -5198,6 +5198,15 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
   const now = new Date();
   const nowISO = now.toISOString();
 
+  // Domaine du client → expertise LinkedIn ciblée dans le system prompt (founder 2026-07-19).
+  let planBizType: string | null = null;
+  if (userId) {
+    try {
+      const { data: bizProf } = await supabase.from('profiles').select('business_type').eq('id', userId).maybeSingle();
+      planBizType = (bizProf as any)?.business_type || null;
+    } catch { /* generic playbook fallback */ }
+  }
+
   console.log(`[Content] generate_week: starting (publishAll=${publishAll})`);
 
   // 2026-06-09 — Étend à 30 jours pour anti-réutilisation news.
