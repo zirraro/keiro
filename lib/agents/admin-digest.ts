@@ -151,7 +151,25 @@ export async function buildAdminDigest(
       perAgent[a].last_ts = l.created_at;
     }
   }
-  const agentRuns = Object.values(perAgent).sort((a, b) => b.runs - a.runs);
+  // Founder 2026-07-20 : le digest doit couvrir TOUS les agents, pas seulement
+  // ceux qui ont tourné — un agent SILENCIEUX (0 run) est justement le signal à
+  // voir. On complète avec le roster opérationnel complet (runs=0 = à surveiller).
+  const ALL_OPERATIONAL_AGENTS = [
+    'content', 'email', 'commercial', 'dm_instagram', 'seo', 'onboarding', 'retention',
+    'marketing', 'gmaps', 'comptable', 'ceo', 'whatsapp', 'chatbot', 'rh', 'tiktok_comments',
+    'ops', 'diagnostic',
+  ];
+  const seenAgents = new Set(Object.keys(perAgent));
+  for (const a of ALL_OPERATIONAL_AGENTS) {
+    if (!seenAgents.has(a)) {
+      perAgent[a] = { agent: a, runs: 0, errors: 0, delivered: 0, unit: UNIT_OF[a] || 'actions', last_action: 'aucune activité 24h', last_ts: '' };
+    }
+  }
+  // Tri : les silencieux (0 run) remontent en tête (à traiter en priorité), puis par runs.
+  const agentRuns = Object.values(perAgent).sort((a, b) => {
+    if ((a.runs === 0) !== (b.runs === 0)) return a.runs === 0 ? -1 : 1;
+    return b.runs - a.runs;
+  });
 
   const failures: FailureSnapshot[] = failuresRaw.slice(0, 40).map(f => ({
     agent: f.agent,
@@ -589,9 +607,12 @@ export async function sendAdminDailyDigest(
     ? `<h3 style="color:#111;font-size:13px;margin:20px 0 6px;">Quick wins</h3><ul style="font-size:11px;color:#374151;margin:0;padding-left:18px;">${(digest?.quick_wins || []).map(q => `<li>${esc(q)}</li>`).join('')}</ul>`
     : '';
 
-  const agentRunsHtml = stats.agent_runs.slice(0, 10).map(a =>
-    `<tr><td style="padding:4px 8px;font-size:11px;">${esc(a.agent)}</td><td style="padding:4px 8px;font-size:11px;text-align:right;font-weight:bold;">${a.delivered > 0 ? `${a.delivered} <span style="color:#6b7280;font-weight:normal;">${esc(a.unit)}</span>` : '—'}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:#9ca3af;">${a.runs}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${a.errors > 0 ? '#ef4444' : '#22c55e'};">${a.errors}</td><td style="padding:4px 8px;font-size:10px;color:#6b7280;">${esc(a.last_action).substring(0, 30)}</td></tr>`
-  ).join('');
+  // TOUS les agents (plus de cap). Un agent silencieux (0 run) est surligné (rangée
+  // ambre) — c'est le signal que le founder veut voir.
+  const agentRunsHtml = stats.agent_runs.map(a => {
+    const silent = a.runs === 0;
+    return `<tr style="${silent ? 'background:#fef3c7;' : ''}"><td style="padding:4px 8px;font-size:11px;${silent ? 'color:#92400e;font-weight:bold;' : ''}">${esc(a.agent)}${silent ? ' ⚠️' : ''}</td><td style="padding:4px 8px;font-size:11px;text-align:right;font-weight:bold;">${a.delivered > 0 ? `${a.delivered} <span style="color:#6b7280;font-weight:normal;">${esc(a.unit)}</span>` : '—'}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${silent ? '#d97706' : '#9ca3af'};">${a.runs}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${a.errors > 0 ? '#ef4444' : '#22c55e'};">${a.errors}</td><td style="padding:4px 8px;font-size:10px;color:#6b7280;">${esc(a.last_action).substring(0, 30)}</td></tr>`;
+  }).join('');
 
   const downCount = agentsDown.filter(a => a.status === 'down').length;
   const p0Count = healthCauses.filter(c => c.severity === 'P0').length;
@@ -667,7 +688,7 @@ export async function sendAdminDailyDigest(
 
           ${quickWinsHtml}
 
-          <h3 style="color:#111;font-size:14px;margin:24px 0 8px;">Runs par agent (top 10)</h3>
+          <h3 style="color:#111;font-size:14px;margin:24px 0 8px;">Tous les agents (silencieux en ambre ⚠️)</h3>
           <table style="width:100%;border-collapse:collapse;font-size:11px;">
             <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Agent</th><th style="padding:6px 8px;text-align:right;">Livré</th><th style="padding:6px 8px;text-align:right;">Runs</th><th style="padding:6px 8px;text-align:right;">Erreurs</th><th style="padding:6px 8px;text-align:left;">Dernière action</th></tr></thead>
             <tbody>${agentRunsHtml}</tbody>
