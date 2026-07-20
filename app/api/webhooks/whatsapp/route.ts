@@ -349,6 +349,26 @@ async function handleIncomingMessage(
     await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
   }
 
+  // PRISE EN MAIN HUMAINE : si le commerçant a repris cette conversation depuis
+  // l'espace Stella, Stella NE répond PAS (elle ne double jamais un humain).
+  // Au-delà de 24h sans reprise/resume, Stella reprend la main automatiquement.
+  try {
+    const { data: to } = await supabase.from('agent_logs')
+      .select('action, created_at')
+      .in('action', ['whatsapp_human_takeover', 'whatsapp_resume_stella'])
+      .contains('data', { phone: senderPhone })
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const t = to?.[0] as any;
+    if (t && t.action === 'whatsapp_human_takeover') {
+      const ageH = (Date.now() - new Date(t.created_at).getTime()) / 3600000;
+      if (ageH < 24) {
+        console.log('[WhatsApp] prise en main humaine active pour', senderPhone, '→ Stella se tait');
+        return;
+      }
+    }
+  } catch { /* best-effort */ }
+
   // ── 5. Build Stella prompt = assistante du business DU CLIENT ──
   // Charge le dossier + le ton du commerçant propriétaire de ce WhatsApp
   // (founder 2026-07-20 : Stella répond AU NOM du business client, avec ses
