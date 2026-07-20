@@ -223,6 +223,25 @@ async function handleIncomingMessage(
   // Mark as read (blue ticks)
   await markAsRead(waMessageId);
 
+  // MULTI-TENANT : à quel client KeiroAI appartient CE numéro WhatsApp ? On résout
+  // via metadata.phone_number_id → org_agent_configs (mappé à la connexion Embedded
+  // Signup). Fallback = owner par défaut (single-tenant / numéro de test).
+  let resolvedOwnerId: string | null = null;
+  try {
+    const pnid = metadata?.phone_number_id;
+    if (pnid) {
+      const { data: cfgOwner } = await supabase
+        .from('org_agent_configs')
+        .select('user_id')
+        .eq('agent_id', 'whatsapp')
+        .filter('config->>whatsapp_phone_number_id', 'eq', String(pnid))
+        .limit(1)
+        .maybeSingle();
+      resolvedOwnerId = (cfgOwner as any)?.user_id || null;
+    }
+  } catch { /* fallback below */ }
+  const defaultOwnerId = resolvedOwnerId || process.env.WHATSAPP_DEFAULT_OWNER_USER_ID || process.env.WHATSAPP_OWNER_USER_ID || null;
+
   // ── 1. Find or create prospect by phone ──
   let prospect: any = null;
   const { data: existingProspect } = await supabase
@@ -266,10 +285,7 @@ async function handleIncomingMessage(
       // the KeiroAI client that owns this WhatsApp number. Multi-tenant mapping
       // (phone_number_id → client) will come later; for now a default owner from
       // env unblocks single-tenant + the test number (founder 2026-07-20).
-      const ownerUserId =
-        process.env.WHATSAPP_DEFAULT_OWNER_USER_ID ||
-        process.env.WHATSAPP_OWNER_USER_ID ||
-        null;
+      const ownerUserId = defaultOwnerId;
       const score = calculateScore({ source: 'whatsapp', phone: senderPhone });
       const temperature = calculateTemperature(score);
       const { data: newProspect, error: insErr } = await supabase
@@ -374,7 +390,7 @@ async function handleIncomingMessage(
   // Charge le dossier + le ton du commerçant propriétaire de ce WhatsApp
   // (founder 2026-07-20 : Stella répond AU NOM du business client, avec ses
   // vraies infos, ton réglable, zéro emoji/IA, orientée résultat).
-  const ownerId = prospect.user_id || process.env.WHATSAPP_DEFAULT_OWNER_USER_ID || null;
+  const ownerId = prospect.user_id || defaultOwnerId;
   let dossierStr: string | undefined;
   let companyName = 'ce commerce';
   let bizType: string | undefined;
