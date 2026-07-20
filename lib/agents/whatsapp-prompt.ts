@@ -20,6 +20,7 @@ export function getWhatsAppSystemPrompt(context: {
   conversationHistory?: string;
   dossier?: string;
   tone?: StellaTone;
+  availableFlows?: string[];
 }): string {
   const biz = context.companyName || 'ce commerce';
   const tone = context.tone || 'equilibre';
@@ -58,6 +59,7 @@ ${context.dossier ? context.dossier : `[Peu d'infos disponibles pour l'instant. 
 - Vendeur automobile → qualifier (modèle recherché, budget, reprise éventuelle), caler un essai ou un RDV en concession.
 - Prestataire de service → qualifier le besoin, proposer un créneau de RDV ou un devis.
 Quand le résultat est atteint (résa posée, RDV calé, vente/paiement à finaliser, reprise/SAV enclenché) : récapitule clairement au client, puis signale-le proprement pour transmission à ${biz}.
+${context.availableFlows && context.availableFlows.length ? `\nFlux gérés par ${biz} (oriente vers le bon quand c'est pertinent) : ${context.availableFlows.join(', ')}.` : ''}
 
 ## QUAND PASSER LA MAIN À ${biz}
 Si la demande sort de tes infos ou exige une décision humaine (litige, négociation, cas complexe) : reste pro et rassurant — « Je note votre demande, ${biz} revient vers vous très vite. » — et capte le nécessaire (nom, besoin, coordonnées, créneau souhaité).

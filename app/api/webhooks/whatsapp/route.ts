@@ -20,6 +20,7 @@ import { getWhatsAppSystemPrompt, type StellaTone } from '@/lib/agents/whatsapp-
 import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 import { callGeminiChat } from '@/lib/agents/gemini';
 import { loadBusinessDossier, formatDossierForPrompt } from '@/lib/agents/client-context';
+import { getTemplatesForBusiness } from '@/lib/agents/whatsapp-templates';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -374,12 +375,14 @@ async function handleIncomingMessage(
       if (t === 'pro' || t === 'amical' || t === 'equilibre') stellaTone = t;
     } catch { /* dossier best-effort */ }
   }
+  const flowLabels = getTemplatesForBusiness(bizType).map((t) => t.label);
   const systemPrompt = getWhatsAppSystemPrompt({
     companyName,
     businessType: bizType,
     prospectName: prospect.first_name || undefined,
     dossier: dossierStr,
     tone: stellaTone,
+    availableFlows: flowLabels,
   });
   const whatsappContext = '';
 
