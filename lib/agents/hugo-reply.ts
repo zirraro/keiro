@@ -364,6 +364,7 @@ export async function sendReplyForClient(params: {
           gmail.email,
           params.attachments,
         );
+        try { const { logGoogleDataAccess } = await import('@/lib/security/access-log'); logGoogleDataAccess(clientUserId, 'send_email', 'gmail.send'); } catch { /* non-fatal */ }
         return { sent: true, channel: 'gmail' };
       }
     } catch { /* fall through to next provider */ }

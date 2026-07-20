@@ -11,19 +11,15 @@ None of this touches the live Option A consent screen.
    - Capture screenshots as evidence for the assessor.
    - *Effort: 1h. No code.*
 
-2. **Automated dependency scanning** (owner: dev)
-   - Add an `npm audit --production` step in CI + a weekly scheduled scan.
-   - Triage High/Critical within 7 days; document the process.
-   - *Effort: ½ day. Repo-only (invisible to reviewer).*
+2. **Automated dependency scanning** (owner: dev) — ✅ DONE (2026-07-21)
+   - `.github/workflows/security-audit.yml` runs `npm audit --audit-level=high` on push/PR + weekly + on demand; uploads a JSON report (90-day retention). Local: `npm run security:audit`.
+   - Triage High/Critical within 7 days (policy §7).
 
-3. **Self-serve data deletion endpoint** (owner: dev)
-   - `POST /api/me/delete-account`: revoke Google/Meta/TikTok tokens, delete `profiles` + owned rows, email confirmation.
-   - Surface a "Delete my account & data" control in settings.
-   - *Effort: 1 day. Satisfies ASVS V8 + Limited Use deletion-on-request.*
+3. **Self-serve data deletion endpoint** (owner: dev) — ✅ DONE (2026-07-21)
+   - `POST /api/me/delete-account` revokes Google tokens immediately, clears all OAuth credentials, logs the request, emails confirmation; full purge within 30 days. Satisfies ASVS V8 + Limited Use deletion-on-request.
 
-4. **Explicit Google-data access log** (owner: dev)
-   - When Option B reads a mailbox, log `{user_id, action, scope, timestamp}` (no body) to an access log.
-   - *Effort: ½ day. Ships with the Option B code.*
+4. **Explicit Google-data access log** (owner: dev) — ✅ DONE (2026-07-21)
+   - `lib/security/access-log.ts` → `logGoogleDataAccess(user, access, scope)` writes `{access, scope, ts}` (no body) to `agent_logs.action='google_data_access'`. Wired on `gmail.send`; read/compose calls log automatically when Option B activates.
 
 5. **zod validation on key inputs** (owner: dev)
    - Validate the highest-risk request bodies (auth, publish, ingest, webhooks) with zod.

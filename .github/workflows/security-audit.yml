@@ -1,0 +1,36 @@
+name: Security — dependency audit
+
+# CASA ASVS V10/V14 : scan automatisé des vulnérabilités de dépendances.
+# Se déclenche à chaque push/PR + chaque lundi. Échoue sur High/Critical
+# (à trier sous 7 jours, cf docs/security/information-security-policy.md §7).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'   # lundi 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install (no scripts)
+        run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - name: Audit (fail on high/critical)
+        run: npm audit --audit-level=high
+      - name: Full report (always, non-blocking)
+        if: always()
+        run: npm audit --json > npm-audit.json || true
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit.json
+          retention-days: 90
