@@ -1,0 +1,48 @@
+# CASA Remediation Plan — to pass the Tier 2 scan (Option B)
+
+Version 1.0 · 2026-07-20. The concrete, ordered work to close the 🟡/⬜ items from
+`casa-asvs-l2-checklist.md` before submitting Option B (`gmail.readonly` + `gmail.compose`).
+None of this touches the live Option A consent screen.
+
+## Order of work
+
+1. **MFA on all admin/infra accounts + evidence** (owner: founder)
+   - Enforce 2FA on Google Cloud, Supabase, OVH, domain registrar, Meta Business.
+   - Capture screenshots as evidence for the assessor.
+   - *Effort: 1h. No code.*
+
+2. **Automated dependency scanning** (owner: dev)
+   - Add an `npm audit --production` step in CI + a weekly scheduled scan.
+   - Triage High/Critical within 7 days; document the process.
+   - *Effort: ½ day. Repo-only (invisible to reviewer).*
+
+3. **Self-serve data deletion endpoint** (owner: dev)
+   - `POST /api/me/delete-account`: revoke Google/Meta/TikTok tokens, delete `profiles` + owned rows, email confirmation.
+   - Surface a "Delete my account & data" control in settings.
+   - *Effort: 1 day. Satisfies ASVS V8 + Limited Use deletion-on-request.*
+
+4. **Explicit Google-data access log** (owner: dev)
+   - When Option B reads a mailbox, log `{user_id, action, scope, timestamp}` (no body) to an access log.
+   - *Effort: ½ day. Ships with the Option B code.*
+
+5. **zod validation on key inputs** (owner: dev)
+   - Validate the highest-risk request bodies (auth, publish, ingest, webhooks) with zod.
+   - *Effort: 1 day. Repo-only.*
+
+6. **Document patch cadence** (owner: founder)
+   - One paragraph: OS monthly + critical CVEs; Node/Next on supported versions. Add to `information-security-policy.md` §7 (done) + keep a changelog.
+   - *Effort: 15 min.*
+
+## Option B code (prepared, gated OFF)
+The scope wiring for `gmail.readonly` + `gmail.compose` will sit behind an env flag
+(`GMAIL_OPTION_B=on`, default **off**) so it is inert and the **live consent screen
+stays `gmail.send` only** until CASA passes and a new Google verification is submitted.
+Nothing changes for the current reviewer until we explicitly flip the flag.
+
+## Then: submission sequence
+1. Close items 1–6 above.
+2. Run the CASA self-scan (approved tool) → remediate any High/Critical → get the Letter of Validation.
+3. In Google Cloud console: add `gmail.readonly` + `gmail.compose` to the consent screen → submit a **new** verification (video showing reading inbox + drafting) + attach the LOV.
+4. Option A keeps working throughout; Option B activates on approval (flip `GMAIL_OPTION_B=on`).
+
+Estimated total: **~1 week of engineering** + **2–4 weeks** Google/CASA turnaround.

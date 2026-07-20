@@ -42,9 +42,17 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     // le dossier Brouillons Gmail) ; les réponses reviennent via Reply-To (webhook).
     // OPTION B (plus tard, avec CASA) : remplacer par gmail.compose + gmail.readonly
     // → brouillons natifs dans Gmail + lecture native de la boîte.
+    // OPTION A (live, approuvé Google) = gmail.send. OPTION B (readonly+compose,
+    // CASA) = gatée derrière GMAIL_OPTION_B=on, INERTE par défaut → l'écran de
+    // consentement reste `gmail.send` tant que le flag n'est pas activé (post-CASA
+    // + nouvelle vérif Google). Ne JAMAIS activer avant approbation Option B.
     scope: [
-      'https://www.googleapis.com/auth/gmail.send',
-      // OPTION B (CASA) : 'gmail.compose' + 'gmail.readonly' à la place de send.
+      ...(process.env.GMAIL_OPTION_B === 'on'
+        ? [
+            'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.compose',
+          ]
+        : ['https://www.googleapis.com/auth/gmail.send']),
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
     ].join(' '),
