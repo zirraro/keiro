@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const res = await sendWhatsAppMessage(phone, message);
     sent = !!res?.success;
     if (!sent) {
-      return NextResponse.json({ ok: false, error: res?.error || 'Échec envoi WhatsApp (fenêtre 24h expirée ? utiliser un template)' }, { status: 400 });
+      return NextResponse.json({ ok: false, error: 'Échec envoi WhatsApp (fenêtre 24h expirée ? il faut alors un template)' }, { status: 400 });
     }
     await sb.from('whatsapp_conversations').insert({
       phone_number: phone,
