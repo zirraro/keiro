@@ -1698,8 +1698,11 @@ export async function GET(request: NextRequest) {
 
       // Filter in JS for reliability (PostgREST .or() with .not.in. can be tricky)
       const prospects = (allWithEmail || []).filter(p => {
-        // EXCLUDE admin-owned prospects
-        if (p.user_id && adminUserIds.has(p.user_id)) return false;
+        // EXCLUDE admin-owned prospects — SAUF quand le run cible CE compte admin
+        // lui-même (sa propre prospection KeiroAI). Sinon un run client n'émaile
+        // jamais les prospects de KeiroAI. (Founder 2026-07-21 : sa prospection
+        // était bloquée par ce garde alors que 118 prospects valides attendaient.)
+        if (p.user_id && adminUserIds.has(p.user_id) && p.user_id !== clientUserId) return false;
         // Business type targeting: if types specified, only include matching prospects
         const typeOk = targetTypes.length === 0 || (p.type && targetTypes.includes(p.type));
         // Skip prospects that have failed sending 3+ times (prevent infinite retry)
