@@ -5,6 +5,7 @@
  * Extracted from AgentDashboard.tsx.
  */
 
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   fmt, fmtPercent,
   KpiCard, SectionTitle, DonutChart, ProgressBar,
@@ -12,6 +13,136 @@ import {
 import { DEMO_WHATSAPP_STATS } from '../AgentPreviewData';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
+
+// ─── Espace Stella : conversations WhatsApp en direct + reprise en main ───
+type WaConv = { phone: string; name: string; last: string; last_role: string; last_at: string; count: number };
+type WaMsg = { role: string; message: string; type: string; date: string };
+
+function StellaConversations({ en }: { en: boolean }) {
+  const [convs, setConvs] = useState<WaConv[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<string | null>(null);
+  const [thread, setThread] = useState<WaMsg[]>([]);
+  const [human, setHuman] = useState(false);
+  const [reply, setReply] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const endRef = useRef<HTMLDivElement>(null);
+
+  const loadList = useCallback(() => {
+    setLoading(true);
+    fetch('/api/agents/whatsapp/conversations', { credentials: 'include' })
+      .then(r => r.json()).then(d => { if (d.ok) setConvs(d.conversations || []); })
+      .catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const loadThread = useCallback((phone: string) => {
+    fetch(`/api/agents/whatsapp/conversations?phone=${encodeURIComponent(phone)}`, { credentials: 'include' })
+      .then(r => r.json()).then(d => { if (d.ok) { setThread(d.messages || []); setHuman(!!d.human_takeover); } })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { loadList(); }, [loadList]);
+  useEffect(() => { if (sel) loadThread(sel); }, [sel, loadThread]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [thread]);
+
+  const sendReply = async () => {
+    if (!sel || !reply.trim()) return;
+    setBusy(true); setErr('');
+    try {
+      const r = await fetch('/api/agents/whatsapp/reply', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ phone: sel, message: reply.trim() }),
+      });
+      const d = await r.json();
+      if (d.ok) { setReply(''); setHuman(true); loadThread(sel); }
+      else setErr(d.error || 'Erreur');
+    } catch (e: any) { setErr(e?.message || 'Erreur'); } finally { setBusy(false); }
+  };
+
+  const toggleTakeover = async (action: 'takeover' | 'resume') => {
+    if (!sel) return;
+    setBusy(true);
+    try {
+      const r = await fetch('/api/agents/whatsapp/reply', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ phone: sel, action }),
+      });
+      const d = await r.json();
+      if (d.ok) setHuman(action === 'takeover');
+    } catch { /* noop */ } finally { setBusy(false); }
+  };
+
+  const bubbleStyle = (role: string) =>
+    role === 'user'
+      ? 'bg-white/[0.06] text-white/85 self-start rounded-2xl rounded-bl-md'
+      : role === 'human'
+        ? 'bg-sky-500/25 text-white self-end rounded-2xl rounded-br-md'
+        : 'bg-[#25D366]/20 text-white self-end rounded-2xl rounded-br-md'; // assistant = Stella
+  const roleLabel = (role: string) => role === 'user' ? '' : role === 'human' ? (en ? 'You' : 'Toi') : 'Stella';
+
+  return (
+    <div className="rounded-xl border border-[#25D366]/25 bg-[#0b141a]/40 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+        <span className="text-sm font-semibold text-white/90">{en ? 'Stella — conversations' : 'Stella — conversations'}</span>
+        <button onClick={loadList} className="text-[11px] text-white/40 hover:text-white/70">↻ {en ? 'Refresh' : 'Actualiser'}</button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] min-h-[340px]">
+        {/* Liste */}
+        <div className={`border-r border-white/10 max-h-[420px] overflow-y-auto ${sel ? 'hidden md:block' : ''}`}>
+          {loading ? (
+            <div className="p-4 text-white/30 text-sm">{en ? 'Loading…' : 'Chargement…'}</div>
+          ) : convs.length === 0 ? (
+            <div className="p-4 text-white/30 text-xs leading-relaxed">{en ? 'No conversation yet. When a customer messages your WhatsApp, Stella replies and it shows here.' : 'Aucune conversation. Quand un client écrit sur ton WhatsApp, Stella répond et ça apparaît ici.'}</div>
+          ) : convs.map((c) => (
+            <button key={c.phone} onClick={() => setSel(c.phone)}
+              className={`w-full text-left px-3 py-2.5 border-b border-white/5 hover:bg-white/[0.04] transition ${sel === c.phone ? 'bg-white/[0.06]' : ''}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[13px] font-semibold text-white/90 truncate">{c.name}</span>
+                <span className="text-[9px] text-white/30 shrink-0">{new Date(c.last_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+              </div>
+              <div className="text-[11px] text-white/45 truncate">{c.last_role !== 'user' ? '↩ ' : ''}{c.last}</div>
+            </button>
+          ))}
+        </div>
+        {/* Fil */}
+        <div className={`flex flex-col ${sel ? '' : 'hidden md:flex'}`}>
+          {!sel ? (
+            <div className="flex-1 flex items-center justify-center text-white/25 text-sm p-6 text-center">{en ? 'Select a conversation' : 'Sélectionne une conversation'}</div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
+                <button onClick={() => setSel(null)} className="md:hidden text-white/50 text-sm">←</button>
+                <span className="text-[13px] font-semibold text-white/85 flex-1 truncate">{convs.find(c => c.phone === sel)?.name || sel}</span>
+                {human
+                  ? <button disabled={busy} onClick={() => toggleTakeover('resume')} className="text-[10px] px-2 py-1 rounded-full bg-[#25D366]/20 text-[#34d399] font-semibold">{en ? 'Give back to Stella' : 'Rendre la main à Stella'}</button>
+                  : <button disabled={busy} onClick={() => toggleTakeover('takeover')} className="text-[10px] px-2 py-1 rounded-full bg-sky-500/20 text-sky-300 font-semibold">{en ? 'Take over' : 'Reprendre la main'}</button>}
+              </div>
+              <div className="flex-1 max-h-[300px] overflow-y-auto p-3 flex flex-col gap-2">
+                {thread.map((m, i) => (
+                  <div key={i} className={`max-w-[80%] px-3 py-2 ${bubbleStyle(m.role)}`}>
+                    {roleLabel(m.role) && <div className="text-[9px] font-bold opacity-60 mb-0.5">{roleLabel(m.role)}</div>}
+                    <div className="text-[12px] whitespace-pre-wrap leading-snug">{m.message}</div>
+                  </div>
+                ))}
+                <div ref={endRef} />
+              </div>
+              {human && (
+                <div className="px-3 pb-2 flex items-center gap-2">
+                  <input value={reply} onChange={e => setReply(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendReply(); }}
+                    placeholder={en ? 'Reply as you…' : 'Réponds toi-même…'} className="flex-1 bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[12px] text-white outline-none focus:border-[#25D366]/50" />
+                  <button disabled={busy || !reply.trim()} onClick={sendReply} className="px-3 py-2 rounded-lg bg-[#25D366] text-[#0b141a] text-[12px] font-bold disabled:opacity-40">{en ? 'Send' : 'Envoyer'}</button>
+                </div>
+              )}
+              {!human && <div className="px-3 pb-2 text-[10px] text-white/30 italic">{en ? 'Stella is handling this conversation. Take over to reply yourself.' : 'Stella gère cette conversation. Reprends la main pour répondre toi-même.'}</div>}
+              {err && <div className="px-3 pb-2 text-[10px] text-red-400">{err}</div>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
   const { t, locale } = useLanguage();
@@ -48,6 +179,9 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
 
   return (
     <>
+      {/* Espace Stella — conversations en direct + reprise en main (données réelles) */}
+      <StellaConversations en={en} />
+
       {/* Ce que Stella fait — cas d'usage concrets avec exemples */}
       <div className="rounded-xl border border-[#25D366]/25 bg-[#25D366]/[0.05] p-3 sm:p-4">
         <div className="flex items-center justify-between gap-2 mb-3">

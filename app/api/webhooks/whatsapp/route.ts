@@ -349,9 +349,10 @@ async function handleIncomingMessage(
     await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
   }
 
-  // PRISE EN MAIN HUMAINE : si le commerçant a repris cette conversation depuis
-  // l'espace Stella, Stella NE répond PAS (elle ne double jamais un humain).
-  // Au-delà de 24h sans reprise/resume, Stella reprend la main automatiquement.
+  // PRISE EN MAIN HUMAINE : dès que le commerçant a repris cette conversation,
+  // Stella NE répond PLUS — DÉFINITIVEMENT, jusqu'à un ordre EXPLICITE de rendre
+  // la main (action 'whatsapp_resume_stella' via le bouton). PAS de reprise auto
+  // (founder 2026-07-20 : "si humain reprend, l'IA ne reprend plus sauf ordre").
   try {
     const { data: to } = await supabase.from('agent_logs')
       .select('action, created_at')
@@ -361,11 +362,11 @@ async function handleIncomingMessage(
       .limit(1);
     const t = to?.[0] as any;
     if (t && t.action === 'whatsapp_human_takeover') {
-      const ageH = (Date.now() - new Date(t.created_at).getTime()) / 3600000;
-      if (ageH < 24) {
-        console.log('[WhatsApp] prise en main humaine active pour', senderPhone, '→ Stella se tait');
-        return;
-      }
+      // Le dernier ordre est une prise en main → Stella reste silencieuse. On
+      // enregistre quand même le message entrant (déjà fait plus haut) pour que
+      // le commerçant le voie dans l'espace Stella.
+      console.log('[WhatsApp] prise en main humaine active pour', senderPhone, '→ Stella se tait (jusqu\'à resume explicite)');
+      return;
     }
   } catch { /* best-effort */ }
 
