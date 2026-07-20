@@ -25,6 +25,17 @@ export async function POST(req: NextRequest) {
   const subject = String(body.subject || 'Re:').substring(0, 200);
   const text = String(body.body || '').trim();
   const inReplyTo = body.in_reply_to ? String(body.in_reply_to) : undefined;
+  // Pièces jointes (founder 2026-07-21) : [{filename, mimeType, contentBase64}].
+  // Garde-fou : max 5 fichiers, ~10 Mo total en base64 (limite MIME raisonnable).
+  const rawAtt = Array.isArray(body.attachments) ? body.attachments : [];
+  const attachments = rawAtt
+    .filter((a: any) => a && a.filename && a.contentBase64)
+    .slice(0, 5)
+    .map((a: any) => ({ filename: String(a.filename).slice(0, 200), mimeType: a.mimeType ? String(a.mimeType) : undefined, contentBase64: String(a.contentBase64) }));
+  const totalB64 = attachments.reduce((s: number, a: any) => s + a.contentBase64.length, 0);
+  if (totalB64 > 14_000_000) {
+    return NextResponse.json({ ok: false, error: 'Pièces jointes trop volumineuses (max ~10 Mo).' }, { status: 413 });
+  }
 
   if (!to || !text) {
     return NextResponse.json({ ok: false, error: 'to_email and body required' }, { status: 400 });
@@ -55,6 +66,7 @@ export async function POST(req: NextRequest) {
       body: text,
       inReplyTo,
       senderName: prof?.company_name || prof?.full_name || undefined,
+      attachments: attachments.length ? attachments : undefined,
     });
     if (result.sent) {
       const via = result.channel;

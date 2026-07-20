@@ -170,26 +170,30 @@ export async function sendViaGmail(
   fromName?: string,
   fromEmail?: string,
   replyTo?: string,
+  attachments?: EmailAttachment[],
 ): Promise<{ id: string; sent: boolean }> {
-  // Build RFC 2822 email
-  const from = fromName ? `${fromName} <${fromEmail || 'me'}>` : (fromEmail || 'me');
-  const headers = [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
-  ];
-  if (replyTo) headers.push(`Reply-To: ${replyTo}`);
-
-  const rawEmail = headers.join('\r\n') + '\r\n\r\n' + htmlBody;
-
-  // Base64url encode
-  const encoded = Buffer.from(rawEmail)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  let encoded: string;
+  if (attachments && attachments.length > 0) {
+    // Chemin AVEC pièces jointes → multipart via le builder partagé.
+    encoded = buildRawGmailMessage({ to, subject, htmlBody, fromName, fromEmail, replyTo, attachments });
+  } else {
+    // Chemin sans PJ — INCHANGÉ (byte-identique à avant).
+    const from = fromName ? `${fromName} <${fromEmail || 'me'}>` : (fromEmail || 'me');
+    const headers = [
+      `From: ${from}`,
+      `To: ${to}`,
+      `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+    ];
+    if (replyTo) headers.push(`Reply-To: ${replyTo}`);
+    const rawEmail = headers.join('\r\n') + '\r\n\r\n' + htmlBody;
+    encoded = Buffer.from(rawEmail)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
 
   const res = await fetch(GMAIL_SEND_URL, {
     method: 'POST',
@@ -222,6 +226,12 @@ const GMAIL_DRAFT_URL = (id: string) => `${GMAIL_DRAFTS_URL}/${id}`;
  * Build a base64url-encoded RFC 2822 message. Shared by send + drafts so
  * threading headers (In-Reply-To / References) and encoding stay identical.
  */
+export interface EmailAttachment {
+  filename: string;
+  mimeType?: string;
+  contentBase64: string; // base64 (avec ou sans préfixe data:)
+}
+
 export function buildRawGmailMessage(params: {
   to: string;
   subject: string;
@@ -230,15 +240,15 @@ export function buildRawGmailMessage(params: {
   fromEmail?: string;
   replyTo?: string;
   inReplyTo?: string;   // Message-ID of the email we're replying to (threading)
+  attachments?: EmailAttachment[];
 }): string {
-  const { to, subject, htmlBody, fromName, fromEmail, replyTo, inReplyTo } = params;
+  const { to, subject, htmlBody, fromName, fromEmail, replyTo, inReplyTo, attachments } = params;
   const from = fromName ? `${fromName} <${fromEmail || 'me'}>` : (fromEmail || 'me');
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
     `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
     'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
   ];
   if (replyTo) headers.push(`Reply-To: ${replyTo}`);
   // Threading: In-Reply-To + References make the draft/reply land in the
@@ -247,7 +257,36 @@ export function buildRawGmailMessage(params: {
     headers.push(`In-Reply-To: ${inReplyTo}`);
     headers.push(`References: ${inReplyTo}`);
   }
-  const rawEmail = headers.join('\r\n') + '\r\n\r\n' + htmlBody;
+
+  let rawEmail: string;
+  const atts = (attachments || []).filter((a) => a && a.filename && a.contentBase64);
+  if (atts.length > 0) {
+    // multipart/mixed : corps HTML + pièces jointes (base64). Branche activée
+    // UNIQUEMENT s'il y a des PJ → le chemin sans PJ reste byte-identique.
+    const boundary = 'keiro_bnd_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+    const parts: string[] = [];
+    parts.push([`--${boundary}`, 'Content-Type: text/html; charset=UTF-8', 'Content-Transfer-Encoding: 7bit', '', htmlBody].join('\r\n'));
+    for (const a of atts) {
+      const b64 = a.contentBase64.replace(/^data:[^;]+;base64,/, '').replace(/\s/g, '');
+      const wrapped = b64.replace(/(.{76})/g, '$1\r\n');
+      const safeName = a.filename.replace(/["\r\n]/g, '');
+      parts.push([
+        `--${boundary}`,
+        `Content-Type: ${a.mimeType || 'application/octet-stream'}; name="${safeName}"`,
+        `Content-Disposition: attachment; filename="${safeName}"`,
+        'Content-Transfer-Encoding: base64',
+        '',
+        wrapped,
+      ].join('\r\n'));
+    }
+    parts.push(`--${boundary}--`);
+    rawEmail = headers.join('\r\n') + '\r\n\r\n' + parts.join('\r\n');
+  } else {
+    headers.push('Content-Type: text/html; charset=UTF-8');
+    rawEmail = headers.join('\r\n') + '\r\n\r\n' + htmlBody;
+  }
+
   return Buffer.from(rawEmail)
     .toString('base64')
     .replace(/\+/g, '-')

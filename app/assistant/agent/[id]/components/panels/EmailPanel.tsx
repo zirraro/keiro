@@ -881,7 +881,20 @@ function FullInbox() {
   const [cTo, setCTo] = useState('');
   const [cSubject, setCSubject] = useState('');
   const [cBody, setCBody] = useState('');
+  const [cFiles, setCFiles] = useState<{ filename: string; mimeType: string; contentBase64: string }[]>([]);
   const [cBusy, setCBusy] = useState<'' | 'send' | 'draft'>('');
+
+  // Lecture des pièces jointes (founder 2026-07-21) → base64 pour l'envoi Gmail.
+  const onPickFiles = async (files: FileList | null) => {
+    if (!files) return;
+    const out: { filename: string; mimeType: string; contentBase64: string }[] = [];
+    for (const f of Array.from(files).slice(0, 5)) {
+      if (f.size > 8 * 1024 * 1024) { if (typeof window !== 'undefined') window.alert(`${f.name} dépasse 8 Mo`); continue; }
+      const b64: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(String(r.result || '')); r.readAsDataURL(f); });
+      out.push({ filename: f.name, mimeType: f.type || 'application/octet-stream', contentBase64: b64 });
+    }
+    setCFiles((prev) => [...prev, ...out].slice(0, 5));
+  };
   const [cDone, setCDone] = useState('');
 
   const compose = useCallback(async (mode: 'send' | 'draft') => {
@@ -892,7 +905,7 @@ function FullInbox() {
       const res = mode === 'send'
         ? await fetch('/api/me/send-email', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-            body: JSON.stringify({ to_email: cTo.trim(), subject: cSubject.trim() || '(sans objet)', body: cBody.trim() }),
+            body: JSON.stringify({ to_email: cTo.trim(), subject: cSubject.trim() || '(sans objet)', body: cBody.trim(), attachments: cFiles }),
           })
         : await fetch('/api/agents/email/drafts', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
@@ -905,7 +918,7 @@ function FullInbox() {
         // tout de suite (bug founder 19/07 : envoi manuel invisible dans Envoyés).
         setFilter(mode === 'send' ? 'sent' : 'draft');
         setTimeout(() => { load(); }, 900);
-        setTimeout(() => { setComposeOpen(false); setCTo(''); setCSubject(''); setCBody(''); setCDone(''); }, 1400);
+        setTimeout(() => { setComposeOpen(false); setCTo(''); setCSubject(''); setCBody(''); setCFiles([]); setCDone(''); }, 1400);
       } else if (typeof window !== 'undefined') {
         window.alert(j.error || 'Erreur');
       }
@@ -1110,7 +1123,20 @@ function FullInbox() {
                 placeholder={en ? 'Write your message…' : 'Écris ton message…'}
                 className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 resize-none"
               />
-              <p className="text-[10px] text-white/40">{en ? 'Sent from your connected mailbox (Gmail / Outlook / your domain).' : 'Envoyé depuis ta boîte connectée (Gmail / Outlook / ton domaine).'}</p>
+              {/* Pièces jointes (Gmail) */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 text-white/70 text-[11px] font-medium hover:bg-white/15 cursor-pointer">
+                  📎 {en ? 'Attach' : 'Joindre'}
+                  <input type="file" multiple className="hidden" onChange={(e) => { onPickFiles(e.target.files); e.currentTarget.value = ''; }} />
+                </label>
+                {cFiles.map((f, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/15 text-cyan-200 text-[10px] max-w-[160px]">
+                    <span className="truncate">{f.filename}</span>
+                    <button onClick={() => setCFiles(prev => prev.filter((_, j) => j !== i))} className="text-cyan-300/70 hover:text-white shrink-0">✕</button>
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-white/40">{en ? 'Sent from your connected mailbox (Gmail / Outlook / your domain). Attachments: Gmail.' : 'Envoyé depuis ta boîte connectée (Gmail / Outlook / ton domaine). Pièces jointes : Gmail.'}</p>
             </div>
             <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between gap-2 sticky bottom-0 bg-gray-900">
               {cDone ? (

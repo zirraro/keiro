@@ -337,6 +337,7 @@ export async function sendReplyForClient(params: {
   body: string;
   inReplyTo?: string;
   senderName?: string;
+  attachments?: Array<{ filename: string; mimeType?: string; contentBase64: string }>;
 }): Promise<{ sent: boolean; channel: 'gmail' | 'outlook' | 'smtp' | 'brevo_admin' | 'none'; reason?: string }> {
   const { clientUserId, clientEmail } = params;
 
@@ -361,6 +362,7 @@ export async function sendReplyForClient(params: {
           params.senderName,
           gmail.email,
           gmail.email,
+          params.attachments,
         );
         return { sent: true, channel: 'gmail' };
       }
