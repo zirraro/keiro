@@ -2595,6 +2595,33 @@ export async function GET(request: NextRequest) {
               }
             } catch { /* non-blocking */ }
           }
+          // CONTRÔLE PERTINENCE TEMPORELLE avant publication (founder 2026-07-20) :
+          // un post événementiel/actu ne doit pas partir s'il parle d'un événement
+          // passé de +3 jours, ou avec un mauvais temps de verbe. On ne vérifie que
+          // les posts qui SEMBLENT datés (pillar trends ou mots-clés de date) → coût
+          // LLM négligeable. Échec → validation manuelle, jamais publié tel quel.
+          if (postPublishMode === 'auto' && post.status === 'draft' && userId) {
+            try {
+              const { data: pdt } = await supabase.from('content_calendar').select('caption, hook, pillar').eq('id', post.id).single();
+              const dtxt = `${pdt?.hook || ''} ${pdt?.caption || ''}`.trim();
+              const looksDated = pdt?.pillar === 'trends' ||
+                /\b(hier|demain|aujourd|ce soir|ce week|cette semaine|ce match|finale|sortie|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)\b/i.test(dtxt);
+              if (looksDated && dtxt.length > 12) {
+                const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
+                const check = await callClaude({
+                  system: `Contrôle qualité de dates. AUJOURD'HUI = ${today}. Règles : (1) un post ne doit PAS parler d'un événement passé depuis PLUS DE 3 JOURS ; (2) si l'événement est passé (≤3j), le verbe doit être au PASSÉ, pas au futur/présent ; (3) un événement à venir ou aujourd'hui est OK. Réponds STRICTEMENT en JSON : {"ok":true} si publiable aujourd'hui, sinon {"ok":false,"raison":"..."}.`,
+                  message: `Post à publier aujourd'hui :\n"${dtxt.slice(0, 600)}"\nPertinent temporellement aujourd'hui ?`,
+                  maxTokens: 120,
+                });
+                const norm = String(check || '').toLowerCase().replace(/\s/g, '');
+                if (norm.includes('"ok":false') || norm.includes("'ok':false")) {
+                  postPublishMode = 'notify';
+                  await supabase.from('content_calendar').update({ qa_notes: 'Date QA: événement périmé (+3j) ou temps de verbe incorrect — à revoir avant publication.' }).eq('id', post.id);
+                  console.log(`[Content] Date-relevance gate FAIL post ${post.id} → validation`);
+                }
+              }
+            } catch { /* non-blocking */ }
+          }
           if (postPublishMode === 'notify' && post.status === 'draft') {
             const { data: fullPostForNotify } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
             if (fullPostForNotify) {
