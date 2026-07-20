@@ -21,6 +21,8 @@ import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 import { callGeminiChat } from '@/lib/agents/gemini';
 import { loadBusinessDossier, formatDossierForPrompt } from '@/lib/agents/client-context';
 import { getTemplatesForBusiness } from '@/lib/agents/whatsapp-templates';
+import { matchDomain } from '@/lib/agents/linkedin-expertise';
+import { getActiveLearnings, saveLearning } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -376,6 +378,14 @@ async function handleIncomingMessage(
     } catch { /* dossier best-effort */ }
   }
   const flowLabels = getTemplatesForBusiness(bizType).map((t) => t.label);
+  // Expertise du secteur (banque partagée) + pioche dans le pool de connaissances
+  // (ce qui convertit, appris par les autres agents) — founder 2026-07-20.
+  const domainExpertise = matchDomain(bizType)?.angles?.slice(0, 5);
+  let poolLearnings: string[] = [];
+  try {
+    const learnings = await getActiveLearnings(supabase, 'whatsapp', 'conversion', ownerId || undefined);
+    poolLearnings = (learnings || []).slice(0, 5).map((l: any) => l.learning).filter(Boolean);
+  } catch { /* pool best-effort */ }
   const systemPrompt = getWhatsAppSystemPrompt({
     companyName,
     businessType: bizType,
@@ -383,6 +393,8 @@ async function handleIncomingMessage(
     dossier: dossierStr,
     tone: stellaTone,
     availableFlows: flowLabels,
+    domainExpertise,
+    poolLearnings,
   });
   const whatsappContext = '';
 
@@ -426,6 +438,25 @@ async function handleIncomingMessage(
     whatsapp_message_id: sendResult.messageId || null,
     created_at: new Date().toISOString(),
   });
+
+  // ── 7b. PARTAGE POOL : si le client vient de convertir (confirme / réserve /
+  // achète), on enregistre ce qui a marché dans le pool de connaissances partagé
+  // (founder 2026-07-20 : Stella partage ses apprentissages avec les autres agents).
+  try {
+    const lc = messageText.toLowerCase();
+    const converted = /(je r[eé]serve|je prends|je confirme|c'?est bon|on valide|je viens|d'?accord pour|parfait,? je|banco|ok pour|je vous prends|c'?est not[eé])/.test(lc);
+    if (converted) {
+      const lastStella = [...history].reverse().find((h: any) => h.role === 'assistant')?.content || '';
+      await saveLearning(supabase, {
+        agent: 'whatsapp',
+        category: 'conversion',
+        learning: `WhatsApp${bizType ? ' ' + bizType : ''} : une approche qui a mené à un OUI client.`,
+        evidence: `Client: "${messageText.slice(0, 120)}" — après: "${String(lastStella).slice(0, 160)}"`,
+        confidence: 20,
+        orgId: ownerId || undefined,
+      }).catch(() => {});
+    }
+  } catch { /* partage best-effort */ }
 
   // ── 8. Log to agent_logs ──
   let action = 'whatsapp_conversation';
