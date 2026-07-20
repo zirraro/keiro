@@ -288,11 +288,21 @@ Pour exécuter une action, INCLUS le tag DANS ta réponse:
 - Voir posts planifiés: [ACTION:{"type":"list_posts"}]
 - Scanner DMs: [ACTION:{"type":"scan_dms"}]
 - Répondre commentaires: [ACTION:{"type":"reply_comments"}]
+- Écrire/prospecter via WhatsApp (Stella): [ACTION:{"type":"whatsapp_send","phone":"33612345678","message":"Bonjour, ..."}]
 
 COMMENT UTILISER: Explique ce que tu fais PUIS mets le tag.
 Ex: "Je te génère un post Instagram tout de suite ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
 Le système exécute l'action et ajoute "Résultat: ..." automatiquement.
-N'utilise les actions QUE quand le client DEMANDE explicitement.`;
+N'utilise les actions QUE quand le client DEMANDE explicitement.
+
+ROUTAGE CROSS-AGENT (RÈGLE founder) : les agents sont TOUS reliés. Si le client te
+demande une action qui relève d'un AUTRE agent (ex : on demande à Stella de publier
+un post = c'est Léna ; on demande à Léna de prospecter par WhatsApp = c'est Stella ;
+par mail = Hugo), tu déclenches QUAND MÊME l'action (c'est possible cross-agent), MAIS
+tu réponds clairement : « C'est bien pris en compte — c'est [Nom de l'agent responsable]
+qui s'en charge, va voir dans son espace, la tâche est en cours. » Nomme l'agent
+(Léna=contenu, Jade=DM Instagram, Hugo=email, Léo=prospection, Stella=WhatsApp, Théo=avis)
+et dis au client d'aller dans l'espace de cet agent. Toujours confirmer que c'est EN COURS.`;
 
     const fullSystemPrompt = systemPrompt + boostedRules;
 
@@ -448,6 +458,19 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
           });
           const data = await res.json();
           actionResult = `${data.imported || 0} prospects trouvés sur Google Maps`;
+        } else if (actionType === 'whatsapp_send') {
+          // Cross-agent : n'importe quel agent peut demander à Stella d'écrire un WhatsApp.
+          try {
+            const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
+            const to = String(actionJson.phone || '').replace(/[^\d]/g, '');
+            const msg = String(actionJson.message || '').trim();
+            if (to && msg) {
+              const r = await sendWhatsAppMessage(to, msg);
+              actionResult = r?.success ? 'Message WhatsApp envoyé par Stella' : 'Échec WhatsApp (hors fenêtre 24h → un template est requis)';
+            } else {
+              actionResult = 'Numéro ou message WhatsApp manquant';
+            }
+          } catch { actionResult = 'WhatsApp indisponible'; }
         } else if (actionType === 'list_posts') {
           const res = await fetch(`${baseUrl}/api/agents/content`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
