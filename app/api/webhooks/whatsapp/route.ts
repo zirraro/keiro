@@ -16,9 +16,10 @@ import {
 import {
   getChatbotSystemPrompt,
 } from '@/lib/agents/chatbot-prompt';
-import { getWhatsAppSystemPrompt } from '@/lib/agents/whatsapp-prompt';
+import { getWhatsAppSystemPrompt, type StellaTone } from '@/lib/agents/whatsapp-prompt';
 import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 import { callGeminiChat } from '@/lib/agents/gemini';
+import { loadBusinessDossier, formatDossierForPrompt } from '@/lib/agents/client-context';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -345,12 +346,40 @@ async function handleIncomingMessage(
     await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
   }
 
-  // ── 5. Build elite WhatsApp prompt ──
+  // ── 5. Build Stella prompt = assistante du business DU CLIENT ──
+  // Charge le dossier + le ton du commerçant propriétaire de ce WhatsApp
+  // (founder 2026-07-20 : Stella répond AU NOM du business client, avec ses
+  // vraies infos, ton réglable, zéro emoji/IA, orientée résultat).
+  const ownerId = prospect.user_id || process.env.WHATSAPP_DEFAULT_OWNER_USER_ID || null;
+  let dossierStr: string | undefined;
+  let companyName = 'ce commerce';
+  let bizType: string | undefined;
+  let stellaTone: StellaTone = 'equilibre';
+  if (ownerId) {
+    try {
+      const dossier = await loadBusinessDossier(supabase, ownerId);
+      if (dossier) {
+        dossierStr = formatDossierForPrompt(dossier);
+        companyName = dossier.company_name || companyName;
+        bizType = dossier.business_type || undefined;
+      }
+      const { data: cfgRows } = await supabase
+        .from('org_agent_configs')
+        .select('config')
+        .eq('user_id', ownerId)
+        .eq('agent_id', 'whatsapp')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const t = (cfgRows?.[0]?.config as any)?.stella_tone || (cfgRows?.[0]?.config as any)?.whatsapp_tone;
+      if (t === 'pro' || t === 'amical' || t === 'equilibre') stellaTone = t;
+    } catch { /* dossier best-effort */ }
+  }
   const systemPrompt = getWhatsAppSystemPrompt({
-    companyName: 'KeiroAI',
+    companyName,
+    businessType: bizType,
     prospectName: prospect.first_name || undefined,
-    prospectCompany: prospect.company || undefined,
-    prospectType: prospect.type || undefined,
+    dossier: dossierStr,
+    tone: stellaTone,
   });
   const whatsappContext = '';
 
