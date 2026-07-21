@@ -294,8 +294,8 @@ PUBLIER MAINTENANT — COMPRENDS TOUTES LES FORMULATIONS (founder 21/07) :
 Dès que le client demande une publication immédiate, QUELLE QUE SOIT la façon de le
 dire — "publie", "poste", "publie maintenant", "mets en ligne", "balance un post",
 "envoie le post", "go publie sur insta", "fais un post LinkedIn là", "poste ça sur
-TikTok maintenant", "publie tout de suite", etc. — tu émets `generate_post` avec la
-plateforme demandée (défaut instagram si non précisée) et `draft:false` (= publication
+TikTok maintenant", "publie tout de suite", etc. — tu émets l'action generate_post avec la
+plateforme demandée (défaut instagram si non précisée) et draft:false (= publication
 immédiate, pas brouillon). Ne demande PAS de confirmation superflue : le client a
 demandé, tu exécutes et tu confirmes que c'est publié.
 
