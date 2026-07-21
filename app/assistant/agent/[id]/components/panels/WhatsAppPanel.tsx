@@ -12,7 +12,40 @@ import {
 } from './Primitives';
 import { DEMO_WHATSAPP_STATS } from '../AgentPreviewData';
 import { useLanguage } from '@/lib/i18n/context';
+import { launchWhatsAppEmbeddedSignup, preloadFbSdk } from '@/lib/whatsapp-embedded-signup';
 import type { PanelProps } from './types';
+
+// Bouton "Connecter mon numéro WhatsApp" — lance le vrai Embedded Signup Meta.
+// Visible pour TOUT le monde (admin inclus) : la bannière Clara "Configurer
+// WhatsApp" étant masquée aux admins, ce bouton garantit un point d'entrée fiable.
+function ConnectWhatsAppButton({ en }: { en: boolean }) {
+  const [msg, setMsg] = useState('');
+  useEffect(() => { preloadFbSdk(); }, []);
+  const onClick = () => {
+    setMsg('');
+    launchWhatsAppEmbeddedSignup({
+      onSuccess: () => window.location.reload(),
+      onError: (m) => setMsg(m),
+      onUnavailable: async () => {
+        try {
+          const r = await fetch('/api/stripe/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ planKey: 'stella_addon' }) });
+          const d = await r.json();
+          if (d?.url) window.location.href = d.url;
+          else setMsg(en ? 'Activation available shortly.' : 'Activation disponible très bientôt.');
+        } catch { setMsg(en ? 'Please try again.' : 'Réessaie.'); }
+      },
+    });
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <button type="button" onClick={onClick}
+        className="px-3 py-2 rounded-lg bg-[#25D366] text-[#0b141a] text-[12px] font-bold hover:opacity-90 transition text-center">
+        {en ? 'Connect my WhatsApp number' : 'Connecter mon numéro WhatsApp'}
+      </button>
+      {msg && <span className="text-[10px] text-amber-300 leading-snug">{msg}</span>}
+    </div>
+  );
+}
 
 // ─── Espace Stella : conversations WhatsApp en direct + reprise en main ───
 type WaConv = { phone: string; name: string; last: string; last_role: string; last_at: string; count: number };
@@ -179,6 +212,17 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
 
   return (
     <>
+      {/* Connexion du numéro WhatsApp — point d'entrée fiable (Embedded Signup). */}
+      {!connected && (
+        <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border border-[#25D366]/30 bg-[#25D366]/[0.06] p-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-white/90">{en ? 'Connect your WhatsApp Business number' : 'Connecte ton numéro WhatsApp Business'}</div>
+            <div className="text-[11px] text-white/50 leading-relaxed">{en ? 'One click — pick your number and Stella starts replying automatically.' : 'En un clic — choisis ton numéro et Stella répond automatiquement.'}</div>
+          </div>
+          <ConnectWhatsAppButton en={en} />
+        </div>
+      )}
+
       {/* Espace Stella — conversations en direct + reprise en main (données réelles) */}
       <StellaConversations en={en} />
 
