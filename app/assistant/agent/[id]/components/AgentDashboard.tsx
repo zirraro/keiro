@@ -30,6 +30,7 @@ import { ContentPanel } from './panels/ContentPanel';
 import { DmInstagramPanel } from './panels/DmInstagramPanel';
 import { EmailPanel } from './panels/EmailPanel';
 import { useLanguage } from '@/lib/i18n/context';
+import { launchWhatsAppEmbeddedSignup } from '@/lib/whatsapp-embedded-signup';
 
 // SOCIAL_NETWORKS + SocialConnectBanners + EmailConnectBanner + HotProspectsAlert → extracted to panels/SharedBanners.tsx
 
@@ -374,7 +375,25 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
             };
             const cfg = previews[agentId];
             if (!cfg) return null;
-            return <PreviewBanner agentName={agentName} connectLabel={cfg.label} connectUrl={cfg.url} claraMessage={cfg.msg} gradientFrom={gradientFrom} gradientTo={gradientTo} />;
+            // WhatsApp : lance le vrai Embedded Signup (le client connecte SON
+            // numéro → ça part). Tant que le Configuration ID Meta n'est pas dispo
+            // (avant Advanced Access), on retombe sur l'activation Stella pour que
+            // le bouton ne soit jamais mort (avant : url='#' → clic sans effet).
+            const onConnect = agentId === 'whatsapp' ? () => {
+              launchWhatsAppEmbeddedSignup({
+                onSuccess: () => window.location.reload(),
+                onError: (m) => { try { alert(m); } catch { /* noop */ } },
+                onUnavailable: async () => {
+                  try {
+                    const r = await fetch('/api/stripe/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ planKey: 'stella_addon' }) });
+                    const d = await r.json();
+                    if (d?.url) window.location.href = d.url;
+                    else alert(en ? 'WhatsApp connection is being finalized — activation available shortly.' : 'La connexion WhatsApp est en cours de finalisation — activation disponible très bientôt.');
+                  } catch { /* noop */ }
+                },
+              });
+            } : undefined;
+            return <PreviewBanner agentName={agentName} connectLabel={cfg.label} connectUrl={cfg.url} claraMessage={cfg.msg} gradientFrom={gradientFrom} gradientTo={gradientTo} onConnect={onConnect} />;
           })()}
         </div>
       )}

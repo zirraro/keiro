@@ -56,8 +56,8 @@ function StellaConversations({ en }: { en: boolean }) {
       });
       const d = await r.json();
       if (d.ok) { setReply(''); setHuman(true); loadThread(sel); }
-      else setErr(d.error || 'Erreur');
-    } catch (e: any) { setErr(e?.message || 'Erreur'); } finally { setBusy(false); }
+      else setErr(d.error || (en ? 'Error' : 'Erreur'));
+    } catch (e: any) { setErr(e?.message || (en ? 'Error' : 'Erreur')); } finally { setBusy(false); }
   };
 
   const toggleTakeover = async (action: 'takeover' | 'resume') => {
@@ -99,7 +99,7 @@ function StellaConversations({ en }: { en: boolean }) {
               className={`w-full text-left px-3 py-2.5 border-b border-white/5 hover:bg-white/[0.04] transition ${sel === c.phone ? 'bg-white/[0.06]' : ''}`}>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[13px] font-semibold text-white/90 truncate">{c.name}</span>
-                <span className="text-[9px] text-white/30 shrink-0">{new Date(c.last_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                <span className="text-[9px] text-white/30 shrink-0">{new Date(c.last_at).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}</span>
               </div>
               <div className="text-[11px] text-white/45 truncate">{c.last_role !== 'user' ? '↩ ' : ''}{c.last}</div>
             </button>
