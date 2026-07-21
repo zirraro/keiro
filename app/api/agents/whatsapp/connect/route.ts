@@ -19,9 +19,38 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const phoneNumberId = String(body.phone_number_id || '').trim();
-  const wabaId = String(body.waba_id || '').trim();
+  let phoneNumberId = String(body.phone_number_id || '').trim();
+  let wabaId = String(body.waba_id || '').trim();
   const displayPhone = String(body.display_phone_number || '').trim();
+  const code = String(body.code || '').trim();
+
+  // Flux Meta-HOSTED (secours quand le SDK JS est bloqué) : Facebook ne renvoie
+  // qu'un `code`. On l'échange contre un token, puis on résout la WABA + le numéro
+  // via debug_token (granular_scopes) — flux Tech Provider documenté.
+  if ((!phoneNumberId || !wabaId) && code) {
+    try {
+      const appId = process.env.NEXT_PUBLIC_FB_APP_ID || '1240886857588819';
+      const secret = process.env.WHATSAPP_APP_SECRET || process.env.FACEBOOK_APP_SECRET || process.env.META_APP_SECRET || '';
+      if (secret) {
+        const tokRes = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}&client_secret=${secret}&code=${encodeURIComponent(code)}`);
+        const tok = await tokRes.json();
+        const userToken = tok?.access_token;
+        if (userToken) {
+          const dbg = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${userToken}&access_token=${appId}|${secret}`);
+          const dbgJson = await dbg.json();
+          const scopes = dbgJson?.data?.granular_scopes || [];
+          const waScope = scopes.find((s: any) => s.scope === 'whatsapp_business_management' || s.scope === 'whatsapp_business_messaging');
+          wabaId = wabaId || String(waScope?.target_ids?.[0] || '');
+          if (wabaId && !phoneNumberId) {
+            const pn = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?access_token=${userToken}`);
+            const pnJson = await pn.json();
+            phoneNumberId = String(pnJson?.data?.[0]?.id || '');
+          }
+        }
+      }
+    } catch { /* échange best-effort — on retombe sur l'erreur ci-dessous si échec */ }
+  }
+
   if (!phoneNumberId || !wabaId) {
     return NextResponse.json({ ok: false, error: 'phone_number_id et waba_id requis' }, { status: 400 });
   }

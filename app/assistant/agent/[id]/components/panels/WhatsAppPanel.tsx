@@ -12,17 +12,32 @@ import {
 } from './Primitives';
 import { DEMO_WHATSAPP_STATS } from '../AgentPreviewData';
 import { useLanguage } from '@/lib/i18n/context';
-import { launchWhatsAppEmbeddedSignup, preloadFbSdk } from '@/lib/whatsapp-embedded-signup';
+import { launchWhatsAppEmbeddedSignup, preloadFbSdk, fbSdkReady, hostedSignupUrl } from '@/lib/whatsapp-embedded-signup';
 import type { PanelProps } from './types';
 
 // Bouton "Connecter mon numéro WhatsApp" — lance le vrai Embedded Signup Meta.
 // Visible pour TOUT le monde (admin inclus) : la bannière Clara "Configurer
 // WhatsApp" étant masquée aux admins, ce bouton garantit un point d'entrée fiable.
+// Auto-diagnostic : si le SDK Facebook est bloqué par le navigateur (Firefox/Brave
+// anti-pistage), on le détecte et on propose le flux Meta-hosted (navigation, non
+// bloquée) + un message clair.
 function ConnectWhatsAppButton({ en }: { en: boolean }) {
   const [msg, setMsg] = useState('');
-  useEffect(() => { preloadFbSdk(); }, []);
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    preloadFbSdk();
+    // Après ~4s, si window.FB n'est toujours pas là → le navigateur bloque le SDK.
+    const t = setTimeout(() => { if (!fbSdkReady()) setBlocked(true); }, 4000);
+    return () => clearTimeout(t);
+  }, []);
   const onClick = () => {
     setMsg('');
+    if (!fbSdkReady()) {
+      // SDK indisponible → bascule directement sur le flux hosted (marche partout).
+      setBlocked(true);
+      window.location.href = hostedSignupUrl();
+      return;
+    }
     launchWhatsAppEmbeddedSignup({
       onSuccess: () => window.location.reload(),
       onError: (m) => setMsg(m),
@@ -42,6 +57,13 @@ function ConnectWhatsAppButton({ en }: { en: boolean }) {
         className="px-3 py-2 rounded-lg bg-[#25D366] text-[#0b141a] text-[12px] font-bold hover:opacity-90 transition text-center">
         {en ? 'Connect my WhatsApp number' : 'Connecter mon numéro WhatsApp'}
       </button>
+      {blocked && (
+        <span className="text-[10px] text-amber-300 leading-snug">
+          {en
+            ? 'Your browser (Firefox/Brave) blocks Facebook. Use Chrome, or click the button — we\'ll open the Facebook page directly.'
+            : 'Ton navigateur (Firefox/Brave) bloque Facebook. Utilise Chrome, ou clique le bouton — on ouvre la page Facebook directement.'}
+        </span>
+      )}
       {msg && <span className="text-[10px] text-amber-300 leading-snug">{msg}</span>}
     </div>
   );

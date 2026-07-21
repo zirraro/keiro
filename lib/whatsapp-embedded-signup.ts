@@ -57,6 +57,23 @@ export function embeddedSignupReady(): boolean {
   return !!WA_CONFIG_ID;
 }
 
+/** True quand le SDK Facebook est chargé et prêt (window.FB dispo). */
+export function fbSdkReady(): boolean {
+  return typeof window !== 'undefined' && !!(window as any).FB;
+}
+
+/**
+ * URL du flux Meta-HOSTED Embedded Signup (navigation plein écran vers Facebook).
+ * Secours quand le SDK JS est bloqué par le navigateur (Firefox/Brave anti-pistage) :
+ * une navigation n'est PAS bloquée, contrairement au script tiers. Facebook renvoie
+ * ensuite sur redirect_uri (/whatsapp-connected) avec les infos du numéro.
+ */
+export function hostedSignupUrl(): string {
+  const redirect = (typeof window !== 'undefined' ? window.location.origin : 'https://keiroai.com') + '/whatsapp-connected';
+  const extras = encodeURIComponent(JSON.stringify({ version: 'v4', sessionInfoVersion: '3', featureType: 'whatsapp_business_app_onboarding' }));
+  return `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${FB_APP_ID}&config_id=${WA_CONFIG_ID}&extras=${extras}&redirect_uri=${encodeURIComponent(redirect)}`;
+}
+
 /**
  * Précharge le SDK Facebook (à appeler au montage du panneau WhatsApp). Ainsi,
  * au clic, `window.FB` est déjà prêt et on peut appeler `FB.login` de façon
