@@ -29,6 +29,7 @@ async function run() {
   const results: any[] = [];
   const atRisk: any[] = [];
   const underDelivered: any[] = [];
+  const needFeed: string[] = []; // clients dont le stock de prospects envoyables est bas
 
   // Volume PROMIS (plancher hebdo de posts publiés) par plan. Le client paie un
   // service = un volume régulier. En-dessous du plancher = sous-livraison → alerte
@@ -92,6 +93,21 @@ async function run() {
       emails7d = count || 0;
     } catch { /* best-effort */ }
 
+    // PIPELINE PROSPECTS (founder 2026-07-21) : pour tenir le volume email promis,
+    // il faut assez de prospects ENVOYABLES (email valide, jamais contactés). Si le
+    // stock est bas → on déclenche recherche + enrichissement (cost-cappés par plan
+    // dans les endpoints → pas de runaway). "Autant de recherches que nécessaire."
+    let sendable = 0;
+    try {
+      const { count } = await supabase.from('crm_prospects')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', c.id)
+        .not('email', 'is', null)
+        .eq('email_sequence_status', 'not_started');
+      sendable = count || 0;
+    } catch { /* best-effort */ }
+    if (activity > 0 && sendable < 40) needFeed.push(c.id);
+
     const floor = weeklyPostFloor(c.subscription_plan);
     // Sous-livraison de posts = signal fort (le cœur du service). On flag aussi
     // quand un client actif (activité > 0 = agents branchés) n'a eu AUCUN post.
@@ -141,6 +157,25 @@ async function run() {
     await supabase.from('agent_logs').insert({
       agent: 'system', action: 'volume_auto_remediation', status: 'ok',
       data: { count: remediated.length, clients: remediated.slice(0, 40), note: 'catch_up posts + email daily déclenchés pour tenir le volume promis' },
+      created_at: new Date().toISOString(),
+    }).then(() => {}, () => {});
+  }
+
+  // PROSPECTION PILOTÉE PAR LA DEMANDE (founder 2026-07-21) : pour les clients dont
+  // le stock de prospects envoyables est bas, on déclenche une recherche gmaps
+  // (SELF-CAPPÉE par plan → marge protégée, pas de runaway €350) + l'enrichissement.
+  // "Autant de recherches que nécessaire" — mais dans le budget du plan.
+  for (const uid of needFeed.slice(0, 25)) {
+    fetch(`${site}/api/agents/gmaps?user_id=${uid}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${cron}`, 'Content-Type': 'application/json' }, body: '{}',
+    }).catch(() => {});
+  }
+  if (needFeed.length > 0) {
+    // Rafraîchit le pool + enrichit (cost-cappé) pour transformer les prospects trouvés en envoyables.
+    fetch(`${site}/api/cron/prospect-pool-refresh`, { headers: { Authorization: `Bearer ${cron}` } }).catch(() => {});
+    await supabase.from('agent_logs').insert({
+      agent: 'system', action: 'prospect_feed_triggered', status: 'ok',
+      data: { count: needFeed.length, clients: needFeed.slice(0, 25), note: 'recherche gmaps + enrichissement déclenchés pour alimenter le volume email' },
       created_at: new Date().toISOString(),
     }).then(() => {}, () => {});
   }
