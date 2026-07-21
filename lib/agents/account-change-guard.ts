@@ -57,7 +57,11 @@ export async function guardAccountChange(
     //  - PREMIÈRE connexion (last absent) avec un gros backlog dû maintenant
     //    (= exactement l'incident : nouveau compte + 60 posts en attente).
     // Sinon (1ère fois, backlog normal ≤ seuil) : on enregistre et on laisse.
-    const BURST_THRESHOLD = 4;
+    // Founder 2026-07-21 : à TOUTE connexion (nouveau compte OU reconnexion),
+    // JAMAIS de rafale — on publie AU PLUS 1 post (le prochain dû, s'il entre dans
+    // le planning), le reste du backlog dû est archivé (le planning FUTUR reste
+    // intact). Seuil ramené à 1.
+    const BURST_THRESHOLD = 1;
     const isChange = !!last; // last défini + différent (same déjà géré)
     const firstTimeBurst = !last && backlogDueNow > BURST_THRESHOLD;
 
@@ -68,10 +72,16 @@ export async function guardAccountChange(
 
     let archived = 0;
     if (queued && queued.length) {
-      const ids = queued.map((q: any) => q.id);
-      await supabase.from('content_calendar')
-        .update({ status: 'archived', publish_diagnostic: 'account_changed_archived', updated_at: new Date().toISOString() })
-        .in('id', ids);
+      // Changement de compte → on archive TOUT (les posts étaient pour l'ancien
+      // compte). Première connexion → on GARDE 1 post (le premier dû) et on
+      // archive le reste = « 1 seule publication à la connexion ».
+      const allIds = queued.map((q: any) => q.id);
+      const ids = isChange ? allIds : allIds.slice(1);
+      if (ids.length) {
+        await supabase.from('content_calendar')
+          .update({ status: 'archived', publish_diagnostic: 'account_connect_anti_burst', updated_at: new Date().toISOString() })
+          .in('id', ids);
+      }
       archived = ids.length;
     }
     await writeCfg(String(currentAccountId));
