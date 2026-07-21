@@ -117,8 +117,8 @@ Juge UNIQUEMENT ce que tu vois. Note SÉVÈREMENT comme un pro qui décide si on
         system: sys,
         tools: [{ name: 'qc', description: 'reel quality verdict', input_schema: {
           type: 'object', properties: {
-            continuity: { type: 'number', description: '0-10: les frames s\'enchaînent-elles comme UNE scène qui évolue (même lieu/sujet), pas des plans random ?' },
-            coherence: { type: 'number', description: '0-10: lien visuel évident avec le business ?' },
+            continuity: { type: 'number', description: '0-10: les frames s\'enchaînent-elles comme UNE scène qui évolue (même lieu/sujet), pas des plans random ? Un PRODUIT/OBJET qui CHANGE d\'une frame à l\'autre (ex: bocal→vase, framboise→viennoiserie) = continuité BASSE (≤3).' },
+            coherence: { type: 'number', description: '0-10: lien visuel évident avec le business ? Un objet/fruit/accessoire qui APPARAÎT DE NULLE PART, sans rapport avec le commerce, = cohérence BASSE (≤3). Tout ce qui est à l\'écran doit appartenir au vrai univers du business.' },
             realism: { type: 'number', description: '0-10: VRAIE photo/vidéo filmée par un humain (10) vs ça FAIT IA — plastique/cireux, morphing, déformations, lumière/perfection synthétique (0). Sois DUR : au moindre doute que ça fasse IA, note ≤4.' },
             motion: { type: 'number', description: '0-10: VRAI mouvement cinématique entre les frames — caméra ou sujet qui bouge réellement (10) vs images quasi-figées qui défilent façon diaporama (0).' },
             score: { type: 'number', description: '0-10: note globale de publiabilité' },
@@ -142,18 +142,21 @@ Juge UNIQUEMENT ce que tu vois. Note SÉVÈREMENT comme un pro qui décide si on
     const score = clamp(v.score);
     const realism = clamp(v.realism);
     const motion = clamp(v.motion);
+    const coherence = clamp(v.coherence);
+    const continuity = clamp(v.continuity);
     return {
       score,
-      continuity: clamp(v.continuity),
-      coherence: clamp(v.coherence),
+      continuity,
+      coherence,
       realism,
       motion,
       issues: Array.isArray(v.issues) ? v.issues.map((x: any) => String(x).slice(0, 200)).slice(0, 8) : [],
       summary: String(v.summary || '').slice(0, 300),
-      // BARRIÈRE DURE anti-IA (founder 09/07 : "ne doit pas faire IA du tout") :
-      // même avec une bonne note globale, on NE publie PAS si ça fait IA
-      // (realism < 5) ou si c'est un diaporama sans vrai mouvement (motion < 4).
-      pass: score >= QC_THRESHOLD && realism >= 5 && motion >= 4,
+      // BARRIÈRES DURES : anti-IA (realism<5, founder 09/07) + anti-diaporama
+      // (motion<4) + anti-INCOHÉRENCE (founder 21/07 : "pas d'objet/fruit qui
+      // apparaît de nulle part, clips pertinents"). Un reel avec un objet random
+      // ou des plans décousus NE PUBLIE PAS, peu importe la note globale.
+      pass: score >= QC_THRESHOLD && realism >= 5 && motion >= 4 && coherence >= 6 && continuity >= 5,
     };
   } catch {
     return null;

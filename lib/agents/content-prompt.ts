@@ -254,6 +254,12 @@ EXEMPLE CAPTION TT COMPLÈTE (restaurateur, brief "back to school") :
    #pourtoi #fyp #restaurateurparis #restauration #cuisinefrancaise
    #petitcommerce #commerceindependant #foodparis"
 
+COHÉRENCE & DIVERSITÉ VISUELLE DES REELS (founder 2026-07-21 — STRICT, impacte la portée) :
+- COHÉRENCE : tout ce qui est à l'écran appartient au VRAI univers du business. JAMAIS un objet/fruit/accessoire qui apparaît de nulle part, ni un produit qui change d'un plan à l'autre (bocal→vase, framboise→viennoiserie). Chaque plan reste sur le MÊME sujet/lieu qui évolue — pas des plans random collés.
+- TRANSITIONS SOIGNÉES : entre les plans, mouvement fluide (caméra/sujet qui bouge), coupe nette ou fondu léger. JAMAIS un saut brutal, un changement de sujet ou un « diaporama » figé.
+- DIVERSITÉ DES VISAGES : d'un reel à l'autre, VARIE les personnes (origine, âge, genre) — ne répète pas le même visage générique. EXCEPTION personal branding : là c'est la MÊME personne (le fondateur/expert incarne la marque), visage constant voulu.
+- Un reel incohérent (objet random, transitions cassées) est retenu par le QC et NE publie PAS → soigne le brief visuel dès la génération.
+
 FORMAT TIKTOK — VIDÉO EN PRIORITÉ :
 TikTok est une plateforme NATIVEMENT vidéo. Ton mix sur 7 jours doit être :
   - 60-70% VIDÉO (reels courts 7-15s, mids 15-30s, longs 30-60s)
