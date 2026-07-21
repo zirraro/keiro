@@ -30,7 +30,7 @@ import { ContentPanel } from './panels/ContentPanel';
 import { DmInstagramPanel } from './panels/DmInstagramPanel';
 import { EmailPanel } from './panels/EmailPanel';
 import { useLanguage } from '@/lib/i18n/context';
-import { launchWhatsAppEmbeddedSignup } from '@/lib/whatsapp-embedded-signup';
+import { launchWhatsAppEmbeddedSignup, preloadFbSdk } from '@/lib/whatsapp-embedded-signup';
 
 // SOCIAL_NETWORKS + SocialConnectBanners + EmailConnectBanner + HotProspectsAlert → extracted to panels/SharedBanners.tsx
 
@@ -254,6 +254,9 @@ function AgentActivityBanner({ agentId, data, gradientFrom }: { agentId: string;
 export default function AgentDashboard({ agentId, agentName, gradientFrom, gradientTo, data }: AgentDashboardProps) {
   const { locale } = useLanguage();
   const en = locale === 'en';
+  // WhatsApp : précharge le SDK Facebook dès l'ouverture du panneau Stella, pour
+  // que FB.login soit appelable SYNCHRONEMENT au clic (sinon la popup est bloquée).
+  useEffect(() => { if (agentId === 'whatsapp') preloadFbSdk(); }, [agentId]);
   // Set global connection flags for child components
   if (typeof window !== 'undefined') {
     (window as any).__igConnected = !!(data as any).connections?.instagram;

@@ -57,15 +57,27 @@ export function embeddedSignupReady(): boolean {
   return !!WA_CONFIG_ID;
 }
 
-export async function launchWhatsAppEmbeddedSignup(opts: EmbeddedSignupOptions = {}): Promise<void> {
+/**
+ * Précharge le SDK Facebook (à appeler au montage du panneau WhatsApp). Ainsi,
+ * au clic, `window.FB` est déjà prêt et on peut appeler `FB.login` de façon
+ * SYNCHRONE dans le handler → le navigateur ne bloque pas la popup (un `await`
+ * avant `FB.login` casse le « geste utilisateur » et la popup est bloquée).
+ */
+export function preloadFbSdk(): void {
+  loadFbSdk().catch(() => { /* best-effort — l'erreur remonte au clic */ });
+}
+
+export function launchWhatsAppEmbeddedSignup(opts: EmbeddedSignupOptions = {}): void {
   if (!WA_CONFIG_ID) { opts.onUnavailable?.(); return; }
-  try {
-    await loadFbSdk();
-  } catch {
-    opts.onError?.('Facebook SDK indisponible'); return;
-  }
   const FB = (window as any).FB;
-  if (!FB) { opts.onError?.('Facebook SDK indisponible'); return; }
+  if (!FB) {
+    // SDK pas encore prêt (ou bloqué par la protection anti-pistage du navigateur).
+    // On relance le chargement et on demande de réessayer — on NE PEUT PAS awaiter
+    // ici sans perdre le geste utilisateur (→ popup bloquée).
+    preloadFbSdk();
+    opts.onError?.('Connexion en cours d\'initialisation — réessaie dans 2 secondes. (Si ça persiste : navigateur Chrome, fenêtre normale, protection anti-pistage désactivée.)');
+    return;
+  }
 
   let captured: { phone_number_id?: string; waba_id?: string } = {};
   const messageListener = (event: MessageEvent) => {
