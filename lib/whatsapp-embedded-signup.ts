@@ -14,7 +14,8 @@
 
 const FB_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID || '1240886857588819';
 const WA_CONFIG_ID = process.env.NEXT_PUBLIC_WA_CONFIG_ID || '';
-const GRAPH_VERSION = 'v21.0';
+// Aligné sur la version que Meta génère actuellement pour l'app (2026 : v23.0).
+const GRAPH_VERSION = 'v23.0';
 
 let sdkLoading: Promise<void> | null = null;
 

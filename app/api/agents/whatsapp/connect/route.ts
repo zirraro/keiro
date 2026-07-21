@@ -32,17 +32,17 @@ export async function POST(req: NextRequest) {
       const appId = process.env.NEXT_PUBLIC_FB_APP_ID || '1240886857588819';
       const secret = process.env.WHATSAPP_APP_SECRET || process.env.FACEBOOK_APP_SECRET || process.env.META_APP_SECRET || '';
       if (secret) {
-        const tokRes = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}&client_secret=${secret}&code=${encodeURIComponent(code)}`);
+        const tokRes = await fetch(`https://graph.facebook.com/v23.0/oauth/access_token?client_id=${appId}&client_secret=${secret}&code=${encodeURIComponent(code)}`);
         const tok = await tokRes.json();
         const userToken = tok?.access_token;
         if (userToken) {
-          const dbg = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${userToken}&access_token=${appId}|${secret}`);
+          const dbg = await fetch(`https://graph.facebook.com/v23.0/debug_token?input_token=${userToken}&access_token=${appId}|${secret}`);
           const dbgJson = await dbg.json();
           const scopes = dbgJson?.data?.granular_scopes || [];
           const waScope = scopes.find((s: any) => s.scope === 'whatsapp_business_management' || s.scope === 'whatsapp_business_messaging');
           wabaId = wabaId || String(waScope?.target_ids?.[0] || '');
           if (wabaId && !phoneNumberId) {
-            const pn = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?access_token=${userToken}`);
+            const pn = await fetch(`https://graph.facebook.com/v23.0/${wabaId}/phone_numbers?access_token=${userToken}`);
             const pnJson = await pn.json();
             phoneNumberId = String(pnJson?.data?.[0]?.id || '');
           }
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   try {
     const tok = process.env.WHATSAPP_ACCESS_TOKEN;
     if (tok) {
-      const r = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/subscribed_apps`, {
+      const r = await fetch(`https://graph.facebook.com/v23.0/${wabaId}/subscribed_apps`, {
         method: 'POST', headers: { Authorization: `Bearer ${tok}` },
       });
       subscribed = r.ok;
