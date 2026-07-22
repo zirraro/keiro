@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
 // Per-agent upload caps. We want enough samples for the analyzer to
 // produce a stable palette / style signal without letting a client dump
 // 500 photos that slow generation and bloat the prompt context.
-const MAX_UPLOADS_PER_AGENT = 20;
+const MAX_UPLOADS_PER_AGENT = 200;
 
 export async function POST(req: NextRequest) {
   const { user, error } = await getAuthUser();

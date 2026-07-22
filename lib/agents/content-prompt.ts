@@ -1221,3 +1221,37 @@ ANTI-DUPLICATION STRICTE (CHAQUE VISUEL EST UNIQUE) :
 Retourne UNIQUEMENT un tableau JSON d'AU MOINS 14 objets (1 Instagram + 1 TikTok PAR JOUR sur les 7 jours) : [{ "day": "lundi", "platform": "instagram", ...contentJSON }, { "day": "lundi", "platform": "tiktok", ...contentJSON }, ...]
 Chaque objet DOIT avoir un champ "platform" ("instagram" ou "tiktok") et un "day". Pas de markdown, pas de commentaires. Juste le JSON.`;
 }
+
+export interface AssetUsagePolicy {
+  mode?: 'raw' | 'light' | 'free'; // raw = brut only, light = retouche qualité only, free = création libre
+  allow_mix?: boolean;             // mixer/composer plusieurs images du client
+  allow_add_elements?: boolean;    // ajouter des personnes/objets/décor par IA
+}
+
+/**
+ * Règles d'utilisation des fichiers CLIENT (founder 22/07). Le client déclare, à
+ * l'upload, ce qu'on a le droit de faire de SES images/vidéos : brut uniquement,
+ * retouche légère de qualité, mixage, ajout d'éléments IA. Ces règles sont
+ * NON-NÉGOCIABLES et priment sur toute optimisation esthétique. Retourne '' si
+ * aucune police définie (comportement historique inchangé).
+ */
+export function getAssetUsagePolicyRules(policy?: AssetUsagePolicy | null): string {
+  if (!policy || (!policy.mode && policy.allow_mix === undefined && policy.allow_add_elements === undefined)) return '';
+  const mode = policy.mode || 'light';
+  const lines: string[] = [];
+  lines.push('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('UTILISATION DES FICHIERS DU CLIENT (CONSENTEMENT — NON-NÉGOCIABLE)');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('Le client a défini ce qu\'on a le droit de faire de SES photos/vidéos. RESPECTE-LE strictement, ça prime sur toute optimisation esthétique :');
+  if (mode === 'raw') {
+    lines.push('- MODE BRUT UNIQUEMENT : utilise les fichiers du client TELS QUELS. AUCUNE modification, AUCune regénération IA, AUCun i2i, AUCun recadrage créatif. Publie l\'image/vidéo d\'origine. Tu peux seulement écrire la caption/hashtags autour.');
+  } else if (mode === 'light') {
+    lines.push('- RETOUCHE QUALITÉ LÉGÈRE UNIQUEMENT : tu peux améliorer légèrement la QUALITÉ (luminosité, netteté, balance des couleurs, léger recadrage). INTERDIT de changer le CONTENU : ne remplace rien, n\'ajoute rien, ne recompose pas la scène.');
+  } else {
+    lines.push('- CRÉATION LIBRE : tu peux retravailler, recadrer, composer et sublimer les visuels du client — tout en restant fidèle à sa marque et à son lieu réel.');
+  }
+  lines.push(`- MIXAGE de plusieurs images du client (montage/composition) : ${policy.allow_mix ? 'AUTORISÉ.' : 'INTERDIT — n\'assemble pas plusieurs de ses images en une seule.'}`);
+  lines.push(`- AJOUT d\'éléments par IA (personnes, objets, décor absents de la photo d\'origine) : ${policy.allow_add_elements ? 'AUTORISÉ (avec parcimonie, réaliste).' : 'INTERDIT — n\'ajoute AUCune personne ni objet qui n\'était pas dans la photo d\'origine.'}`);
+  lines.push('En cas de doute, choisis TOUJOURS l\'option la plus respectueuse du fichier d\'origine.');
+  return lines.join('\n');
+}

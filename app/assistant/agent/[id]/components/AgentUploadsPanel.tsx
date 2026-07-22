@@ -97,6 +97,22 @@ export default function AgentUploadsPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
+  // Police d'utilisation des fichiers (consentement). Chargée au montage.
+  type Policy = { mode: 'raw' | 'light' | 'free'; allow_mix: boolean; allow_add_elements: boolean };
+  const [policy, setPolicy] = useState<Policy | null>(null);
+  const [policyLoaded, setPolicyLoaded] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
+  useEffect(() => {
+    fetch('/api/agents/asset-policy', { credentials: 'include' })
+      .then(r => r.json()).then(d => { if (d?.policy) setPolicy(d.policy); })
+      .catch(() => {}).finally(() => setPolicyLoaded(true));
+  }, []);
+  const savePolicy = async (p: Policy) => {
+    setPolicy(p);
+    setShowPolicy(false);
+    try { await fetch('/api/agents/asset-policy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(p) }); } catch {}
+  };
+
   const defaultTitle = en ? 'Photos, videos & brand documents' : 'Photos, vidéos & documents de marque';
   const defaultHint = en
     ? 'Drop files OR whole folders — your folder structure is kept. Each file is analysed so agents reference the REAL decor, palette and voice.'
@@ -153,11 +169,14 @@ export default function AgentUploadsPanel({
       setSummary(counts);
       // Dépôt en vrac (aucun dossier) + plusieurs fichiers → suggestion OPTIONNELLE de ranger.
       setOrganizeHint(!hadFolders && picked.length > 3);
+      // Consentement d'usage : après confirmation, si le client n'a pas encore
+      // défini ce qu'on a le droit de faire de ses fichiers → on pop la demande.
+      if ((counts.images + counts.videos + counts.files) > 0 && !policy) setShowPolicy(true);
     } finally {
       setBusy(false);
       setProgress(null);
     }
-  }, [agentId, en, limit, load, uploads.length]);
+  }, [agentId, en, limit, load, uploads.length, policy]);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
@@ -216,9 +235,21 @@ export default function AgentUploadsPanel({
             {hint || defaultHint}
           </p>
         </div>
-        <span className="text-[10px] text-white/40 shrink-0">
-          {uploads.length} / {limit}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {policyLoaded && (
+            <button
+              type="button"
+              onClick={() => setShowPolicy(true)}
+              className="text-[10px] text-white/50 hover:text-white/80 underline underline-offset-2"
+              title={en ? 'How may we use your files?' : 'Que peut-on faire de tes fichiers ?'}
+            >
+              {'⚙️'} {en ? 'Usage rights' : 'Utilisation'}{policy ? ' ✓' : ''}
+            </button>
+          )}
+          <span className="text-[10px] text-white/40">
+            {uploads.length} / {limit}
+          </span>
+        </div>
       </div>
 
       {/* Dropzone */}
@@ -359,6 +390,82 @@ export default function AgentUploadsPanel({
           ))}
         </div>
       )}
+
+      {showPolicy && (
+        <AssetPolicyModal en={en} initial={policy} onSave={savePolicy} onClose={() => setShowPolicy(false)} />
+      )}
+    </div>
+  );
+}
+
+// ─── Popup consentement : ce que les agents ont le droit de faire des fichiers ───
+function AssetPolicyModal({
+  en, initial, onSave, onClose,
+}: {
+  en: boolean;
+  initial: { mode: 'raw' | 'light' | 'free'; allow_mix: boolean; allow_add_elements: boolean } | null;
+  onSave: (p: { mode: 'raw' | 'light' | 'free'; allow_mix: boolean; allow_add_elements: boolean }) => void;
+  onClose: () => void;
+}) {
+  const [mode, setMode] = useState<'raw' | 'light' | 'free'>(initial?.mode || 'light');
+  const [allowMix, setAllowMix] = useState<boolean>(initial?.allow_mix ?? false);
+  const [allowAdd, setAllowAdd] = useState<boolean>(initial?.allow_add_elements ?? false);
+
+  const modes: { key: 'raw' | 'light' | 'free'; title: string; desc: string }[] = [
+    { key: 'raw', title: en ? 'Raw only' : 'Brut uniquement', desc: en ? 'Use my files exactly as-is. No edits at all.' : 'Utiliser mes fichiers tels quels. Aucune modification.' },
+    { key: 'light', title: en ? 'Light quality touch-up' : 'Retouche qualité légère', desc: en ? 'Only improve quality (light, sharpness). Never change the content.' : 'Améliorer seulement la qualité (lumière, netteté). Jamais le contenu.' },
+    { key: 'free', title: en ? 'Free creative' : 'Création libre', desc: en ? 'Rework, crop, compose to make it shine.' : 'Retravailler, recadrer, composer pour sublimer.' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#0e1526] p-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <h3 className="text-white font-bold text-sm mb-1">{en ? 'How may we use your files?' : 'Que peut-on faire de tes fichiers ?'}</h3>
+        <p className="text-[11px] text-white/50 mb-4 leading-relaxed">
+          {en ? 'Your instructions are followed strictly by every agent for all your photos & videos.' : 'Tes consignes sont suivies strictement par tous les agents pour toutes tes photos & vidéos.'}
+        </p>
+
+        <div className="space-y-2 mb-4">
+          {modes.map(m => (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => setMode(m.key)}
+              className={`w-full text-left rounded-lg border p-3 transition ${mode === m.key ? 'border-emerald-400/60 bg-emerald-500/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`w-3.5 h-3.5 rounded-full border ${mode === m.key ? 'border-emerald-400 bg-emerald-400' : 'border-white/30'}`} />
+                <span className="text-[13px] font-semibold text-white/90">{m.title}</span>
+              </div>
+              <p className="text-[11px] text-white/50 mt-0.5 ml-5">{m.desc}</p>
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2 mb-5">
+          <label className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 cursor-pointer">
+            <span className="text-[12px] text-white/80">{en ? 'Mix several of my images together' : 'Mixer plusieurs de mes images'}</span>
+            <input type="checkbox" checked={allowMix} onChange={e => setAllowMix(e.target.checked)} className="accent-emerald-500 w-4 h-4" />
+          </label>
+          <label className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 cursor-pointer">
+            <span className="text-[12px] text-white/80">{en ? 'Add AI elements (people, objects)' : 'Ajouter des éléments IA (personnes, objets)'}</span>
+            <input type="checkbox" checked={allowAdd} onChange={e => setAllowAdd(e.target.checked)} className="accent-emerald-500 w-4 h-4" />
+          </label>
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-[12px] text-white/60 hover:text-white/90">
+            {en ? 'Later' : 'Plus tard'}
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave({ mode, allow_mix: allowMix, allow_add_elements: allowAdd })}
+            className="px-4 py-2 rounded-lg bg-emerald-500 text-[#08120b] text-[12px] font-bold hover:opacity-90"
+          >
+            {en ? 'Save' : 'Enregistrer'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

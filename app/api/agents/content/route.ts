@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
-import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
+import { getContentSystemPrompt, getWeeklyPlanPrompt, getAssetUsagePolicyRules } from '@/lib/agents/content-prompt';
 import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInstagram } from '@/lib/meta';
 import { publishTikTokVideoViaFileUpload, initTikTokPhotoUpload, refreshTikTokToken } from '@/lib/tiktok';
 import { createT2VTask, checkT2VTask } from '@/lib/kling';
@@ -4967,6 +4967,16 @@ Retourne UNIQUEMENT le JSON.`,
   }
 }
 
+// Charge la police d'utilisation des fichiers du client (consentement upload) et
+// renvoie les règles à concaténer au system prompt. '' si aucune police.
+async function loadAssetPolicyRules(supabase: any, userId: string | null): Promise<string> {
+  if (!userId) return '';
+  try {
+    const { data } = await supabase.from('org_agent_configs').select('config').eq('user_id', userId).eq('agent_id', 'content').maybeSingle();
+    return getAssetUsagePolicyRules((data?.config as any)?.asset_usage_policy);
+  } catch { return ''; }
+}
+
 // ──────────────────────────────────────
 // Generate weekly content plan
 // ──────────────────────────────────────
@@ -5035,7 +5045,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   const prompt = getWeeklyPlanPrompt({ existingPlanned });
 
   // The elite system prompt already contains all visual rules, timing, and brand guidelines
-  const enhancedSystemPrompt = getContentSystemPrompt(planBizType);
+  const enhancedSystemPrompt = getContentSystemPrompt(planBizType) + await loadAssetPolicyRules(supabase, userId);
 
   let rawText: string;
   try {
@@ -5320,7 +5330,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
   }
 
   const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + newsHistoryContext + cadenceBlock + knowledgeBlock;
-  const systemPrompt = getContentSystemPrompt(planBizType);
+  const systemPrompt = getContentSystemPrompt(planBizType) + await loadAssetPolicyRules(supabase, userId);
 
   let rawText: string;
   try {
@@ -6700,7 +6710,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   let rawText: string;
   try {
     rawText = await callClaude({
-      system: getContentSystemPrompt(detectedBusinessType || (clientSettings as any)?.business_type),
+      system: getContentSystemPrompt(detectedBusinessType || (clientSettings as any)?.business_type) + getAssetUsagePolicyRules((clientSettings as any)?.asset_usage_policy),
       message: enhancedPrompt,
       maxTokens: 2000,
     });
