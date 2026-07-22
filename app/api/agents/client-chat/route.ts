@@ -289,6 +289,7 @@ Pour exécuter une action, INCLUS le tag DANS ta réponse:
 - Scanner DMs: [ACTION:{"type":"scan_dms"}]
 - Répondre commentaires: [ACTION:{"type":"reply_comments"}]
 - Écrire/prospecter via WhatsApp (Stella): [ACTION:{"type":"whatsapp_send","phone":"33612345678","message":"Bonjour, ..."}]
+- Changer l'usage autorisé des fichiers du client: [ACTION:{"type":"set_asset_policy","mode":"raw|light|free","allow_mix":true,"allow_add_elements":false}]
 
 PUBLIER MAINTENANT — COMPRENDS TOUTES LES FORMULATIONS (founder 21/07) :
 Dès que le client demande une publication immédiate, QUELLE QUE SOIT la façon de le
@@ -319,6 +320,15 @@ en une phrase courte : « Compris — c'est en cours, je te confirme dès que c'
 Puis le tag [ACTION]. Ne laisse JAMAIS le client sans accusé pendant que ça tourne.
 Une fois l'action exécutée (le système ajoute "Résultat: ..."), tu CONFIRMES que c'est
 fait, brièvement.
+
+FICHIERS DU CLIENT — SON RÉGLAGE PRIME, IL RESTE MAÎTRE (founder 23/07) : le client a
+un réglage par défaut de ce qu'on a le droit de faire de SES photos/vidéos (brut / retouche
+légère / création libre + mixage + ajout d'éléments). On le respecte TOUJOURS par défaut.
+MAIS le client garde la main : s'il demande une EXCEPTION ponctuelle (« pour ce post, ajoute
+une personne », « utilise ma photo brute cette fois ») → tu honores sa demande du moment.
+S'il veut CHANGER durablement son réglage (« désormais tu peux mixer mes images », « ne
+modifie plus jamais mes photos ») → émets [ACTION:set_asset_policy] avec le nouveau réglage
+et confirme. Ne le renvoie PAS dans les menus : il pilote tout depuis le chat.
 
 RÉSUMÉ CONCIS DES PUBLICATIONS + RENVOI PLANNING (founder 22/07) : quand tu parles de
 publications (posts générés, planifiés, à venir, calendrier), reste TRÈS concis — ne
@@ -506,6 +516,20 @@ détail vit dans le Planning.`;
           const published = posts.filter((p: any) => p.status === 'published').length;
           const drafts = posts.filter((p: any) => p.status === 'draft').length;
           actionResult = `${posts.length} posts au total: ${published} publiés, ${scheduled} programmés, ${drafts} brouillons`;
+        } else if (actionType === 'set_asset_policy') {
+          // Le client change de façon PERMANENTE ce qu'on a le droit de faire de ses
+          // fichiers (ex : « désormais tu peux mixer mes images »). Écrit direct dans
+          // org_agent_configs.content.asset_usage_policy (lu par Léna à la génération).
+          const modeIn = String(actionJson.mode || '');
+          const mode = ['raw', 'light', 'free'].includes(modeIn) ? modeIn : 'light';
+          const policy = { mode, allow_mix: !!actionJson.allow_mix, allow_add_elements: !!actionJson.allow_add_elements, updated_at: new Date().toISOString() };
+          const { data: existing } = await supabase.from('org_agent_configs')
+            .select('id, config').eq('user_id', user.id).eq('agent_id', 'content')
+            .order('created_at', { ascending: false }).limit(1).maybeSingle();
+          const nextConfig = { ...((existing?.config as any) || {}), asset_usage_policy: policy };
+          if (existing?.id) await supabase.from('org_agent_configs').update({ config: nextConfig }).eq('id', existing.id);
+          else await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: 'content', config: nextConfig });
+          actionResult = `Préférences d'utilisation de tes fichiers mises à jour : ${mode === 'raw' ? 'brut uniquement' : mode === 'light' ? 'retouche qualité légère' : 'création libre'}${policy.allow_mix ? ', mixage autorisé' : ''}${policy.allow_add_elements ? ', ajout d\'éléments autorisé' : ''}.`;
         }
 
         if (actionResult) {

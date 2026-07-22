@@ -1253,5 +1253,6 @@ export function getAssetUsagePolicyRules(policy?: AssetUsagePolicy | null): stri
   lines.push(`- MIXAGE de plusieurs images du client (montage/composition) : ${policy.allow_mix ? 'AUTORISÉ.' : 'INTERDIT — n\'assemble pas plusieurs de ses images en une seule.'}`);
   lines.push(`- AJOUT d\'éléments par IA (personnes, objets, décor absents de la photo d\'origine) : ${policy.allow_add_elements ? 'AUTORISÉ (avec parcimonie, réaliste).' : 'INTERDIT — n\'ajoute AUCune personne ni objet qui n\'était pas dans la photo d\'origine.'}`);
   lines.push('En cas de doute, choisis TOUJOURS l\'option la plus respectueuse du fichier d\'origine.');
+  lines.push('⚠️ CES RÈGLES SONT LE RÉGLAGE PAR DÉFAUT DU CLIENT. Si le client donne une consigne explicite CONTRAIRE pour une demande précise (ex : « pour ce post, ajoute une personne » ou « utilise ma photo brute »), SA DEMANDE DU MOMENT PRIME sur le réglage par défaut. Le client reste maître de ses fichiers.');
   return lines.join('\n');
 }
