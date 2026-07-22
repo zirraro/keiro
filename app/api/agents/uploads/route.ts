@@ -90,6 +90,11 @@ export async function POST(req: NextRequest) {
     const file = form.get('file') as File | null;
     agent_id = String(form.get('agent_id') || '');
     caption = (form.get('caption') as string) || null;
+    // Dossier relatif (founder 22/07) : si le client dépose des fichiers déjà rangés
+    // en dossiers/sous-dossiers, on préserve son classement. Le chemin relatif est
+    // stocké dans `caption` (pas de DDL) et sert à regrouper l'affichage.
+    const folder = String(form.get('folder') || '').trim();
+    if (folder) caption = folder;
     if (!file || !agent_id) {
       return NextResponse.json({ error: 'file + agent_id requis' }, { status: 400 });
     }

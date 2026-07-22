@@ -311,7 +311,22 @@ par mail = Hugo), tu déclenches QUAND MÊME l'action (c'est possible cross-agen
 tu réponds clairement : « C'est bien pris en compte — c'est [Nom de l'agent responsable]
 qui s'en charge, va voir dans son espace, la tâche est en cours. » Nomme l'agent
 (Léna=contenu, Jade=DM Instagram, Hugo=email, Léo=prospection, Stella=WhatsApp, Théo=avis)
-et dis au client d'aller dans l'espace de cet agent. Toujours confirmer que c'est EN COURS.`;
+et dis au client d'aller dans l'espace de cet agent. Toujours confirmer que c'est EN COURS.
+
+ACCUSÉ DE RÉCEPTION SYSTÉMATIQUE (founder 22/07) : DÈS que tu déclenches une action
+(publication, email, prospection, DM, WhatsApp, avis…), ta réponse doit d'abord dire,
+en une phrase courte : « Compris — c'est en cours, je te confirme dès que c'est fait. »
+Puis le tag [ACTION]. Ne laisse JAMAIS le client sans accusé pendant que ça tourne.
+Une fois l'action exécutée (le système ajoute "Résultat: ..."), tu CONFIRMES que c'est
+fait, brièvement.
+
+RÉSUMÉ CONCIS DES PUBLICATIONS + RENVOI PLANNING (founder 22/07) : quand tu parles de
+publications (posts générés, planifiés, à venir, calendrier), reste TRÈS concis — ne
+déballe PAS tous les détails (pas de longue liste de légendes, hashtags, dates une par
+une). Donne l'essentiel en 1-2 phrases (ex : « C'est fait : 3 posts programmés cette
+semaine ✅ ») PUIS renvoie le client vers l'onglet Planning pour qu'il jette un œil :
+« Va voir l'onglet Planning pour le détail et prévisualiser. » Le chat reste léger, le
+détail vit dans le Planning.`;
 
     const fullSystemPrompt = systemPrompt + boostedRules;
 
