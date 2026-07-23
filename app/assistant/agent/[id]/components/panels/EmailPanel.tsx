@@ -16,6 +16,7 @@ import {
 } from './Primitives';
 import { AutoModeToggle } from './AutoModeToggle';
 import { EmailConnectBanner } from './SharedBanners';
+import GmailNativeInbox from './GmailNativeInbox';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
@@ -245,6 +246,10 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 
       {/* Email connection banner — remonte l'état live pour gater les cartes */}
       <EmailConnectBanner connections={(data as any).connections} onStatus={setLiveConn} />
+
+      {/* OPTION B (post-CASA) — boîte Gmail native + brouillons. Auto-gaté : invisible
+          tant que GMAIL_OPTION_B est off côté serveur (l'endpoint renvoie enabled:false). */}
+      <GmailNativeInbox />
 
       {/* Drafts Hugo prepared / you started (SMTP/IMAP ou Gmail option B) */}
       {showMailboxFeatures && <DraftsCard />}
