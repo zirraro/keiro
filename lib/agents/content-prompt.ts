@@ -259,11 +259,12 @@ COHÉRENCE & DIVERSITÉ VISUELLE DES REELS (founder 2026-07-21 — STRICT, impac
 - TRANSITIONS SOIGNÉES : entre les plans, mouvement fluide (caméra/sujet qui bouge), coupe nette ou fondu léger. JAMAIS un saut brutal, un changement de sujet ou un « diaporama » figé.
 - DIVERSITÉ DES VISAGES : d'un reel à l'autre, VARIE les personnes (origine, âge, genre) — ne répète pas le même visage générique. EXCEPTION personal branding : là c'est la MÊME personne (le fondateur/expert incarne la marque), visage constant voulu.
 - Un reel incohérent (objet random, transitions cassées) est retenu par le QC et NE publie PAS → soigne le brief visuel dès la génération.
+- NIVEAU DE QUALITÉ REEL (founder 23/07 — RELÈVE LA BARRE) : chaque Reel doit ressembler à une VRAIE captation pro (niveau chef opérateur), pas à une image animée. Exige : vrai mouvement de caméra OU de sujet à chaque plan, lumière travaillée (rim light, contre-jour doux, golden hour), profondeur (avant/arrière-plan), détail texturé, et un hook visuel dans la première seconde. Zéro aspect « IA » (plastique, morphing, perfection synthétique). Si le brief visuel ne garantit pas ce niveau, enrichis-le avant de générer.
 
-FORMAT TIKTOK — VIDÉO EN PRIORITÉ :
-TikTok est une plateforme NATIVEMENT vidéo. Ton mix sur 7 jours doit être :
-  - 60-70% VIDÉO (reels courts 7-15s, mids 15-30s, longs 30-60s)
-  - 20-30% CARROUSEL PHOTO (storytelling slide par slide, 2-10 images)
+FORMAT TIKTOK — VIDÉO + PLUS DE CARROUSELS :
+TikTok est nativement vidéo, MAIS le photo mode (carrousel) performe très fort en 2026 et coûte moins cher. Ton mix sur 7 jours :
+  - 50-60% VIDÉO (reels courts 7-15s, mids 15-30s, longs 30-60s)
+  - 40-50% CARROUSEL PHOTO (photo mode, storytelling slide par slide, 2-10 images) — AU MOINS 3 carrousels TikTok/semaine (founder 23/07)
   - 10-15% PHOTO SIMPLE (uniquement quand l'image suffit à elle seule)
 
 CHOIX DU FORMAT PAR SUJET (briefé dans 'format' du JSON) :
@@ -1174,6 +1175,11 @@ export function getWeeklyPlanPrompt(context: {
 Soit AU MOINS 14 publications sur la semaine (7 IG + 7 TikTok), plus les stories. JAMAIS un jour sans Instagram ET sans TikTok. Le champ "platform" de chaque objet est obligatoire ("instagram" ou "tiktok").
 
 MIX IMAGE / VIDÉO : équilibre image et vidéo sur la semaine selon la stratégie (par défaut ~50/50). TikTok privilégie le format natif vidéo ; Instagram alterne carrousel image et reel. Reste dans la marge — pas de sur-production vidéo si le mix penche image.
+
+STRATÉGIE FORMATS & CROSS-POST (founder 23/07) — À RESPECTER :
+- INSTAGRAM : augmente la part de REELS. Vise AU MOINS 3 Reels Instagram par semaine (le Reel est le format n°1 pour toucher les non-abonnés). Les Reels doivent être de QUALITÉ (vrai mouvement cinématique, cohérents, pas de diaporama figé — cf. QC). Alterne avec les carrousels, mais ne descends pas sous 3 Reels/semaine.
+- TIKTOK : publie PLUS de CARROUSELS (photo mode). Vise AU MOINS 3 carrousels TikTok par semaine (le photo mode TikTok performe très fort en 2026 et coûte moins cher à produire). Alterne avec les vidéos.
+- CROSS-POST INTELLIGENT (réutilisation croisée) : réutilise une partie du contenu d'un réseau sur l'autre — un bon Reel Instagram peut être republié en vidéo TikTok, un bon carrousel/vidéo TikTok peut être adapté en Reel/carrousel Instagram. Adapte le format et le cadrage (9:16 natif, retire tout watermark, ajuste le hook au réseau) — jamais un simple copier-coller. Utilise le cross-post pour ~1-2 contenus/semaine par sens, en gardant de l'original à côté.
 
 OBJECTIF STRATÉGIQUE : Chaque post doit faire progresser vers les 1000 abonnés Instagram. Priorité = engagement (saves + partages > likes).
 
