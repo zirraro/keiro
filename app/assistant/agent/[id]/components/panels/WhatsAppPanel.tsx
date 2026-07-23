@@ -169,17 +169,43 @@ function StellaConversations({ en }: { en: boolean }) {
               <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
                 <button onClick={() => setSel(null)} className="md:hidden text-white/50 text-sm">←</button>
                 <span className="text-[13px] font-semibold text-white/85 flex-1 truncate">{convs.find(c => c.phone === sel)?.name || sel}</span>
-                {human
-                  ? <button disabled={busy} onClick={() => toggleTakeover('resume')} className="text-[10px] px-2 py-1 rounded-full bg-[#25D366]/20 text-[#34d399] font-semibold">{en ? 'Give back to Stella' : 'Rendre la main à Stella'}</button>
-                  : <button disabled={busy} onClick={() => toggleTakeover('takeover')} className="text-[10px] px-2 py-1 rounded-full bg-sky-500/20 text-sky-300 font-semibold">{en ? 'Take over' : 'Reprendre la main'}</button>}
+                {/* Toggle Stella ON/OFF (activer/désactiver) — ON = Stella répond auto,
+                    OFF = tu as repris la main. On garde les phrases à côté. */}
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] font-semibold ${human ? 'text-sky-300' : 'text-[#34d399]'}`}>
+                    {human ? (en ? 'You' : 'Toi') : 'Stella'}
+                  </span>
+                  <button
+                    role="switch"
+                    aria-checked={!human}
+                    disabled={busy}
+                    onClick={() => toggleTakeover(human ? 'resume' : 'takeover')}
+                    title={human ? (en ? 'Reactivate Stella' : 'Réactiver Stella') : (en ? 'Take over' : 'Reprendre la main')}
+                    className={`relative w-9 h-5 rounded-full transition shrink-0 ${!human ? 'bg-[#25D366]' : 'bg-white/20'} disabled:opacity-50`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${!human ? 'left-[18px]' : 'left-0.5'}`} />
+                  </button>
+                  {human
+                    ? <button disabled={busy} onClick={() => toggleTakeover('resume')} className="text-[10px] px-2 py-1 rounded-full bg-[#25D366]/20 text-[#34d399] font-semibold">{en ? 'Give back to Stella' : 'Rendre à Stella'}</button>
+                    : <button disabled={busy} onClick={() => toggleTakeover('takeover')} className="text-[10px] px-2 py-1 rounded-full bg-sky-500/20 text-sky-300 font-semibold">{en ? 'Take over' : 'Reprendre la main'}</button>}
+                </div>
               </div>
               <div className="flex-1 max-h-[300px] overflow-y-auto p-3 flex flex-col gap-2">
-                {thread.map((m, i) => (
-                  <div key={i} className={`max-w-[80%] px-3 py-2 ${bubbleStyle(m.role)}`}>
-                    {roleLabel(m.role) && <div className="text-[9px] font-bold opacity-60 mb-0.5">{roleLabel(m.role)}</div>}
-                    <div className="text-[12px] whitespace-pre-wrap leading-snug">{m.message}</div>
-                  </div>
-                ))}
+                {thread.map((m, i) => {
+                  const dt = m.date ? new Date(m.date) : null;
+                  const validDt = dt && !isNaN(dt.getTime());
+                  return (
+                    <div key={i} className={`max-w-[80%] px-3 py-2 ${bubbleStyle(m.role)}`}>
+                      {roleLabel(m.role) && <div className="text-[9px] font-bold opacity-60 mb-0.5">{roleLabel(m.role)}</div>}
+                      <div className="text-[12px] whitespace-pre-wrap leading-snug">{m.message}</div>
+                      {validDt && (
+                        <div className="text-[8px] opacity-50 mt-1 text-right">
+                          {dt!.toLocaleString(en ? 'en-US' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 <div ref={endRef} />
               </div>
               {human && (
