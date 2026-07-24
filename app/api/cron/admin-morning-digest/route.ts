@@ -397,8 +397,45 @@ export async function GET(req: NextRequest) {
     }
   } catch { /* best-effort */ }
 
+  // ── 2.7 SILENCE PAR AGENT (founder 24/07) : un agent qui PRODUISAIT puis s'arrête
+  // (0 action réussie) SANS erreur = cassé mais silencieux. On compare la fenêtre
+  // récente (48h) à une baseline (48h→9j) : si l'agent était actif (≥2 actions) et
+  // qu'il tombe à 0 → régression silencieuse. On ignore les clients en pause et les
+  // agents jamais utilisés (pas de faux positif). ──
+  type SilenceIssue = { client_id: string; client_email: string; plan: string; agent: string; detail: string };
+  const silenceIssues: SilenceIssue[] = [];
+  try {
+    const CORE_AGENTS = ['content', 'email', 'dm_instagram', 'commercial', 'gmaps'];
+    const clientIds = (clients || []).filter(c => !c.scheduling_paused_at).map(c => c.id);
+    if (clientIds.length) {
+      const recentFrom = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+      const baseFrom = new Date(Date.now() - 9 * 86400000).toISOString();
+      const agg = async (fromISO: string, toISO?: string) => {
+        let q = supabase.from('agent_logs').select('user_id, agent').eq('status', 'ok').in('agent', CORE_AGENTS).in('user_id', clientIds).gte('created_at', fromISO).limit(10000);
+        if (toISO) q = q.lt('created_at', toISO);
+        const { data } = await q;
+        const m = new Map<string, number>();
+        for (const r of data || []) { const k = `${r.user_id}::${r.agent}`; m.set(k, (m.get(k) || 0) + 1); }
+        return m;
+      };
+      const recentMap = await agg(recentFrom);
+      const baseMap = await agg(baseFrom, recentFrom);
+      for (const [k, base] of baseMap) {
+        if (base < 2) continue; // agent peu/pas actif avant → on ne juge pas
+        if ((recentMap.get(k) || 0) === 0) {
+          const [uid, ag] = k.split('::');
+          const c = (clients || []).find(x => x.id === uid);
+          silenceIssues.push({
+            client_id: uid, client_email: c?.email || uid.slice(0, 8), plan: c?.subscription_plan || '?', agent: ag,
+            detail: `Agent ${ag} SILENCIEUX : 0 action réussie depuis 48h (il en faisait ${base} sur la période précédente). Arrêt sans erreur — à investiguer.`,
+          });
+        }
+      }
+    }
+  } catch { /* best-effort */ }
+
   // Skip the digest entirely if nothing to report
-  if (tokenIssues.length === 0 && failures.length === 0 && creditAlerts.length === 0 && deliveryIssues.length === 0 && deadReachIssues.length === 0) {
+  if (tokenIssues.length === 0 && failures.length === 0 && creditAlerts.length === 0 && deliveryIssues.length === 0 && deadReachIssues.length === 0 && silenceIssues.length === 0) {
     return NextResponse.json({ ok: true, sent: false, message: 'Morning health check passed — nothing to report.' });
   }
 
@@ -557,7 +594,13 @@ export async function GET(req: NextRequest) {
 
   const totalP0 = Object.entries(tokenByType).filter(([t]) => TOKEN_TITLES[t]?.severity === 'P0').reduce((sum, [, list]) => sum + list.length, 0)
     + creditAlerts.filter(a => a.severity === 'P0').length;
-  const totalIssues = tokenIssues.length + failures.length + creditAlerts.length + deliveryIssues.length + deadReachIssues.length;
+  const totalIssues = tokenIssues.length + failures.length + creditAlerts.length + deliveryIssues.length + deadReachIssues.length + silenceIssues.length;
+
+  const silenceBlocks = silenceIssues.map(d => `
+    <div style="background:#faf5ff;border:1px solid #d8b4fe;border-radius:8px;padding:10px 12px;margin:0 0 8px;">
+      <div style="font-size:13px;color:#6b21a8;font-weight:bold;">${d.agent.toUpperCase()} — ${d.client_email} <span style="font-weight:normal;color:#7e22ce;">(${d.plan})</span></div>
+      <div style="font-size:12px;color:#581c87;margin-top:2px;">${d.detail}</div>
+    </div>`).join('');
 
   // Bloc "défauts de livraison" — le plus important pour le founder (on n'a pas livré).
   const deliveryBlocks = deliveryIssues.map(d => `
@@ -577,7 +620,7 @@ export async function GET(req: NextRequest) {
     <div style="background:#0c1a3a;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0;">
       <h2 style="margin:0;font-size:18px;">☀️ Service Health — Rapport matin</h2>
       <div style="font-size:12px;color:#a0aec0;margin-top:6px;">
-        ${deliveryIssues.length > 0 ? `<strong style="color:#fdba74;">${deliveryIssues.length} livraison(s) manquée(s)</strong> · ` : ''}${deadReachIssues.length > 0 ? `<strong style="color:#fca5a5;">${deadReachIssues.length} portée(s) morte(s)</strong> · ` : ''}${tokenIssues.length} problème${tokenIssues.length !== 1 ? 's' : ''} de connexion · ${failures.length} type${failures.length !== 1 ? 's' : ''} d'erreur agent · ${totalP0 > 0 ? `<strong style="color:#fca5a5;">${totalP0} P0</strong>` : 'pas de P0'}
+        ${deliveryIssues.length > 0 ? `<strong style="color:#fdba74;">${deliveryIssues.length} livraison(s) manquée(s)</strong> · ` : ''}${deadReachIssues.length > 0 ? `<strong style="color:#fca5a5;">${deadReachIssues.length} portée(s) morte(s)</strong> · ` : ''}${silenceIssues.length > 0 ? `<strong style="color:#d8b4fe;">${silenceIssues.length} agent(s) muet(s)</strong> · ` : ''}${tokenIssues.length} problème${tokenIssues.length !== 1 ? 's' : ''} de connexion · ${failures.length} type${failures.length !== 1 ? 's' : ''} d'erreur agent · ${totalP0 > 0 ? `<strong style="color:#fca5a5;">${totalP0} P0</strong>` : 'pas de P0'}
       </div>
     </div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-top:0;padding:20px 22px;">
@@ -595,6 +638,11 @@ export async function GET(req: NextRequest) {
         <strong style="color:#991b1b;font-size:14px;">🕳️ ${deadReachIssues.length} cas de portée morte — publié mais 0 vue (tous réseaux)</strong>
         <div style="font-size:11px;color:#7f1d1d;margin:6px 0 8px;">Posts publiés depuis +48h toujours à 0 vue/reach. Causes probables : privé/SELF_ONLY, shadowban, app non auditée. Le client publie mais personne ne voit.</div>
         ${deadReachBlocks}
+      </div>` : ''}
+      ${silenceIssues.length > 0 ? `<div style="background:#faf5ff;border:2px solid #9333ea;border-radius:10px;padding:12px;margin:0 0 16px;">
+        <strong style="color:#6b21a8;font-size:14px;">🔇 ${silenceIssues.length} agent(s) devenu(s) silencieux — 0 sortie alors qu'ils produisaient</strong>
+        <div style="font-size:11px;color:#581c87;margin:6px 0 8px;">Un agent qui tournait s'est arrêté sans erreur (0 action réussie depuis 48h). À investiguer — le client paie pour ce service.</div>
+        ${silenceBlocks}
       </div>` : ''}
       ${creditAlerts.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:16px 0 8px;">💳 Crédits & budgets externes</h3>${creditBlocks}` : ''}
       ${tokenIssues.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:20px 0 8px;">🔌 Tokens & connexions</h3>${tokenBlocks}` : ''}
