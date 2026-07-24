@@ -20,7 +20,7 @@ async function run() {
   const supabase = sb();
   const { data: clients } = await supabase
     .from('profiles')
-    .select('id, email, company_name, subscription_plan, is_admin')
+    .select('id, email, company_name, subscription_plan, is_admin, tiktok_access_token, tiktok_username, first_name')
     .neq('subscription_plan', 'free')
     .not('subscription_plan', 'is', null)
     .limit(1000);
@@ -128,6 +128,41 @@ async function run() {
       data: { user_id: c.id, score, band, activity_7d: activity, paused_agents: pausedAgents, posts_7d: posts7d, prospects_7d: prospects7d, emails_7d: emails7d, posts_floor: floor, under_delivered: postsShort },
       created_at: new Date().toISOString(),
     }).then(() => {}, () => {});
+  }
+
+  // COACHING TIKTOK CLIENT (founder 24/07 : "TikTok pousse les comptes actifs — faut
+  // expliquer au client d'être actif s'il veut plus de vues"). Si un client publie des
+  // TikTok mais reste à ~0 vue (portée mesurée = 0), on lui envoie 1×/14j un conseil
+  // bienveillant (in-app + mail) : sois actif (follow/like/commente + engage 1re heure).
+  for (const c of clients || []) {
+    if (c.is_admin || !(c as any).tiktok_access_token) continue;
+    try {
+      const { data: ttPosts } = await supabase.from('content_calendar')
+        .select('engagement_data')
+        .eq('user_id', c.id).eq('platform', 'tiktok').eq('status', 'published')
+        .gte('published_at', new Date(Date.now() - 14 * 86400000).toISOString());
+      const posts = ttPosts || [];
+      if (posts.length < 2) continue; // pas assez pour juger
+      const measured = posts.some((p: any) => { const e = p.engagement_data || {}; return e.synced_at !== undefined || e.views !== undefined || e.play_count !== undefined; });
+      const totalReach = posts.reduce((s: number, p: any) => { const e = p.engagement_data || {}; return s + (Number(e.views) || 0) + (Number(e.reach) || 0) + (Number(e.play_count) || 0); }, 0);
+      if (!measured || totalReach > 0) continue; // pas mesuré, ou ça marche → rien
+      const { data: cfgRow } = await supabase.from('org_agent_configs').select('id, config').eq('user_id', c.id).eq('agent_id', 'content').order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const cfg: any = cfgRow?.config || {};
+      const lastSent = cfg.tiktok_coaching_sent_at ? new Date(cfg.tiktok_coaching_sent_at).getTime() : 0;
+      if (lastSent && Date.now() - lastSent < 14 * 86400000) continue; // rate-limit 14j
+      const msg = `Tes vidéos TikTok partent bien mais la portée reste basse. TikTok pousse surtout les comptes ACTIFS : passe 10-15 min/jour à suivre des comptes de ta zone, liker et commenter, et réponds aux commentaires dans la 1re heure après chaque publication. Poste régulièrement — l'algo récompense la régularité. On s'occupe du contenu ; cette activité côté compte booste vraiment ta portée.`;
+      try {
+        const { notifyClient } = await import('@/lib/agents/notify-client');
+        await notifyClient(supabase, { userId: c.id, agent: 'content', type: 'action', title: 'Booste ta portée TikTok', message: msg, data: { network: 'tiktok' } });
+      } catch { /* notif best-effort */ }
+      try {
+        const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+        if (c.email) await sendEmailWithFallback({ to: c.email, subject: 'Comment booster tes vues TikTok', html: `<div style="font-family:Arial,sans-serif;color:#333;"><p>Salut ${(c as any).first_name || ''},</p><p>${msg}</p><p style="color:#6b7280;font-size:13px;">Ton contenu est prêt et publié — c'est cette activité côté compte qui fait la différence sur la portée.</p><p>— Léna, ton agent contenu</p></div>`, fromName: 'Léna — KeiroAI', fromEmail: 'contact@keiroai.com', tags: ['tiktok_coaching'] });
+      } catch { /* mail best-effort */ }
+      const next = { ...cfg, tiktok_coaching_sent_at: new Date().toISOString() };
+      if (cfgRow?.id) await supabase.from('org_agent_configs').update({ config: next }).eq('id', cfgRow.id);
+      else await supabase.from('org_agent_configs').insert({ user_id: c.id, agent_id: 'content', config: next });
+    } catch { /* best-effort */ }
   }
 
   // AUTO-RATTRAPAGE du volume (founder 2026-07-19 : "pas d'alerte à contact, on

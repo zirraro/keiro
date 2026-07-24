@@ -1040,57 +1040,18 @@ export async function publishTikTokVideoViaFileUpload(
     console.error('[TikTok] Init error:', errorMsg);
     console.error('[TikTok] Error code:', errorCode);
 
-    // Auto-fallback chain for unaudited_client:
-    // 1) Try SELF_ONLY privacy
-    // 2) Try MEDIA_UPLOAD mode (uploads as draft to creator's TikTok)
+    // Founder 24/07 — ANTI "CASSÉ MAIS PAS IDENTIFIÉ" : on ne dégrade PLUS en
+    // silence vers SELF_ONLY (privé) ni draft quand TikTok refuse le PUBLIC. Une
+    // publi privée = 0 vue alors que le caller croit que c'est public. Comme le
+    // path PHOTO, on LÈVE l'erreur → le post est marqué 'failed' → alerte immédiate
+    // + digest. (L'ancienne chaîne SELF_ONLY→draft est la cause racine du bug 0 vue.)
     if (errorCode === 'unaudited_client_can_only_post_to_private_accounts') {
-      // Try SELF_ONLY first if not already tried
-      if (requestBody.post_info.privacy_level !== 'SELF_ONLY') {
-        console.warn('[TikTok] PUBLIC rejected — retrying with SELF_ONLY...');
-        requestBody.post_info.privacy_level = 'SELF_ONLY';
-        const retryRes = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
-        const retryData = await retryRes.json();
-        console.log('[TikTok] SELF_ONLY retry:', JSON.stringify(retryData, null, 2).substring(0, 500));
-        const retryOk = !(retryData.error && retryData.error.code && retryData.error.code !== 'ok');
-        if (retryOk && retryData.data?.upload_url) {
-          console.log('[TikTok] ✓ SELF_ONLY succeeded');
-          Object.assign(initData, retryData);
-        }
-      }
-
-      // If still no upload_url, try MEDIA_UPLOAD mode (draft upload)
-      if (!initData.data?.upload_url) {
-        console.warn('[TikTok] DIRECT_POST rejected — retrying with MEDIA_UPLOAD (draft) mode...');
-        const draftBody = {
-          post_info: {
-            title: requestBody.post_info.title,
-            privacy_level: 'SELF_ONLY',
-          },
-          source_info: requestBody.source_info,
-          post_mode: 'MEDIA_UPLOAD',
-        };
-        const draftRes = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(draftBody),
-        });
-        const draftData = await draftRes.json();
-        console.log('[TikTok] MEDIA_UPLOAD retry:', JSON.stringify(draftData, null, 2).substring(0, 500));
-        const draftOk = !(draftData.error && draftData.error.code && draftData.error.code !== 'ok');
-        if (draftOk && draftData.data?.upload_url) {
-          console.log('[TikTok] ✓ MEDIA_UPLOAD (draft) succeeded — video will appear in TikTok drafts');
-          Object.assign(initData, draftData);
-        } else {
-          throw new Error(
-            `TikTok Direct Post non audité. Cliquez "Apply" dans TikTok Developer Dashboard → Products → Content Posting API → Direct Post.\n` +
-            `En attendant, MEDIA_UPLOAD (brouillon) a aussi échoué: ${draftData.error?.message || 'unknown'}`
-          );
-        }
-      }
+      throw new Error(
+        'TIKTOK_NOT_PUBLIC: TikTok a refusé la publication PUBLIQUE (app non auditée pour ' +
+        'Direct Post, ou compte non éligible). On NE publie PAS en privé/brouillon pour ' +
+        'éviter une publi à 0 vue. Action : TikTok Developer Dashboard → Products → ' +
+        'Content Posting API → Direct Post (audit).'
+      );
     } else {
       throw new Error(errorMsg);
     }

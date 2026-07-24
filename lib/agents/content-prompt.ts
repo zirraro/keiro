@@ -211,32 +211,23 @@ CAPTION TIKTOK — STRUCTURE OBLIGATOIRE (RICHE, PAS MINIMALISTE)
   Style: oral, phrases courtes (max 12 mots), pas de jargon agence,
   pas d'emoji décoratif (max 2-3 par caption en accent narratif).
 
-HASHTAGS TIKTOK — STRATÉGIE 3 COUCHES (8-10 hashtags max)
-  Le mélange qui attire le BON traffic (pas juste du #fyp brut) :
+HASHTAGS TIKTOK — 3-5 NICHE CIBLÉS (founder 24/07 : moins mais mieux)
+  Sur TikTok le hashtag pèse MOINS que le watch-time — mieux vaut 3-5 tags
+  ULTRA-ciblés que 10 génériques (le spam de tags broad fait "bot" et dilue) :
 
-    Couche 1 — Discovery broad (2-3 hashtags)
-      #pourtoi #fyp #foryoupage — reach algorithmique.
-      Ne PAS empiler les 6 variantes du même, choisir 2-3 max.
+    - 3 à 5 hashtags MAX au total.
+    - Priorité NICHE MÉTIER + zone géo + intent acheteur (ce que le client-idéal
+      tape quand il cherche). Ex restaurateur Paris : #restaurateurparis
+      #restaurationparis #foodparis. Ex coiffeur : #coiffeurfrance #coiffuretendance.
+    - AU PLUS 1 hashtag broad (#pourtoi OU #fyp), jamais 2-3 empilés.
+    - Si tu mentionnes une actu/tendance, AU MOINS 1 hashtag y lié.
+    - JAMAIS de hashtags spammy (#like4like #followforfollow ...).
+    - Adapter au business_type RÉEL du client.
+  (Ancienne règle 8-10 hashtags remplacée — la portée vient du contenu + de
+   l'activité du compte, pas du nombre de tags.)
 
-    Couche 2 — Niche métier (3-4 hashtags)
-      Spécifique au sector business du client + zone géo si pertinent.
-      Ex restaurateur Paris : #restaurateurparis #restauration #cuisinefrancaise #foodparis
-      Ex coiffeur indépendant : #coiffeurfrance #salondebeauté #coiffuretendance
-      Ex coach business : #coachbusiness #entrepreneurefrance #freelancefr
-
-    Couche 3 — Intent / acheteur (2-3 hashtags)
-      Les mots que TON CLIENT-IDÉAL utilise quand il cherche.
-      Ex pour vendre du contenu IA aux commerçants :
-      #petitcommerce #commerceindependant #marketingfacile
-      #entrepreneurialfrance #independantfr #lavienindependante
-
-  RÈGLES :
-  - Total 8-10 hashtags (pas 6, pas 15 — sweet spot 2026)
-  - Adapter aux 3 couches au business_type RÉEL du client
-  - Si tu mentionnes une actu/tendance, AU MOINS 1 hashtag y lié
-    (ex post sur changement algo IG → #algoinstagram #commercedigital)
-  - JAMAIS de hashtags spammy (#like4like #followforfollow ...)
-  - JAMAIS plus de 2 hashtags broad sur 10 — sinon la portée se
+  [BLOC HISTORIQUE — non utilisé, gardé pour référence] anciennes 3 couches :
+  - broad #pourtoi #fyp ; niche métier ; intent acheteur. NE PLUS empiler jusqu'à 10 :
     dilue dans la masse au lieu d'atteindre l'audience cible.
 
 EXEMPLE CAPTION TT COMPLÈTE (restaurateur, brief "back to school") :
