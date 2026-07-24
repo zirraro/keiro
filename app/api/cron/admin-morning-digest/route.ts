@@ -358,8 +358,47 @@ export async function GET(req: NextRequest) {
     }
   } catch { /* best-effort */ }
 
+  // ── 2.6 PORTÉE MORTE — TOUS RÉSEAUX (founder 24/07) : un post publié depuis +48h
+  // TOUJOURS à 0 vue/reach malgré synchronisation = "cassé mais silencieux" (privé,
+  // shadowban, app non auditée…). On EXIGE que l'engagement ait été mesuré (clé
+  // présente) pour ne pas confondre avec "pas encore synchronisé". ──
+  type ReachIssue = { client_id: string; client_email: string; plan: string; network: string; detail: string };
+  const deadReachIssues: ReachIssue[] = [];
+  try {
+    const from7d = new Date(Date.now() - 7 * 86400000).toISOString();
+    const to48h = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    const { data: pub } = await supabase
+      .from('content_calendar')
+      .select('user_id, platform, engagement_data, published_at')
+      .eq('status', 'published')
+      .gte('published_at', from7d)
+      .lte('published_at', to48h)
+      .not('engagement_data', 'is', null);
+    const reachMap = new Map<string, { platform: string; count: number }>();
+    for (const p of pub || []) {
+      const e = (p.engagement_data as any) || {};
+      const measured = e.synced_at !== undefined || e.views !== undefined || e.reach !== undefined || e.impressions !== undefined;
+      if (!measured) continue; // pas encore mesuré → on ne juge pas
+      const total = (Number(e.views) || 0) + (Number(e.reach) || 0) + (Number(e.impressions) || 0) + (Number(e.like_count) || 0) + (Number(e.play_count) || 0);
+      if (total > 0) continue;
+      const key = `${p.user_id}::${p.platform}`;
+      const g = reachMap.get(key) || { platform: p.platform, count: 0 };
+      g.count++; reachMap.set(key, g);
+    }
+    for (const [key, g] of reachMap) {
+      const uid = key.split('::')[0];
+      deadReachIssues.push({
+        client_id: uid,
+        client_email: userIdToEmail.get(uid) || uid.slice(0, 8),
+        plan: (clients || []).find(c => c.id === uid)?.subscription_plan || '?',
+        network: g.platform,
+        detail: `${g.count} post(s) ${g.platform} publié(s) depuis +48h TOUJOURS à 0 vue/reach — portée morte (privé ? shadowban ? app non auditée ?)`,
+      });
+    }
+  } catch { /* best-effort */ }
+
   // Skip the digest entirely if nothing to report
-  if (tokenIssues.length === 0 && failures.length === 0 && creditAlerts.length === 0 && deliveryIssues.length === 0) {
+  if (tokenIssues.length === 0 && failures.length === 0 && creditAlerts.length === 0 && deliveryIssues.length === 0 && deadReachIssues.length === 0) {
     return NextResponse.json({ ok: true, sent: false, message: 'Morning health check passed — nothing to report.' });
   }
 
@@ -518,7 +557,7 @@ export async function GET(req: NextRequest) {
 
   const totalP0 = Object.entries(tokenByType).filter(([t]) => TOKEN_TITLES[t]?.severity === 'P0').reduce((sum, [, list]) => sum + list.length, 0)
     + creditAlerts.filter(a => a.severity === 'P0').length;
-  const totalIssues = tokenIssues.length + failures.length + creditAlerts.length + deliveryIssues.length;
+  const totalIssues = tokenIssues.length + failures.length + creditAlerts.length + deliveryIssues.length + deadReachIssues.length;
 
   // Bloc "défauts de livraison" — le plus important pour le founder (on n'a pas livré).
   const deliveryBlocks = deliveryIssues.map(d => `
@@ -527,11 +566,18 @@ export async function GET(req: NextRequest) {
       <div style="font-size:12px;color:#7c2d12;margin-top:2px;">${d.detail}</div>
     </div>`).join('');
 
+  // Bloc "portée morte" — publié mais 0 vue (tous réseaux).
+  const deadReachBlocks = deadReachIssues.map(d => `
+    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;margin:0 0 8px;">
+      <div style="font-size:13px;color:#991b1b;font-weight:bold;">${d.network.toUpperCase()} — ${d.client_email} <span style="font-weight:normal;color:#b91c1c;">(${d.plan})</span></div>
+      <div style="font-size:12px;color:#7f1d1d;margin-top:2px;">${d.detail}</div>
+    </div>`).join('');
+
   const adminHtml = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
     <div style="background:#0c1a3a;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0;">
       <h2 style="margin:0;font-size:18px;">☀️ Service Health — Rapport matin</h2>
       <div style="font-size:12px;color:#a0aec0;margin-top:6px;">
-        ${deliveryIssues.length > 0 ? `<strong style="color:#fdba74;">${deliveryIssues.length} livraison(s) manquée(s)</strong> · ` : ''}${tokenIssues.length} problème${tokenIssues.length !== 1 ? 's' : ''} de connexion · ${failures.length} type${failures.length !== 1 ? 's' : ''} d'erreur agent · ${totalP0 > 0 ? `<strong style="color:#fca5a5;">${totalP0} P0</strong>` : 'pas de P0'}
+        ${deliveryIssues.length > 0 ? `<strong style="color:#fdba74;">${deliveryIssues.length} livraison(s) manquée(s)</strong> · ` : ''}${deadReachIssues.length > 0 ? `<strong style="color:#fca5a5;">${deadReachIssues.length} portée(s) morte(s)</strong> · ` : ''}${tokenIssues.length} problème${tokenIssues.length !== 1 ? 's' : ''} de connexion · ${failures.length} type${failures.length !== 1 ? 's' : ''} d'erreur agent · ${totalP0 > 0 ? `<strong style="color:#fca5a5;">${totalP0} P0</strong>` : 'pas de P0'}
       </div>
     </div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-top:0;padding:20px 22px;">
@@ -544,6 +590,11 @@ export async function GET(req: NextRequest) {
         <strong style="color:#9a3412;font-size:14px;">📉 ${deliveryIssues.length} livraison(s) client manquée(s) — on n'a PAS livré ce qui était prévu</strong>
         <div style="font-size:11px;color:#7c2d12;margin:6px 0 8px;">Posts dus mais jamais publiés (échec ou créneau raté). À corriger EN PRIORITÉ — c'est ce que le client attend.</div>
         ${deliveryBlocks}
+      </div>` : ''}
+      ${deadReachIssues.length > 0 ? `<div style="background:#fef2f2;border:2px solid #dc2626;border-radius:10px;padding:12px;margin:0 0 16px;">
+        <strong style="color:#991b1b;font-size:14px;">🕳️ ${deadReachIssues.length} cas de portée morte — publié mais 0 vue (tous réseaux)</strong>
+        <div style="font-size:11px;color:#7f1d1d;margin:6px 0 8px;">Posts publiés depuis +48h toujours à 0 vue/reach. Causes probables : privé/SELF_ONLY, shadowban, app non auditée. Le client publie mais personne ne voit.</div>
+        ${deadReachBlocks}
       </div>` : ''}
       ${creditAlerts.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:16px 0 8px;">💳 Crédits & budgets externes</h3>${creditBlocks}` : ''}
       ${tokenIssues.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:20px 0 8px;">🔌 Tokens & connexions</h3>${tokenBlocks}` : ''}
