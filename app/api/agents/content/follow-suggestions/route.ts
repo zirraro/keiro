@@ -49,15 +49,25 @@ async function accountExists(platform: string, handle: string): Promise<boolean>
     if (r.status === 200) {
       const html = (await r.text()).slice(0, 400_000);
       const h = handle.toLowerCase();
-      if (platform === 'tiktok') {
-        // Signal positif : uniqueId exact dans le JSON de la page, et pas de
-        // marqueur "compte introuvable".
-        const notFound = /couldn['’]t find this account|aucun résultat trouvé|video currently unavailable/i.test(html);
-        ok = !notFound && new RegExp(`"uniqueId"\\s*:\\s*"${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'i').test(html);
+      const esc = h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Mur de connexion / challenge bot = on NE PEUT PAS vérifier → on considère
+      // NON accessible (founder 25/07 : mieux vaut ne pas montrer qu'afficher un
+      // compte injoignable). Ces pages ne portent pas la vraie fiche profil.
+      const loginWall = /(login|challenge|captcha|please wait|checkpoint_required)/i.test(html) &&
+        !new RegExp(`(og:url[^>]*(instagram|tiktok)\\.com/@?${esc}|"uniqueId"\\s*:\\s*"${esc}")`, 'i').test(html);
+      if (loginWall) { ok = false; }
+      else if (platform === 'tiktok') {
+        const notFound = /couldn['’]t find this account|aucun résultat trouvé|video currently unavailable|account.{0,20}(banned|not exist)/i.test(html);
+        // Signal POSITIF FORT : uniqueId exact ET présence du canonical/og:url du profil.
+        const hasUnique = new RegExp(`"uniqueId"\\s*:\\s*"${esc}"`, 'i').test(html);
+        const hasCanonical = new RegExp(`tiktok\\.com/@${esc}["'/]`, 'i').test(html);
+        ok = !notFound && hasUnique && hasCanonical;
       } else {
-        // Instagram : 200 + handle présent dans og:url/canonical, pas de page login-only.
-        const notFound = /Page Not Found|Sorry, this page isn|isn['’]t available/i.test(html);
-        ok = !notFound && (new RegExp(`instagram\\.com/${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(html) || html.toLowerCase().includes(`"alternate_name":"@${h}"`));
+        const notFound = /Page Not Found|Sorry, this page isn|isn['’]t available|user not found/i.test(html);
+        // Signal POSITIF FORT : le canonical / og:url pointe EXACTEMENT sur ce handle
+        // (et pas juste le handle mentionné quelque part dans des suggestions).
+        const hasCanonical = new RegExp(`(og:url"[^>]*content="https://www\\.instagram\\.com/${esc}/|<link[^>]*rel="canonical"[^>]*instagram\\.com/${esc}/|"alternate_name"\\s*:\\s*"@?${esc}")`, 'i').test(html);
+        ok = !notFound && hasCanonical;
       }
     }
   } catch { ok = false; }

@@ -2399,6 +2399,28 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   const handleEnvoyerDM = useCallback(async (dm: { id: string; handle: string; message: string }) => {
     const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
     if (!cleanHandle) return;
+    // COPIE SYNCHRONE dès le clic (founder 25/07) : le clipboard doit être écrit
+    // DANS le geste utilisateur, sinon le navigateur le bloque après l'await de
+    // vérification (bug "le message ne se copie pas"). Fallback execCommand.
+    const copyNow = (): boolean => {
+      try { if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(dm.message); return true; } } catch { /* fallthrough */ }
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = dm.message; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+      } catch { return false; }
+    };
+    const copiedOk = copyNow();
+    setStatuses(prev => ({
+      ...prev,
+      [dm.id]: {
+        kind: copiedOk ? 'ready' : 'warning',
+        text: copiedOk
+          ? (en ? 'Message copied ✓ — verifying profile…' : 'Message copié ✓ — vérification du profil…')
+          : (en ? 'Copy blocked — select the message and copy it manually.' : 'Copie bloquée — sélectionne le message et copie-le à la main.'),
+      },
+    }));
     setVerifying(dm.id);
     try {
       const vres = await fetch(`/api/agents/dm-instagram/preflight?dm_id=${encodeURIComponent(dm.id)}`, {

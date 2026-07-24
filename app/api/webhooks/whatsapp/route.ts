@@ -435,12 +435,26 @@ async function handleIncomingMessage(
   });
   const whatsappContext = '';
 
+  // VERROU DE LANGUE DÉTERMINISTE (founder 25/07) — Stella répond dans la langue du
+  // client. On ne se fie pas qu'au prompt (Gemini le suit mal) : on DÉTECTE la langue
+  // du message et on impose un hard lock, comme Jade en DM.
+  let waLangLock = '';
+  try {
+    const { detectLanguage } = await import('@/lib/agents/language-detect');
+    const waLang = detectLanguage(messageText);
+    const WA_LANG_LABEL: Record<string, string> = { fr: 'French', en: 'English', es: 'Spanish', de: 'German', it: 'Italian', pt: 'Portuguese' };
+    const label = WA_LANG_LABEL[waLang];
+    if (label && waLang !== 'fr') {
+      waLangLock = `⚠️ HARD LANGUAGE LOCK — The customer wrote in ${label}. YOUR ENTIRE REPLY MUST BE WRITTEN IN ${label.toUpperCase()}. Not a single French word. Mirror their language exactly.\n\n`;
+    }
+  } catch { /* détection best-effort */ }
+
   let assistantMessage: string;
   try {
     // Remove the last entry (current message) from history since we pass it separately
     const historyForAI = history.slice(0, -1);
     assistantMessage = await callGeminiChat({
-      system: systemPrompt + whatsappContext,
+      system: waLangLock + systemPrompt + whatsappContext,
       history: historyForAI,
       message: messageText,
       maxTokens: 300, // WhatsApp = short messages
