@@ -151,7 +151,12 @@ export async function GET(request: NextRequest) {
             videoUrl: imageUrl,
             caption: post.caption || '',
             hashtags: post.hashtags || [],
-            privacyLevel: 'SELF_ONLY',
+            // 2026-07-24 (founder) : les reels TikTok restaient à 0 vue car publiés
+            // en SELF_ONLY (privés, visibles par le créateur SEUL). Un post client
+            // DOIT être PUBLIC. ⚠️ Si l'app TikTok n'est pas AUDITÉE (Content Posting
+            // API), TikTok force le privé côté serveur quoi qu'on envoie → vérifier
+            // le statut d'audit de l'app dans le portail développeur TikTok.
+            privacyLevel: 'PUBLIC_TO_EVERYONE',
             disableComment: false,
             disableDuet: false,
             disableStitch: false,
@@ -220,6 +225,26 @@ export async function GET(request: NextRequest) {
   const failed = results.filter(r => !r.ok).length;
 
   console.log(`[PublishScheduled] Done: ${succeeded} published, ${failed} failed`);
+
+  // ALERTE IMMÉDIATE (founder 24/07 : "plutôt que d'attendre le digest") — dès qu'une
+  // publication échoue, on prévient l'admin TOUT DE SUITE (le client n'a pas reçu son
+  // post). Fire-and-forget, ne bloque pas le cron.
+  if (failed > 0) {
+    (async () => {
+      try {
+        const rows = results.filter(r => !r.ok).map(r => `<tr><td style="padding:4px 8px;">${r.platform}</td><td style="padding:4px 8px;">${r.id}</td><td style="padding:4px 8px;color:#dc2626;">${(r.error || 'échec').toString().slice(0, 120)}</td></tr>`).join('');
+        const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+        await sendEmailWithFallback({
+          to: process.env.ADMIN_EMAIL || 'contact@keiroai.com',
+          subject: `🚨 ${failed} publication(s) échouée(s) — le client n'a pas reçu son post`,
+          html: `<div style="font-family:Arial,sans-serif;"><h3>Échec de publication (immédiat)</h3><p style="color:#6b7280;font-size:13px;">Détecté à l'instant par publish-scheduled — à corriger avant que le client s'en aperçoive.</p><table style="border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Réseau</th><th style="padding:6px 8px;text-align:left;">Post</th><th style="padding:6px 8px;text-align:left;">Erreur</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+          fromName: 'KeiroAI Alerte Publication',
+          fromEmail: 'contact@keiroai.com',
+          tags: ['publish_failure_immediate', 'p0'],
+        });
+      } catch { /* best-effort */ }
+    })();
+  }
 
   return NextResponse.json({
     ok: true,
