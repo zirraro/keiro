@@ -72,7 +72,7 @@ function UpsellContent() {
                 <span className="text-xs text-neutral-400 line-through ml-1">99€</span>
               </div>
               <ul className="text-[11px] text-neutral-700 space-y-1">
-                <li className="font-semibold text-green-600">{'\✓'} 7 agents IA</li>
+                <li className="font-semibold text-green-600">{'\✓'} 10 agents IA</li>
                 <li>{'\✓'} Tout Cr\éateur inclus</li>
                 <li className="font-semibold text-green-600">{'\✓'} + Th\éo \— avis Google auto</li>
                 <li className="font-semibold text-green-600">{'\✓'} + Hugo \— emails & prospection</li>

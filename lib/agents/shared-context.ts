@@ -46,7 +46,7 @@ const KEIROAI_BRAND = {
   products: [
     'Generation de contenu IA (images, videos, textes)',
     'Publication automatique Instagram, TikTok, LinkedIn',
-    'Equipe de 14+ agents IA (email, DM, SEO, ads, chatbot, WhatsApp, etc.)',
+    'Equipe de agents IA (email, DM, SEO, ads, chatbot, WhatsApp, etc.)',
     'CRM intelligent avec prospection automatisee',
     'Analyse de performance et recommandations strategiques',
   ],

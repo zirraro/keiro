@@ -166,7 +166,7 @@ export default function OffrePage() {
               </div>
               <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] p-6 text-white text-center">
                 <h3 className="text-2xl font-bold">Business</h3>
-                <p className="mt-1 text-cyan-200">15+ agents IA — automatisation compl&egrave;te</p>
+                <p className="mt-1 text-cyan-200">agents IA — automatisation compl&egrave;te</p>
                 <div className="mt-4">
                   <span className="text-4xl font-bold">199&euro;</span>
                   <span className="text-cyan-200 ml-1">/mois</span>
@@ -180,7 +180,7 @@ export default function OffrePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-cyan-500 mt-0.5">&#10003;</span>
-                    <span>15+ agents IA inclus</span>
+                    <span>agents IA inclus</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-cyan-500 mt-0.5">&#10003;</span>

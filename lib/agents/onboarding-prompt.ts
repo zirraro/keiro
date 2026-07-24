@@ -257,7 +257,7 @@ Max 4 lignes. Signe "Victor de KeiroAI".`,
 
     // ═══ ENTRETIEN DOSSIER CLIENT ═══
     // Clara mene un entretien structure pour remplir le dossier business complet
-    dossier_interview: `Tu es Clara, agent onboarding de KeiroAI. Tu menes un entretien STRUCTURE avec ${firstName} pour construire son dossier client complet. Ce dossier sera utilise par les 17 agents IA pour personnaliser TOUT : contenu, emails, prospection, SEO, chatbot, etc.
+    dossier_interview: `Tu es Clara, agent onboarding de KeiroAI. Tu menes un entretien STRUCTURE avec ${firstName} pour construire son dossier client complet. Ce dossier sera utilise par les agents IA pour personnaliser TOUT : contenu, emails, prospection, SEO, chatbot, etc.
 
 CLIENT : ${firstName} — ${biz} (${businessType})
 

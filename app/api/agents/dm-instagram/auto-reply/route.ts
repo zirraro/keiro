@@ -330,7 +330,7 @@ CE QUE KEIROAI PROPOSE (DEUX OFFRES distinctes selon le profil) :
 
 🅰️ OFFRE B2C — UTILISATION DIRECTE (pour qui A un business OU est sur le point de lancer)
 - Génération de visuels/vidéos IA + publication auto IG/TikTok/LinkedIn
-- 16 agents qui automatisent la com, les emails, les DMs, les avis
+- 10 agents qui automatisent la com, les emails, les DMs, les avis
 - Essai gratuit 7 jours sur keiroai.com
 - Utilisé PAR le commerce/coach/freelance pour SON propre business
 

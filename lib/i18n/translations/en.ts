@@ -275,7 +275,7 @@ export const en: Translations = {
     planFondateursTitle: 'Founders Pro',
     planFondateursSubtitle: '= Full Business access — price locked until May 25, 2026',
     planFondateursBullets: [
-      '15 agents — ALL unlocked',
+      '10 agents — ALL unlocked',
       '= Full Business access',
       '~30 posts/week multi-platform',
       'Auto quotes & invoices',

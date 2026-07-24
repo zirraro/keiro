@@ -47,7 +47,7 @@ export const CREDIT_COSTS = {
 
 /**
  * Free agent-chat quota: every user gets N free messages per agent per month
- * before 1 credit is deducted per additional message. With 15+ agents that's
+ * before 1 credit is deducted per additional message. With tous les agents that's
  * 150+ free chat msgs/month — enough for 95% of users to never hit a paywall
  * while still capping power-user abuse (~$0.007 AI cost per msg vs €0.12
  * credit value = ~94% margin once we bill).

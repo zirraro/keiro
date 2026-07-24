@@ -1542,7 +1542,7 @@ export default function AgentWorkspacePage() {
               setMessages([{
                 id: 'clara_intro',
                 role: 'assistant',
-                content: `Salut ! Je suis Clara, ton guide onboarding. Ton profil business n'est pas encore complet — discutons ensemble pour le remplir. Je te pose quelques questions et je m'occupe du reste. Tes 17 agents IA pourront ensuite travailler beaucoup mieux pour toi !\n\nCommençons : comment s'appelle ton commerce et quel est ton type d'activité ?`,
+                content: `Salut ! Je suis Clara, ton guide onboarding. Ton profil business n'est pas encore complet — discutons ensemble pour le remplir. Je te pose quelques questions et je m'occupe du reste. Tes agents IA pourront ensuite travailler beaucoup mieux pour toi !\n\nCommençons : comment s'appelle ton commerce et quel est ton type d'activité ?`,
                 created_at: new Date().toISOString(),
               }]);
             }
@@ -2038,7 +2038,7 @@ export default function AgentWorkspacePage() {
             </button>
             <div className="text-3xl mb-3">{'\u{1F512}'}</div>
             <h3 className="text-lg font-bold text-white mb-1">Decouvre tes agents IA</h3>
-            <p className="text-xs text-white/50 mb-4">Cree ton compte gratuit pour acceder a l&apos;espace complet de tes 18 agents IA et automatiser ton business.</p>
+            <p className="text-xs text-white/50 mb-4">Cree ton compte gratuit pour acceder a l&apos;espace complet de tes agents IA et automatiser ton business.</p>
             <a href="/login" className="block w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition mb-2">
               Essai gratuit 7 jours — 0{'\u20AC'}
             </a>

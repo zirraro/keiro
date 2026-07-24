@@ -318,8 +318,48 @@ export async function GET(req: NextRequest) {
     }
   } catch { /* non-fatal */ }
 
+  // ── 2.5 DÉFAUTS DE LIVRAISON (founder 23/07) : un client avec 0/1 post TikTok
+  // (ou IG/LinkedIn) NE DOIT JAMAIS être reporté "tout nickel". Un publish qui
+  // échoue silencieusement ne laisse pas toujours de log 'error' → on vérifie
+  // DIRECTEMENT le calendrier : posts DUS (scheduled_date passé/aujourd'hui) mais
+  // JAMAIS publiés (published_at NULL). C'est le vrai signal "on n'a pas livré". ──
+  type DeliveryIssue = { client_id: string; client_email: string; plan: string; network: string; detail: string };
+  const deliveryIssues: DeliveryIssue[] = [];
+  try {
+    const todayD = new Date().toISOString().slice(0, 10);
+    const since48hD = new Date(Date.now() - 48 * 3600 * 1000).toISOString().slice(0, 10);
+    const { data: stuck } = await supabase
+      .from('content_calendar')
+      .select('user_id, platform, status, scheduled_date')
+      .lte('scheduled_date', todayD)
+      .gte('scheduled_date', since48hD)
+      .is('published_at', null)
+      .in('status', ['publish_failed', 'retry_pending', 'approved', 'pending_approval', 'draft']);
+    const gapMap = new Map<string, { platform: string; count: number; statuses: Set<string> }>();
+    for (const p of stuck || []) {
+      const overdue = String(p.scheduled_date) < todayD; // slot passé
+      const failed = p.status === 'publish_failed' || p.status === 'retry_pending';
+      // Échec réel = publish raté, OU un post approuvé/prêt dont le créneau est PASSÉ
+      // sans publication (approved/pending/draft dus hier et jamais partis).
+      if (!failed && !overdue) continue;
+      const key = `${p.user_id}::${p.platform}`;
+      const g = gapMap.get(key) || { platform: p.platform, count: 0, statuses: new Set<string>() };
+      g.count++; g.statuses.add(p.status); gapMap.set(key, g);
+    }
+    for (const [key, g] of gapMap) {
+      const uid = key.split('::')[0];
+      deliveryIssues.push({
+        client_id: uid,
+        client_email: userIdToEmail.get(uid) || uid.slice(0, 8),
+        plan: (clients || []).find(c => c.id === uid)?.subscription_plan || '?',
+        network: g.platform,
+        detail: `${g.count} publication(s) ${g.platform} due(s) NON publiée(s) (${[...g.statuses].join(', ')}) — le client n'a pas reçu ce qui était prévu`,
+      });
+    }
+  } catch { /* best-effort */ }
+
   // Skip the digest entirely if nothing to report
-  if (tokenIssues.length === 0 && failures.length === 0 && creditAlerts.length === 0) {
+  if (tokenIssues.length === 0 && failures.length === 0 && creditAlerts.length === 0 && deliveryIssues.length === 0) {
     return NextResponse.json({ ok: true, sent: false, message: 'Morning health check passed — nothing to report.' });
   }
 
@@ -478,13 +518,20 @@ export async function GET(req: NextRequest) {
 
   const totalP0 = Object.entries(tokenByType).filter(([t]) => TOKEN_TITLES[t]?.severity === 'P0').reduce((sum, [, list]) => sum + list.length, 0)
     + creditAlerts.filter(a => a.severity === 'P0').length;
-  const totalIssues = tokenIssues.length + failures.length + creditAlerts.length;
+  const totalIssues = tokenIssues.length + failures.length + creditAlerts.length + deliveryIssues.length;
+
+  // Bloc "défauts de livraison" — le plus important pour le founder (on n'a pas livré).
+  const deliveryBlocks = deliveryIssues.map(d => `
+    <div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:10px 12px;margin:0 0 8px;">
+      <div style="font-size:13px;color:#9a3412;font-weight:bold;">${d.network.toUpperCase()} — ${d.client_email} <span style="font-weight:normal;color:#c2410c;">(${d.plan})</span></div>
+      <div style="font-size:12px;color:#7c2d12;margin-top:2px;">${d.detail}</div>
+    </div>`).join('');
 
   const adminHtml = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
     <div style="background:#0c1a3a;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0;">
       <h2 style="margin:0;font-size:18px;">☀️ Service Health — Rapport matin</h2>
       <div style="font-size:12px;color:#a0aec0;margin-top:6px;">
-        ${tokenIssues.length} problème${tokenIssues.length !== 1 ? 's' : ''} de connexion · ${failures.length} type${failures.length !== 1 ? 's' : ''} d'erreur agent · ${totalP0 > 0 ? `<strong style="color:#fca5a5;">${totalP0} P0</strong>` : 'pas de P0'}
+        ${deliveryIssues.length > 0 ? `<strong style="color:#fdba74;">${deliveryIssues.length} livraison(s) manquée(s)</strong> · ` : ''}${tokenIssues.length} problème${tokenIssues.length !== 1 ? 's' : ''} de connexion · ${failures.length} type${failures.length !== 1 ? 's' : ''} d'erreur agent · ${totalP0 > 0 ? `<strong style="color:#fca5a5;">${totalP0} P0</strong>` : 'pas de P0'}
       </div>
     </div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-top:0;padding:20px 22px;">
@@ -493,6 +540,11 @@ export async function GET(req: NextRequest) {
         <div style="font-size:12px;color:#7f1d1d;margin-top:4px;">Sans fix, ces clients vont voir leur agent ne pas exécuter aujourd'hui.</div>
       </div>` : ''}
 
+      ${deliveryIssues.length > 0 ? `<div style="background:#fff7ed;border:2px solid #ea580c;border-radius:10px;padding:12px;margin:0 0 16px;">
+        <strong style="color:#9a3412;font-size:14px;">📉 ${deliveryIssues.length} livraison(s) client manquée(s) — on n'a PAS livré ce qui était prévu</strong>
+        <div style="font-size:11px;color:#7c2d12;margin:6px 0 8px;">Posts dus mais jamais publiés (échec ou créneau raté). À corriger EN PRIORITÉ — c'est ce que le client attend.</div>
+        ${deliveryBlocks}
+      </div>` : ''}
       ${creditAlerts.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:16px 0 8px;">💳 Crédits & budgets externes</h3>${creditBlocks}` : ''}
       ${tokenIssues.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:20px 0 8px;">🔌 Tokens & connexions</h3>${tokenBlocks}` : ''}
       ${failures.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:20px 0 8px;">⚙️ Erreurs d'exécution d'agents (12h)</h3>${failureBlocks}` : ''}

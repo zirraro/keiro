@@ -263,7 +263,7 @@ function HomeKeiroInner() {
               {locale === 'fr' ? '🚀 Automatisation 24/7' : '🚀 24/7 automation'}
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-neutral-900 leading-tight mb-1">
-              {locale === 'fr' ? '7 agents IA qui font le travail à ta place' : '7 AI agents that do the work for you'}
+              {locale === 'fr' ? '10 agents IA qui font le travail à ta place' : '7 AI agents that do the work for you'}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto">
               {locale === 'fr'
@@ -579,7 +579,7 @@ function HomeKeiroInner() {
             <div className="text-center mb-4 sm:mb-5">
               <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
               <h3 className="text-lg sm:text-2xl font-black text-neutral-900 mb-1 leading-tight">
-                {locale === 'fr' ? '7 agents IA qui bossent pour toi 24/7' : '7 AI agents working for you 24/7'}
+                {locale === 'fr' ? '10 agents IA qui bossent pour toi 24/7' : '7 AI agents working for you 24/7'}
               </h3>
               <p className="text-xs sm:text-sm text-neutral-600 max-w-2xl mx-auto px-2">
                 {locale === 'fr'

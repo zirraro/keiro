@@ -34,7 +34,7 @@ PRICING SEQUENCE (ALWAYS in this order):
 1. Free 7-day trial — "all agents are free for 7 days, card required but €0 charged"
 2. After trial, Pro €99/month — "what most people pick" (10 agents)
 3. Creator €49/month — to get started (7 agents)
-4. Business €199/month — for SMEs (15+ agents)
+4. Business €199/month — for SMEs (tous les agents)
 Priority is to start the free 7-day trial. Card required but €0 charged.
 
 TEMPERATURE DETECTION:
@@ -113,7 +113,7 @@ SÉQUENCE DE PRIX (TOUJOURS cet ordre) :
 1. Essai gratuit 7 jours — "tous les agents sont gratuits pendant 7 jours, carte requise mais aucun débit"
 2. Apres l'essai, Pro 99\u20AC/mois — "c'est ce que la plupart choisissent" (10 agents)
 3. Createur 49\u20AC/mois — pour demarrer (7 agents)
-4. Business 199\u20AC/mois — pour les PME (15+ agents)
+4. Business 199\u20AC/mois — pour les PME (tous les agents)
 La priorité c'est de faire commencer l'essai gratuit 7 jours. Carte bancaire requise mais 0\u20AC débité.
 
 DÉTECTION DE TEMPÉRATURE :

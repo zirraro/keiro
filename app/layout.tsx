@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     default: "KeiroAI — Ton équipe d'agents IA marketing pour commerces locaux | 49€/mois",
     template: "%s | KeiroAI"
   },
-  description: "7 agents IA qui publient sur tes réseaux, prospectent et répondent à tes clients 24/7. Essai gratuit 7 jours.",
+  description: "10 agents IA qui publient sur tes réseaux, prospectent et répondent à tes clients 24/7. Essai gratuit 7 jours.",
   keywords: [
     "agents IA marketing",
     "marketing automation commerce local",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     url: "https://www.keiroai.com",
     title: "KeiroAI — Ton équipe d'agents IA marketing pour commerces locaux",
-    description: "7 agents IA qui publient sur tes réseaux, prospectent et répondent à tes clients 24/7. Essai gratuit 7 jours.",
+    description: "10 agents IA qui publient sur tes réseaux, prospectent et répondent à tes clients 24/7. Essai gratuit 7 jours.",
     siteName: "KeiroAI",
     images: [
       {
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "KeiroAI — Ton équipe d'agents IA marketing 24/7",
-    description: "7 agents IA qui publient, prospectent et répondent à tes clients. Essai gratuit 7 jours.",
+    description: "10 agents IA qui publient, prospectent et répondent à tes clients. Essai gratuit 7 jours.",
     images: ["/og-image.png"],
     creator: "@KeiroAI"
   },

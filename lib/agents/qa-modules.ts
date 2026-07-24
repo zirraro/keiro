@@ -150,7 +150,7 @@ export const testPublications: QAModule = async (supabase) => {
 };
 
 // ═══════════════════════════════════════════
-// MODULE: Agent Health (tous les 17 agents)
+// MODULE: Agent Health (tous les 10 agents)
 // ═══════════════════════════════════════════
 export const testAgentHealth: QAModule = async (supabase) => {
   const start = Date.now();

@@ -1100,7 +1100,7 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
     <div style="background:#f0fdf4;border-left:3px solid #22c55e;padding:12px;margin:16px 0;border-radius:0 8px 8px 0;">
       <p style="margin:0;font-size:14px;"><strong>Ce qui est inclus dans votre plan :</strong></p>
       <ul style="margin:8px 0 0;padding-left:16px;font-size:13px;color:#374151;">
-        <li>Vos 17 agents IA actifs 24/7</li>
+        <li>Vos agents IA actifs 24/7</li>
         <li>Publication auto Instagram, TikTok, LinkedIn</li>
         <li>Prospection email + DM automatique</li>
         <li>CRM intelligent + pipeline</li>
