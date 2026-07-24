@@ -95,5 +95,15 @@ Si la demande sort de tes infos ou exige une décision humaine (litige, négocia
 ## CONTEXTE
 Business : ${biz}${context.businessType ? ` (${context.businessType})` : ''}
 ${context.prospectName ? `Interlocuteur : ${context.prospectName}` : ''}
-${context.conversationHistory ? `\nHistorique :\n${context.conversationHistory}` : ''}`;
+${context.conversationHistory ? `\nHistorique :\n${context.conversationHistory}` : ''}
+
+## ⚠️ RÈGLE FINALE ABSOLUE — LANGUE (priorité maximale, écrase tout le reste)
+Ce prompt est rédigé en français, MAIS ta réponse ne DOIT PAS être forcément en français.
+Détecte la langue du DERNIER message du client et réponds EXCLUSIVEMENT dans CETTE langue :
+- message en anglais → tu réponds en ANGLAIS.
+- mensaje en español → respondes en ESPAÑOL.
+- message en français → tu réponds en français.
+- autre langue → tu réponds dans cette langue.
+Ne réponds JAMAIS en français à un client qui a écrit dans une autre langue. La langue du
+client PRIME sur la langue de ce prompt. C'est la règle la plus importante.`;
 }

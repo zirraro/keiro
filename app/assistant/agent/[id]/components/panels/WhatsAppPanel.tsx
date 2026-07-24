@@ -100,6 +100,13 @@ function StellaConversations({ en }: { en: boolean }) {
   useEffect(() => { loadList(); }, [loadList]);
   useEffect(() => { if (sel) loadThread(sel); }, [sel, loadThread]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [thread]);
+  // Temps réel (founder 24/07) : la conversation doit se mettre à jour EN DIRECT
+  // (nouveaux messages entrants + réponses de Stella) sans recharger la page.
+  // Poll léger toutes les 4s : la liste + le fil ouvert.
+  useEffect(() => {
+    const t = setInterval(() => { loadList(); if (sel) loadThread(sel); }, 4000);
+    return () => clearInterval(t);
+  }, [sel, loadList, loadThread]);
 
   const sendReply = async () => {
     if (!sel || !reply.trim()) return;
