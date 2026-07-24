@@ -2459,10 +2459,14 @@ export async function GET(request: NextRequest) {
         .limit(1);
       const cfg = cfgRows?.[0]?.config;
       if (cfg) {
+        // DÉFAUT = AUTO (founder 24/07, finding audit #3) : l'auto-publish EST le
+        // produit. Un client dont la config existe (ex: setup_completed) mais qui
+        // n'a JAMAIS touché le toggle ne doit PAS voir son contenu bloqué en
+        // validation → défaut `true`. Seul un OFF EXPLICITE (false) tient.
         clientAutoByNetwork = {
-          instagram: cfg.auto_mode_instagram ?? cfg.auto_mode ?? false,
-          tiktok: cfg.auto_mode_tiktok ?? cfg.auto_mode ?? false,
-          linkedin: cfg.auto_mode_linkedin ?? cfg.auto_mode ?? false,
+          instagram: cfg.auto_mode_instagram ?? cfg.auto_mode ?? true,
+          tiktok: cfg.auto_mode_tiktok ?? cfg.auto_mode ?? true,
+          linkedin: cfg.auto_mode_linkedin ?? cfg.auto_mode ?? true,
         };
       }
     }
@@ -2472,7 +2476,8 @@ export async function GET(request: NextRequest) {
     const resolvePublishMode = (platform: string): string => {
       if (publishMode === 'notify') return 'notify';
       if (clientAutoByNetwork) {
-        const on = clientAutoByNetwork[(platform || 'instagram').toLowerCase()] ?? false;
+        // Défaut auto (cf. ci-dessus) : réseau non configuré = auto, pas validation.
+        const on = clientAutoByNetwork[(platform || 'instagram').toLowerCase()] ?? true;
         return on ? 'auto' : 'notify';
       }
       return publishMode;
