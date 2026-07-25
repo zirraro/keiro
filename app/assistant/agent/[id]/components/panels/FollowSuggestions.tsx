@@ -17,6 +17,26 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
   const [open, setOpen] = useState(true);
   const [done, setDone] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [copiedH, setCopiedH] = useState<string | null>(null);
+
+  // Fusion follow + DM manuel (founder 25/07) : pas de deeplink DM sur TikTok/LinkedIn
+  // → on COPIE un message d'accroche (synchrone, dans le geste = pas bloqué) + on
+  // OUVRE le profil. Le client colle le DM manuellement.
+  const dmOpener = (company: string) => {
+    const name = (company || '').trim();
+    if (en) return `Hi${name ? ' ' + name : ''}! Came across your account and really like what you do — we're in the same space. Would love to connect. Open to a quick chat?`;
+    return `Salut${name ? ' ' + name : ''} ! Je suis tombé sur ton compte, j'adore ce que tu fais — on est dans le même univers. Ça te dirait qu'on échange ?`;
+  };
+  const copyDM = (h: { handle: string; company: string }) => {
+    const text = dmOpener(h.company);
+    try {
+      if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(text); }
+      else { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+    } catch { /* noop */ }
+    setCopiedH(h.handle.toLowerCase());
+    window.open(profileUrl(h.handle), '_blank');
+    setTimeout(() => setCopiedH(null), 2500);
+  };
 
   useEffect(() => {
     setData(null); setDone(new Set());
@@ -80,11 +100,19 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
                     <div key={h.handle} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${isDone ? 'border-emerald-500/40 bg-emerald-500/[0.07]' : 'border-white/10 bg-white/[0.03]'}`}>
                       <a href={profileUrl(h.handle)} target="_blank" rel="noopener noreferrer" title={h.company} className="flex-1 min-w-0 text-[11px] font-medium text-white/80 hover:text-emerald-300 truncate">@{h.handle} <span className="text-[10px] text-white/30">↗</span></a>
                       <button
+                        type="button"
+                        onClick={() => copyDM({ handle: h.handle, company: h.company })}
+                        title={en ? 'Copy a DM opener + open profile' : 'Copier un message + ouvrir le profil'}
+                        className="shrink-0 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold border border-white/15 text-white/60 hover:border-sky-500/50 hover:text-sky-300 transition"
+                      >
+                        {copiedH === h.handle.toLowerCase() ? (en ? '✓ Copied' : '✓ Copié') : (en ? '📋 DM' : '📋 DM')}
+                      </button>
+                      <button
                         type="button" disabled={busy === h.handle.toLowerCase()}
                         onClick={() => toggleDone(h.handle, h.prospectId || null)}
                         className={`shrink-0 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold transition disabled:opacity-50 ${isDone ? 'bg-emerald-600 text-white' : 'border border-white/15 text-white/60 hover:border-emerald-500/50 hover:text-emerald-300'}`}
                       >
-                        {isDone ? (en ? '✓ Done' : '✓ Fait') : (en ? 'Mark done' : 'Fait')}
+                        {isDone ? (en ? '✓ Done' : '✓ Fait') : (en ? 'Follow' : 'Suivre')}
                       </button>
                     </div>
                   );
