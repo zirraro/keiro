@@ -121,3 +121,61 @@ export async function createGmailDraft(
     return { enabled: true };
   }
 }
+
+/**
+ * GESTION DE LA BOÎTE (gmail.modify, Option B) — corbeille / archivage / lu /
+ * déplacement de libellé. Founder 25/07 : gérer la boîte "dans ses moindres
+ * détails" (trier, ranger). Gaté : inerte si Option B off.
+ *
+ * action: 'trash' (corbeille) | 'archive' (retire INBOX) | 'read' (marque lu) |
+ *         'unread' | 'move' (ajoute labelId + retire INBOX) | 'star' | 'unstar'
+ */
+export async function manageGmailMessage(
+  userId: string,
+  messageId: string,
+  action: 'trash' | 'archive' | 'read' | 'unread' | 'move' | 'star' | 'unstar',
+  labelId?: string,
+): Promise<{ enabled: boolean; ok?: boolean }> {
+  if (!optionBEnabled()) return { enabled: false };
+  const tok = await getValidGmailToken(userId);
+  if (!tok || !messageId) return { enabled: false };
+  const auth = { Authorization: `Bearer ${tok.accessToken}`, 'Content-Type': 'application/json' };
+  try {
+    if (action === 'trash') {
+      const r = await fetch(`${GMAIL_API}/messages/${messageId}/trash`, { method: 'POST', headers: auth });
+      logGoogleDataAccess(userId, 'trash_message', 'gmail.modify', { id: messageId });
+      return { enabled: true, ok: r.ok };
+    }
+    const body: { addLabelIds?: string[]; removeLabelIds?: string[] } = {};
+    if (action === 'archive') body.removeLabelIds = ['INBOX'];
+    else if (action === 'read') body.removeLabelIds = ['UNREAD'];
+    else if (action === 'unread') body.addLabelIds = ['UNREAD'];
+    else if (action === 'star') body.addLabelIds = ['STARRED'];
+    else if (action === 'unstar') body.removeLabelIds = ['STARRED'];
+    else if (action === 'move') { body.addLabelIds = labelId ? [labelId] : []; body.removeLabelIds = ['INBOX']; }
+    const r = await fetch(`${GMAIL_API}/messages/${messageId}/modify`, { method: 'POST', headers: auth, body: JSON.stringify(body) });
+    logGoogleDataAccess(userId, `modify_${action}`, 'gmail.modify', { id: messageId });
+    return { enabled: true, ok: r.ok };
+  } catch {
+    return { enabled: true, ok: false };
+  }
+}
+
+/** Liste les libellés Gmail du client (pour "déplacer vers…" / organiser). */
+export async function listGmailLabels(userId: string): Promise<{ enabled: boolean; labels: { id: string; name: string }[] }> {
+  if (!optionBEnabled()) return { enabled: false, labels: [] };
+  const tok = await getValidGmailToken(userId);
+  if (!tok) return { enabled: false, labels: [] };
+  try {
+    const r = await fetch(`${GMAIL_API}/labels`, { headers: { Authorization: `Bearer ${tok.accessToken}` } });
+    if (!r.ok) return { enabled: true, labels: [] };
+    const d = await r.json();
+    // On expose les libellés utilisateur (pas les system sauf utiles) pour le tri.
+    const labels = (d.labels || [])
+      .filter((l: any) => l.type === 'user' || ['IMPORTANT', 'STARRED', 'SPAM'].includes(l.id))
+      .map((l: any) => ({ id: l.id, name: l.name }));
+    return { enabled: true, labels };
+  } catch {
+    return { enabled: true, labels: [] };
+  }
+}

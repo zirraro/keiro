@@ -51,6 +51,10 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
         ? [
             'https://www.googleapis.com/auth/gmail.readonly',
             'https://www.googleapis.com/auth/gmail.compose',
+            // gmail.modify (founder 25/07) : gestion complète de la boîte —
+            // corbeille / archivage / déplacement de libellés / marquer lu.
+            // RESTREINT → CASA en prod ; gaté avec le reste d'Option B.
+            'https://www.googleapis.com/auth/gmail.modify',
           ]
         : ['https://www.googleapis.com/auth/gmail.send']),
       'https://www.googleapis.com/auth/userinfo.email',

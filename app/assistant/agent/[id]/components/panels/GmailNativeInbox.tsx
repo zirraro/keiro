@@ -24,6 +24,20 @@ export default function GmailNativeInbox() {
   const [loading, setLoading] = useState(true);
   const [drafting, setDrafting] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
+  const [acting, setActing] = useState<string | null>(null);
+
+  // Gestion de la boîte (corbeille / archive / lu) — gmail.modify. Optimiste :
+  // on retire le message de la liste immédiatement (trash/archive).
+  const manage = async (m: Msg, action: 'trash' | 'archive' | 'read') => {
+    setActing(m.id + action);
+    if (action === 'trash' || action === 'archive') setMsgs(prev => prev.filter(x => x.id !== m.id));
+    try {
+      await fetch('/api/me/gmail-inbox', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ messageId: m.id, action }),
+      });
+    } catch { /* optimistic */ } finally { setActing(null); }
+  };
 
   useEffect(() => {
     fetch('/api/me/gmail-inbox', { credentials: 'include' })
@@ -84,9 +98,18 @@ export default function GmailNativeInbox() {
               </div>
               <div className="text-[11px] text-white/70 truncate mt-0.5">{m.subject || (en ? '(no subject)' : '(sans objet)')}</div>
               <div className="text-[10px] text-white/40 line-clamp-2 mt-0.5">{m.snippet}</div>
-              <div className="flex justify-end mt-1.5">
+              <div className="flex items-center justify-between gap-2 mt-1.5">
+                {/* Gestion de la boîte : trier / ranger / supprimer */}
+                <div className="flex items-center gap-1.5">
+                  <button type="button" disabled={acting === m.id + 'read'} onClick={() => manage(m, 'read')} title={en ? 'Mark as read' : 'Marquer comme lu'}
+                    className="text-[10px] px-2 py-1 rounded-md border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-50">{en ? 'Read' : 'Lu'}</button>
+                  <button type="button" disabled={acting === m.id + 'archive'} onClick={() => manage(m, 'archive')} title={en ? 'Archive' : 'Archiver'}
+                    className="text-[10px] px-2 py-1 rounded-md border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-50">{en ? 'Archive' : 'Archiver'}</button>
+                  <button type="button" disabled={acting === m.id + 'trash'} onClick={() => manage(m, 'trash')} title={en ? 'Move to trash' : 'Mettre à la corbeille'}
+                    className="text-[10px] px-2 py-1 rounded-md border border-red-500/25 text-red-300/80 hover:text-red-300 hover:border-red-500/50 disabled:opacity-50">{'🗑'} {en ? 'Trash' : 'Corbeille'}</button>
+                </div>
                 {done[m.id] ? (
-                  <span className="text-[10px] text-emerald-300 font-semibold">{en ? '✓ Draft created in Gmail' : '✓ Brouillon créé dans Gmail'}</span>
+                  <span className="text-[10px] text-emerald-300 font-semibold">{en ? '✓ Draft created' : '✓ Brouillon créé'}</span>
                 ) : (
                   <button
                     type="button"
@@ -94,7 +117,7 @@ export default function GmailNativeInbox() {
                     onClick={() => makeDraft(m)}
                     className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold hover:bg-emerald-500/30 disabled:opacity-50"
                   >
-                    {drafting === m.id ? (en ? 'Preparing…' : 'Préparation…') : (en ? 'Prepare a reply (Gmail draft)' : 'Préparer une réponse (brouillon Gmail)')}
+                    {drafting === m.id ? (en ? 'Preparing…' : 'Préparation…') : (en ? 'Reply (draft)' : 'Répondre (brouillon)')}
                   </button>
                 )}
               </div>

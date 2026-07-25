@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
-import { listRecentGmail, createGmailDraft, optionBEnabled } from '@/lib/gmail-read';
+import { listRecentGmail, createGmailDraft, optionBEnabled, manageGmailMessage, listGmailLabels } from '@/lib/gmail-read';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,12 +15,31 @@ export const dynamic = 'force-dynamic';
  * Tant que GMAIL_OPTION_B ≠ on → renvoie { enabled:false } sans toucher Gmail.
  * Aucun impact sur l'existant (Option A gmail.send reste seule active).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  if (!optionBEnabled()) return NextResponse.json({ ok: true, enabled: false, messages: [] });
+  if (!optionBEnabled()) return NextResponse.json({ ok: true, enabled: false, messages: [], labels: [] });
+  // ?labels=1 → liste des libellés (pour "déplacer vers…" / organiser).
+  if (req.nextUrl.searchParams.get('labels') === '1') {
+    const { enabled, labels } = await listGmailLabels(user.id);
+    return NextResponse.json({ ok: true, enabled, labels });
+  }
   const { enabled, messages } = await listRecentGmail(user.id, { max: 15 });
   return NextResponse.json({ ok: true, enabled, messages });
+}
+
+// PATCH → gestion de la boîte (corbeille/archive/lu/déplacer). Gaté Option B.
+export async function PATCH(req: NextRequest) {
+  const { user, error } = await getAuthUser();
+  if (error || !user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  if (!optionBEnabled()) return NextResponse.json({ ok: false, enabled: false, error: 'Option B non activée' }, { status: 400 });
+  const body = await req.json().catch(() => ({}));
+  const messageId = String(body.messageId || '').trim();
+  const action = String(body.action || '').trim() as 'trash' | 'archive' | 'read' | 'unread' | 'move' | 'star' | 'unstar';
+  const valid = ['trash', 'archive', 'read', 'unread', 'move', 'star', 'unstar'];
+  if (!messageId || !valid.includes(action)) return NextResponse.json({ ok: false, error: 'messageId + action valides requis' }, { status: 400 });
+  const res = await manageGmailMessage(user.id, messageId, action, body.labelId);
+  return NextResponse.json({ ok: !!res.ok, ...res });
 }
 
 export async function POST(req: NextRequest) {
