@@ -139,11 +139,13 @@ export function MailboxBetaToggle() {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_MAILBOX_BETA !== 'on') return;
+    // Visible pour TOUS les clients (founder 25/07) — teaser "en cours d'intégration"
+    // + fonctionnel pour les test users. Zéro impact : activer passe par un
+    // consentement Google explicite (per-user).
     fetch('/api/me/mailbox-toggle', { credentials: 'include' })
       .then(r => r.json()).then(d => setEnabled(!!d.enabled)).catch(() => setEnabled(false));
   }, []);
-  if (process.env.NEXT_PUBLIC_MAILBOX_BETA !== 'on' || enabled === null) return null;
+  if (enabled === null) return null;
 
   const toggle = async () => {
     setBusy(true);
@@ -161,8 +163,11 @@ export function MailboxBetaToggle() {
   return (
     <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/[0.06] p-3">
       <div className="min-w-0">
-        <div className="text-sm font-semibold text-white/90">{en ? 'Full mailbox management (beta)' : 'Gestion complète de la boîte (bêta)'}</div>
-        <div className="text-[11px] text-white/50 leading-relaxed">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold text-white/90">{en ? 'Full mailbox management' : 'Gestion complète de la boîte'}</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 font-semibold">{en ? 'Feature in integration' : 'Fonctionnalité en cours d\'intégration'}</span>
+        </div>
+        <div className="text-[11px] text-white/50 leading-relaxed mt-0.5">
           {en ? 'Let Hugo read your inbox, draft native replies, and sort/trash/archive emails. Requires reconnecting Gmail with extended permissions.' : 'Hugo lit ta boîte, prépare des brouillons natifs, et trie/archive/supprime les mails. Nécessite de reconnecter Gmail avec les permissions étendues.'}
         </div>
       </div>
