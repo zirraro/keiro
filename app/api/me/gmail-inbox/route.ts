@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
-import { listRecentGmail, createGmailDraft, optionBEnabled, manageGmailMessage, listGmailLabels } from '@/lib/gmail-read';
+import { listRecentGmail, createGmailDraft, mailboxEnabled, manageGmailMessage, listGmailLabels } from '@/lib/gmail-read';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  if (!optionBEnabled()) return NextResponse.json({ ok: true, enabled: false, messages: [], labels: [] });
+  if (!(await mailboxEnabled(user.id))) return NextResponse.json({ ok: true, enabled: false, messages: [], labels: [] });
   // ?labels=1 → liste des libellés (pour "déplacer vers…" / organiser).
   if (req.nextUrl.searchParams.get('labels') === '1') {
     const { enabled, labels } = await listGmailLabels(user.id);
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  if (!optionBEnabled()) return NextResponse.json({ ok: false, enabled: false, error: 'Option B non activée' }, { status: 400 });
+  if (!(await mailboxEnabled(user.id))) return NextResponse.json({ ok: false, enabled: false, error: 'Option B non activée' }, { status: 400 });
   const body = await req.json().catch(() => ({}));
   const messageId = String(body.messageId || '').trim();
   const action = String(body.action || '').trim() as 'trash' | 'archive' | 'read' | 'unread' | 'move' | 'star' | 'unstar';
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  if (!optionBEnabled()) return NextResponse.json({ ok: false, enabled: false, error: 'Option B non activée' }, { status: 400 });
+  if (!(await mailboxEnabled(user.id))) return NextResponse.json({ ok: false, enabled: false, error: 'Option B non activée' }, { status: 400 });
   const body = await req.json().catch(() => ({}));
   const to = String(body.to || '').trim();
   const subject = String(body.subject || '').trim();

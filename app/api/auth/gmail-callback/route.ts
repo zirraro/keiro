@@ -27,11 +27,13 @@ export async function GET(req: NextRequest) {
   let userId = '';
   let returnTo = '/assistant/agent/email';
   let redirectUri = '';
+  let optionB = false;
   try {
     const state = JSON.parse(Buffer.from(stateB64 || '', 'base64url').toString());
     userId = state.userId;
     returnTo = state.returnTo || returnTo;
     redirectUri = state.redirectUri || ''; // Exact URI used during authorization
+    optionB = !!state.optionB;
   } catch {
     return NextResponse.redirect(new URL('/assistant/agent/email?error=invalid_state', SITE_URL));
   }
@@ -110,6 +112,19 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(`[Gmail Callback] Connected ${profile.email} for user ${userId}`);
+
+    // OPTION B per-user (founder 25/07) : le consentement gestion complète a été
+    // accordé (readonly+compose+modify) → on active le flag full_mailbox pour CE
+    // user (affiche le panneau boîte + débloque trash/archive). Écrit dans
+    // org_agent_configs email.config. (Désactivé plus tard via le toggle.)
+    if (optionB) {
+      try {
+        const { data: cfgRow } = await supabase.from('org_agent_configs').select('id, config').eq('user_id', userId).eq('agent_id', 'email').order('created_at', { ascending: false }).limit(1).maybeSingle();
+        const nextCfg = { ...((cfgRow?.config as any) || {}), full_mailbox: true };
+        if (cfgRow?.id) await supabase.from('org_agent_configs').update({ config: nextCfg }).eq('id', cfgRow.id);
+        else await supabase.from('org_agent_configs').insert({ user_id: userId, agent_id: 'email', config: nextCfg });
+      } catch (e) { console.error('[Gmail Callback] full_mailbox flag set failed:', e); }
+    }
 
     // Redirect back to agent page with success flag
     const returnUrl = new URL(returnTo, SITE_URL);

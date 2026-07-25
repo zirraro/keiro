@@ -20,7 +20,11 @@ function getSupabase() {
 /**
  * Build Gmail OAuth URL for consent screen.
  */
-export function getGmailOAuthUrl(redirectUri: string, state: string): string {
+export function getGmailOAuthUrl(redirectUri: string, state: string, optionB = false): string {
+  // optionB per-utilisateur (founder 25/07) : un test user peut activer la gestion
+  // complète de la boîte (readonly+compose+modify) via le toggle Hugo, sans changer
+  // le comportement global (env GMAIL_OPTION_B reste off en prod).
+  const wantOptionB = process.env.GMAIL_OPTION_B === 'on' || optionB;
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: redirectUri,
@@ -47,7 +51,7 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     // consentement reste `gmail.send` tant que le flag n'est pas activé (post-CASA
     // + nouvelle vérif Google). Ne JAMAIS activer avant approbation Option B.
     scope: [
-      ...(process.env.GMAIL_OPTION_B === 'on'
+      ...(wantOptionB
         ? [
             'https://www.googleapis.com/auth/gmail.readonly',
             'https://www.googleapis.com/auth/gmail.compose',

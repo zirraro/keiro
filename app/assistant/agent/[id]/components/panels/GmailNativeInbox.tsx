@@ -128,3 +128,51 @@ export default function GmailNativeInbox() {
     </div>
   );
 }
+
+// ─── Toggle Option B (gestion complète de la boîte) — founder 25/07 ───
+// Visible uniquement si NEXT_PUBLIC_MAILBOX_BETA=on (founder/test users), pour
+// démo review + test. Activer → reconnexion Gmail avec scopes readonly+compose+
+// modify (le callback pose le flag full_mailbox). Désactiver → coupe le flag.
+export function MailboxBetaToggle() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_MAILBOX_BETA !== 'on') return;
+    fetch('/api/me/mailbox-toggle', { credentials: 'include' })
+      .then(r => r.json()).then(d => setEnabled(!!d.enabled)).catch(() => setEnabled(false));
+  }, []);
+  if (process.env.NEXT_PUBLIC_MAILBOX_BETA !== 'on' || enabled === null) return null;
+
+  const toggle = async () => {
+    setBusy(true);
+    if (!enabled) {
+      // Activer = reconnexion OAuth (consentement scopes étendus requis).
+      window.location.href = '/api/auth/gmail-oauth?optionB=1&returnTo=/assistant/agent/email';
+      return;
+    }
+    try {
+      await fetch('/api/me/mailbox-toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ enable: false }) });
+      setEnabled(false);
+    } catch { /* noop */ } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/[0.06] p-3">
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-white/90">{en ? 'Full mailbox management (beta)' : 'Gestion complète de la boîte (bêta)'}</div>
+        <div className="text-[11px] text-white/50 leading-relaxed">
+          {en ? 'Let Hugo read your inbox, draft native replies, and sort/trash/archive emails. Requires reconnecting Gmail with extended permissions.' : 'Hugo lit ta boîte, prépare des brouillons natifs, et trie/archive/supprime les mails. Nécessite de reconnecter Gmail avec les permissions étendues.'}
+        </div>
+      </div>
+      <button
+        type="button" role="switch" aria-checked={enabled} disabled={busy} onClick={toggle}
+        className={`relative w-11 h-6 rounded-full transition shrink-0 ${enabled ? 'bg-emerald-500' : 'bg-white/20'} disabled:opacity-50`}
+        title={enabled ? (en ? 'Disable' : 'Désactiver') : (en ? 'Enable (reconnect Gmail)' : 'Activer (reconnecte Gmail)')}
+      >
+        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${enabled ? 'left-[22px]' : 'left-0.5'}`} />
+      </button>
+    </div>
+  );
+}

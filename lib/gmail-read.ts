@@ -15,11 +15,27 @@
  */
 import { getValidGmailToken, buildRawGmailMessage } from '@/lib/gmail-oauth';
 import { logGoogleDataAccess } from '@/lib/security/access-log';
+import { createClient } from '@supabase/supabase-js';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 export function optionBEnabled(): boolean {
   return process.env.GMAIL_OPTION_B === 'on';
+}
+
+/**
+ * Option B activée pour CE user : soit globalement (env GMAIL_OPTION_B, env de test),
+ * soit par-utilisateur via le toggle Hugo (org_agent_configs email.config.full_mailbox).
+ * Permet à un test user d'activer la gestion complète (readonly+compose+modify) sans
+ * changer le comportement des autres clients.
+ */
+export async function mailboxEnabled(userId: string): Promise<boolean> {
+  if (process.env.GMAIL_OPTION_B === 'on') return true;
+  try {
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
+    const { data } = await sb.from('org_agent_configs').select('config').eq('user_id', userId).eq('agent_id', 'email').order('created_at', { ascending: false }).limit(1).maybeSingle();
+    return !!(data?.config as any)?.full_mailbox;
+  } catch { return false; }
 }
 
 export interface InboxMessage {
@@ -45,7 +61,7 @@ export async function listRecentGmail(
   userId: string,
   opts: { max?: number; query?: string } = {},
 ): Promise<{ enabled: boolean; messages: InboxMessage[] }> {
-  if (!optionBEnabled()) return { enabled: false, messages: [] };
+  if (!(await mailboxEnabled(userId))) return { enabled: false, messages: [] };
   const tok = await getValidGmailToken(userId);
   if (!tok) return { enabled: false, messages: [] };
 
@@ -95,7 +111,7 @@ export async function createGmailDraft(
   userId: string,
   params: { to: string; subject: string; htmlBody: string; fromName?: string; fromEmail?: string; replyTo?: string; threadId?: string },
 ): Promise<{ enabled: boolean; draftId?: string }> {
-  if (!optionBEnabled()) return { enabled: false };
+  if (!(await mailboxEnabled(userId))) return { enabled: false };
   const tok = await getValidGmailToken(userId);
   if (!tok) return { enabled: false };
 
@@ -136,7 +152,7 @@ export async function manageGmailMessage(
   action: 'trash' | 'archive' | 'read' | 'unread' | 'move' | 'star' | 'unstar',
   labelId?: string,
 ): Promise<{ enabled: boolean; ok?: boolean }> {
-  if (!optionBEnabled()) return { enabled: false };
+  if (!(await mailboxEnabled(userId))) return { enabled: false };
   const tok = await getValidGmailToken(userId);
   if (!tok || !messageId) return { enabled: false };
   const auth = { Authorization: `Bearer ${tok.accessToken}`, 'Content-Type': 'application/json' };
@@ -163,7 +179,7 @@ export async function manageGmailMessage(
 
 /** Liste les libellés Gmail du client (pour "déplacer vers…" / organiser). */
 export async function listGmailLabels(userId: string): Promise<{ enabled: boolean; labels: { id: string; name: string }[] }> {
-  if (!optionBEnabled()) return { enabled: false, labels: [] };
+  if (!(await mailboxEnabled(userId))) return { enabled: false, labels: [] };
   const tok = await getValidGmailToken(userId);
   if (!tok) return { enabled: false, labels: [] };
   try {

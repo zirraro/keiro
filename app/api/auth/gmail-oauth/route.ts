@@ -19,11 +19,15 @@ export async function GET(req: NextRequest) {
   const redirectUri = 'https://www.keiroai.com/api/auth/gmail-callback';
   console.log('[Gmail OAuth] redirect_uri:', redirectUri);
 
+  // optionB=1 (founder 25/07) : reconnexion avec les scopes gestion complète de la
+  // boîte (readonly+compose+modify) — pour les test users / la démo review.
+  const optionB = req.nextUrl.searchParams.get('optionB') === '1';
+
   // State carries user_id + return URL + redirect_uri (for callback to reuse exact same URI)
   const returnTo = req.nextUrl.searchParams.get('returnTo') || '/assistant/agent/email';
-  const state = JSON.stringify({ userId: user.id, returnTo, redirectUri });
+  const state = JSON.stringify({ userId: user.id, returnTo, redirectUri, optionB });
   const stateB64 = Buffer.from(state).toString('base64url');
 
-  const oauthUrl = getGmailOAuthUrl(redirectUri, stateB64);
+  const oauthUrl = getGmailOAuthUrl(redirectUri, stateB64, optionB);
   return NextResponse.redirect(oauthUrl);
 }
