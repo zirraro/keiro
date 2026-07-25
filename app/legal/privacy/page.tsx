@@ -271,10 +271,10 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="bg-neutral-100 p-4 rounded-lg">
               <p className="text-neutral-700 mb-2">
-                <strong>Email:</strong> privacy@keiroai.com
+                <strong>Email:</strong> contact@keiroai.com
               </p>
               <p className="text-neutral-700 mb-2">
-                <strong>Data Protection Officer:</strong> dpo@keiroai.com
+                <strong>Data Protection Officer:</strong> contact@keiroai.com
               </p>
               <p className="text-neutral-700">
                 <strong>Address:</strong> Keiro, France

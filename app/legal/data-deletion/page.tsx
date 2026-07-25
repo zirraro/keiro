@@ -58,7 +58,7 @@ export default async function DataDeletionPage({ searchParams }: { searchParams?
             <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-xl p-6 mb-6">
               <h3 className="text-lg font-semibold text-[#0c1a3a] mb-3">Option 1 : Par email</h3>
               <p className="text-[#0c1a3a] mb-2">
-                Envoyez un email à <a href="mailto:privacy@keiroai.com" className="underline font-medium">privacy@keiroai.com</a> avec :
+                Envoyez un email à <a href="mailto:contact@keiroai.com" className="underline font-medium">contact@keiroai.com</a> avec :
               </p>
               <ul className="list-disc pl-6 text-[#0c1a3a] space-y-1">
                 <li>L'objet : "Demande de suppression de données"</li>
@@ -120,7 +120,7 @@ export default async function DataDeletionPage({ searchParams }: { searchParams?
               délégué à la protection des données :
             </p>
             <ul className="list-none text-neutral-700 space-y-1">
-              <li><strong>Email :</strong> <a href="mailto:privacy@keiroai.com" className="text-[#0c1a3a] underline">privacy@keiroai.com</a></li>
+              <li><strong>Email :</strong> <a href="mailto:contact@keiroai.com" className="text-[#0c1a3a] underline">contact@keiroai.com</a></li>
               <li><strong>Site :</strong> <a href="https://keiroai.com" className="text-[#0c1a3a] underline">keiroai.com</a></li>
             </ul>
           </section>

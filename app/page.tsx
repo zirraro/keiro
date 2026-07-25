@@ -951,8 +951,8 @@ function HomeKeiroInner() {
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:privacy@keiroai.com" className="text-sm text-neutral-400 hover:text-cyan-400 transition-colors">
-                    privacy@keiroai.com
+                  <a href="mailto:contact@keiroai.com" className="text-sm text-neutral-400 hover:text-cyan-400 transition-colors">
+                    contact@keiroai.com
                   </a>
                 </li>
                 <li>

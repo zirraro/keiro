@@ -158,7 +158,7 @@ export default function TermsOfServicePage() {
               For questions about these Terms of Service, please contact us at:
             </p>
             <p className="text-neutral-700 font-medium">
-              Email: legal@keiroai.com
+              Email: contact@keiroai.com
             </p>
           </section>
 
