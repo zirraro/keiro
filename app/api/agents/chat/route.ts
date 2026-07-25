@@ -375,6 +375,7 @@ Réponds en français, sois data-driven et actionnable.`,
 const AGENT_ENDPOINTS: Record<string, { path: string; method: string }> = {
   commercial: { path: '/api/agents/commercial', method: 'GET' },
   email: { path: '/api/agents/email/daily', method: 'GET' },
+  mailbox: { path: '/api/agents/email/mailbox-triage', method: 'POST' },
   content: { path: '/api/agents/content', method: 'GET' },
   seo: { path: '/api/agents/seo', method: 'GET' },
   dm_instagram: { path: '/api/agents/dm-instagram?slot=morning', method: 'POST' },
@@ -734,6 +735,7 @@ Exemples :
 - "go" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
 - "c'est parti lance tout" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
 - "envoie les mails" → {"directives":[],"settings":{},"immediate_action":"email","schedule":null}
+- "trie ma boîte" / "nettoie ma boîte mail" / "range mes emails" / "supprime les pubs" / "réponds aux mails importants" / "gère ma boîte" → {"directives":[],"settings":{},"immediate_action":"mailbox","schedule":null}
 - "trouve des prospects" → {"directives":[],"settings":{},"immediate_action":"commercial","schedule":null}
 - "fais un post sur la pizza" → {"directives":["content topic: pizza"],"settings":{},"immediate_action":"content","schedule":null}
 - "publie à 9h, 13h et 19h" → {"directives":["custom schedule: 9h, 13h, 19h"],"settings":{},"immediate_action":null,"schedule":{"content":["09:00","13:00","19:00"]}}
@@ -858,6 +860,7 @@ Retourne UNIQUEMENT du JSON valide.`,
           const resolvedAction = immediateAction === '[current_agent]' ? agent : immediateAction;
           if (resolvedAction) {
             const actionAgent = resolvedAction === 'content' ? 'content'
+              : resolvedAction === 'mailbox' ? 'mailbox'
               : resolvedAction === 'email' ? 'email'
               : resolvedAction === 'commercial' ? 'commercial'
               : resolvedAction === 'dm' || resolvedAction === 'dm_instagram' ? 'dm_instagram'

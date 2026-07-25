@@ -196,6 +196,32 @@ export async function listGmailLabels(userId: string): Promise<{ enabled: boolea
   }
 }
 
+/** Lit le CORPS texte complet d'un message (pour rédiger une vraie réponse). gmail.readonly. */
+export async function getGmailMessageBody(userId: string, messageId: string): Promise<{ enabled: boolean; body?: string; from?: string; subject?: string; threadId?: string }> {
+  if (!(await mailboxEnabled(userId))) return { enabled: false };
+  const tok = await getValidGmailToken(userId);
+  if (!tok || !messageId) return { enabled: false };
+  try {
+    const r = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, { headers: { Authorization: `Bearer ${tok.accessToken}` } });
+    if (!r.ok) return { enabled: true };
+    const m = await r.json();
+    const hs = m.payload?.headers || [];
+    const decode = (data: string) => { try { return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'); } catch { return ''; } };
+    let text = '';
+    const walk = (part: any) => {
+      if (!part) return;
+      if (part.mimeType === 'text/plain' && part.body?.data) { text += decode(part.body.data) + '\n'; return; }
+      if (part.mimeType === 'text/html' && part.body?.data && !text) { text += decode(part.body.data).replace(/<[^>]+>/g, ' ') + '\n'; }
+      (part.parts || []).forEach(walk);
+    };
+    if (m.payload?.body?.data) text = decode(m.payload.body.data);
+    else walk(m.payload);
+    return { enabled: true, body: text.trim().slice(0, 4000), from: header(hs, 'From'), subject: header(hs, 'Subject'), threadId: m.threadId };
+  } catch {
+    return { enabled: true };
+  }
+}
+
 /** Crée un libellé (dossier) Gmail. Retourne l'id (existant ou créé). gmail.modify. */
 export async function getOrCreateGmailLabel(userId: string, name: string): Promise<{ enabled: boolean; id?: string }> {
   if (!(await mailboxEnabled(userId))) return { enabled: false };
