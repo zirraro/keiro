@@ -310,9 +310,17 @@ export async function redeemPromoCode(
   let expiresAt: string | undefined;
   if (promoCode.plan_override) {
     const planCredits = PLAN_CREDITS[promoCode.plan_override] || promoCode.credits_amount;
-    const expDate = new Date();
-    expDate.setDate(expDate.getDate() + 14); // 2 semaines
-    expiresAt = expDate.toISOString();
+    // ILLIMITÉ (founder 25/07) : un code à très gros solde (≥ 1 000 000) = accès
+    // illimité type plan → PAS d'expiration (credits_expires_at = null) et l'allowance
+    // suit le solde pour ne pas se faire raboter au reset mensuel.
+    const isUnlimited = (promoCode.credits_amount || 0) >= 1_000_000;
+    if (isUnlimited) {
+      expiresAt = undefined;
+    } else {
+      const expDate = new Date();
+      expDate.setDate(expDate.getDate() + 14); // 2 semaines
+      expiresAt = expDate.toISOString();
+    }
 
     // Set balance TO credits_amount (not add)
     await supabase
@@ -320,8 +328,8 @@ export async function redeemPromoCode(
       .update({
         subscription_plan: promoCode.plan_override,
         credits_balance: promoCode.credits_amount,
-        credits_monthly_allowance: planCredits,
-        credits_expires_at: expiresAt,
+        credits_monthly_allowance: isUnlimited ? promoCode.credits_amount : planCredits,
+        credits_expires_at: isUnlimited ? null : expiresAt,
       })
       .eq('id', userId);
 
