@@ -27,6 +27,11 @@ export default function GmailNativeInbox() {
   const [acting, setActing] = useState<string | null>(null);
   const [triaging, setTriaging] = useState(false);
   const [triageMsg, setTriageMsg] = useState('');
+  const [labels, setLabels] = useState<{ id: string; name: string }[]>([]);
+  const loadLabels = () => {
+    fetch('/api/me/gmail-inbox?labels=1', { credentials: 'include' })
+      .then(r => r.json()).then(d => { if (d.enabled) setLabels(d.labels || []); }).catch(() => {});
+  };
 
   // Hugo trie/nettoie/range la boîte en autonomie (Option B).
   const runTriage = async () => {
@@ -36,8 +41,9 @@ export default function GmailNativeInbox() {
       const d = await r.json();
       if (d.ok) {
         setTriageMsg(d.summary || (en ? 'Inbox sorted.' : 'Boîte triée.'));
-        // Recharge la boîte pour refléter le tri.
+        // Recharge la boîte + les dossiers (Hugo a pu en créer) pour refléter le tri.
         try { const rr = await fetch('/api/me/gmail-inbox', { credentials: 'include' }).then(x => x.json()); setMsgs(rr.messages || []); } catch {}
+        loadLabels();
       } else setTriageMsg(d.error || (en ? 'Failed' : 'Échec'));
     } catch { setTriageMsg(en ? 'Failed' : 'Échec'); } finally { setTriaging(false); }
   };
@@ -58,7 +64,7 @@ export default function GmailNativeInbox() {
   useEffect(() => {
     fetch('/api/me/gmail-inbox', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { setEnabled(!!d.enabled); setMsgs(d.messages || []); })
+      .then(d => { setEnabled(!!d.enabled); setMsgs(d.messages || []); if (d.enabled) loadLabels(); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -105,6 +111,16 @@ export default function GmailNativeInbox() {
         </button>
         {triageMsg && <span className="text-[10px] text-emerald-300">{triageMsg}</span>}
       </div>
+      {labels.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Folders (Hugo\'s filing)' : 'Dossiers (rangement de Hugo)'}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {labels.map(l => (
+              <span key={l.id} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-white/70">📁 {l.name}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {msgs.length === 0 ? (
         <div className="text-white/30 text-xs py-4 text-center">{en ? 'No recent message.' : 'Aucun message récent.'}</div>
