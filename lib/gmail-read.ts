@@ -195,3 +195,30 @@ export async function listGmailLabels(userId: string): Promise<{ enabled: boolea
     return { enabled: true, labels: [] };
   }
 }
+
+/** Crée un libellé (dossier) Gmail. Retourne l'id (existant ou créé). gmail.modify. */
+export async function getOrCreateGmailLabel(userId: string, name: string): Promise<{ enabled: boolean; id?: string }> {
+  if (!(await mailboxEnabled(userId))) return { enabled: false };
+  const tok = await getValidGmailToken(userId);
+  if (!tok || !name.trim()) return { enabled: false };
+  try {
+    // Existe déjà ?
+    const lr = await fetch(`${GMAIL_API}/labels`, { headers: { Authorization: `Bearer ${tok.accessToken}` } });
+    if (lr.ok) {
+      const ld = await lr.json();
+      const existing = (ld.labels || []).find((l: any) => (l.name || '').toLowerCase() === name.trim().toLowerCase());
+      if (existing) return { enabled: true, id: existing.id };
+    }
+    const r = await fetch(`${GMAIL_API}/labels`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tok.accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), labelListVisibility: 'labelShow', messageListVisibility: 'show' }),
+    });
+    if (!r.ok) return { enabled: true };
+    const d = await r.json();
+    logGoogleDataAccess(userId, 'create_label', 'gmail.modify', { name: name.trim() });
+    return { enabled: true, id: d.id };
+  } catch {
+    return { enabled: true };
+  }
+}

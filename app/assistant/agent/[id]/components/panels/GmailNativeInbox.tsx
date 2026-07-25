@@ -25,6 +25,22 @@ export default function GmailNativeInbox() {
   const [drafting, setDrafting] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [acting, setActing] = useState<string | null>(null);
+  const [triaging, setTriaging] = useState(false);
+  const [triageMsg, setTriageMsg] = useState('');
+
+  // Hugo trie/nettoie/range la boîte en autonomie (Option B).
+  const runTriage = async () => {
+    setTriaging(true); setTriageMsg('');
+    try {
+      const r = await fetch('/api/agents/email/mailbox-triage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: '{}' });
+      const d = await r.json();
+      if (d.ok) {
+        setTriageMsg(d.summary || (en ? 'Inbox sorted.' : 'Boîte triée.'));
+        // Recharge la boîte pour refléter le tri.
+        try { const rr = await fetch('/api/me/gmail-inbox', { credentials: 'include' }).then(x => x.json()); setMsgs(rr.messages || []); } catch {}
+      } else setTriageMsg(d.error || (en ? 'Failed' : 'Échec'));
+    } catch { setTriageMsg(en ? 'Failed' : 'Échec'); } finally { setTriaging(false); }
+  };
 
   // Gestion de la boîte (corbeille / archive / lu) — gmail.modify. Optimiste :
   // on retire le message de la liste immédiatement (trash/archive).
@@ -77,11 +93,18 @@ export default function GmailNativeInbox() {
         </h3>
         <span className="text-[10px] text-emerald-300/70">{en ? 'Native · read-only' : 'Natif · lecture seule'}</span>
       </div>
-      <p className="text-[11px] text-white/50 mb-3 leading-relaxed">
+      <p className="text-[11px] text-white/50 mb-2 leading-relaxed">
         {en
-          ? 'Hugo reads the replies from your prospects and prepares a draft in your Gmail — you review and send from your own account.'
-          : 'Hugo lit les réponses de tes prospects et prépare un brouillon dans ton Gmail — tu relis et envoies depuis ton compte.'}
+          ? 'Hugo reads your inbox, drafts replies, and sorts/cleans/labels it like an expert assistant — asking you when in doubt.'
+          : 'Hugo lit ta boîte, prépare des réponses, et la trie/nettoie/range comme un assistant expert — et te pose une question en cas de doute.'}
       </p>
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <button type="button" onClick={runTriage} disabled={triaging}
+          className="text-[11px] px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 font-semibold hover:bg-indigo-500/30 disabled:opacity-50">
+          {triaging ? (en ? 'Hugo is sorting…' : 'Hugo trie…') : (en ? '🧹 Sort & tidy my inbox' : '🧹 Trier & ranger ma boîte')}
+        </button>
+        {triageMsg && <span className="text-[10px] text-emerald-300">{triageMsg}</span>}
+      </div>
 
       {msgs.length === 0 ? (
         <div className="text-white/30 text-xs py-4 text-center">{en ? 'No recent message.' : 'Aucun message récent.'}</div>
