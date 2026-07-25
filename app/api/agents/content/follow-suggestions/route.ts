@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
       if (!h || h.length < 2 || !/^[a-zA-Z0-9._]{2,30}$/.test(h) || seen.has(h.toLowerCase())) continue;
       seen.add(h.toLowerCase());
       candidates.push({ handle: h, company: r.company || h, prospectId: r.id || null });
-      if (candidates.length >= 24) break; // borne le coût de vérification
+      if (candidates.length >= 40) break; // borne le coût de vérification (bumpé pour purger plus de morts/passage)
     }
     // Vérif d'existence en parallèle, on garde les confirmés (max 8).
     const checks = await Promise.all(candidates.map(async c => ({ c, exists: await accountExists(platform, c.handle) })));
@@ -204,6 +204,17 @@ export async function POST(req: NextRequest) {
   const handle = String(body.handle || '').replace(/^@/, '').trim();
   if (!handle) return NextResponse.json({ ok: false, error: 'handle requis' }, { status: 400 });
   const done = body.done !== false;
+  // Signaler un LIEN MORT (founder 25/07) → purge le handle du CRM (jamais le
+  // prospect) : il ne réapparaîtra plus jamais dans les listes.
+  if (body.dead) {
+    const col = platform === 'instagram' ? 'instagram' : platform === 'tiktok' ? 'tiktok_handle' : 'linkedin_url';
+    try {
+      let pid = body.prospectId || null;
+      if (!pid) { const { data: p } = await supabase.from('crm_prospects').select('id').eq('user_id', user.id).ilike(col, `%${handle}%`).limit(1).maybeSingle(); pid = (p as any)?.id || null; }
+      if (pid) await supabase.from('crm_prospects').update({ [col]: null }).eq('id', pid).eq('user_id', user.id);
+    } catch { /* best-effort */ }
+    return NextResponse.json({ ok: true, purged: true });
+  }
   try {
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'client_follow_action', status: 'ok', user_id: user.id,

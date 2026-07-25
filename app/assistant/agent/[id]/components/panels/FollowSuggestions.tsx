@@ -27,6 +27,18 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
     if (en) return `Hi${name ? ' ' + name : ''}! Came across your account and really like what you do — we're in the same space. Would love to connect. Open to a quick chat?`;
     return `Salut${name ? ' ' + name : ''} ! Je suis tombé sur ton compte, j'adore ce que tu fais — on est dans le même univers. Ça te dirait qu'on échange ?`;
   };
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  // Signaler un lien mort → purge côté serveur (CRM) + retire de la liste ici.
+  const markDead = async (h: { handle: string; prospectId?: string | null }) => {
+    setRemoved(prev => new Set(prev).add(h.handle.toLowerCase()));
+    try {
+      await fetch('/api/agents/content/follow-suggestions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ platform, handle: h.handle, prospectId: h.prospectId || null, dead: true }),
+      });
+    } catch { /* optimistic */ }
+  };
+
   const copyDM = (h: { handle: string; company: string }) => {
     const text = dmOpener(h.company);
     try {
@@ -94,7 +106,7 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
             <div>
               <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Peers / local — follow then mark done' : 'Confrères / locaux — suis puis marque "Fait"'} ({data.sector})</div>
               <div className="space-y-1.5">
-                {data.realHandles.map((h: any) => {
+                {data.realHandles.filter((h: any) => !removed.has(h.handle.toLowerCase())).map((h: any) => {
                   const isDone = done.has(h.handle.toLowerCase());
                   return (
                     <div key={h.handle} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${isDone ? 'border-emerald-500/40 bg-emerald-500/[0.07]' : 'border-white/10 bg-white/[0.03]'}`}>
@@ -114,6 +126,12 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
                       >
                         {isDone ? (en ? '✓ Done' : '✓ Fait') : (en ? 'Follow' : 'Suivre')}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => markDead({ handle: h.handle, prospectId: h.prospectId || null })}
+                        title={en ? 'Dead link — remove permanently' : 'Lien mort — retirer définitivement'}
+                        className="shrink-0 text-[11px] w-7 h-[34px] rounded-md text-white/30 hover:text-red-400 hover:bg-red-500/10 transition"
+                      >✕</button>
                     </div>
                   );
                 })}
