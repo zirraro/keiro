@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 import { triageMailbox } from '@/lib/agents/mailbox-manager';
 import { mailboxEnabled } from '@/lib/gmail-read';
+import { hasImap } from '@/lib/agents/imap-mailbox';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -28,7 +29,8 @@ export async function POST(req: NextRequest) {
     userId = user.id;
   }
 
-  if (!(await mailboxEnabled(userId))) return NextResponse.json({ ok: false, enabled: false, error: 'Option B non activée' }, { status: 400 });
+  const canManage = (await mailboxEnabled(userId)) || (await hasImap(userId));
+  if (!canManage) return NextResponse.json({ ok: false, enabled: false, error: 'Aucune boîte connectée (Option B Gmail ou IMAP domaine)' }, { status: 400 });
   const body = await req.json().catch(() => ({}));
   const result = await triageMailbox(userId, { dryRun: !!body.dryRun });
   return NextResponse.json({ ok: true, ...result });
