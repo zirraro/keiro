@@ -83,6 +83,8 @@ function StellaConversations({ en }: { en: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const prevLen = useRef(0);
 
   const loadList = useCallback(() => {
     setLoading(true);
@@ -99,7 +101,15 @@ function StellaConversations({ en }: { en: boolean }) {
 
   useEffect(() => { loadList(); }, [loadList]);
   useEffect(() => { if (sel) loadThread(sel); }, [sel, loadThread]);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [thread]);
+  // Auto-scroll UNIQUEMENT le conteneur du fil (pas la page) et SEULEMENT quand un
+  // nouveau message arrive — sinon le poll 4s faisait redescendre toute la page vers
+  // les stats (bug founder 25/07). scrollIntoView est remplacé par un scrollTop local.
+  useEffect(() => {
+    if (thread.length !== prevLen.current) {
+      prevLen.current = thread.length;
+      if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [thread]);
   // Temps réel (founder 24/07) : la conversation doit se mettre à jour EN DIRECT
   // (nouveaux messages entrants + réponses de Stella) sans recharger la page.
   // Poll léger toutes les 4s : la liste + le fil ouvert.
@@ -197,7 +207,7 @@ function StellaConversations({ en }: { en: boolean }) {
                     : <button disabled={busy} onClick={() => toggleTakeover('takeover')} className="text-[10px] px-2 py-1 rounded-full bg-sky-500/20 text-sky-300 font-semibold">{en ? 'Take over' : 'Reprendre la main'}</button>}
                 </div>
               </div>
-              <div className="flex-1 max-h-[300px] overflow-y-auto p-3 flex flex-col gap-2">
+              <div ref={listRef} className="flex-1 max-h-[300px] overflow-y-auto p-3 flex flex-col gap-2">
                 {thread.map((m, i) => {
                   const dt = m.date ? new Date(m.date) : null;
                   const validDt = dt && !isNaN(dt.getTime());
