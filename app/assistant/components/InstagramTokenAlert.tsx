@@ -48,7 +48,7 @@ export default function InstagramTokenAlert() {
         </div>
 
         {/* Message */}
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 text-center mb-4">
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 text-center mb-4 break-words">
           {status.message}
         </p>
 

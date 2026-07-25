@@ -72,7 +72,7 @@ export default function ComingSoonBanner() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="votre@email.com"
               required
-              className="flex-1 px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/40 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+              className="flex-1 min-w-0 px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/40 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
             />
             <button
               type="submit"

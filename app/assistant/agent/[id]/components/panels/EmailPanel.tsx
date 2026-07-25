@@ -1190,7 +1190,7 @@ function FullInbox() {
       </div>
 
       {/* Filter chips */}
-      <div className="flex gap-1.5 items-center">
+      <div className="flex gap-1.5 items-center overflow-x-auto scrollbar-hide">
         {[
           { key: 'inbox', label: en ? 'Received' : 'Reçus', count: inboxCount },
           { key: 'sent', label: en ? 'Sent' : 'Envoyés', count: sentCount },

@@ -271,8 +271,8 @@ function PhoneProspection() {
             <div className="flex items-start justify-between gap-2 flex-wrap">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-white">{p.name}</span>
-                  {p.company && <span className="text-xs text-white/50">· {p.company}</span>}
+                  <span className="text-sm font-semibold text-white break-words [overflow-wrap:anywhere]">{p.name}</span>
+                  {p.company && <span className="text-xs text-white/50 break-words [overflow-wrap:anywhere]">· {p.company}</span>}
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${TEMP[p.temperature] || TEMP.cold}`}>{p.temperature}</span>
                 </div>
                 <div className="text-[11px] text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>

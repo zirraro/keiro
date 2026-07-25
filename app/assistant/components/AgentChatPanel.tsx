@@ -189,7 +189,7 @@ export default function AgentChatPanel({
             >
               <div className="max-w-[85%]">
                 <div
-                  className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                  className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed break-words [overflow-wrap:anywhere] ${
                     msg.role === 'user'
                       ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-br-sm'
                       : 'bg-white/10 text-white/90 rounded-bl-sm'

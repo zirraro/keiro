@@ -63,8 +63,8 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
               {(c.author || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-bold text-white/80">@{c.author}</span>
-              <p className="text-[10px] text-white/50 mt-0.5">{c.text}</p>
+              <span className="text-[10px] font-bold text-white/80 break-words">@{c.author}</span>
+              <p className="text-[10px] text-white/50 mt-0.5 break-words [overflow-wrap:anywhere]">{c.text}</p>
             </div>
           </div>
         ))}

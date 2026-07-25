@@ -59,13 +59,13 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
   return (
     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
       <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/60">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/60 shrink-0">
               {review.author?.[0]?.toUpperCase() || '?'}
             </div>
-            <span className="text-sm text-white/80 font-medium">{review.author}</span>
-            <div className="flex gap-0.5">
+            <span className="text-sm text-white/80 font-medium truncate min-w-0">{review.author}</span>
+            <div className="flex gap-0.5 shrink-0">
               {Array.from({ length: 5 }).map((_, s) => (
                 <svg key={s} className="w-3 h-3" viewBox="0 0 24 24" fill={s < review.rating ? '#fbbf24' : 'rgba(255,255,255,0.15)'}>
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />

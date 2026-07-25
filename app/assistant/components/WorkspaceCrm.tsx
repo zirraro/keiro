@@ -1126,7 +1126,7 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
             placeholder={nn.crmSearchProspect || 'Rechercher un prospect...'}
             className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm bg-white dark:bg-neutral-900" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           <select value={tempFilter} onChange={e => setTempFilter(e.target.value)}
             className="text-xs border rounded-xl px-3 py-2 bg-white dark:bg-neutral-900">
             <option value="">Temperature</option>

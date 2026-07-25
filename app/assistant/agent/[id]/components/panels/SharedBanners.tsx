@@ -174,7 +174,7 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
             <span className="text-lg">{'\u2709\uFE0F'}</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-emerald-400">{en ? 'Gmail connected' : 'Gmail connecté'}</p>
-              <p className="text-[10px] text-white/50">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{gmailEmail}</strong></p>
+              <p className="text-[10px] text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{gmailEmail}</strong></p>
             </div>
             <button onClick={handleDisconnectGmail} className="text-[10px] text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
           </div>
@@ -184,7 +184,7 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
             <span className="text-lg">{'\u{1F310}'}</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-emerald-400">{en ? 'Outlook connected' : 'Outlook connecté'}</p>
-              <p className="text-[10px] text-white/50">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{outlookEmail}</strong></p>
+              <p className="text-[10px] text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{outlookEmail}</strong></p>
             </div>
             <button
               onClick={async () => {
@@ -202,7 +202,7 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
             <span className="text-lg">{'\u2699\uFE0F'}</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-emerald-400">{en ? 'Custom domain connected' : 'Domaine personnalisé connecté'}</p>
-              <p className="text-[10px] text-white/50">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{smtpFromEmail}</strong></p>
+              <p className="text-[10px] text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{smtpFromEmail}</strong></p>
             </div>
             <button onClick={handleDisconnectSmtp} className="text-[10px] text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
           </div>
@@ -552,7 +552,7 @@ export function HotProspectsAlert({ source, gradientFrom }: { source?: string; g
           <div key={p.id} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2">
             <span className="text-xs text-amber-400">{'\u{1F525}'}</span>
             <div className="flex-1 min-w-0">
-              <span className="text-xs font-medium text-white">{p.company || p.email}</span>
+              <span className="text-xs font-medium text-white break-words min-w-0">{p.company || p.email}</span>
               {p.type && <span className="text-[10px] text-white/30 ml-2">{p.type}</span>}
             </div>
             <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded">{p.status}</span>

@@ -314,7 +314,7 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
       {/* Spreadsheet — 2 cols */}
       <div className="lg:col-span-2 flex flex-col bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10 bg-white/[0.02]">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-white/10 bg-white/[0.02]">
           <input
             type="text"
             value={sheetName}
@@ -402,7 +402,7 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
           ) : (
             chatMessages.map(msg => (
               <div key={msg.id} className={`text-xs ${msg.role === 'user' ? 'ml-4 text-right' : 'mr-4'}`}>
-                <div className={`inline-block px-2.5 py-1.5 rounded-xl ${msg.role === 'user' ? 'bg-cyan-600/30 text-white' : 'bg-white/10 text-white/80'}`}>
+                <div className={`inline-block max-w-full break-words [overflow-wrap:anywhere] px-2.5 py-1.5 rounded-xl ${msg.role === 'user' ? 'bg-cyan-600/30 text-white' : 'bg-white/10 text-white/80'}`}>
                   {msg.content}
                 </div>
               </div>

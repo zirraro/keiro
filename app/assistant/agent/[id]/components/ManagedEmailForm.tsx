@@ -104,7 +104,7 @@ export default function ManagedEmailForm({ hidden }: ManagedEmailFormProps) {
                 <span className="text-amber-300 font-semibold">{rec.label}</span>
                 <span className="text-white/40">{rec.type}</span>
               </div>
-              <div><span className="text-white/40">Host :</span> {rec.host}</div>
+              <div className="break-all"><span className="text-white/40">Host :</span> {rec.host}</div>
               <div className="break-all"><span className="text-white/40">Value :</span> {rec.value}</div>
             </div>
           ))}

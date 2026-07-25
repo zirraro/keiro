@@ -121,7 +121,7 @@ export default function GmailNativeInbox() {
               </div>
               <div className="text-[11px] text-white/70 truncate mt-0.5">{m.subject || (en ? '(no subject)' : '(sans objet)')}</div>
               <div className="text-[10px] text-white/40 line-clamp-2 mt-0.5">{m.snippet}</div>
-              <div className="flex items-center justify-between gap-2 mt-1.5">
+              <div className="flex items-center justify-between gap-2 gap-y-1.5 mt-1.5 flex-wrap">
                 {/* Gestion de la boîte : trier / ranger / supprimer */}
                 <div className="flex items-center gap-1.5">
                   <button type="button" disabled={acting === m.id + 'read'} onClick={() => manage(m, 'read')} title={en ? 'Mark as read' : 'Marquer comme lu'}

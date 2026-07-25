@@ -324,7 +324,7 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
           ) : (
             chatMessages.map(msg => (
               <div key={msg.id} className={`text-xs ${msg.role === 'user' ? 'ml-4 text-right' : 'mr-4'}`}>
-                <div className={`inline-block px-2.5 py-1.5 rounded-xl ${msg.role === 'user' ? 'bg-purple-600/30 text-white' : 'bg-white/10 text-white/80'}`}>
+                <div className={`inline-block max-w-full break-words [overflow-wrap:anywhere] px-2.5 py-1.5 rounded-xl ${msg.role === 'user' ? 'bg-purple-600/30 text-white' : 'bg-white/10 text-white/80'}`}>
                   {msg.content}
                 </div>
               </div>

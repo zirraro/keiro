@@ -115,7 +115,7 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
         <p className={`${compact ? 'text-[10px] line-clamp-2' : 'text-xs line-clamp-3'} text-neutral-700 dark:text-white/70 leading-relaxed`}>
           {post.caption || post.hook || 'Legende en cours de generation...'}
         </p>
-        {hashtags && <p className="text-[10px] text-blue-500 mt-1">{hashtags}</p>}
+        {hashtags && <p className="text-[10px] text-blue-500 mt-1 break-words">{hashtags}</p>}
       </div>
 
       {/* Actions (draft posts) */}

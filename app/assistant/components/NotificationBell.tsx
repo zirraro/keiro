@@ -167,7 +167,7 @@ export default function NotificationBell() {
                       <span className="text-lg mt-0.5">{AGENT_ICONS[notif.agent] || '🔔'}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-semibold ${!notif.read ? 'text-neutral-900 dark:text-white' : 'text-neutral-500'}`}>
+                          <span className={`text-xs font-semibold min-w-0 break-words ${!notif.read ? 'text-neutral-900 dark:text-white' : 'text-neutral-500'}`}>
                             {notif.title}
                           </span>
                           {!notif.read && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}

@@ -61,7 +61,7 @@ export default function AgentOrdersHint({ agentId, onPickExample, compact = true
                     onPickExample?.(o.example);
                     setOpen(false);
                   }}
-                  className="text-xs text-white/85 text-left hover:text-cyan-300 transition w-full"
+                  className="text-xs text-white/85 text-left hover:text-cyan-300 transition w-full break-words"
                   title="Cliquer pour pré-remplir le chat"
                 >
                   « {o.example} »

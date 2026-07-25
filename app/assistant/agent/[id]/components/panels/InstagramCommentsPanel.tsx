@@ -102,8 +102,8 @@ export function InstagramCommentsPanel({ data, agentName, gradientFrom, gradient
                   {c.replied ? '\u2713' : p.igCommentsNewBadge}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs text-white/50">@{c.username}</span>
-                  <p className="text-sm text-white/80 mt-0.5">{c.text}</p>
+                  <span className="text-xs text-white/50 break-words">@{c.username}</span>
+                  <p className="text-sm text-white/80 mt-0.5 break-words [overflow-wrap:anywhere]">{c.text}</p>
                 </div>
                 {!c.replied && (
                   <button onClick={() => setReplying(replying === c.comment_id ? null : c.comment_id)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">

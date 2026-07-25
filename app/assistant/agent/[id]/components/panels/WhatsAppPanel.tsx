@@ -219,7 +219,7 @@ function StellaConversations({ en }: { en: boolean }) {
                   return (
                     <div key={i} className={`max-w-[80%] px-3 py-2 ${bubbleStyle(m.role)}`}>
                       {roleLabel(m.role) && <div className="text-[9px] font-bold opacity-60 mb-0.5">{roleLabel(m.role)}</div>}
-                      <div className="text-[12px] whitespace-pre-wrap leading-snug">{m.message}</div>
+                      <div className="text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-snug">{m.message}</div>
                       {validDt && (
                         <div className="text-[8px] opacity-50 mt-1 text-right">
                           {dt!.toLocaleString(en ? 'en-US' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}

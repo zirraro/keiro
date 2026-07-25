@@ -364,7 +364,7 @@ function AutofillWidget({ onApplied }: { onApplied: () => Promise<void> }) {
           className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
         />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={submit}
           disabled={busy}

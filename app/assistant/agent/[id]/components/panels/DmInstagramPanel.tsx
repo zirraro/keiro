@@ -2593,7 +2593,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
           const status = statuses[dm.id];
           return (
           <div key={dm.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-xs font-semibold text-white">@{cleanHandle}</span>
               {isVerified && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">

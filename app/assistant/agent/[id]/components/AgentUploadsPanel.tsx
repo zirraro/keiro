@@ -338,7 +338,7 @@ export default function AgentUploadsPanel({
           {groupKeys.map((gk) => (
             <div key={gk}>
               {gk !== '__root__' && (
-                <div className="text-[11px] font-semibold text-white/60 mb-1.5 flex items-center gap-1">
+                <div className="text-[11px] font-semibold text-white/60 mb-1.5 flex items-center gap-1 break-all">
                   {'\u{1F4C2}'} {gk}
                 </div>
               )}

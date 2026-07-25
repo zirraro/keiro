@@ -299,7 +299,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           2026: "enleve lancer une campagne de jade, on lance déjà
           des mini campagnes ciblées plus bas en dessous des stats". */}
       {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && agentId !== 'marketing' && agentId !== 'dm_instagram' && (
-        <div data-tour="launch-campaign" className="mx-5 mt-3 flex items-center gap-2">
+        <div data-tour="launch-campaign" className="mx-5 mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
             className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
@@ -338,11 +338,11 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
             <div className="space-y-1">
               {(data as any).supervision.clients.map((c: any) => (
                 <div key={c.user_id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${c.errors > 0 ? 'bg-red-400' : 'bg-emerald-400'}`} />
-                    <span className="text-xs text-white/70">{c.name}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${c.errors > 0 ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                    <span className="text-xs text-white/70 truncate">{c.name}</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <span className="text-[10px] text-white/40">{c.actions} {en ? 'actions' : 'actions'}</span>
                     {c.errors > 0 && <span className="text-[10px] text-red-400 font-bold">{c.errors} {en ? 'err' : 'err'}</span>}
                   </div>

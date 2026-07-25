@@ -316,7 +316,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
                 ) : (
                   <p className="text-sm text-white/80 font-medium truncate">{doc.name}</p>
                 )}
-                <div className="flex items-center gap-2 text-[10px] text-white/30">
+                <div className="flex items-center gap-2 text-[10px] text-white/30 flex-wrap">
                   <span>{new Date(doc.created_at).toLocaleDateString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'short' })}</span>
                   {doc.file_size > 0 && <span>{formatSize(doc.file_size)}</span>}
                   {doc.source === 'agent_chat' && <span className="text-cyan-400/50">via chat</span>}

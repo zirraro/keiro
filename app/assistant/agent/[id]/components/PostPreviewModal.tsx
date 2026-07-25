@@ -205,8 +205,8 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
             </div>
           ) : (
             <>
-              <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{caption || (isEn ? 'Caption being generated...' : 'Legende en cours de generation...')}</p>
-              {hashtags && <p className="text-sm text-blue-500 mt-2">{hashtags}</p>}
+              <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words">{caption || (isEn ? 'Caption being generated...' : 'Legende en cours de generation...')}</p>
+              {hashtags && <p className="text-sm text-blue-500 mt-2 break-words">{hashtags}</p>}
               {isEditable && (
                 <button onClick={() => setEditing(true)} className="mt-2 text-[10px] text-purple-400 hover:text-purple-300 transition">
                   {'\u270F\uFE0F'} Modifier la legende

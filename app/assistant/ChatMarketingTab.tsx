@@ -174,7 +174,7 @@ export default function ChatMarketingTab({ user }: any) {
             >
               <div
                 className={`
-                  max-w-[85%] rounded-2xl px-4 py-3 shadow-md
+                  max-w-[85%] rounded-2xl px-4 py-3 shadow-md break-words [overflow-wrap:anywhere]
                   ${msg.role === 'user'
                     ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white'
                     : 'bg-white border border-neutral-200 text-neutral-800'
@@ -222,7 +222,7 @@ export default function ChatMarketingTab({ user }: any) {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
               placeholder="Posez votre question marketing..."
-              className="flex-1 px-4 py-2 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+              className="flex-1 min-w-0 px-4 py-2 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
               disabled={isLoading}
             />
             <button

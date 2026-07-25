@@ -33,7 +33,7 @@ export function GenericPanel({ data, agentName, gradientFrom, gradientTo }: Pane
                 <svg className="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white/80 text-xs">{rec.action}</p>
+                <p className="text-white/80 text-xs break-words">{rec.action}</p>
                 <p className="text-white/30 text-[10px] mt-0.5">{fmtDate(rec.created_at)}</p>
               </div>
             </div>
