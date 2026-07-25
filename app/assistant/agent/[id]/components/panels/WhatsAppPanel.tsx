@@ -105,9 +105,14 @@ function StellaConversations({ en }: { en: boolean }) {
   // nouveau message arrive — sinon le poll 4s faisait redescendre toute la page vers
   // les stats (bug founder 25/07). scrollIntoView est remplacé par un scrollTop local.
   useEffect(() => {
-    if (thread.length !== prevLen.current) {
-      prevLen.current = thread.length;
-      if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    // Scroll SEULEMENT quand un message s'AJOUTE (pas sur re-render/poll), et
+    // uniquement le conteneur du fil (jamais la page). prevLen évite tout scroll
+    // parasite quand le poll 4s renvoie le même contenu.
+    const grew = thread.length > prevLen.current;
+    prevLen.current = thread.length;
+    if (grew && listRef.current) {
+      const el = listRef.current;
+      el.scrollTop = el.scrollHeight; // scroll interne uniquement
     }
   }, [thread]);
   // Temps réel (founder 24/07) : la conversation doit se mettre à jour EN DIRECT
@@ -207,7 +212,7 @@ function StellaConversations({ en }: { en: boolean }) {
                     : <button disabled={busy} onClick={() => toggleTakeover('takeover')} className="text-[10px] px-2 py-1 rounded-full bg-sky-500/20 text-sky-300 font-semibold">{en ? 'Take over' : 'Reprendre la main'}</button>}
                 </div>
               </div>
-              <div ref={listRef} className="flex-1 max-h-[300px] overflow-y-auto p-3 flex flex-col gap-2">
+              <div ref={listRef} className="flex-1 max-h-[300px] overflow-y-auto p-3 flex flex-col gap-2" style={{ overflowAnchor: 'none' }}>
                 {thread.map((m, i) => {
                   const dt = m.date ? new Date(m.date) : null;
                   const validDt = dt && !isNaN(dt.getTime());
