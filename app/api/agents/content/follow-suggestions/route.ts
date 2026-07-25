@@ -124,6 +124,13 @@ export async function GET(req: NextRequest) {
     }
     // Vérif d'existence en parallèle, on garde les confirmés (max 8).
     const checks = await Promise.all(candidates.map(async c => ({ c, exists: await accountExists(platform, c.handle) })));
+    // NETTOYAGE PERSISTANT (founder 25/07) : un handle détecté MORT est purgé du
+    // CRM (on vide SEULEMENT le handle du réseau, jamais le prospect — règle "ne
+    // jamais supprimer un prospect") → il ne réapparaîtra plus nulle part.
+    const deadIds = checks.filter(x => !x.exists && x.c.prospectId).map(x => x.c.prospectId as string);
+    if (deadIds.length) {
+      supabase.from('crm_prospects').update({ [handleCol]: null }).in('id', deadIds).then(() => {}, () => {});
+    }
     for (const { c, exists } of checks) {
       if (exists) realHandles.push(c);
       if (realHandles.length >= 8) break;

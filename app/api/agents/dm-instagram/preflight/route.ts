@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   let handle = url.searchParams.get('handle') || '';
   const dmId = url.searchParams.get('dm_id');
+  let resolvedProspectId: string | null = null;
 
   // Resolve handle from dm_queue when the UI passes dm_id (safer for
   // authorisation — we match the owning user via prospect → user_id).
@@ -58,6 +59,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     handle = dm.handle || '';
+    resolvedProspectId = prospect.id;
   }
 
   if (!handle) {
@@ -102,12 +104,18 @@ export async function GET(req: NextRequest) {
   const snapshot = await getInstagramProfileSnapshot(handle, igId, token);
 
   if (!snapshot.exists) {
+    // NETTOYAGE PERSISTANT (founder 25/07) : handle IG mort → on le purge du CRM
+    // (on vide SEULEMENT le handle, jamais le prospect) → il ne réapparaîtra plus
+    // dans les DM ni dans "comptes à suivre".
+    if (resolvedProspectId) {
+      supabase.from('crm_prospects').update({ instagram: null }).eq('id', resolvedProspectId).then(() => {}, () => {});
+    }
     return NextResponse.json({
       ok: true,
       status: 'invalid_handle',
       handle,
       snapshot,
-      warning: 'Compte introuvable ou privé — DM impossible. Retire ce prospect du canal DM.',
+      warning: 'Compte introuvable ou privé — DM impossible. Retiré automatiquement du canal DM.',
     });
   }
 
