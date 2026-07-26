@@ -472,6 +472,18 @@ export async function sendGmailDraft(accessToken: string, draftId: string): Prom
 }
 
 /**
+ * Delete a draft (drafts.delete). Used to clean stale drafts Hugo prepared
+ * when the client has since replied themselves (founder 25/07).
+ */
+export async function deleteGmailDraft(accessToken: string, draftId: string): Promise<boolean> {
+  const res = await fetch(GMAIL_DRAFT_URL(draftId), {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return res.ok || res.status === 404;
+}
+
+/**
  * Check if a user has Gmail connected.
  */
 export async function isGmailConnected(userId: string): Promise<{ connected: boolean; email: string | null }> {

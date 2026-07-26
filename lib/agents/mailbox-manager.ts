@@ -12,7 +12,7 @@
  * Il agit tout seul sur les cas CLAIRS et n'agit PAS sur les cas sensibles/ambigus
  * (il les remonte au client). Gaté : inerte si aucun provider n'est connecté.
  */
-import { listRecentGmail, manageGmailMessage, getOrCreateGmailLabel, mailboxEnabled, createGmailDraft, getGmailMessageBody } from '@/lib/gmail-read';
+import { listRecentGmail, manageGmailMessage, getOrCreateGmailLabel, mailboxEnabled, createGmailDraft, getGmailMessageBody, cleanStaleGmailDrafts } from '@/lib/gmail-read';
 import { callClaudeHaiku } from '@/lib/agents/gemini';
 import { getValidGmailToken, sendViaGmail } from '@/lib/gmail-oauth';
 import { getEmailReplyMode } from '@/lib/agents/hugo-reply';
@@ -67,8 +67,21 @@ export interface TriageResult {
   summary: string;
 }
 
+// Libellés de traçabilité (le « filtre rapide » demandé par le founder 25/07) :
+// le client retrouve d'un clic ce que Hugo a envoyé vs préparé en brouillon.
+const LABEL_REPLIED = 'Hugo · Répondu ✅';
+const LABEL_DRAFTED = 'Hugo · Brouillon ✍️';
+
 /** Construit l'abstraction Gmail (Option B). */
 function gmailOps(userId: string, tokenGetter: () => Promise<{ accessToken: string; email: string } | null>, bizName: string): MailOps {
+  const tagCache: Record<string, string> = {};
+  const tag = async (id: string, label: string, keepInInbox: boolean) => {
+    try {
+      let lid = tagCache[label];
+      if (!lid) { const lr = await getOrCreateGmailLabel(userId, label); lid = lr.id || ''; if (lid) tagCache[label] = lid; }
+      if (lid) await manageGmailMessage(userId, id, keepInInbox ? 'label' : 'move', lid);
+    } catch { /* best-effort */ }
+  };
   return {
     provider: 'gmail',
     async list(max) {
@@ -83,11 +96,12 @@ function gmailOps(userId: string, tokenGetter: () => Promise<{ accessToken: stri
     async sendReply(id, to, subject, html, replyTo) {
       const tok = await tokenGetter(); if (!tok?.accessToken) throw new Error('no gmail token');
       await sendViaGmail(tok.accessToken, to, subject, html, bizName || undefined, tok.email, replyTo);
-      await manageGmailMessage(userId, id, 'archive').catch(() => {});
+      await tag(id, LABEL_REPLIED, false); // répondu → tag + sort de l'INBOX
     },
-    async draftReply(_id, to, subject, html, replyTo, threadRef) {
+    async draftReply(id, to, subject, html, replyTo, threadRef) {
       const tok = await tokenGetter();
       await createGmailDraft(userId, { to, subject, htmlBody: html, fromName: bizName || undefined, fromEmail: tok?.email, replyTo, threadId: threadRef });
+      await tag(id, LABEL_DRAFTED, true); // brouillon prêt → tag mais reste en INBOX (tu valides)
     },
   };
 }
@@ -193,8 +207,15 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
     } catch { /* best-effort par mail */ }
   }
 
+  // Nettoyage des brouillons caducs (le client a répondu lui-même) — Gmail.
+  let staleCleaned = 0;
+  if (ops.provider === 'gmail' && !opts.dryRun) {
+    try { staleCleaned = (await cleanStaleGmailDrafts(userId)).deleted; } catch { /* best-effort */ }
+  }
+
   const replyBit = replyMode === 'auto_send' ? (res.replied ? `, ${res.replied} réponse(s) envoyée(s)` : '') : (res.drafted ? `, ${res.drafted} brouillon(s) de réponse préparé(s)` : '');
-  res.summary = `${res.trashed} supprimé(s), ${res.archived} archivé(s), ${res.labeled} rangé(s)${replyBit}, ${res.kept} gardé(s)${res.questions.length ? `, ${res.questions.length} question(s)` : ''}.`;
+  const staleBit = staleCleaned ? `, ${staleCleaned} brouillon(s) caduc(s) nettoyé(s)` : '';
+  res.summary = `${res.trashed} supprimé(s), ${res.archived} archivé(s), ${res.labeled} rangé(s)${replyBit}${staleBit}, ${res.kept} gardé(s)${res.questions.length ? `, ${res.questions.length} question(s)` : ''}.`;
 
   // Hugo pose ses questions au client (in-app) — il n'a pas agi sur ces mails.
   if (res.questions.length > 0) {

@@ -13,7 +13,7 @@
  * Tout accès est journalisé (logGoogleDataAccess) — jamais le contenu, seulement
  * qui/quand/quel scope (exigence CASA ASVS V7 + Google Limited Use).
  */
-import { getValidGmailToken, buildRawGmailMessage } from '@/lib/gmail-oauth';
+import { getValidGmailToken, buildRawGmailMessage, listGmailDrafts, deleteGmailDraft } from '@/lib/gmail-oauth';
 import { logGoogleDataAccess } from '@/lib/security/access-log';
 import { createClient } from '@supabase/supabase-js';
 
@@ -149,7 +149,7 @@ export async function createGmailDraft(
 export async function manageGmailMessage(
   userId: string,
   messageId: string,
-  action: 'trash' | 'archive' | 'read' | 'unread' | 'move' | 'star' | 'unstar',
+  action: 'trash' | 'archive' | 'read' | 'unread' | 'move' | 'star' | 'unstar' | 'label',
   labelId?: string,
 ): Promise<{ enabled: boolean; ok?: boolean }> {
   if (!(await mailboxEnabled(userId))) return { enabled: false };
@@ -168,6 +168,7 @@ export async function manageGmailMessage(
     else if (action === 'unread') body.addLabelIds = ['UNREAD'];
     else if (action === 'star') body.addLabelIds = ['STARRED'];
     else if (action === 'unstar') body.removeLabelIds = ['STARRED'];
+    else if (action === 'label') { body.addLabelIds = labelId ? [labelId] : []; } // ajoute un libellé SANS retirer de l'INBOX
     else if (action === 'move') { body.addLabelIds = labelId ? [labelId] : []; body.removeLabelIds = ['INBOX']; }
     const r = await fetch(`${GMAIL_API}/messages/${messageId}/modify`, { method: 'POST', headers: auth, body: JSON.stringify(body) });
     logGoogleDataAccess(userId, `modify_${action}`, 'gmail.modify', { id: messageId });
@@ -220,6 +221,42 @@ export async function getGmailMessageBody(userId: string, messageId: string): Pr
   } catch {
     return { enabled: true };
   }
+}
+
+/**
+ * Nettoie les brouillons devenus obsolètes : si le client a lui-même répondu
+ * dans le fil APRÈS que Hugo a préparé un brouillon (un message SENT plus récent
+ * existe dans le thread), le brouillon ne sert plus → on le supprime.
+ * Founder 25/07 : « si hugo voit que j'ai répondu moi meme il nettoie les draft ».
+ * gmail.modify. Best-effort, jamais bloquant.
+ */
+export async function cleanStaleGmailDrafts(userId: string): Promise<{ enabled: boolean; deleted: number }> {
+  if (!(await mailboxEnabled(userId))) return { enabled: false, deleted: 0 };
+  const tok = await getValidGmailToken(userId);
+  if (!tok) return { enabled: false, deleted: 0 };
+  let deleted = 0;
+  try {
+    const drafts = await listGmailDrafts(tok.accessToken, 25).catch(() => []);
+    for (const d of drafts) {
+      if (!d.threadId || !d.messageId) continue;
+      try {
+        const tr = await fetch(`${GMAIL_API}/threads/${d.threadId}?format=minimal`, { headers: { Authorization: `Bearer ${tok.accessToken}` } });
+        if (!tr.ok) continue;
+        const thread = await tr.json();
+        const msgs: any[] = thread.messages || [];
+        const draftMsg = msgs.find(m => m.id === d.messageId);
+        const draftTime = draftMsg ? Number(draftMsg.internalDate || 0) : 0;
+        // Un message ENVOYÉ (SENT) plus récent que le brouillon = le client a
+        // répondu lui-même → le brouillon d'Hugo est caduc.
+        const clientReplied = msgs.some(m => (m.labelIds || []).includes('SENT') && Number(m.internalDate || 0) > draftTime && m.id !== d.messageId);
+        if (clientReplied) {
+          if (await deleteGmailDraft(tok.accessToken, d.id)) deleted++;
+        }
+      } catch { /* skip this draft */ }
+    }
+    logGoogleDataAccess(userId, 'clean_stale_drafts', 'gmail.modify');
+  } catch { /* best-effort */ }
+  return { enabled: true, deleted };
 }
 
 /** Crée un libellé (dossier) Gmail. Retourne l'id (existant ou créé). gmail.modify. */
