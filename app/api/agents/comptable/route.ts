@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
       .not('plan', 'in', '("gratuit","free","")');
 
     const planPrices: Record<string, number> = {
-      sprint: 4.99, solo: 49, solo_promo: 49, pro: 89, fondateurs: 149,
-      standard: 199, business: 349, elite: 999,
+      sprint: 4.99, solo: 49, solo_promo: 49, createur: 49, pro: 99, fondateurs: 149,
+      standard: 199, business: 149, elite: 999,
     };
 
     let mrr = 0;
@@ -193,8 +193,8 @@ export async function POST(request: NextRequest) {
       .not('plan', 'in', '("gratuit","free","")');
 
     const planPrices: Record<string, number> = {
-      sprint: 4.99, solo: 49, solo_promo: 49, pro: 89, fondateurs: 149,
-      standard: 199, business: 349, elite: 999,
+      sprint: 4.99, solo: 49, solo_promo: 49, createur: 49, pro: 99, fondateurs: 149,
+      standard: 199, business: 149, elite: 999,
     };
 
     let mrr = 0;

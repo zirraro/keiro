@@ -541,7 +541,7 @@ async function notifyFounderPayment(info: {
     pro: 'Pro (99€/mois)',
     fondateurs: 'Fondateurs (149€/mois)',
     standard: 'Standard (199€/mois)',
-    business: 'Business (139€/mois)',
+    business: 'Business (149€/mois)',
     elite: 'Elite (999€/mois)',
     pack_starter: 'Pack Starter (14,99€)',
     pack_pro: 'Pack Pro (39,99€)',
@@ -1077,7 +1077,7 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
     pro: { name: 'Pro', price: '99' },
     fondateurs: { name: 'Fondateurs', price: '149' },
     standard: { name: 'Standard', price: '199' },
-    business: { name: 'Business', price: '349' },
+    business: { name: 'Business', price: '149' },
     elite: { name: 'Elite', price: '999' },
   };
   const plan = planLabels[planKey] || { name: planKey, price: '49' };

@@ -231,7 +231,7 @@ export const PLAN_PRICES: Record<string, string> = {
   createur: '49€',
   pro: '99€',
   fondateurs: '149€',
-  business: '199€',
+  business: '149€',
   elite: '999€',
   agence: 'Sur devis',
   // Deprecated

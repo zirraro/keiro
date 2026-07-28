@@ -58,7 +58,7 @@ const KEIROAI_BRAND = {
     'Interface simple, resultats visibles en 48h',
   ],
   competitors: ['Hootsuite', 'Buffer', 'Jasper', 'Copy.ai', 'Manychat'],
-  pricing_tiers: ['Gratuit (15 credits)', 'Createur 49EUR', 'Pro 99EUR', 'Fondateurs 149EUR', 'Business 349EUR', 'Elite 999EUR'],
+  pricing_tiers: ['Essai gratuit 7 jours', 'Createur 49EUR', 'Pro 99EUR', 'Business 149EUR', 'Add-ons : Stella 19EUR, Louis 12EUR'],
   social: {
     instagram: '@keiroai',
     tiktok: '@keiroai',

@@ -2240,13 +2240,13 @@ function LibraryContent() {
                 onClick={() => startCheckout('pro')}
                 className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-[#0c1a3a] to-purple-600 rounded-lg hover:shadow-lg transition-all"
               >
-                Pro — 89€/mois
+                Pro — 99€/mois
               </button>
               <button
-                onClick={() => startCheckout('fondateurs')}
+                onClick={() => startCheckout('business')}
                 className="px-4 py-2 text-xs font-bold text-amber-700 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 transition-all"
               >
-                Fondateurs — 149€
+                Business — 149€/mois
               </button>
             </div>
           </div>
@@ -2794,7 +2794,7 @@ function LibraryContent() {
             </p>
             <div className="space-y-2.5">
               <button
-                onClick={() => startCheckout('fondateurs')}
+                onClick={() => startCheckout('createur')}
                 className="block w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm"
               >
                 {t.library.upgradeToFounders}

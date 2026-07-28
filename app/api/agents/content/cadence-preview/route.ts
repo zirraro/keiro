@@ -53,7 +53,7 @@ const PLAN_REVENUE: Record<string, number> = {
   createur: 49,
   pro: 99,
   fondateurs: 79,
-  business: 139,
+  business: 149,
   elite: 299,
   agence: 499,
   admin: 0,

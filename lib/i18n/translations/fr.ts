@@ -388,7 +388,7 @@ export const fr: Translations = {
     priceNoteCreateur: 'soit 41€/mois',
     priceNotePro: 'soit 82€/mois',
     priceNoteFondateurs: 'soit 124€/mois',
-    priceNoteBusiness: 'soit 166€/mois',
+    priceNoteBusiness: 'soit 124€/mois',
     priceNoteElite: 'soit 832€/mois',
     // Quiz result bullets
     quizProBullets: [
@@ -537,7 +537,7 @@ export const fr: Translations = {
     comparatorKeiroPrice: '7 jours gratuits',
     comparatorSavings: 'Économie moyenne constatée : -95% soit 2 350€ à 4 850€ économisés chaque mois',
     comparisonTitle: 'Comparatif détaillé des plans',
-    comparisonHeaders: ['Fonctionnalité', 'Créateur', 'Pro', 'Fondateurs ⭐', 'Business'],
+    comparisonHeaders: ['Fonctionnalité', 'Créateur 49€', 'Pro 99€', 'Business 149€'],
     comparisonRows: [
       'Crédits/mois',
       'Images sur mesure',
@@ -1449,9 +1449,9 @@ export const fr: Translations = {
     noFolder: 'Sans dossier',
     cancel: 'Annuler',
     // TikTok upgrade modal
-    tiktokAvailableWithFounders: 'TikTok est disponible avec Fondateurs',
-    tiktokUpgradeDesc: 'La publication TikTok est incluse à partir du pack Fondateurs. Passez au niveau supérieur pour débloquer TikTok + LinkedIn + volume de crédits.',
-    upgradeToFounders: 'Passer Fondateurs',
+    tiktokAvailableWithFounders: 'TikTok est disponible dès le plan Créateur',
+    tiktokUpgradeDesc: 'La publication TikTok est incluse dès le plan Créateur. Passe à un plan payant pour débloquer TikTok + LinkedIn + le volume de crédits.',
+    upgradeToFounders: 'Passer Créateur — 49€/mois',
     later: 'Plus tard',
     // Confirm dialogs
     confirmDeleteImage: 'Supprimer cette image de votre galerie ?',

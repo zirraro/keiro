@@ -38,14 +38,15 @@ COÛTS API DE RÉFÉRENCE :
 - Vercel (hébergement) : forfait mensuel
 - Supabase (BDD) : forfait mensuel
 
-PLANS ET REVENUS :
-- Gratuit : 0€ (15 crédits)
-- Sprint : 4.99€/3j (110 crédits)
-- Solo : 49€/mois (220 crédits)
-- Fondateurs : 149€/mois (660 crédits)
-- Standard : 199€/mois (880 crédits)
-- Business : 349€/mois (1750 crédits)
-- Elite : 999€/mois (5500 crédits)
+PLANS ET REVENUS (grille actuelle) :
+- Gratuit : 0€ (20 crédits)
+- Créateur : 49€/mois (1 000 crédits)
+- Pro : 99€/mois (3 000 crédits)
+- Business : 149€/mois (6 000 crédits)
+- Annuel : 2 mois offerts (490€ / 990€ / 1 490€)
+- Add-ons : Stella WhatsApp 19€/mois, Louis finance 12€/mois
+- Packs de crédits ponctuels : 14,99€ (50 cr) / 39,99€ (150 cr) / 69,99€ (300 cr)
+- Legacy (ne plus vendre, quelques comptes historiques) : Fondateurs 149€, Standard 199€, Elite 999€
 
 RÈGLES ABSOLUES :
 1. Tu es PRÉCIS — pas d'approximation, des chiffres exacts ou des fourchettes explicites

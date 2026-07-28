@@ -18,11 +18,12 @@ import { startCheckout } from '@/lib/stripe/checkout';
 const PLANS: Record<string, { name: string; price: string; credits: number; color: string }> = {
   free: { name: 'Gratuit', price: '0€', credits: PLAN_CREDITS.free, color: '#9CA3AF' },
   sprint: { name: 'Essai gratuit', price: '0€', credits: PLAN_CREDITS.sprint, color: '#10B981' },
-  pro: { name: 'Pro', price: '89€', credits: PLAN_CREDITS.pro, color: '#3B82F6' },
+  createur: { name: 'Créateur', price: '49€', credits: PLAN_CREDITS.createur, color: '#8B5CF6' },
+  pro: { name: 'Pro', price: '99€', credits: PLAN_CREDITS.pro, color: '#3B82F6' },
   pro_promo: { name: 'Pro (Promo)', price: '—', credits: PLAN_CREDITS.pro_promo, color: '#8B5CF6' },
   fondateurs: { name: 'Fondateurs', price: '149€', credits: PLAN_CREDITS.fondateurs, color: '#8B5CF6' },
   standard: { name: 'Standard', price: '199€', credits: PLAN_CREDITS.standard, color: '#06B6D4' },
-  business: { name: 'Business', price: '349€', credits: PLAN_CREDITS.business, color: '#F59E0B' },
+  business: { name: 'Business', price: '149€', credits: PLAN_CREDITS.business, color: '#F59E0B' },
   elite: { name: 'Elite', price: '999€', credits: PLAN_CREDITS.elite, color: '#EF4444' },
   admin: { name: 'Admin', price: '—', credits: 999999, color: '#10B981' },
 };
@@ -76,8 +77,8 @@ function MonComptePage() {
 
   // Déterminer le plan actuel
   const currentPlan = useMemo(() => {
-    const planKey = profile?.subscription_plan || (user?.app_metadata?.role === 'admin' ? 'admin' : 'fondateurs');
-    return PLANS[planKey] || PLANS['fondateurs'];
+    const planKey = profile?.subscription_plan || (user?.app_metadata?.role === 'admin' ? 'admin' : 'free');
+    return PLANS[planKey] || PLANS['free'];
   }, [profile, user]);
 
   useEffect(() => {
@@ -722,7 +723,7 @@ function MonComptePage() {
               </div>
 
               <p className="text-xs text-neutral-400 mt-3 italic">
-                Economisez avec un abonnement : Fondateurs = 660 crédits/mois pour 149€ (0,23€/crédit)
+                Economisez avec un abonnement : Créateur = 1 000 crédits/mois pour 49€ (0,05€/crédit)
               </p>
             </div>
 

@@ -484,9 +484,11 @@ function AdminAgentsContent() {
         sprint: 0,
         solo: 49,
         solo_promo: 49,
+        createur: 49,
+        pro: 99,
         fondateurs: 149,
         standard: 199,
-        business: 349,
+        business: 149,
         elite: 999,
       };
 

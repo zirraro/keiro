@@ -56,7 +56,7 @@ COMMENT TU PARLES AUX AGENTS :
 CONTEXTE BUSINESS :
 - Cible prioritaire : restaurants ticket 25-45\u20AC, boutiques 50-200\u20AC, coaches 40-80\u20AC, barbershops 25-50\u20AC, cavistes, fleuristes, traiteurs, freelances 50-500\u20AC/lead, services (plombier, \u00E9lectricien) 100-300\u20AC/lead, professionnels (avocat, comptable) 200-1000\u20AC/lead, agences 1000-5000\u20AC/lead, PME toutes tailles
 - Segments \u00E0 ROI variable : caf\u00E9s (ticket faible), boulangeries (volume n\u00E9cessaire) \u2014 adapter le discours, pas exclure
-- Plans : Essai gratuit 7 jours (tous les agents, carte requise, 0\u20AC d\u00E9bit\u00E9), puis Cr\u00E9ateur 49\u20AC/mois, Pro 99\u20AC/mois, Fondateurs 149\u20AC/mois (offre jusqu au 25 mai 2026, ensuite 349\u20AC), Business 349\u20AC/mois, Elite 999\u20AC/mois
+- Plans : Essai gratuit 7 jours (tous les agents, carte requise, 0\u20AC d\u00E9bit\u00E9), puis Cr\u00E9ateur 49\u20AC/mois, Pro 99\u20AC/mois, Business 149\u20AC/mois. Annuel = 2 mois offerts. Add-ons : Stella (WhatsApp) 19\u20AC/mois, Louis (finance) 12\u20AC/mois
 - S\u00E9quence de vente : TOUJOURS essai gratuit 7 jours en premier \u2192 choix du plan apr\u00E8s l'essai
 - Objectif : 16 clients/mois, ARPU ~94\u20AC
 
@@ -239,15 +239,15 @@ PSYCHOLOGIE DE PRICING — MARCHÉ FRANÇAIS :
 - La TVA à 20% en France rend les prix TTC psychologiquement plus lourds. 49€ HT = 58.80€ TTC. Toujours communiquer en HT pour le B2B (notre cible), en TTC pour les freelances.
 - Le discount annuel le plus efficace : 16.7% (= 2 mois offerts). Notre plan annuel devrait offrir exactement 2 mois gratuits, pas plus (sinon perception de faible valeur).
 - Defaulter sur le billing annuel augmente l'adoption annuelle de 19%. Sur la page pricing, l'onglet "Annuel" doit être PRÉ-SÉLECTIONNÉ.
-- Une garantie satisfait-ou-remboursé sur l'annuel augmente la conversion de 34%. Proposer "7 jours satisfait ou remboursé" sur Fondateurs annuel.
+- Une garantie satisfait-ou-remboursé sur l'annuel augmente la conversion de 34%. Proposer "7 jours satisfait ou remboursé" sur l'annuel.
 - Le meilleur moment pour proposer l'upgrade annuel : JUSTE après l'inscription, dans la "première flush d'enthousiasme". L'agent Onboarding doit proposer l'annuel dans le premier email de bienvenue.
-- Charm pricing (49€ vs 50€) fonctionne toujours. 149€ bat 150€ de 8-12% en conversion. Nos prix actuels (49, 149, 349, 999) sont BIEN calibrés.
+- Charm pricing (49€ vs 50€) fonctionne toujours. 149€ bat 150€ de 8-12% en conversion. Nos prix actuels (49, 99, 149) sont BIEN calibrés.
 
 QUAND AUGMENTER LES PRIX vs AJOUTER DES FEATURES :
 - Règle : si le churn est < 5% mensuel et la conversion free-to-paid > 15%, il est temps d'AUGMENTER les prix. Ne pas augmenter tant que ces deux conditions ne sont pas remplies.
 - Augmenter de 10-20% maximum par palier. Grandfathering OBLIGATOIRE pour les clients existants (ils gardent l'ancien prix). Communiquer 30j avant.
 - Ajouter des features quand : le churn est > 5% ET les utilisateurs demandent des fonctionnalités spécifiques en exit survey. Les features de rétention (planning auto, analytics) priment sur les features d'acquisition.
-- Le Fondateurs à 149€ passera à 349€ (Business) après le 25 mai 2026. C'est un FOMO pricing avec date limite. Mentionner le countdown dans les communications.
+- Le plan Fondateurs (149€) est FERMÉ : les comptes historiques le gardent (grandfathering), on ne le vend plus. La grille en vigueur est Créateur 49€ / Pro 99€ / Business 149€.
 
 MOAT COMPÉTITIF POUR OUTILS IA :
 - Le moat #1 en 2026 pour un outil IA de contenu : les DONNÉES D'USAGE. Plus les clients créent de contenu, plus notre IA apprend leurs préférences = cercle vertueux.

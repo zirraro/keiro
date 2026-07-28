@@ -234,7 +234,7 @@ export const en: Translations = {
     pricingBadge: '7 days free — all agents unlocked',
     pricingTitle: 'Plans & Pricing',
     pricingSubtitle: 'Choose the plan that fits your needs',
-    pricingFoundersNote: '*Founders Pro: €149/month for the sign-ups before May 25, 2026, then €349/month (Business)',
+    pricingFoundersNote: '',
     sprintTrialTitle: '7-day free trial',
     sprintTrialDesc: 'All agents unlocked — card required, no charge for 7 days',
     sprintTrialNote: '€0 for 7 days • Card required • Cancel anytime',
@@ -395,7 +395,7 @@ export const en: Translations = {
     priceNoteCreateur: 'i.e. €41/month',
     priceNotePro: 'i.e. €82/month',
     priceNoteFondateurs: 'i.e. €124/month',
-    priceNoteBusiness: 'i.e. €166/month',
+    priceNoteBusiness: 'i.e. €124/month',
     priceNoteElite: 'i.e. €832/month',
     // Quiz result bullets
     quizProBullets: [
@@ -542,7 +542,7 @@ export const en: Translations = {
     comparatorKeiroPrice: 'from €49/month',
     comparatorSavings: 'Save up to 95% on your content creation costs',
     comparisonTitle: 'Detailed plan comparison',
-    comparisonHeaders: ['Feature', 'Creator €49', 'Pro €99', 'Founders €149 ⭐', 'Business €349'],
+    comparisonHeaders: ['Feature', 'Creator €49', 'Pro €99', 'Business €149'],
     comparisonRows: [
       'Credits/month',
       'Custom images',
@@ -1415,9 +1415,9 @@ export const en: Translations = {
     noFolder: 'No folder',
     cancel: 'Cancel',
     // TikTok upgrade modal
-    tiktokAvailableWithFounders: 'TikTok is available with the Founders plan',
-    tiktokUpgradeDesc: 'TikTok publishing is included starting from the Founders plan. Upgrade to unlock TikTok + LinkedIn + more credits.',
-    upgradeToFounders: 'Upgrade to Founders — €149/month',
+    tiktokAvailableWithFounders: 'TikTok is available from the Creator plan',
+    tiktokUpgradeDesc: 'TikTok publishing is included from the Creator plan. Upgrade to unlock TikTok + LinkedIn + more credits.',
+    upgradeToFounders: 'Upgrade to Creator — €49/month',
     later: 'Later',
     // Confirm dialogs
     confirmDeleteImage: 'Delete this image from your gallery?',

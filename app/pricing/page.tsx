@@ -416,7 +416,7 @@ function PricingPageInner() {
             <p className="text-xs text-center text-blue-200 mt-2">{t.pricing.planProNote}</p>
           </div>
 
-          {/* Business 199€ — POPULAIRE */}
+          {/* Business 149€ — POPULAIRE */}
           <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-5 sm:p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
@@ -428,7 +428,7 @@ function PricingPageInner() {
                 <span>🏢</span> {t.pricing.planBusinessTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 390€' : '139€'}</span>
+                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
                 <span className="text-cyan-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">{t.home.priceNoteBusiness}</span>}
               </div>
@@ -583,7 +583,7 @@ function PricingPageInner() {
                   <th className="text-left py-3 px-2">{locale === 'fr' ? 'Fonctionnalité' : 'Feature'}</th>
                   <th className="text-center py-3 px-2 text-purple-600">{locale === 'fr' ? 'Créateur' : 'Creator'} 49{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 text-blue-600">Pro 99{'\u20AC'}</th>
-                  <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 139{'\u20AC'}</th>
+                  <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 149{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 bg-yellow-50 font-bold">{locale === 'fr' ? 'Agence \— Sur devis' : 'Agency \— Quote'}</th>
                 </tr>
               </thead>

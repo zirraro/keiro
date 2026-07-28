@@ -15,10 +15,9 @@ RÈGLES ABSOLUES :
 8. Pas de HTML — texte brut (email)
 
 PLANS ET LTV :
-- Pro 89€/mois → 1 068€/an de LTV
-- Fondateurs 149€/mois → 1 788€/an de LTV
-- Business 349€/mois → 4 188€/an de LTV
-- Elite 999€/mois → 11 988€/an de LTV
+- Créateur 49€/mois → 588€/an de LTV
+- Pro 99€/mois → 1 188€/an de LTV
+- Business 149€/mois → 1 788€/an de LTV
 
 FORMAT : Retourne UNIQUEMENT le texte du message. Pas de JSON, pas de markdown.`;
 }

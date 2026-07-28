@@ -48,7 +48,7 @@ Principe clé : on a **consolidé agressivement**. Beaucoup de personas historiq
 | `commercial` | **Léo** | Sourcing/qualification prospects (Google Maps), onglet prospection filtrable (activité/région/température), appels enchaînés, **édition fiche CRM inline** partagée à tous les agents | Créateur |
 | `rh` | **Sara** | RH & juridique : contrats, CGV, RGPD, conseils prud'hommes/QVT, docs à la marque | Créateur |
 | `gmaps` | **Théo** | Réputation **& SEO** : répond aux avis Google, optimise la fiche GBP, référencement local + blog SEO (*a absorbé Oscar/SEO*) | Créateur |
-| `whatsapp` | **Stella** | WhatsApp Business (confirmations, rappels anti no-show). Inclus Business **ou add-on 19€/mois** | Business (139€) |
+| `whatsapp` | **Stella** | WhatsApp Business (confirmations, rappels anti no-show). Inclus Business **ou add-on 19€/mois** | Business (149€) |
 | `comptable` | **Louis** | Finance : business plans, prévisionnels, Excel/PowerPoint à la marque. Inclus Business **ou add-on 12€/mois** | Business |
 
 → **8 agents "en vente"** (Léna, Jade, Hugo, Léo, Sara, Théo, Stella, Louis) + **Ami & Clara offerts** (stratégie + activation) pour donner de la valeur dès le plan gratuit.
@@ -86,7 +86,7 @@ Principe clé : on a **consolidé agressivement**. Beaucoup de personas historiq
 
 ## 5. Modèle économique & pricing
 
-- Plans publics : **Créateur 49€ / Pro 99€ / Business 139€** (+ annuel = 2 mois offerts, onglet annuel pré-sélectionné). Add-ons : **Stella 19€**, **Louis 12€**. Packs de crédits ponctuels.
+- Plans publics : **Créateur 49€ / Pro 99€ / Business 149€** (+ annuel = 2 mois offerts, onglet annuel pré-sélectionné). Add-ons : **Stella 19€**, **Louis 12€**. Packs de crédits ponctuels.
 - **Crédits** : chaque génération (image/vidéo/post) consomme des crédits ; marge pilotée (~80% cible Pro), coût/post suivi, alertes admin marge.
 - **Essai** : cold = génération gratuite sans carte (`/generate`) ; essai 7 j avec carte (0€ débité) mentionné seulement quand on parle d'automatisation.
 - **Anti-gaspillage** : budget caps sur APIs coûteuses, thinking sélectif, Sonnet→Haiku sur le volume, crons consolidés.

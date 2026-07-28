@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
           weekly_generations: (weeklyGen || 0) + (weeklyVideos || 0),
           prev_week_generations: prevWeekGen || 0,
           plan: client.plan,
-          monthly_revenue: client.plan === 'fondateurs' ? 149 : client.plan === 'elite' ? 999 : client.plan === 'business' ? 349 : 89,
+          monthly_revenue: client.plan === 'fondateurs' ? 149 : client.plan === 'elite' ? 999 : client.plan === 'business' ? 149 : client.plan === 'pro' ? 99 : 49,
           days_to_renewal: client.next_renewal_at ? Math.floor((new Date(client.next_renewal_at).getTime() - Date.now()) / 86400000) : null,
           updated_at: nowISO,
         }, { onConflict: 'user_id' });

@@ -13,12 +13,15 @@ export function getStripe(): Stripe {
 }
 
 // ====== LEGACY: Mapping montant → plan (fallback pour anciens payment links) ======
+// ⚠️ Ce sont les ANCIENS montants (payment links d'avant la grille actuelle).
+// Ne pas y ajouter les prix courants : les nouveaux checkouts passent par
+// metadata + Price ID (getPriceToPlan) et n'atteignent jamais ce fallback.
 export const AMOUNT_TO_PLAN: Record<number, string> = {
   499: 'sprint',       // 4,99€
-  8900: 'pro',         // 89€
-  14900: 'fondateurs', // 149€
+  8900: 'pro',         // 89€ (ancien tarif Pro)
+  14900: 'fondateurs', // 149€ (ancien payment link Fondateurs — plan fermé)
   19900: 'standard',   // 199€
-  34900: 'business',   // 349€
+  34900: 'business',   // 349€ (ancien tarif Business)
   99900: 'elite',      // 999€
 };
 
@@ -44,7 +47,7 @@ export function getPlanToPrice(): Record<string, string | undefined> {
     pro: process.env.STRIPE_PRICE_PRO,              // 99€/mois — price_1TEasVBHEPG6p3auZVsNdo9t
     fondateurs: process.env.STRIPE_PRICE_FONDATEURS, // 149€/mois — price_1T3y7QBHEPG6p3au0ODGBtvg
     standard: process.env.STRIPE_PRICE_STANDARD,
-    business: process.env.STRIPE_PRICE_BUSINESS,    // 349€/mois — price_1T3yDuBHEPG6p3auEqX61jg8
+    business: process.env.STRIPE_PRICE_BUSINESS,    // 149€/mois (grille en vigueur)
     elite: process.env.STRIPE_PRICE_ELITE,          // 999€/mois — price_1T3y9OBHEPG6p3audGOfSvEA
   };
 }
