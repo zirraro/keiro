@@ -25,6 +25,10 @@ export async function GET(req: NextRequest) {
 
   const limit = parseInt(req.nextUrl.searchParams.get('limit') || '200');
   const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
+  // Canal (founder 25/07) : Jade prépare aussi des DM de prospection TikTok /
+  // LinkedIn (envoi manuel, pas d'API DM) → l'onglet du réseau doit les montrer.
+  const rawCh = (req.nextUrl.searchParams.get('channel') || 'instagram').toLowerCase();
+  const channel = ['instagram', 'tiktok', 'linkedin'].includes(rawCh) ? rawCh : 'instagram';
 
   // Jointure inner : les DM dont le prospect appartient au client. Priorise les
   // handles déjà vérifiés (le bouton Envoyer n'ouvre jamais un profil inactif).
@@ -32,7 +36,7 @@ export async function GET(req: NextRequest) {
     .from('dm_queue')
     .select('id, prospect_id, handle, message, channel, priority, created_at, verified_exists, verified_at, personalization, crm_prospects!inner(company, user_id, org_id)', { count: 'exact' })
     .eq('status', 'pending')
-    .eq('channel', 'instagram');
+    .eq('channel', channel);
   q = orgId ? q.eq('crm_prospects.org_id', orgId) : q.eq('crm_prospects.user_id', user.id);
   q = q
     .order('verified_exists', { ascending: false, nullsFirst: false })

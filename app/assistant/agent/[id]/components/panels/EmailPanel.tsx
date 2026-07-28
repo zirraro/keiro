@@ -72,27 +72,28 @@ function EmailCard({ email }: { email: { prospect: string; type: string; status:
 }
 
 // ── Reply mode toggle : envoi auto ↔ brouillon (founder 29/06) ──────
-function ReplyModeToggle() {
+function ReplyModeToggle({ onMode }: { onMode?: (m: 'auto_send' | 'draft') => void } = {}) {
   const [mode, setMode] = useState<'auto_send' | 'draft'>('auto_send');
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch('/api/agents/settings?agent_id=email', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.settings?.reply_mode === 'draft') setMode('draft'); })
+      .then(d => { const m = d.settings?.reply_mode === 'draft' ? 'draft' : 'auto_send'; setMode(m); onMode?.(m); })
       .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);
 
   const setVal = useCallback(async (val: 'auto_send' | 'draft') => {
     setMode(val);
+    onMode?.(val);
     try {
       await fetch('/api/agents/settings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
         body: JSON.stringify({ agent_id: 'email', reply_mode: val }),
       });
     } catch {}
-  }, []);
+  }, [onMode]);
 
   if (!loaded) return null;
   const opt = (val: 'auto_send' | 'draft', icon: string, title: string, desc: string) => (
@@ -212,6 +213,10 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   const [liveConn, setLiveConn] = useState<{ gmail: boolean; smtp: boolean; outlook: boolean } | null>(null);
   const conn = liveConn || (data as any).connections || {};
   const showMailboxFeatures = GMAIL_FULL || !!conn.smtp || !!conn.outlook;
+  // Mode de réponse piloté par le toggle : on ne montre la carte Brouillons QUE
+  // quand Hugo est en mode "brouillon" (sinon rien à relire → section inutile,
+  // founder 25/07 « un toggle suffit »).
+  const [replyMode, setReplyMode] = useState<'auto_send' | 'draft'>('auto_send');
   const stats = data.emailStats || { sent: 0, opened: 0, clicked: 0, openRate: 0, clickRate: 0, sequences: {}, recentEmails: [] };
 
   const seqEntries = Object.entries(stats.sequences ?? {}) as Array<[string, number]>;
@@ -242,7 +247,7 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           RESTREINTS). En OPTION A (gmail.send seul), on les MASQUE pour que la
           fonctionnalité visible corresponde exactement au scope demandé à Google
           (sinon incohérence = rejet). Réaffichés en B (NEXT_PUBLIC_GMAIL_FULL=on). */}
-      {showMailboxFeatures && <ReplyModeToggle />}
+      {showMailboxFeatures && <ReplyModeToggle onMode={setReplyMode} />}
 
       {/* Email connection banner — remonte l'état live pour gater les cartes */}
       <EmailConnectBanner connections={(data as any).connections} onStatus={setLiveConn} />
@@ -255,8 +260,9 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           invisible tant que le user n'a pas activé (flag full_mailbox / GMAIL_OPTION_B). */}
       <GmailNativeInbox />
 
-      {/* Drafts Hugo prepared / you started (SMTP/IMAP ou Gmail option B) */}
-      {showMailboxFeatures && <DraftsCard />}
+      {/* Brouillons Hugo — affichés SEULEMENT en mode "brouillon" (en envoi auto,
+          Hugo envoie tout seul → rien à relire, on masque la section). */}
+      {showMailboxFeatures && replyMode === 'draft' && <DraftsCard />}
 
       {/* ── UNIFIED STATS SECTION ─────────────────────────────────
           User feedback: too many stat blocks repeated in different

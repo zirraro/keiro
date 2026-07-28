@@ -208,6 +208,11 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
                 : 'Un compte TikTok qui suit et like régulièrement est bien mieux distribué — et ça protège tes propres posts du throttle quand tu es inactif. 2 min/jour : suis quelques comptes de ta niche ci-dessous ET va liker quelques-uns de leurs posts. Les vues suivent l\'activité.'}</p>
             </div>
           )}
+          {/* DM de prospection préparés par Jade (TikTok/LinkedIn : pas d'API DM
+              → envoi MANUEL, copie du message + ouverture du profil). Fusionnés
+              avec les comptes à suivre (founder 25/07). Instagram a son propre
+              onglet "DM de prospection". */}
+          {network !== 'instagram' && <ManualDMQueue network={network} />}
           {network === 'linkedin' && <LinkedInDrafts />}
           <ManualFollowsList platform={network} />
           <FollowSuggestions platform={network} />
@@ -256,6 +261,103 @@ function urlB64ToUint8Array(base64String: string) {
   const out = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
+}
+
+/**
+ * DM de prospection préparés par Jade pour TikTok / LinkedIn.
+ * Ces réseaux n'ont pas d'API DM → envoi MANUEL : on copie le message
+ * personnalisé (synchrone, dans le geste = pas bloqué) + on ouvre le profil,
+ * puis « ✓ Envoyé » marque le DM comme envoyé (send-single, canal-agnostique).
+ * Founder 25/07 : « je ne vois pas dans l'onglet TikTok les DM de prospection ».
+ */
+function ManualDMQueue({ network }: { network: 'tiktok' | 'linkedin' }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
+  const [queue, setQueue] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/agents/dm-instagram/queue?channel=${network}&limit=50`, { credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setQueue(d.queue || []); }
+    } catch { /* noop */ } finally { setLoading(false); }
+  }, [network]);
+  useEffect(() => { setQueue([]); load(); }, [load]);
+
+  const profileUrl = (handle: string) => {
+    const h = String(handle || '').replace(/^@/, '').trim();
+    if (network === 'tiktok') return `https://www.tiktok.com/@${h.replace(/https?:\/\/(www\.|m\.)?tiktok\.com\/@?/i, '').split(/[/?#]/)[0]}`;
+    const raw = String(handle || '').trim();
+    if (/linkedin\.com\/(in|company)\/[^/?#\s]+/i.test(raw)) return /^https?:\/\//i.test(raw) ? raw : `https://www.${raw.replace(/^\/+/, '')}`;
+    return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(h)}`;
+  };
+
+  const copyAndOpen = (dm: { id: string; handle: string; message: string }) => {
+    try {
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(dm.message);
+      else { const ta = document.createElement('textarea'); ta.value = dm.message; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+    } catch { /* noop */ }
+    setCopied(dm.id);
+    window.open(profileUrl(dm.handle), '_blank');
+    setTimeout(() => setCopied(c => (c === dm.id ? null : c)), 2500);
+  };
+
+  const markSent = async (dmId: string) => {
+    setBusy(dmId);
+    try {
+      await fetch('/api/agents/dm-instagram/send-single', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ dm_id: dmId }),
+      });
+      setQueue(prev => prev.filter(d => d.id !== dmId));
+    } catch { /* noop */ } finally { setBusy(null); }
+  };
+
+  if (loading || queue.length === 0) return null; // pas de bruit si rien de prêt
+  const netLabel = network === 'tiktok' ? 'TikTok' : 'LinkedIn';
+
+  return (
+    <div className="mb-3 rounded-xl border border-fuchsia-500/25 bg-fuchsia-500/[0.06] p-3">
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-xs font-bold text-fuchsia-200">{en ? `🎯 Prospecting DMs ready (${netLabel})` : `🎯 DM de prospection prêts (${netLabel})`}</div>
+        <span className="text-[10px] text-white/40">{queue.length}</span>
+      </div>
+      <p className="text-[10px] text-white/50 mb-2 leading-snug">{en
+        ? `${netLabel} has no DM API — Jade writes a personalised message per prospect, you send it in 1 tap: copy + open profile, paste, then "Sent".`
+        : `${netLabel} n'a pas d'API DM — Jade rédige un message personnalisé par prospect, tu l'envoies en 1 geste : copie + ouvre le profil, colle, puis « Envoyé ».`}</p>
+      <div className="space-y-1.5">
+        {queue.map((dm: any) => {
+          const handle = String(dm.handle || '').replace(/^@/, '');
+          return (
+            <div key={dm.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[11px] font-semibold text-white/80 truncate flex-1 min-w-0">@{handle}{dm.company ? <span className="text-white/40 font-normal"> · {dm.company}</span> : null}</span>
+              </div>
+              <p className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap mb-2">{dm.message}</p>
+              {dm.visual_url && <img src={dm.visual_url} alt="" className="rounded-md max-h-40 mb-2 border border-white/10" />}
+              <div className="flex gap-1.5">
+                <button
+                  type="button" onClick={() => copyAndOpen({ id: dm.id, handle, message: dm.message })}
+                  className="flex-1 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold border border-white/15 text-white/70 hover:border-fuchsia-400/50 hover:text-fuchsia-200 transition"
+                >
+                  {copied === dm.id ? (en ? '✓ Copied — profile opened' : '✓ Copié — profil ouvert') : (en ? '📋 Copy + open profile' : '📋 Copier + ouvrir le profil')}
+                </button>
+                <button
+                  type="button" disabled={busy === dm.id} onClick={() => markSent(dm.id)}
+                  className="shrink-0 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold bg-emerald-600/90 text-white hover:bg-emerald-600 disabled:opacity-50 transition"
+                >
+                  {busy === dm.id ? '…' : (en ? '✓ Sent' : '✓ Envoyé')}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // Brouillons LinkedIn de Jade — DM + commentaires générés (envoi manuel, l'API

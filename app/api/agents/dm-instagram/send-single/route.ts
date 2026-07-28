@@ -67,11 +67,12 @@ export async function POST(req: NextRequest) {
     updated_at: now,
   }).eq('id', dm.prospect_id);
 
+  const ch = dm.channel || 'instagram';
   await supabase.from('crm_activities').insert({
     prospect_id: dm.prospect_id,
     type: 'dm_sent',
-    description: `DM envoye manuellement a @${dm.handle}`,
-    data: { channel: 'instagram', handle: dm.handle, manual: true },
+    description: `DM ${ch} envoyé manuellement à @${dm.handle}`,
+    data: { channel: ch, handle: dm.handle, manual: true },
     created_at: now,
   });
 
