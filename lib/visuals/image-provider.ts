@@ -34,7 +34,7 @@ export interface ImageGenOptions {
 
 export interface ImageGenResult {
   url: string;
-  provider: 'flux_schnell' | 'flux_dev' | 'seedream';
+  provider: 'flux_schnell' | 'flux_dev' | 'seedream' | 'gemini';
   cost_eur_estimate: number;
   reason: string;
 }
@@ -50,10 +50,95 @@ export interface ImageGenResult {
 const _lastFallbackAlert: Record<string, number> = {};
 const FALLBACK_ALERT_COOLDOWN_MS = 15 * 60 * 1000; // 15 min par type de transition
 
+/**
+ * 2026-07-28 — Provider de secours QUALITÉ : Gemini (image).
+ *
+ * Contexte : Seedream (BytePlus) et Kling peuvent tomber ensemble sur un
+ * problème de solde, et le dernier recours Flux Schnell est bridé quand le
+ * crédit Replicate est bas. Le compte Google, lui, est déjà approvisionné
+ * pour le texte → on s'en sert comme filet AVANT de dégrader sur Flux.
+ *
+ * Gemini renvoie l'image en base64 (pas d'URL) : on la pousse dans le
+ * storage Supabase pour obtenir une URL publique stable, comme les autres
+ * visuels. Renvoie null si quoi que ce soit échoue (le caller continue la
+ * chaîne de fallback).
+ */
+async function generateWithGemini(opts: ImageGenOptions, size: string): Promise<string | null> {
+  const key = (process.env.GEMINI_API_KEY || '').trim();
+  if (!key) return null;
+
+  const aspectRatio = size === '1024x1792' ? '9:16' : size === '1792x1024' ? '16:9' : '1:1';
+  // Gemini n'a pas de negative_prompt : les interdits passent en consigne.
+  const textRule = opts.exactTextInImage
+    ? `The ONLY text visible in the image is the exact phrase "${opts.exactTextInImage}", rendered cleanly in one readable font. No other words, letters or gibberish anywhere.`
+    : 'ZERO text in the image: no words, letters, numbers, captions, signage, labels, logos or watermarks (text is added later as an overlay).';
+
+  const prompt = `${opts.prompt}. ${textRule} EDITORIAL DOCUMENTARY photograph: 50mm or 80mm prime lens, Kodak Portra 400 film aesthetic, natural diffused window light or golden hour (no studio strobes, no ring light), shallow depth of field, real candid moment, gentle 35mm grain, true-to-life muted colors. Real people with authentic skin texture and correct hands, diverse in age and origin, caught mid-action rather than posing. Absolutely NOT a 3D render, NOT an illustration, NOT a stock photo, no plastic or porcelain skin, no neon or oversaturated colors, no AI portrait artifacts.`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { imageConfig: { aspectRatio } },
+        }),
+        signal: AbortSignal.timeout(90_000),
+      },
+    );
+    if (!res.ok) {
+      console.warn('[image-provider] Gemini HTTP', res.status, (await res.text().catch(() => '')).substring(0, 200));
+      return null;
+    }
+    const data = await res.json();
+    const part = (data?.candidates?.[0]?.content?.parts || []).find((p: any) => p?.inlineData || p?.inline_data);
+    const inline = part?.inlineData || part?.inline_data;
+    if (!inline?.data) {
+      console.warn('[image-provider] Gemini: pas d\'image dans la réponse');
+      return null;
+    }
+
+    // Gemini rend un PNG ~2 Mo : on repasse en JPEG comme le reste du
+    // pipeline (publication réseaux + CDN), sans perte visible.
+    let buf: Buffer = Buffer.from(inline.data, 'base64');
+    let contentType = inline.mimeType || inline.mime_type || 'image/png';
+    let ext = 'png';
+    try {
+      const sharp = (await import('sharp')).default;
+      buf = Buffer.from(await sharp(buf).jpeg({ quality: 92, mozjpeg: true }).toBuffer());
+      contentType = 'image/jpeg';
+      ext = 'jpg';
+    } catch { /* si sharp indisponible, on garde le PNG d'origine */ }
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const path = `generated-gemini/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await sb.storage
+      .from('business-assets')
+      .upload(path, buf, { contentType, upsert: true });
+    if (upErr) {
+      console.warn('[image-provider] Gemini upload storage échoué:', upErr.message);
+      return null;
+    }
+    const { data: pub } = sb.storage.from('business-assets').getPublicUrl(path);
+    return pub?.publicUrl || null;
+  } catch (e: any) {
+    console.warn('[image-provider] Gemini error:', e?.message?.substring(0, 200));
+    return null;
+  }
+}
+
 async function notifyProviderFallback(payload: {
-  used: 'kling' | 'flux_schnell' | 'none';
+  used: 'kling' | 'gemini' | 'flux_schnell' | 'none';
   seedreamError?: string;
   klingError?: string;
+  geminiError?: string;
   reason: string;
   callTag?: string;
 }): Promise<void> {
@@ -78,6 +163,7 @@ async function notifyProviderFallback(payload: {
           used_provider: payload.used,
           seedream_error: payload.seedreamError?.substring(0, 300) || null,
           kling_error: payload.klingError?.substring(0, 300) || null,
+          gemini_error: payload.geminiError?.substring(0, 300) || null,
           reason: payload.reason,
           call_tag: payload.callTag || null,
         },
@@ -89,24 +175,41 @@ async function notifyProviderFallback(payload: {
     _lastFallbackAlert[transitionKey] = now;
 
     const isCritical = payload.used === 'none';
+    const providerLabel = payload.used === 'kling' ? 'Kling' : payload.used === 'gemini' ? 'Gemini' : 'Flux Schnell';
     const subject = isCritical
       ? '🚨 [KeiroAI] Génération image ÉCHOUÉE — tous les providers down'
-      : `⚠️ [KeiroAI] Image en fallback ${payload.used === 'kling' ? 'Kling' : 'Flux Schnell'} (Seedream a échoué)`;
+      : `⚠️ [KeiroAI] Image en fallback ${providerLabel} (Seedream a échoué)`;
     const qualityNote = payload.used === 'flux_schnell'
       ? 'Qualité DÉGRADÉE (Flux Schnell = dernier recours, moins bon que Seedream).'
-      : payload.used === 'kling'
-        ? 'Qualité correcte (Kling) mais Seedream — le provider premium — est indisponible.'
-        : 'AUCUNE image générée : Seedream, Kling ET Flux ont tous échoué. Des posts peuvent partir sans visuel.';
+      : payload.used === 'gemini'
+        ? 'Qualité correcte (Gemini) mais Seedream ET Kling sont indisponibles — on tient sur le filet de sécurité.'
+        : payload.used === 'kling'
+          ? 'Qualité correcte (Kling) mais Seedream — le provider premium — est indisponible.'
+          : 'AUCUNE image générée : Seedream, Kling, Gemini ET Flux ont tous échoué. Des posts peuvent partir sans visuel.';
+
+    // Diagnostic actionnable : distinguer une panne technique d'un problème
+    // de solde (le cas réel du 27/07 : 3 comptes à sec en même temps).
+    const all = `${payload.seedreamError || ''} ${payload.klingError || ''}`.toLowerCase();
+    const billingHints: string[] = [];
+    if (/overdue|arrears|insufficient|balance/.test(all) || /403/.test(payload.seedreamError || '')) {
+      if (/overdue|403/.test((payload.seedreamError || '').toLowerCase())) billingHints.push('Seedream/BytePlus : compte en solde négatif → RECHARGER (console BytePlus).');
+      if (/balance|1102|429/.test((payload.klingError || '').toLowerCase())) billingHints.push('Kling : solde insuffisant → RECHARGER (console KlingAI).');
+    }
+    billingHints.push('Replicate : sous 5$ de crédit, le compte est bridé à 6 requêtes/min (rafale 1) → recharger pour retrouver du débit.');
+
     const html = `
       <h2>${isCritical ? '🚨 Échec total génération image' : '⚠️ Fallback provider image'}</h2>
       <p><strong>Provider utilisé :</strong> ${payload.used}</p>
       <p><strong>${qualityNote}</strong></p>
       <p><strong>Erreur Seedream :</strong> ${payload.seedreamError || 'n/a'}</p>
       ${payload.klingError ? `<p><strong>Erreur Kling :</strong> ${payload.klingError}</p>` : ''}
+      ${payload.geminiError ? `<p><strong>Erreur Gemini :</strong> ${payload.geminiError}</p>` : ''}
       <p><strong>Raison :</strong> ${payload.reason}</p>
       ${payload.callTag ? `<p><strong>Contexte :</strong> ${payload.callTag}</p>` : ''}
+      <h3>À faire</h3>
+      <ul>${billingHints.map(h => `<li>${h}</li>`).join('')}</ul>
       <hr>
-      <p style="color:#888;font-size:12px">Alerte throttlée à 1 mail / 15 min par type de fallback. Vérifie la clé Seedream (ARK_API_KEY) et le quota BytePlus.</p>
+      <p style="color:#888;font-size:12px">Alerte throttlée à 1 mail / 15 min par type de fallback. Chaîne : Seedream → Kling → Gemini → Flux Schnell.</p>
     `;
     const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
     await sendEmailWithFallback({
@@ -135,6 +238,7 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
   // Erreurs capturées pour l'alerte fallback (founder 2026-07-19).
   let seedreamError: string | undefined;
   let klingError: string | undefined;
+  let geminiError: string | undefined;
 
   // Provider 1: Seedream (PRIMARY) — quality top, $0.03/image
   if (!opts.forceProvider || opts.forceProvider === 'seedream') {
@@ -221,47 +325,73 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
     }
   }
 
-  // Provider 3: Flux Schnell (Replicate) — last resort cheap fallback
+  // Provider 3: Gemini image — secours QUALITÉ (compte Google déjà approvisionné)
+  // avant de dégrader sur Flux Schnell. Ajouté le 2026-07-28 après une panne
+  // simultanée Seedream (compte débiteur) + Kling (solde vide).
+  {
+    const geminiUrl = await generateWithGemini(opts, size);
+    if (geminiUrl) {
+      void notifyProviderFallback({ used: 'gemini', seedreamError, klingError, reason: 'gemini_fallback_seedream_kling_failed', callTag: opts.callTag });
+      return {
+        url: geminiUrl,
+        provider: 'gemini',
+        cost_eur_estimate: 0.035,
+        reason: 'gemini_fallback_seedream_kling_failed',
+      };
+    }
+    geminiError = 'Gemini image indisponible';
+  }
+
+  // Provider 4: Flux Schnell (Replicate) — last resort cheap fallback.
+  // 2026-07-28 : sous 5$ de crédit, Replicate bride à 6 req/min avec une
+  // rafale de 1 → on retente une fois après la fenêtre au lieu de rendre
+  // null (c'est ce throttle qui faisait passer des générations à zéro image).
   if (process.env.REPLICATE_API_TOKEN) {
-    try {
-      const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'wait',
-        },
-        body: JSON.stringify({
-          input: {
-            prompt: opts.prompt + '. Professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
-            aspect_ratio: size === '1024x1792' ? '9:16' : size === '1792x1024' ? '16:9' : '1:1',
-            num_outputs: 1,
-            output_format: 'png',
-            output_quality: 90,
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'wait',
           },
-        }),
-        signal: AbortSignal.timeout(45_000),
-      });
-      const data = await res.json();
-      const url = Array.isArray(data.output) ? data.output[0] : data.output;
-      if (url && typeof url === 'string' && url.startsWith('http')) {
-        // Fallback jusqu'à Flux Schnell (dernier recours, qualité dégradée) : alerte.
-        void notifyProviderFallback({ used: 'flux_schnell', seedreamError, klingError, reason: 'flux_schnell_last_resort_fallback', callTag: opts.callTag });
-        return {
-          url,
-          provider: 'flux_schnell',
-          cost_eur_estimate: 0.003,
-          reason: 'flux_schnell_last_resort_fallback',
-        };
+          body: JSON.stringify({
+            input: {
+              prompt: opts.prompt + '. Professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
+              aspect_ratio: size === '1024x1792' ? '9:16' : size === '1792x1024' ? '16:9' : '1:1',
+              num_outputs: 1,
+              output_format: 'png',
+              output_quality: 90,
+            },
+          }),
+          signal: AbortSignal.timeout(45_000),
+        });
+        const data = await res.json();
+        const url = Array.isArray(data.output) ? data.output[0] : data.output;
+        if (url && typeof url === 'string' && url.startsWith('http')) {
+          // Fallback jusqu'à Flux Schnell (dernier recours, qualité dégradée) : alerte.
+          void notifyProviderFallback({ used: 'flux_schnell', seedreamError, klingError, geminiError, reason: 'flux_schnell_last_resort_fallback', callTag: opts.callTag });
+          return {
+            url,
+            provider: 'flux_schnell',
+            cost_eur_estimate: 0.003,
+            reason: 'flux_schnell_last_resort_fallback',
+          };
+        }
+        const throttled = res.status === 429 || /throttl/i.test(JSON.stringify(data?.detail || ''));
+        console.warn('[image-provider] Flux Schnell returned no URL:', JSON.stringify(data).substring(0, 200));
+        if (!throttled || attempt === 1) break;
+        await new Promise(r => setTimeout(r, 12_000));
+      } catch (e: any) {
+        console.error('[image-provider] Flux Schnell failed:', e.message?.substring(0, 150));
+        break;
       }
-      console.warn('[image-provider] Flux Schnell returned no URL:', JSON.stringify(data).substring(0, 200));
-    } catch (e: any) {
-      console.error('[image-provider] All 3 providers failed (Seedream → Kling → Flux):', e.message?.substring(0, 150));
     }
   }
 
-  // Échec TOTAL des 3 providers → alerte critique (des posts peuvent partir sans visuel).
-  void notifyProviderFallback({ used: 'none', seedreamError, klingError, reason: 'all_providers_failed', callTag: opts.callTag });
+  // Échec TOTAL des providers → alerte critique (des posts peuvent partir sans visuel).
+  void notifyProviderFallback({ used: 'none', seedreamError, klingError, geminiError, reason: 'all_providers_failed', callTag: opts.callTag });
   return null;
 }
 
