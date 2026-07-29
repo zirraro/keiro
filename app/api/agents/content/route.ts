@@ -4061,7 +4061,8 @@ export async function POST(request: NextRequest) {
           .select('*')
           .eq('status', 'approved')
           .lte('scheduled_date', todayDate)
-          .is('visual_url', null);
+          .is('visual_url', null)
+          .order('scheduled_date', { ascending: true }); // le plus en retard d'abord
         if (userId) readyQuery = readyQuery.eq('user_id', userId);
         const { data: readyPosts } = await readyQuery;
 
@@ -4100,7 +4101,15 @@ export async function POST(request: NextRequest) {
         if (retryEnabled) {
           visualQuery = visualQuery.or(`status.neq.retry_pending,next_retry_at.lte.${nowIso}`);
         }
-        visualQuery = visualQuery.limit(1);
+        // 2026-07-29 — FIFO explicite sur le retard. Sans `order`, PostgREST
+        // renvoie une ligne ARBITRAIRE : avec un backlog qui grossit, les
+        // vieux posts pouvaient ne jamais être tirés pendant que d'autres
+        // repassaient en boucle. C'est une des causes des centaines de posts
+        // "approved" dont le créneau est passé et qui ne sortent jamais.
+        visualQuery = visualQuery
+          .order('scheduled_date', { ascending: true })
+          .order('scheduled_time', { ascending: true })
+          .limit(1);
         if (userId) visualQuery = visualQuery.eq('user_id', userId);
         const { data: approvedWithVisuals } = await visualQuery;
 
@@ -4989,6 +4998,13 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   const now = new Date();
   const nowISO = now.toISOString();
 
+  // Comptes internes : aucune génération (cf. lib/agents/internal-accounts).
+  const { isNoContentUserId } = await import('@/lib/agents/internal-accounts');
+  if (isNoContentUserId(userId)) {
+    console.log('[Content] compte interne — génération ignorée:', userId);
+    return NextResponse.json({ ok: true, skipped: 'internal_account', postsPlanned: 0 });
+  }
+
   // Domaine du client — sert à injecter l'expertise LinkedIn ciblée (voix du
   // consultant dans son métier) dans le system prompt (founder 2026-07-19).
   let planBizType: string | null = null;
@@ -5272,6 +5288,13 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
 async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId: string | null = null, userId: string | null = null) {
   const now = new Date();
   const nowISO = now.toISOString();
+
+  // Comptes internes : aucune génération (cf. lib/agents/internal-accounts).
+  const { isNoContentUserId } = await import('@/lib/agents/internal-accounts');
+  if (isNoContentUserId(userId)) {
+    console.log('[Content] compte interne — génération ignorée:', userId);
+    return NextResponse.json({ ok: true, skipped: 'internal_account', results: [] });
+  }
 
   // Domaine du client → expertise LinkedIn ciblée dans le system prompt (founder 2026-07-19).
   let planBizType: string | null = null;
@@ -5708,6 +5731,13 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 // ──────────────────────────────────────
 async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, clientSettings: Record<string, any> = {}, forceFormat?: string) {
   const nowISO = new Date().toISOString();
+
+  // Comptes internes : aucune génération (cf. lib/agents/internal-accounts).
+  const { isNoContentUserId } = await import('@/lib/agents/internal-accounts');
+  if (isNoContentUserId(userId)) {
+    console.log('[Content] compte interne — génération ignorée:', userId);
+    return NextResponse.json({ ok: true, skipped: 'internal_account' });
+  }
 
   // ── PER-PLAN QUOTA ENFORCEMENT ──
   // Block image/video generation when the client's monthly quota is

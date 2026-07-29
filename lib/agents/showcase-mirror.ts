@@ -52,8 +52,11 @@ export async function mirrorToShowcaseAccount(
   publisherUserId: string,
   post: MirrorablePost,
 ): Promise<{ mirrored: boolean; reason?: string }> {
-  if (process.env.SHOWCASE_MIRROR_ENABLED === '0') {
-    return { mirrored: false, reason: 'disabled_by_env' };
+  // 2026-07-29 — Le compte metareview est un bac à sable pour la revue Meta,
+  // rien d'autre : on n'y duplique plus de contenu (règle fondateur).
+  // Réactivable en repassant SHOWCASE_MIRROR_ENABLED à '1' pour une revue.
+  if (process.env.SHOWCASE_MIRROR_ENABLED !== '1') {
+    return { mirrored: false, reason: 'disabled_metareview_sandbox' };
   }
   if (publisherUserId !== SHOWCASE_USER_ID) {
     return { mirrored: false, reason: 'not_showcase_account' };

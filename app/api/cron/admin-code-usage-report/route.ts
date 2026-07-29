@@ -36,7 +36,7 @@ async function run() {
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, email, company_name, subscription_plan, credits_balance')
+    .select('id, email, company_name, subscription_plan, credits_balance, credits_expires_at')
     .in('id', userIds);
   const profMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
@@ -59,14 +59,22 @@ async function run() {
     try { const { count } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', uid).gte('created_at', since7d); prospects = count || 0; } catch {}
     try { const { count } = await supabase.from('agent_logs').select('id', { count: 'exact', head: true }).eq('user_id', uid).gte('created_at', since7d); actions = count || 0; } catch {}
 
-    rows.push({ code, unlimited, email: p.email || uid.slice(0, 8), company: p.company_name || '', plan: p.subscription_plan || '?', balance: p.credits_balance || 0, creditsSpent, posts, emails, dms, prospects, actions });
+    // Les codes "illimités" sont bornés à 30 jours après activation
+    // (founder 29/07) : on affiche le temps restant plutôt qu'un ∞ trompeur.
+    let expiryLabel = '';
+    if (p.credits_expires_at) {
+      const daysLeft = Math.ceil((new Date(p.credits_expires_at).getTime() - Date.now()) / 86400000);
+      expiryLabel = daysLeft > 0 ? `J-${daysLeft}` : 'EXPIRÉ';
+    }
+
+    rows.push({ code, unlimited, expiryLabel, email: p.email || uid.slice(0, 8), company: p.company_name || '', plan: p.subscription_plan || '?', balance: p.credits_balance || 0, creditsSpent, posts, emails, dms, prospects, actions });
   }
 
   // Trie : illimités d'abord, puis par crédits consommés.
   rows.sort((a, b) => (b.unlimited ? 1 : 0) - (a.unlimited ? 1 : 0) || b.creditsSpent - a.creditsSpent);
 
   const trHtml = rows.map(r => `<tr>
-    <td style="padding:4px 8px;">${r.code}${r.unlimited ? ' <span style="color:#7c3aed;font-weight:bold;">∞</span>' : ''}</td>
+    <td style="padding:4px 8px;">${r.code}${r.unlimited ? ' <span style="color:#7c3aed;font-weight:bold;">accès complet</span>' : ''}${r.expiryLabel ? ` <span style="color:${r.expiryLabel === 'EXPIRÉ' ? '#dc2626' : '#6b7280'};font-size:11px;">${r.expiryLabel}</span>` : ''}</td>
     <td style="padding:4px 8px;">${r.company || r.email}</td>
     <td style="padding:4px 8px;text-align:right;font-weight:bold;">${r.creditsSpent}</td>
     <td style="padding:4px 8px;text-align:right;">${r.posts}</td>

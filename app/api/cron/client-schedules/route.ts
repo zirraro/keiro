@@ -35,7 +35,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ clients: [] });
   }
 
-  const userIds = profiles.map(p => p.id);
+  // Comptes internes (bac à sable Meta, compte admin) : aucun agent ne tourne
+  // pour eux — ils généraient du contenu payant que personne ne publiait.
+  const { isNoContentAccount } = await import('@/lib/agents/internal-accounts');
+  const eligibleProfiles = profiles.filter(p => !isNoContentAccount({ email: p.email, userId: p.id }));
+  if (eligibleProfiles.length === 0) {
+    return NextResponse.json({ clients: [] });
+  }
+
+  const userIds = eligibleProfiles.map(p => p.id);
 
   // Get all agent configs for these users.
   // NOTE: some accounts have duplicate (user_id, agent_id) rows (legacy
@@ -63,7 +71,7 @@ export async function GET(req: NextRequest) {
     agents: Record<string, { active: boolean; schedule: string[] | null; config: Record<string, any> }>;
   }> = {};
 
-  for (const profile of profiles) {
+  for (const profile of eligibleProfiles) {
     clientMap[profile.id] = {
       user_id: profile.id,
       email: profile.email,

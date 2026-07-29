@@ -379,18 +379,45 @@ export async function runKenBurnsMontage(opts: {
     // incluant les tourbillons (un seul move continu reste propre).
     const HOOK_DYNAMIC = [11, 12, 13, 0, 3]; // whirl CW/CCW, swirl, push-in, reveal
     const SAFE_SINGLE = [0, 1, 2, 3, 10, 11, 12, 13];
-    for (let i = 0; i < opts.sceneCount; i++) {
-      const variant = opts.sceneCount === 1
+
+    // 2026-07-29 — Rythme de coupe (règle fondateur : "les 3 premières
+    // secondes sont les plus importantes"). Avant, tous les plans duraient
+    // perClipSec (10s) : un reel de 30s = 3 plans de 10 secondes, ce qui
+    // traîne et perd le spectateur avant la 3e seconde. Désormais le PREMIER
+    // plan est court et nerveux (~2,5s, le hook), et les suivants tournent
+    // autour de 3,5-4,5s. La durée totale du reel est préservée : on répartit
+    // le même budget de secondes sur plus de plans.
+    const totalSec = Math.max(opts.perClipSec, opts.sceneCount * opts.perClipSec);
+    const clipDurations: number[] = [];
+    if (opts.sceneCount === 1) {
+      clipDurations.push(totalSec);
+    } else {
+      const HOOK_SEC = 2.5;
+      const rest = Math.max(1, totalSec - HOOK_SEC);
+      // ~4s par plan → nombre de plans recalculé pour tenir la durée cible.
+      // Borné par le stock de photos (2 plans max par photo) : au-delà, on
+      // reverrait la même image trop souvent et le gain de rythme se paierait
+      // en impression de boucle.
+      const maxShots = Math.max(2, photos.length * 2 - 1);
+      const restShots = Math.min(maxShots, Math.max(1, Math.round(rest / 4)));
+      const restEach = +(rest / restShots).toFixed(2);
+      clipDurations.push(HOOK_SEC);
+      for (let i = 0; i < restShots; i++) clipDurations.push(restEach);
+    }
+
+    for (let i = 0; i < clipDurations.length; i++) {
+      const variant = clipDurations.length === 1
         ? SAFE_SINGLE[Math.floor(Math.random() * SAFE_SINGLE.length)]
         : i === 0
           ? HOOK_DYNAMIC[Math.floor(Math.random() * HOOK_DYNAMIC.length)] // 1er plan = hook accrocheur
           : (moveBase + i * 3) % VARIANT_COUNT;
-      const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, opts.perClipSec, variant);
+      const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, clipDurations[i], variant);
       if (clip) clipUrls.push(clip);
     }
     if (!clipUrls.length) return null;
+    const realDuration = clipDurations.slice(0, clipUrls.length).reduce((a, b) => a + b, 0);
     return await finalizeReel(clipUrls, {
-      postId: opts.postId, durationSec: clipUrls.length * opts.perClipSec,
+      postId: opts.postId, durationSec: Math.round(realDuration),
       mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang, bakeAudio: opts.bakeAudio,
     });
   } catch { return null; }
@@ -489,18 +516,28 @@ export async function concatVideoClips(clipUrls: string[], postId: string): Prom
     try {
       const durs: number[] = [];
       for (const p of localPaths) durs.push(await probeDurationSec(p));
-      const T = 0.6; // crossfade length
+      // 2026-07-29 — Longueur de transition VARIABLE (règle fondateur sur les
+      // 3 premières secondes). Un fondu de 0,6 s après un plan d'accroche de
+      // 2,5 s mange un quart du hook et casse le rythme : la première coupe
+      // est donc quasi franche (0,18 s), les suivantes restent cinéma (0,4 s).
+      const cutLen = (k: number) => (k === 1 ? 0.18 : 0.4);
       // Wide, randomized transition repertoire so cuts feel directed + varied
       // (founder: transitions naturelles et variées).
       const styles = ['fade', 'smoothleft', 'smoothright', 'smoothup', 'smoothdown', 'slideleft', 'slideup', 'circleopen', 'circleclose', 'fadeblack', 'dissolve', 'wipeleft', 'diagtl', 'radial'];
+      // Première coupe : styles francs uniquement (un « smooth » lent sur le
+      // hook annule l'effet de rupture qu'on cherche).
+      const punchyStyles = ['fade', 'slideleft', 'slideup', 'wipeleft', 'dissolve'];
       const tStart = Math.floor(Math.random() * styles.length);
       let chain = '';
       let prev = 'v0';
       let cum = durs[0];
       for (let k = 1; k < localPaths.length; k++) {
+        const T = cutLen(k);
         const off = Math.max(0.1, cum - T);
         const label = k === localPaths.length - 1 ? 'vout' : `x${k}`;
-        const tr = styles[(tStart + k - 1) % styles.length];
+        const tr = k === 1
+          ? punchyStyles[Math.floor(Math.random() * punchyStyles.length)]
+          : styles[(tStart + k - 1) % styles.length];
         chain += `;[${prev}][v${k}]xfade=transition=${tr}:duration=${T}:offset=${off.toFixed(2)}[${label}]`;
         cum = cum + durs[k] - T;
         prev = label;

@@ -128,6 +128,27 @@ export async function muxReelAudio(p: ReelAudioMuxParams): Promise<ReelAudioMuxR
     const ffmpegBin = getFfmpegPath();
     const dur = p.durationSec || 5;
 
+    // 2026-07-29 — On n'attaque plus la musique à 0:00 (règle fondateur sur
+    // les 3 premières secondes). La quasi-totalité des morceaux commencent par
+    // une intro douce : le reel s'ouvrait donc sur la partie la plus molle du
+    // titre. On saute à un endroit où le morceau est lancé, quand sa durée le
+    // permet, avec un très court fondu d'entrée pour éviter le clic.
+    let musicSeek = '';
+    let musicFade = 'volume=VOL';
+    if (musicPath) {
+      let trackDur = 0;
+      try {
+        const { stdout } = await execPromise(
+          `"${ffmpegBin.replace(/ffmpeg(\.exe)?$/i, 'ffprobe$1')}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${musicPath}"`,
+          { timeout: 15_000 },
+        ) as any;
+        trackDur = parseFloat(String(stdout).trim()) || 0;
+      } catch { /* durée inconnue → on reste à 0:00 */ }
+      const offset = trackDur > dur + 25 ? 20 : trackDur > dur + 12 ? 8 : 0;
+      if (offset > 0) musicSeek = `-ss ${offset} `;
+      musicFade = `volume=VOL,afade=t=in:st=0:d=0.25,afade=t=out:st=${Math.max(0.5, dur - 0.8).toFixed(2)}:d=0.8`;
+    }
+
     // 4. Build ffmpeg command per case
     // Note: we always re-encode the video to ensure even if Seedance ships
     // exotic codec params (yuv420p10le, varying fps), the output works on
@@ -136,13 +157,13 @@ export async function muxReelAudio(p: ReelAudioMuxParams): Promise<ReelAudioMuxR
     let cmd: string;
     if (voicePath && musicPath) {
       // voice + music, music ducked under voice
-      cmd = `"${ffmpegBin}" -y -i "${videoPath}" -i "${voicePath}" -i "${musicPath}" -filter_complex "[2:a]volume=0.25[bg];[1:a][bg]amix=inputs=2:duration=longest:dropout_transition=2[a]" -map 0:v -map "[a]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 23 -c:a aac -b:a 128k -t ${dur} -shortest "${outPath}"`;
+      cmd = `"${ffmpegBin}" -y -i "${videoPath}" -i "${voicePath}" ${musicSeek}-i "${musicPath}" -filter_complex "[2:a]${musicFade.replace('VOL', '0.25')}[bg];[1:a][bg]amix=inputs=2:duration=longest:dropout_transition=2[a]" -map 0:v -map "[a]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 23 -c:a aac -b:a 128k -t ${dur} -shortest "${outPath}"`;
     } else if (voicePath) {
       // voice only
       cmd = `"${ffmpegBin}" -y -i "${videoPath}" -i "${voicePath}" -map 0:v -map 1:a -c:v libx264 -pix_fmt yuv420p -preset fast -crf 23 -c:a aac -b:a 128k -t ${dur} -shortest "${outPath}"`;
     } else if (musicPath) {
       // music only, at moderate volume so it doesn't overpower
-      cmd = `"${ffmpegBin}" -y -i "${videoPath}" -i "${musicPath}" -filter_complex "[1:a]volume=0.4[a]" -map 0:v -map "[a]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 23 -c:a aac -b:a 128k -t ${dur} -shortest "${outPath}"`;
+      cmd = `"${ffmpegBin}" -y -i "${videoPath}" ${musicSeek}-i "${musicPath}" -filter_complex "[1:a]${musicFade.replace('VOL', '0.4')}[a]" -map 0:v -map "[a]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 23 -c:a aac -b:a 128k -t ${dur} -shortest "${outPath}"`;
     } else {
       // Should never hit because of the short-circuit above
       return { url: p.videoUrl, withVoice: false, withMusic: false, fallback: 'no_audio_after_fetch' };

@@ -966,6 +966,53 @@ STRUCTURE REEL/TIKTOK :
 - 15-25s : Démonstration ou preuve
 - 25-30s : CTA + logo KeiroAI
 
+REEL — LES 3 PREMIÈRES SECONDES DÉCIDENT DE TOUT (founder 2026-07-29, RÈGLE DURE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+La moitié des spectateurs partent avant la 3e seconde. Ces 3 secondes se
+travaillent AUTANT que le reste du reel réuni. Pour CHAQUE reel, le champ
+"script" doit expliciter les quatre éléments suivants :
+
+1. HOOK VISUEL (frame 0) — la toute première image doit être la plus forte du
+   reel, pas une mise en place. Interdit : un plan d'établissement vide, un
+   logo, un fondu au noir, un panoramique lent qui « installe ». Obligatoire :
+   un mouvement déjà commencé (une main qui plonge dans la pâte, la vapeur qui
+   part, la porte qui s'ouvre sur la file), un gros plan texturé, ou une
+   situation qui pose une question sans texte.
+2. HOOK TEXTE (0-2s) — 6 mots maximum, lisible en une fixation, posé haut dans
+   le cadre (le bas est mangé par l'UI). Il annonce une tension, pas un sujet :
+   « il perdait 400€ par semaine » et non « conseils marketing ».
+3. TRANSITIONS — une coupe nette toutes les 1,5 à 2,5 secondes, jamais un plan
+   qui traîne. Coupe SUR le mouvement (le geste commence sur le plan A et se
+   finit sur le plan B), pas entre deux plans figés. Interdits : fondus
+   enchaînés mous, zoom numérique sur image fixe, diaporama. Une coupe sur le
+   temps fort du son vaut dix effets.
+4. SON — précise le type de musique (tempo, énergie, instrument dominant) et le
+   moment du premier temps fort, qui doit tomber sur la première coupe. Un son
+   tendance capte, mais c'est la SYNCHRO coupe/beat qui retient. Prévois aussi
+   le rendu SANS SON (85% démarrent en muet) : le texte overlay doit suffire à
+   comprendre les 3 premières secondes.
+
+Si l'un de ces quatre points manque au script, le reel n'est pas prêt : complète
+avant de générer. Un reel qui démarre mou est de l'argent perdu — la portée se
+joue sur le taux de rétention à 3 secondes.
+
+CARROUSEL — LA PREMIÈRE IMAGE FAIT TOUT LE TRAVAIL (founder 2026-07-29)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+C'est la slide 1 qui décide si quelqu'un balaie vers la gauche. Elle mérite
+plus de soin que les 9 autres réunies :
+- L'image la plus forte du lot va en slide 1. Ne la garde pas « pour la fin » :
+  personne n'ira voir la fin si la couverture est tiède.
+- Elle doit créer un MANQUE : montrer un résultat sans expliquer comment, une
+  situation en tension, un avant qui appelle son après. Une jolie photo qui se
+  suffit à elle-même ne fait pas défiler.
+- Texte de couverture : 5 mots maximum, très gros, contraste fort, placé dans
+  le tiers haut. Lisible sur une vignette de feed de 3 cm.
+- Donne un indice visuel qu'il y a une suite (un élément coupé par le bord du
+  cadre, une flèche discrète, un « 1/5 » en coin) — le geste de swipe doit
+  être suggéré.
+- La slide 2 confirme la promesse de la slide 1 en moins de 3 secondes de
+  lecture, sinon la personne repart.
+
 STRUCTURE LINKEDIN :
 - 1ère ligne : hook qui coupe dans le "voir plus"
 - Storytelling : anecdote concrète d'un commerçant

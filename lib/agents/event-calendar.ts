@@ -61,6 +61,13 @@ const BEFORE_DAYS_BY_TIER: Record<EventTier, number> = { 3: 21, 2: 14, 1: 0 };
 // Les événements à date fixe sont calculés plus bas.
 
 const MOVING_EVENTS_BY_YEAR: Record<number, DatedEvent[]> = {
+  2025: [
+    // Conservé pour que les mentions rétrospectives soient reconnues comme
+    // "événement passé" et non comme un événement inconnu.
+    { key: 'tour_de_france_2025', label: 'Tour de France 2025', start: '2025-07-05', end: '2025-07-27', tier: 3, matchers: ['tour de france', 'maillot jaune', 'peloton', 'grande boucle'] },
+    { key: 'cannes_2025', label: 'Festival de Cannes 2025', start: '2025-05-13', end: '2025-05-24', tier: 2, matchers: ['festival de cannes', 'palme d\'or', 'montée des marches'] },
+    { key: 'roland_garros_2025', label: 'Roland-Garros 2025', start: '2025-05-25', end: '2025-06-08', tier: 3, matchers: ['roland-garros', 'roland garros', 'porte d\'auteuil'] },
+  ],
   2026: [
     // ── Sport ────────────────────────────────────────────────────────────
     { key: 'cdm_football_2026', label: 'Coupe du monde de football 2026 (USA/Canada/Mexique)', start: '2026-06-11', end: '2026-07-19', tier: 3, matchers: ['coupe du monde', 'mondial', 'les bleus', 'world cup'] },
@@ -79,7 +86,58 @@ const MOVING_EVENTS_BY_YEAR: Record<number, DatedEvent[]> = {
     // ── Tech ─────────────────────────────────────────────────────────────
     { key: 'apple_keynote_2026', label: 'Keynote iPhone Apple', start: '2026-09-09', end: '2026-09-09', tier: 1, matchers: ['keynote apple', 'nouvel iphone'] },
   ],
+  2027: [
+    { key: 'tour_de_france_2027', label: 'Tour de France 2027', start: '2027-07-03', end: '2027-07-25', tier: 3, matchers: ['tour de france', 'maillot jaune', 'peloton', 'grande boucle'] },
+    { key: 'roland_garros_2027', label: 'Roland-Garros 2027', start: '2027-05-23', end: '2027-06-06', tier: 3, matchers: ['roland-garros', 'roland garros', 'porte d\'auteuil'] },
+    { key: 'cdm_rugby_2027', label: 'Coupe du monde de rugby 2027 (Australie)', start: '2027-10-01', end: '2027-11-13', tier: 3, matchers: ['coupe du monde de rugby', 'mondial de rugby', 'xv de france'] },
+    { key: 'cannes_2027', label: 'Festival de Cannes 2027', start: '2027-05-11', end: '2027-05-22', tier: 2, matchers: ['festival de cannes', 'palme d\'or', 'montée des marches'] },
+    { key: 'soldes_hiver_2027', label: 'Soldes d\'hiver', start: '2027-01-06', end: '2027-02-02', tier: 2, matchers: ['soldes d\'hiver'] },
+    { key: 'soldes_ete_2027', label: 'Soldes d\'été', start: '2027-06-23', end: '2027-07-20', tier: 2, matchers: ['soldes d\'été'] },
+  ],
+  2028: [
+    { key: 'jo_ete_2028', label: 'JO d\'été Los Angeles 2028', start: '2028-07-14', end: '2028-07-30', tier: 3, matchers: ['jeux olympiques', 'jo de los angeles', 'jo 2028'] },
+    { key: 'euro_football_2028', label: 'Euro de football 2028 (Royaume-Uni/Irlande)', start: '2028-06-09', end: '2028-07-09', tier: 3, matchers: ['euro de football', 'euro 2028', 'les bleus'] },
+    { key: 'tour_de_france_2028', label: 'Tour de France 2028', start: '2028-07-01', end: '2028-07-23', tier: 3, matchers: ['tour de france', 'maillot jaune', 'peloton', 'grande boucle'] },
+    { key: 'roland_garros_2028', label: 'Roland-Garros 2028', start: '2028-05-28', end: '2028-06-11', tier: 3, matchers: ['roland-garros', 'roland garros', 'porte d\'auteuil'] },
+    { key: 'cannes_2028', label: 'Festival de Cannes 2028', start: '2028-05-16', end: '2028-05-27', tier: 2, matchers: ['festival de cannes', 'palme d\'or', 'montée des marches'] },
+    { key: 'soldes_hiver_2028', label: 'Soldes d\'hiver', start: '2028-01-05', end: '2028-02-01', tier: 2, matchers: ['soldes d\'hiver'] },
+    { key: 'soldes_ete_2028', label: 'Soldes d\'été', start: '2028-06-28', end: '2028-07-25', tier: 2, matchers: ['soldes d\'été'] },
+  ],
+  2029: [
+    { key: 'tour_de_france_2029', label: 'Tour de France 2029', start: '2029-06-30', end: '2029-07-22', tier: 3, matchers: ['tour de france', 'maillot jaune', 'peloton', 'grande boucle'] },
+    { key: 'roland_garros_2029', label: 'Roland-Garros 2029', start: '2029-05-27', end: '2029-06-10', tier: 3, matchers: ['roland-garros', 'roland garros', 'porte d\'auteuil'] },
+    { key: 'cannes_2029', label: 'Festival de Cannes 2029', start: '2029-05-15', end: '2029-05-26', tier: 2, matchers: ['festival de cannes', 'palme d\'or', 'montée des marches'] },
+    { key: 'soldes_hiver_2029', label: 'Soldes d\'hiver', start: '2029-01-03', end: '2029-01-30', tier: 2, matchers: ['soldes d\'hiver'] },
+    { key: 'soldes_ete_2029', label: 'Soldes d\'été', start: '2029-06-27', end: '2029-07-24', tier: 2, matchers: ['soldes d\'été'] },
+  ],
+  2030: [
+    { key: 'cdm_football_2030', label: 'Coupe du monde de football 2030 (Espagne/Portugal/Maroc)', start: '2030-06-13', end: '2030-07-21', tier: 3, matchers: ['coupe du monde', 'mondial', 'les bleus', 'world cup'] },
+    { key: 'jo_hiver_2030', label: 'JO d\'hiver Alpes françaises 2030', start: '2030-02-01', end: '2030-02-17', tier: 3, matchers: ['jeux olympiques', 'jo d\'hiver', 'jo 2030', 'alpes 2030'] },
+    { key: 'tour_de_france_2030', label: 'Tour de France 2030', start: '2030-06-29', end: '2030-07-21', tier: 3, matchers: ['tour de france', 'maillot jaune', 'peloton', 'grande boucle'] },
+    { key: 'roland_garros_2030', label: 'Roland-Garros 2030', start: '2030-05-26', end: '2030-06-09', tier: 3, matchers: ['roland-garros', 'roland garros', 'porte d\'auteuil'] },
+    { key: 'cannes_2030', label: 'Festival de Cannes 2030', start: '2030-05-14', end: '2030-05-25', tier: 2, matchers: ['festival de cannes', 'palme d\'or', 'montée des marches'] },
+    { key: 'soldes_hiver_2030', label: 'Soldes d\'hiver', start: '2030-01-09', end: '2030-02-05', tier: 2, matchers: ['soldes d\'hiver'] },
+    { key: 'soldes_ete_2030', label: 'Soldes d\'été', start: '2030-06-26', end: '2030-07-23', tier: 2, matchers: ['soldes d\'été'] },
+  ],
 };
+
+/**
+ * Années couvertes par le calendrier des événements mobiles. Au-delà, seuls
+ * les événements à date fixe (Noël, Saint-Valentin, Black Friday…) sont
+ * connus — d'où l'alerte ci-dessous.
+ */
+export const COVERED_YEARS = Object.keys(MOVING_EVENTS_BY_YEAR).map(Number).sort();
+
+/**
+ * Le calendrier mobile est-il encore alimenté pour l'année en cours ?
+ * Sert au contrôle quotidien qui prévient l'admin AVANT que le calendrier
+ * ne se vide (sinon on retombe sur "aucun gros événement" en silence).
+ */
+export function calendarCoverageStatus(today: Date = new Date()): { year: number; covered: boolean; lastCoveredYear: number; yearsLeft: number } {
+  const year = today.getUTCFullYear();
+  const last = COVERED_YEARS[COVERED_YEARS.length - 1];
+  return { year, covered: MOVING_EVENTS_BY_YEAR[year] !== undefined, lastCoveredYear: last, yearsLeft: last - year };
+}
 
 /** Dimanche n° `n` du mois (1-indexé). */
 function nthSundayOfMonth(year: number, month1: number, n: number): number {

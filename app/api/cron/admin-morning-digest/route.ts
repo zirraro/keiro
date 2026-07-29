@@ -330,13 +330,25 @@ export async function GET(req: NextRequest) {
     const since48hD = new Date(Date.now() - 48 * 3600 * 1000).toISOString().slice(0, 10);
     const { data: stuck } = await supabase
       .from('content_calendar')
-      .select('user_id, platform, status, scheduled_date')
+      .select('user_id, platform, status, scheduled_date, publish_diagnostic')
       .lte('scheduled_date', todayD)
       .gte('scheduled_date', since48hD)
       .is('published_at', null)
       .in('status', ['publish_failed', 'retry_pending', 'approved', 'pending_approval', 'draft']);
+    // 2026-07-29 — On ne compte QUE de vrais clients. Le bac à sable Meta et le
+    // compte admin faisaient à eux seuls 24 des 29 "livraisons manquées" du
+    // digest, et les posts sans user_id sortaient en « null (?) » : du bruit
+    // qui noyait le seul cas réel à traiter.
+    const { isNoContentAccount } = await import('@/lib/agents/internal-accounts');
     const gapMap = new Map<string, { platform: string; count: number; statuses: Set<string> }>();
     for (const p of stuck || []) {
+      if (!p.user_id) continue; // contenu interne/prospection, pas un client
+      if (isNoContentAccount({ userId: p.user_id, email: userIdToEmail.get(p.user_id) })) continue;
+      // Un post repoussé par NOTRE plafond anti-burst n'est pas une livraison
+      // ratée : c'est un étalement volontaire (garde-fou shadowban). Le
+      // signaler comme un échec noyait les vrais problèmes.
+      const deferred = /cap_deferred|autopost_paused|account_changed_archived/.test(String(p.publish_diagnostic || ''));
+      if (deferred) continue;
       const overdue = String(p.scheduled_date) < todayD; // slot passé
       const failed = p.status === 'publish_failed' || p.status === 'retry_pending';
       // Échec réel = publish raté, OU un post approuvé/prêt dont le créneau est PASSÉ
@@ -374,8 +386,11 @@ export async function GET(req: NextRequest) {
       .gte('published_at', from7d)
       .lte('published_at', to48h)
       .not('engagement_data', 'is', null);
+    const { isNoContentAccount: isInternalReach } = await import('@/lib/agents/internal-accounts');
     const reachMap = new Map<string, { platform: string; count: number }>();
     for (const p of pub || []) {
+      if (!p.user_id) continue;
+      if (isInternalReach({ userId: p.user_id, email: userIdToEmail.get(p.user_id) })) continue;
       const e = (p.engagement_data as any) || {};
       const measured = e.synced_at !== undefined || e.views !== undefined || e.reach !== undefined || e.impressions !== undefined;
       if (!measured) continue; // pas encore mesuré → on ne juge pas

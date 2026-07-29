@@ -85,6 +85,22 @@ export async function GET(req: NextRequest) {
   // 8. Statut d'enforcement des signatures webhook (informatif).
   add('Webhook signature enforcement', true, false, process.env.ENFORCE_WEBHOOK_SIGNATURES === 'on' ? 'ON' : 'OFF (non-bloquant)');
 
+  // Calendrier événements : il doit rester alimenté d'avance. S'il se vide,
+  // les agents perdent silencieusement les gros événements (c'est exactement
+  // ce qui a fait rater le Tour de France).
+  try {
+    const { calendarCoverageStatus } = await import('@/lib/agents/event-calendar');
+    const cov = calendarCoverageStatus();
+    add(
+      'Calendrier événements alimenté',
+      cov.covered && cov.yearsLeft >= 1,
+      false,
+      `année ${cov.year} ${cov.covered ? 'couverte' : 'NON COUVERTE'}, dernière année renseignée ${cov.lastCoveredYear} (${cov.yearsLeft} an(s) d'avance — à réalimenter dans lib/agents/event-calendar.ts)`,
+    );
+  } catch (e: any) {
+    add('Calendrier événements alimenté', false, false, e?.message);
+  }
+
   const hardFails = checks.filter(c => c.hard && !c.ok);
   const softFails = checks.filter(c => !c.hard && !c.ok);
   const passed = checks.filter(c => c.ok).length;
