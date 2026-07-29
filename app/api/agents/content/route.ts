@@ -5102,6 +5102,20 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   // Use passed userId for content ownership (not admin!)
   const contentUserId = userId || null;
 
+  // Garde-fou événements (règle fondateur 2026-07-29) : on vérifie NOUS-MÊMES
+  // les fenêtres et les quotas plutôt que de faire confiance au modèle. C'est
+  // ce qui aurait bloqué les 39 posts "Festival de Cannes" en juillet et les
+  // 42 hooks identiques sur le Tour de France le même jour.
+  let eventGuard: { check: (h: any, c: any, d: string) => { ok: boolean; eventKey?: string; reason?: string } } | null = null;
+  const eventRejections: string[] = [];
+  try {
+    const { getActiveEvents, getEventUsage, createEventGuard } = await import('@/lib/agents/event-calendar');
+    const active = getActiveEvents(new Date());
+    eventGuard = createEventGuard(await getEventUsage(supabase, contentUserId, active));
+  } catch (e: any) {
+    console.warn('[Content] event guard indisponible:', e?.message);
+  }
+
   let inserted = 0;
   for (const post of weekPlan) {
     const dayNum = dayMap[(post.day || '').toLowerCase()] ?? null;
@@ -5134,6 +5148,15 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     const postFormat = VALID_FORMATS.includes(rawFormat) ? rawFormat : 'post';
     const rawPillar = (post.pillar || 'tips').toLowerCase();
     const postPillar = VALID_PILLARS.includes(rawPillar) ? rawPillar : (PILLAR_MAP[rawPillar] || 'tips');
+
+    if (eventGuard) {
+      const verdict = eventGuard.check(post.hook, post.caption, scheduledDate);
+      if (!verdict.ok) {
+        eventRejections.push(`${scheduledDate} ${postPlatform} — ${verdict.reason}`);
+        console.warn('[Content] post événement rejeté:', verdict.reason);
+        continue;
+      }
+    }
 
     const { error: insertError } = await supabase.from('content_calendar').insert({
       platform: postPlatform,
@@ -5174,10 +5197,20 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     }
   }
 
+  if (eventRejections.length > 0) {
+    await supabase.from('agent_logs').insert({
+      agent: 'content', action: 'event_window_rejected',
+      data: { rejected: eventRejections.slice(0, 20), count: eventRejections.length },
+      status: 'warning', created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
+      ...(contentUserId ? { user_id: contentUserId } : {}),
+    });
+  }
+
   const planStatus = inserted > 0 ? 'success' : 'error';
   await supabase.from('agent_logs').insert({
     agent: 'content', action: 'weekly_plan_generated',
-    data: { postsPlanned: inserted, totalAttempted: weekPlan.length, weekStart: mondayDate.toISOString().split('T')[0] },
+    data: { postsPlanned: inserted, totalAttempted: weekPlan.length, eventRejections: eventRejections.length, weekStart: mondayDate.toISOString().split('T')[0] },
     status: planStatus, error_message: inserted === 0 ? `0/${weekPlan.length} posts inserted — all DB inserts failed` : undefined,
     created_at: nowISO,
     ...(orgId ? { org_id: orgId } : {}),
@@ -5428,6 +5461,17 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     }
   }
 
+  // Garde-fou événements : mêmes fenêtres/quotas que le plan hebdo.
+  let eventGuard: { check: (h: any, c: any, d: string) => { ok: boolean; eventKey?: string; reason?: string } } | null = null;
+  const eventRejections: string[] = [];
+  try {
+    const { getActiveEvents, getEventUsage, createEventGuard } = await import('@/lib/agents/event-calendar');
+    const active = getActiveEvents(new Date());
+    eventGuard = createEventGuard(await getEventUsage(supabase, userId || null, active));
+  } catch (e: any) {
+    console.warn('[Content] event guard indisponible:', e?.message);
+  }
+
   // Process posts sequentially (Seedream rate limits)
   for (const post of weekPlan) {
     const qa = qaResults[weekPlan.indexOf(post)] || null;
@@ -5460,6 +5504,15 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
       ? qaFindings.map((f: any) => `[${f.severity}] ${f.code}: ${f.message}`).join(' · ')
       : null;
     const qaScore = (qa as any)?.quality_score ?? null;
+
+    if (eventGuard) {
+      const verdict = eventGuard.check(post.hook, post.caption, scheduledDate);
+      if (!verdict.ok) {
+        eventRejections.push(`${scheduledDate} ${platform} — ${verdict.reason}`);
+        console.warn('[Content] post événement rejeté:', verdict.reason);
+        continue;
+      }
+    }
 
     // Insert into content_calendar
     const { data: inserted, error: insertError } = await supabase.from('content_calendar').insert({
@@ -5598,6 +5651,15 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 
   const publishedCount = results.filter(r => r.status === 'published').length;
   const totalGenerated = results.filter(r => r.visual_url).length;
+
+  if (eventRejections.length > 0) {
+    await supabase.from('agent_logs').insert({
+      agent: 'content', action: 'event_window_rejected',
+      data: { rejected: eventRejections.slice(0, 20), count: eventRejections.length },
+      status: 'warning',
+      ...(userId ? { user_id: userId } : {}),
+    }).then(() => {}, () => {});
+  }
 
   // Log
   await supabase.from('agent_logs').insert({
@@ -6245,19 +6307,22 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     const fri4Nov = (() => { const first = new Date(Date.UTC(yr, 10, 1)); const firstFri = 1 + ((5 - first.getUTCDay() + 7) % 7); return firstFri + 21; })();
     addEvent(`11-${fri4Nov}`, 'Black Friday — promos, urgence');
     addEvent(`11-${fri4Nov + 3}`, 'Cyber Monday — promos en ligne');
-    // Check ±3 days for upcoming events
+    // Journées thématiques (petits marqueurs d'un seul jour) : aujourd'hui et
+    // les 3 jours à venir. Plus de "HIER" — on ne poste jamais après coup
+    // (règle fondateur). Les gros événements datés sont gérés à part par
+    // lib/agents/event-calendar.ts, avec fenêtres et quotas.
     const upcomingEvents: string[] = [];
-    for (let offset = -1; offset <= 3; offset++) {
+    for (let offset = 0; offset <= 3; offset++) {
       const d = new Date(now.getTime() + offset * 24 * 60 * 60 * 1000);
       const key = `${d.getMonth() + 1}-${d.getDate()}`;
       if (EVENT_CALENDAR[key]) {
-        const prefix = offset === 0 ? 'AUJOURD\'HUI' : offset < 0 ? 'HIER' : `Dans ${offset}j`;
+        const prefix = offset === 0 ? 'AUJOURD\'HUI' : `Dans ${offset}j`;
         upcomingEvents.push(`${prefix}: ${EVENT_CALENDAR[key].join(', ')}`);
       }
     }
     let eventContext = '';
     if (upcomingEvents.length > 0) {
-      eventContext = `\nCALENDRIER EVENEMENTS : ${upcomingEvents.join(' | ')}\nSi pertinent, integre cet evenement dans le post pour surfer sur le moment.\n`;
+      eventContext = `\nJOURNÉES THÉMATIQUES : ${upcomingEvents.join(' | ')}\nUn seul post par journée thématique, le jour même. Jamais après coup.\n`;
     }
     trendsUpcomingEvents = upcomingEvents;
 
@@ -6289,73 +6354,21 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
   }
 
   // ── CALENDAR EVENTS (seasonal content) ──
+  // 2026-07-29 — Le calendrier est maintenant DATÉ (début + fin + ampleur)
+  // dans lib/agents/event-calendar.ts. L'ancienne table de dates ponctuelles
+  // ±5 jours laissait passer Cannes deux mois après la clôture et n'ouvrait
+  // aucune fenêtre "pendant" pour un Tour de France de 3 semaines.
   const today = new Date();
-  const month = today.getMonth() + 1;
-  const day = today.getDate();
-  // 2026-06-03 — Calendar enrichi: marketing dates + sport + culture pop.
-  // Founder ask: "plus d'actualité comme le sport ou le cinéma qui sont
-  // connus et plus communs qui vont plus attirer dans les mots clés".
-  const EVENTS: Record<string, string> = {
-    // ─── Marketing classiques ─────────────────────────
-    '1-1': 'Nouvel An',
-    '1-15': 'Soldes d\'hiver début',
-    '2-14': 'Saint-Valentin',
-    '3-8': 'Journée internationale des droits des femmes',
-    '3-20': 'Printemps + Journée mondiale du bonheur',
-    '4-1': 'Poisson d\'avril',
-    '4-22': 'Journée de la Terre',
-    '5-1': 'Fête du travail',
-    '5-9': 'Journée de l\'Europe',
-    '5-25': 'Fête des mères (France)',
-    '6-15': 'Fête des pères (France)',
-    '6-21': 'Fête de la musique + début été',
-    '7-1': 'Soldes d\'été début',
-    '7-14': 'Fête nationale',
-    '9-1': 'Rentrée scolaire',
-    '9-22': 'Automne',
-    '10-1': 'Octobre rose (cancer du sein)',
-    '10-31': 'Halloween',
-    '11-11': 'Armistice',
-    '11-25': 'Black Friday week',
-    '11-30': 'Cyber Monday',
-    '12-21': 'Hiver',
-    '12-24': 'Veille de Noël',
-    '12-25': 'Noël',
-    '12-31': 'Réveillon Nouvel An',
-    // ─── Sport (très engagement) ──────────────────────
-    '5-23': 'Roland-Garros (tennis) début',
-    '6-7': 'Roland-Garros finale',
-    '6-28': 'Tour de France début',
-    '7-21': 'Tour de France finale',
-    '7-26': 'Anniversaire Jeux Olympiques Paris',
-    '6-14': 'Euro/Coupe du Monde football (année paire)',
-    '9-7': 'Coupe du Monde Rugby',
-    // ─── Culture / cinéma ─────────────────────────────
-    '2-25': 'César du Cinéma',
-    '5-14': 'Festival de Cannes début',
-    '5-24': 'Festival de Cannes Palme d\'Or',
-    '3-2': 'Cérémonie des Oscars',
-    '9-6': 'Festival de Deauville (cinéma américain)',
-    // ─── Tech / Pop culture ───────────────────────────
-    '6-10': 'Apple WWDC',
-    '9-9': 'Apple Keynote iPhone',
-    '11-3': 'Diwali / Black Week tech',
-  };
 
-  // Check events within 5 days (was 3 — élargi pour mieux anticiper)
+  // Fenêtres datées + quota restant + angles déjà utilisés (anti-répétition).
   let eventContext = '';
-  const upcomingEvents: string[] = [];
-  for (const [dateStr, event] of Object.entries(EVENTS)) {
-    const [em, ed] = dateStr.split('-').map(Number);
-    if (em === month && Math.abs(ed - day) <= 5) {
-      upcomingEvents.push(`${event} (${dateStr})`);
-    }
-  }
-  if (upcomingEvents.length > 0) {
-    eventContext = `\n📅 ÉVÉNEMENTS MARKETING / SPORT / CULTURE DANS LES 5 JOURS :
-${upcomingEvents.map(e => `  • ${e}`).join('\n')}
-
-➡️ Anticipe ces moments dans tes posts. Les événements sport (Roland-Garros, Tour de France, Euro foot) + culture pop (Cannes, Oscars, César) génèrent +40% d'engagement quand on surfe dessus. Si pertinent pour le client, intègre-les dans 1 post sur 2 (pillar=trends).\n`;
+  try {
+    const { getActiveEvents, getEventUsage, buildEventPromptBlock } = await import('@/lib/agents/event-calendar');
+    const activeEvents = getActiveEvents(today);
+    const eventUsage = await getEventUsage(supabase, userId || null, activeEvents);
+    eventContext = buildEventPromptBlock(activeEvents, eventUsage);
+  } catch (e: any) {
+    console.warn('[Content] event-calendar failed:', e?.message);
   }
 
   // ── CLIENT DIRECTIVES: persistent instructions from chat ──

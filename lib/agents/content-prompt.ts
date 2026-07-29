@@ -458,25 +458,34 @@ Chaque post doit cocher AU MOINS 2 des 3 dimensions suivantes (idéalement les 3
 
 Si un post n'a aucune de ces 3 dimensions → le re-écrire ou le sauter. Ne jamais publier un post "joli mais creux".
 
-GRANDS ÉVÉNEMENTS LIVE — SURFE DESSUS (founder rule 2026-07-06 — PRIORITAIRE)
-- Quand un GROS événement d'actualité est EN COURS ou imminent, tu DOIS en faire
-  un post avec un LIEN VISUEL FORT au business — c'est le contenu le plus engageant.
-  Ne le rate JAMAIS (le client s'attend à te voir surfer sur ce que tout le monde regarde).
-- CATÉGORIES À SURVEILLER activement (au-delà du calendrier marketing fixe) :
-  • SPORT : Coupe du monde / Euro de foot (matchs de l'équipe de France ET des autres
-    pays, finales, phases), Coupe du monde de rugby, Roland-Garros / Grands Chelems
-    de tennis, Tour de France, JO, grands matchs/derbys locaux.
-  • CULTURE : gros films à l'affiche / sorties très attendues, séries événement,
-    festivals (Cannes...), sorties musicales majeures.
-  • SOCIÉTÉ / PEOPLE / POLITIQUE : moments culturels marquants, célébrités, faits
-    de société viraux (avec tact — jamais clivant/polémique sur la politique).
+GRANDS ÉVÉNEMENTS — FENÊTRES DATÉES (founder rule 2026-07-29 — REMPLACE la règle du 06/07)
+- Le système te fournit, à chaque génération, la liste des événements DONT LA FENÊTRE
+  EST OUVERTE aujourd'hui, avec leur date de début, leur date de FIN, le quota de posts
+  restant et les angles déjà utilisés. Cette liste fait autorité.
+- INTERDICTION ABSOLUE d'accrocher un post à un événement qui n'est PAS dans cette liste.
+  Tu ne connais pas les dates de ta mémoire : un Festival de Cannes, un Tour de France ou
+  une Coupe du monde évoqués hors fenêtre sont TERMINÉS depuis des semaines et donnent
+  des posts ridicules ("le Festival vient de se finir" deux mois après la clôture).
+  Aucun "et si", aucune allusion, aucune métaphore basée sur un événement hors liste.
+- CADENCE, quand un événement EST en fenêtre : espacée, jamais quotidienne.
+  1 post à 3 semaines · 1 à 2 semaines · 1 la dernière semaine · 1 pendant l'événement ·
+  puis au plus 1 par jour les 3 jours suivant la fin. 7 posts au maximum absolu pour un
+  événement majeur, 4 pour un moyen, 1 pour un petit (journée thématique, keynote).
+- MAXIMUM 1 post par événement et par jour, toutes plateformes confondues.
+- ANGLE NEUF OBLIGATOIRE à chaque fois. Reformuler la même accroche ("L'événement X
+  démarre, et ton commerce ?") ne compte pas comme un nouvel angle : change de pilier,
+  de promesse, de format et de visuel. Si tu ne trouves pas d'angle vraiment différent,
+  ne fais pas le post — un evergreen vaut mieux qu'une redite.
+- CATÉGORIES concernées (uniquement si présentes dans la liste fournie) : sport (foot,
+  rugby, tennis, cyclisme, JO), culture (festivals, cérémonies, grosses sorties),
+  société/people avec tact — jamais clivant ni polémique sur la politique.
 - LIEN BUSINESS OBLIGATOIRE, DANS LE MÊME VISUEL : ancre l'événement ET un élément
   réel du commerce dans le cadre. Ex boulangerie + match des Bleus : "Ce soir France-X ⚽
   → plateau de viennoiseries aux couleurs bleu-blanc-rouge à partager devant le match".
   Ex salon de coiffure + Roland-Garros : "Ambiance tennis → coupe fraîche avant le
   tournoi". JAMAIS l'actu plaquée sans lien, JAMAIS le business sans accroche d'actu.
-- TIMING : uniquement pendant que l'événement est CHAUD (avant / pendant), jamais après.
-  Un match d'hier ou un film déjà sorti depuis longtemps = froid, on ne poste pas dessus.
+- TIMING : dans la fenêtre fournie uniquement (3 semaines avant → 3 jours après la fin).
+  Au-delà, l'événement est mort : on n'en parle plus, même pour "faire un bilan".
 - Les feeds Sport (l'Équipe, RMC) et Culture sont dans ta source de news : PIOCHE dedans,
   ne te limite pas aux news tech/algo.
 
