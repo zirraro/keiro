@@ -185,6 +185,27 @@ export function getActiveEvents(today: Date = new Date()): ActiveEvent[] {
   return active;
 }
 
+/**
+ * Événements INVENTÉS déjà observés en production. Un modèle sans calendrier
+ * fiable affirme des choses fausses avec aplomb : on a retrouvé un post
+ * approuvé annonçant "Les JO de Paris 2026, un afflux massif de touristes"
+ * alors que Paris c'était 2024 et que les JO 2026 sont ceux d'hiver à
+ * Milan-Cortina, terminés en février. Ces formulations sont rejetées quelle
+ * que soit la date.
+ */
+const PHANTOM_CLAIMS: Array<{ label: string; matchers: string[] }> = [
+  { label: 'JO de Paris 2026 (n\'existe pas — Paris c\'était 2024)', matchers: ['jo de paris 2026', 'jeux olympiques de paris 2026', 'jo paris 2026', 'olympiques de paris 2026'] },
+];
+
+/** Le texte affirme-t-il un événement qui n'existe pas ? */
+export function detectPhantomClaim(text: string): string | null {
+  const lowered = (text || '').toLowerCase();
+  for (const claim of PHANTOM_CLAIMS) {
+    if (claim.matchers.some(m => lowered.includes(m))) return claim.label;
+  }
+  return null;
+}
+
 /** L'événement (s'il existe) dont parle un texte de post. */
 export function detectEvent(text: string, pool?: DatedEvent[]): DatedEvent | null {
   const lowered = (text || '').toLowerCase();
@@ -279,11 +300,17 @@ export function filterEventViolations<T extends { hook?: string | null; caption?
   const perDay: Record<string, Set<string>> = {};
 
   for (const post of posts) {
-    const text = `${post.hook || ''} ${post.caption || ''}`;
-    const event = detectEvent(text);
+    const when = post.scheduled_date || today.toISOString().split('T')[0];
+    const phantom = detectPhantomClaim(`${post.hook || ''} ${post.caption || ''}`);
+    if (phantom) { rejected.push({ post, reason: `événement inventé : ${phantom}` }); continue; }
+
+    const inHook = detectEvent(post.hook || '');
+    const event = inHook || detectEvent(post.caption || '');
     if (!event) { kept.push(post); continue; }
 
-    const when = post.scheduled_date || today.toISOString().split('T')[0];
+    // Référence rétrospective en légende = légitime (cf. createEventGuard).
+    if (!inHook && toUtcDay(when) > toUtcDay(event.end)) { kept.push(post); continue; }
+
     if (!isPostWithinEventWindow(event, when)) {
       rejected.push({ post, reason: `${event.label} : hors fenêtre le ${when} (${event.start} → ${event.end}, +3j max)` });
       continue;
@@ -332,8 +359,20 @@ export function createEventGuard(usage: Record<string, EventUsage> = {}) {
 
   return {
     check(hook: string | null | undefined, caption: string | null | undefined, scheduledDate: string): EventGuardVerdict {
-      const event = detectEvent(`${hook || ''} ${caption || ''}`);
+      const phantom = detectPhantomClaim(`${hook || ''} ${caption || ''}`);
+      if (phantom) return { ok: false, reason: `événement inventé : ${phantom}` };
+
+      const inHook = detectEvent(hook || '');
+      const event = inHook || detectEvent(caption || '');
       if (!event) return { ok: true };
+
+      // Un événement cité seulement DANS LA LÉGENDE, et déjà passé, est une
+      // référence rétrospective légitime ("ses ventes ont doublé pour la fête
+      // des pères") — pas un post d'actualité. On ne bloque que ce qui est
+      // ANCRÉ sur l'événement (mention dans l'accroche) ou ce qui anticipe
+      // trop tôt un événement à venir.
+      const isRetroMention = !inHook && toUtcDay(scheduledDate) > toUtcDay(event.end);
+      if (isRetroMention) return { ok: true };
 
       if (!isPostWithinEventWindow(event, scheduledDate)) {
         return { ok: false, eventKey: event.key, reason: `hors fenêtre : ${event.label} (${event.start} → ${event.end}, +${AFTER_DAYS_BY_TIER[event.tier]}j max) mais post prévu le ${scheduledDate}` };
