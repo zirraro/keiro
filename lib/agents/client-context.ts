@@ -508,7 +508,12 @@ export const CLIENT_AGENTS: ClientAgent[] = [
 // 'ads' reste partout en coming_soon tant qu'aucune API ads n'est
 // branchée (Meta Ads + Google Ads), même pour Business.
 export const FORCED_COMING_SOON_AGENTS = new Set(['ads']);
-const BETA_AGENTS_BELOW_BUSINESS = new Set(['tiktok_comments', 'linkedin', 'whatsapp', 'comptable']);
+// 2026-07-29 — 'comptable' (Louis) RETIRÉ de cette liste : la décision
+// fondateur du 25/07 l'inclut dès Créateur et la page tarifs le vend comme
+// tel ("Documents RH (Sara) + business plans & prévisionnels Finance (Louis)").
+// Le laisser bloqué en bêta faisait mentir la page de vente : un client
+// Créateur payait pour un agent affiché "bientôt disponible".
+const BETA_AGENTS_BELOW_BUSINESS = new Set(['tiktok_comments', 'linkedin', 'whatsapp']);
 
 /** L'utilisateur a-t-il l'add-on Stella (WhatsApp) actif ? Compat. */
 export async function hasStellaAddon(supabase: any, userId: string): Promise<boolean> {

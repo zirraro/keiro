@@ -597,16 +597,18 @@ function HomeKeiroInner() {
                     <div className="font-bold text-sm text-neutral-900">Léna</div>
                     <div className="text-[10px] text-purple-700 font-semibold">{locale === 'fr' ? 'Contenu social' : 'Social content'}</div>
                   </div>
+                  <span className="ml-auto text-[9px] font-bold text-purple-700 bg-white/70 border border-purple-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
-                    ? 'Génère + publie automatiquement tes posts Instagram, TikTok, LinkedIn.'
-                    : 'Generates + auto-publishes your Instagram, TikTok, LinkedIn posts.'}
+                    ? 'Génère + publie automatiquement tes posts Instagram, TikTok, LinkedIn. Reels, carrousels, stories.'
+                    : 'Generates + auto-publishes your Instagram, TikTok, LinkedIn posts. Reels, carousels, stories.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? '~10 publications/semaine' : '~10 posts/week'}</li>
-                  <li>✓ {locale === 'fr' ? 'Visuels pro depuis tes photos' : 'Pro visuals from your photos'}</li>
-                  <li>✓ {locale === 'fr' ? 'Captions + hashtags optimisés' : 'Captions + hashtags optimized'}</li>
+                  <li>✓ {locale === 'fr' ? '~10 publications/semaine, aux meilleures heures' : '~10 posts/week, at peak hours'}</li>
+                  <li>✓ <strong>{locale === 'fr' ? 'Dépose tes propres photos' : 'Drop in your own photos'}</strong> {locale === 'fr' ? '— elle les retouche, les mixe entre elles… ou les publie BRUTES quand c\'est plus authentique' : '— she retouches them, mixes them… or posts them RAW when that feels more authentic'}</li>
+                  <li>✓ {locale === 'fr' ? 'Surfe sur les vrais événements (dates réelles, jamais après coup)' : 'Rides real events (real dates, never after the fact)'}</li>
+                  <li>✓ {locale === 'fr' ? 'Contrôle qualité avant publication : un visuel raté ne sort pas' : 'Quality gate before publishing: a bad visual never ships'}</li>
                 </ul>
               </div>
 
@@ -616,18 +618,20 @@ function HomeKeiroInner() {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-lg">📧</div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Hugo</div>
-                    <div className="text-[10px] text-cyan-700 font-semibold">{locale === 'fr' ? 'Emails prospection' : 'Email prospecting'}</div>
+                    <div className="text-[10px] text-cyan-700 font-semibold">{locale === 'fr' ? 'Emails & boîte mail' : 'Emails & inbox'}</div>
                   </div>
+                  <span className="ml-auto text-[9px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro' : 'From Pro'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
-                    ? "Envoie tes emails de prospection + relances depuis ton domaine."
-                    : 'Sends your prospection + follow-up emails from your domain.'}
+                    ? "Envoie tes emails depuis TON adresse, et gère ta boîte de A à Z à ta place."
+                    : 'Sends emails from YOUR address, and runs your whole inbox for you.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? 'Séquences automatiques' : 'Automated sequences'}</li>
-                  <li>✓ {locale === 'fr' ? 'Détecte désabonnements' : 'Detects unsubscribes'}</li>
-                  <li>✓ {locale === 'fr' ? 'Lit ta boîte (IMAP/Gmail)' : 'Reads your inbox (IMAP/Gmail)'}</li>
+                  <li>✓ <strong>{locale === 'fr' ? 'Vide les pubs, range en dossiers' : 'Bins the ads, files everything'}</strong> {locale === 'fr' ? '(Prospects, Clients, Factures) — tu ouvres une boîte propre' : '(Prospects, Clients, Invoices) — you open a clean inbox'}</li>
+                  <li>✓ {locale === 'fr' ? 'Répond aux vrais clients : envoi auto ou brouillon, tu choisis' : 'Answers real customers: auto-send or draft, your call'}</li>
+                  <li>✓ {locale === 'fr' ? 'Gmail, Outlook ou ton domaine perso (IMAP)' : 'Gmail, Outlook or your own domain (IMAP)'}</li>
+                  <li>✓ {locale === 'fr' ? 'Séquences de prospection + relances, désabos détectés' : 'Prospecting sequences + follow-ups, unsubscribes handled'}</li>
                 </ul>
               </div>
 
@@ -639,6 +643,7 @@ function HomeKeiroInner() {
                     <div className="font-bold text-sm text-neutral-900">Jade</div>
                     <div className="text-[10px] text-pink-700 font-semibold">{locale === 'fr' ? 'DM, commentaires & comptes à suivre' : 'DMs, comments & follows'}</div>
                   </div>
+                  <span className="ml-auto text-[9px] font-bold text-pink-700 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
@@ -660,16 +665,18 @@ function HomeKeiroInner() {
                     <div className="font-bold text-sm text-neutral-900">Léo</div>
                     <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting'}</div>
                   </div>
+                  <span className="ml-auto text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro' : 'From Pro'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
-                    ? 'Trouve + qualifie ~60 nouveaux prospects par mois sur Google Maps.'
-                    : 'Finds + qualifies ~60 new prospects per month on Google Maps.'}
+                    ? 'Trouve et qualifie tes prospects locaux, puis passe le relais à Hugo et Jade.'
+                    : 'Finds and qualifies your local prospects, then hands off to Hugo and Jade.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? 'Score automatique (hot/warm)' : 'Auto-scoring (hot/warm)'}</li>
-                  <li>✓ {locale === 'fr' ? 'CRM intégré + pipeline' : 'Built-in CRM + pipeline'}</li>
-                  <li>✓ {locale === 'fr' ? 'Anti-doublon par zone' : 'Anti-duplicate by zone'}</li>
+                  <li>✓ {locale === 'fr' ? 'Filtre par région, métier et activité — tu cibles ta zone' : 'Filter by area, trade and activity — target your patch'}</li>
+                  <li>✓ {locale === 'fr' ? 'Score chaud/tiède + CRM et pipeline intégrés' : 'Hot/warm scoring + built-in CRM and pipeline'}</li>
+                  <li>✓ <strong>{locale === 'fr' ? 'Tes commentaires sont lus par TOUS les agents' : 'Your notes are read by EVERY agent'}</strong> {locale === 'fr' ? '— ce que tu notes sur un prospect, Hugo et Jade le savent' : '— what you note on a prospect, Hugo and Jade know it'}</li>
+                  <li>✓ {locale === 'fr' ? 'Jamais de doublon, jamais un prospect supprimé par erreur' : 'Never a duplicate, never a prospect deleted by mistake'}</li>
                 </ul>
               </div>
 
@@ -679,18 +686,20 @@ function HomeKeiroInner() {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-lg">⭐</div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Théo</div>
-                    <div className="text-[10px] text-amber-700 font-semibold">{locale === 'fr' ? 'Avis Google' : 'Google reviews'}</div>
+                    <div className="text-[10px] text-amber-700 font-semibold">{locale === 'fr' ? 'Avis, fiche Google & SEO' : 'Reviews, Google listing & SEO'}</div>
                   </div>
+                  <span className="ml-auto text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
-                    ? 'Répond à tes avis Google automatiquement, ton de marque préservé.'
-                    : 'Auto-replies to your Google reviews while keeping your brand voice.'}
+                    ? 'Répond à tes avis Google, optimise ta fiche établissement, te fait trouver en premier.'
+                    : 'Answers your Google reviews, optimises your business listing, gets you found first.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? 'Réponses personnalisées' : 'Personalised replies'}</li>
-                  <li>✓ {locale === 'fr' ? 'Escalade des avis -3★' : 'Escalates ≤3★ reviews'}</li>
-                  <li>✓ {locale === 'fr' ? 'Boost SEO local' : 'Local SEO boost'}</li>
+                  <li>✓ {locale === 'fr' ? 'Chaque avis répondu dans ton ton — les ≤3★ te remontent avant envoi' : 'Every review answered in your voice — ≤3★ escalated to you first'}</li>
+                  <li>✓ <strong>{locale === 'fr' ? 'Répare ta fiche Google' : 'Fixes your Google listing'}</strong> {locale === 'fr' ? ' : horaires, photos, catégories, description — ce que 90% des commerces laissent vide' : ': hours, photos, categories, description — what 90% of shops leave empty'}</li>
+                  <li>✓ {locale === 'fr' ? 'SEO local : être le premier trouvé dans ton quartier' : 'Local SEO: be the first found in your area'}</li>
+                  <li>✓ {locale === 'fr' ? 'Articles de blog optimisés (dès Pro)' : 'Optimised blog articles (from Pro)'}</li>
                 </ul>
               </div>
 
@@ -702,6 +711,7 @@ function HomeKeiroInner() {
                     <div className="font-bold text-sm text-neutral-900">Clara</div>
                     <div className="text-[10px] text-violet-700 font-semibold">{locale === 'fr' ? 'Onboarding' : 'Onboarding'}</div>
                   </div>
+                  <span className="ml-auto text-[9px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Tous les plans' : 'All plans'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
@@ -721,8 +731,9 @@ function HomeKeiroInner() {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-lg">📊</div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Ami</div>
-                    <div className="text-[10px] text-indigo-700 font-semibold">{locale === 'fr' ? 'Marketing IA' : 'Marketing AI'}</div>
+                    <div className="text-[10px] text-indigo-700 font-semibold">{locale === 'fr' ? 'Stratégie & pilotage' : 'Strategy & steering'}</div>
                   </div>
+                  <span className="ml-auto text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Tous les plans' : 'All plans'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
@@ -744,16 +755,17 @@ function HomeKeiroInner() {
                     <div className="font-bold text-sm text-neutral-900">Stella</div>
                     <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'WhatsApp Business' : 'WhatsApp Business'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Business · +19€' : 'Business · +€19'}</span>
+                  <span className="ml-auto text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro · ou +19€' : 'From Pro · or +€19'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
-                    ? 'Confirmations de réservation, rappels anti no-show, réponses auto aux questions clients.'
-                    : 'Booking confirmations, no-show reminders, instant answers to customer questions.'}
+                    ? 'Confirmations de réservation, rappels anti no-show, réponses aux questions clients.'
+                    : 'Booking confirmations, no-show reminders, answers to customer questions.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? 'Confirmations & rappels RDV' : 'Booking confirmations & reminders'}</li>
-                  <li>✓ {locale === 'fr' ? 'Réponses 24/7 (fenêtre gratuite)' : '24/7 answers (free service window)'}</li>
+                  <li>✓ <strong>{locale === 'fr' ? 'Rappel la veille du RDV' : 'Reminder the day before'}</strong> {locale === 'fr' ? '— le no-show, c\'est du chiffre perdu qui ne revient pas' : '— a no-show is revenue that never comes back'}</li>
+                  <li>✓ {locale === 'fr' ? 'Répond dans la langue du client, avec ton dossier business' : 'Answers in the customer\'s language, from your business file'}</li>
+                  <li>✓ {locale === 'fr' ? 'Quand le client écrit en premier, la réponse ne coûte rien' : 'When the customer writes first, replying costs nothing'}</li>
                   <li>✓ {locale === 'fr' ? 'Relance avis Google (avec Théo)' : 'Google review follow-up (with Théo)'}</li>
                 </ul>
               </div>
@@ -766,17 +778,39 @@ function HomeKeiroInner() {
                     <div className="font-bold text-sm text-neutral-900">Sara</div>
                     <div className="text-[10px] text-slate-600 font-semibold">{locale === 'fr' ? 'RH & Juridique' : 'HR & Legal'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">Business</span>
+                  <span className="ml-auto text-[9px] font-bold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
-                    ? 'Génère tes contrats, CGV, mentions légales, RGPD — et répond à tes questions RH & juridiques.'
-                    : 'Drafts your contracts, T&Cs, legal notices, GDPR — and answers your HR & legal questions.'}
+                    ? 'Tes contrats, CGV, mentions légales, RGPD — et une réponse quand tu ne sais pas quoi faire.'
+                    : 'Your contracts, T&Cs, legal notices, GDPR — and an answer when you don\'t know what to do.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? 'Contrats, avenants, attestations' : 'Contracts, amendments, certificates'}</li>
-                  <li>✓ {locale === 'fr' ? 'CGV, RGPD, mentions légales' : 'T&Cs, GDPR, legal notices'}</li>
-                  <li>✓ {locale === 'fr' ? 'Conseils RH & juridiques' : 'HR & legal guidance'}</li>
+                  <li>✓ <strong>{locale === 'fr' ? 'Tu cliques sur le document voulu' : 'Click the document you need'}</strong> {locale === 'fr' ? ' : CDI, CDD, avenant, rupture conventionnelle, attestation — il sort à ta marque' : ': permanent, fixed-term, amendment, settlement, certificate — branded and ready'}</li>
+                  <li>✓ {locale === 'fr' ? 'Première embauche, prud\'hommes, licenciement : tu demandes, elle explique' : 'First hire, tribunal, dismissal: just ask, she explains'}</li>
+                  <li>✓ {locale === 'fr' ? 'CGV, RGPD, mentions légales de ton site' : 'T&Cs, GDPR, legal notices for your site'}</li>
+                </ul>
+              </div>
+
+              {/* Louis */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg">📈</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Louis</div>
+                    <div className="text-[10px] text-blue-700 font-semibold">{locale === 'fr' ? 'Finance & business plan' : 'Finance & business plan'}</div>
+                  </div>
+                  <span className="ml-auto text-[9px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? 'Business plans, prévisionnels et tableaux de bord — au format que ta banque attend.'
+                    : 'Business plans, forecasts and dashboards — in the format your bank expects.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ <strong>{locale === 'fr' ? 'Fichiers Excel et PowerPoint réels' : 'Real Excel and PowerPoint files'}</strong> {locale === 'fr' ? '— pas un texte à recopier, un document à envoyer' : '— not text to retype, a document to send'}</li>
+                  <li>✓ {locale === 'fr' ? 'Prévisionnel de trésorerie, seuil de rentabilité, marge par produit' : 'Cash-flow forecast, break-even, margin per product'}</li>
+                  <li>✓ {locale === 'fr' ? 'Dossier prêt pour une demande de prêt ou une subvention' : 'File ready for a loan or grant application'}</li>
                 </ul>
               </div>
 
@@ -802,10 +836,10 @@ function HomeKeiroInner() {
               price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
               subtitle={locale === 'fr' ? 'Boutiques, restos, freelances' : 'Shops, restaurants, freelancers'}
               bullets={[
-                locale === 'fr' ? '5 agents inclus' : '5 agents included',
-                locale === 'fr' ? '400 crédits/mois' : '400 credits/month',
-                locale === 'fr' ? 'Contenu, DM, Prospection, CRM' : 'Content, DM, Prospecting, CRM',
-                locale === 'fr' ? 'Stratégie + onboarding inclus' : 'Strategy + onboarding included',
+                locale === 'fr' ? '5 agents : Léna, Jade, Théo, Sara, Louis' : '5 agents: Léna, Jade, Théo, Sara, Louis',
+                locale === 'fr' ? '1 000 crédits/mois' : '1,000 credits/month',
+                locale === 'fr' ? 'Contenu + commentaires + avis Google' : 'Content + comments + Google reviews',
+                locale === 'fr' ? 'RH & finance · stratégie + onboarding inclus' : 'HR & finance · strategy + onboarding included',
               ]}
               ctaLabel={locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial'}
               trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
@@ -824,10 +858,10 @@ function HomeKeiroInner() {
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
               bullets={[
-                locale === 'fr' ? '7 agents inclus' : '7 agents included',
-                locale === 'fr' ? '800 crédits/mois' : '800 credits/month',
-                locale === 'fr' ? 'Tout Créateur + Emails (Hugo)' : 'All Creator + Email (Hugo)',
-                locale === 'fr' ? 'Avis Google (Théo) + chatbot 24/7' : 'Google reviews (Théo) + chatbot 24/7',
+                locale === 'fr' ? '8 agents : tout Créateur + Hugo, Léo, Stella' : '8 agents: all Creator + Hugo, Léo, Stella',
+                locale === 'fr' ? '3 000 crédits/mois' : '3,000 credits/month',
+                locale === 'fr' ? 'Emails + boîte mail gérée · prospection + CRM' : 'Emails + managed inbox · prospecting + CRM',
+                locale === 'fr' ? 'WhatsApp clients · SEO & blogs · 3 réseaux' : 'Customer WhatsApp · SEO & blogs · 3 networks',
               ]}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial'}
               trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
@@ -842,10 +876,10 @@ function HomeKeiroInner() {
               special
               highlight
               bullets={[
-                locale === 'fr' ? 'Équipe complète (7 agents) · volume ×2' : 'Full team (7 agents) · 2× volume',
-                locale === 'fr' ? '2 000 crédits/mois' : '2,000 credits/month',
-                locale === 'fr' ? 'Tout Pro + Finance' : 'All Pro + Finance',
-                locale === 'fr' ? 'LinkedIn · WhatsApp (bientôt)' : 'LinkedIn · WhatsApp (soon)',
+                locale === 'fr' ? 'Toute l\'équipe + priorité sur les nouveaux agents' : 'The whole team + priority on new agents',
+                locale === 'fr' ? '6 000 crédits/mois — le double du volume Pro' : '6,000 credits/month — double the Pro volume',
+                locale === 'fr' ? 'Multi-comptes (1+5) : plusieurs commerces, un seul espace' : 'Multi-account (1+5): several shops, one workspace',
+                locale === 'fr' ? 'Vidéos longues (45s à 90s) · support prioritaire' : 'Long videos (45s to 90s) · priority support',
               ]}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaBusinessAnnual : t.home.ctaChooseBusiness}
               trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
