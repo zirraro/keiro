@@ -197,23 +197,38 @@ const PHANTOM_CLAIMS: Array<{ label: string; matchers: string[] }> = [
   { label: 'JO de Paris 2026 (n\'existe pas — Paris c\'était 2024)', matchers: ['jo de paris 2026', 'jeux olympiques de paris 2026', 'jo paris 2026', 'olympiques de paris 2026'] },
 ];
 
+/**
+ * Normalise pour la reconnaissance : minuscules, accents retirés, apostrophes
+ * typographiques ramenées à l'apostrophe simple. Le modèle écrit indifféremment
+ * "Noël", "Noel" ou "NOËL", et "fête des pères" avec ou sans accents — sans
+ * cette normalisation, la moitié des posts échappaient au garde-fou.
+ */
+function norm(text: string): string {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2019\u2018`]/g, "'");
+}
+
 /** Le texte affirme-t-il un événement qui n'existe pas ? */
 export function detectPhantomClaim(text: string): string | null {
-  const lowered = (text || '').toLowerCase();
+  const lowered = norm(text);
+  if (!lowered) return null;
   for (const claim of PHANTOM_CLAIMS) {
-    if (claim.matchers.some(m => lowered.includes(m))) return claim.label;
+    if (claim.matchers.some(m => lowered.includes(norm(m)))) return claim.label;
   }
   return null;
 }
 
 /** L'événement (s'il existe) dont parle un texte de post. */
 export function detectEvent(text: string, pool?: DatedEvent[]): DatedEvent | null {
-  const lowered = (text || '').toLowerCase();
+  const lowered = norm(text);
   if (!lowered) return null;
   const year = new Date().getUTCFullYear();
   const candidates = pool || [...eventsForYear(year - 1), ...eventsForYear(year), ...eventsForYear(year + 1)];
   for (const event of candidates) {
-    if (event.matchers.some(m => lowered.includes(m.toLowerCase()))) return event;
+    if (event.matchers.some(m => lowered.includes(norm(m)))) return event;
   }
   return null;
 }
