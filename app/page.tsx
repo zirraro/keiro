@@ -858,7 +858,7 @@ function HomeKeiroInner() {
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
               bullets={[
-                locale === 'fr' ? '8 agents : tout Créateur + Hugo, Léo, Stella' : '8 agents: all Creator + Hugo, Léo, Stella',
+                locale === 'fr' ? '7 agents : tout Créateur + Hugo et Léo' : '7 agents: all Creator + Hugo and Léo',
                 locale === 'fr' ? '3 000 crédits/mois' : '3,000 credits/month',
                 locale === 'fr' ? 'Emails + boîte mail gérée · prospection + CRM' : 'Emails + managed inbox · prospecting + CRM',
                 locale === 'fr' ? 'WhatsApp clients · SEO & blogs · 3 réseaux' : 'Customer WhatsApp · SEO & blogs · 3 networks',

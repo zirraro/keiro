@@ -265,7 +265,7 @@ export const en: Translations = {
     planProTitle: 'Pro',
     planProSubtitle: '3,000 credits/month — Growing business',
     planProBullets: [
-      '<strong>8 agents: everything in Creator + Hugo, Léo and Stella</strong>',
+      '<strong>7 agents: everything in Creator + Hugo and Léo</strong> (Stella optional at €19, included in Business)',
       '<strong>Hugo runs your whole inbox</strong>: bins the ads, files everything (Prospects, Clients, Invoices), answers real customers — auto-send or draft, your call',
       'Hugo sends from YOUR address (Gmail, Outlook or your own domain) + sequences and follow-ups',
       'Léo: automated prospecting + CRM, filterable by area, trade and activity — your notes on a prospect are read by every agent',
@@ -459,7 +459,7 @@ export const en: Translations = {
     planProBadge: 'Recommended',
     planProSubtitle: 'Growing business',
     planProBullets: [
-      '<strong>8 agents: everything in Creator + Hugo, Léo, Stella</strong>',
+      '<strong>7 agents: everything in Creator + Hugo and Léo</strong>',
       '<strong>Hugo runs your inbox</strong>: bins the ads, files everything, answers real customers',
       'Léo: automated prospecting + CRM, filterable by area and trade',
       'Stella (WhatsApp): confirmations + reminder the day before, no more no-shows',

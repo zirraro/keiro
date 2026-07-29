@@ -263,7 +263,7 @@ export const fr: Translations = {
     planProTitle: 'Pro',
     planProSubtitle: '3 000 crédits/mois — TPE & entrepreneur ambitieux',
     planProBullets: [
-      '<strong>8 agents : tout Créateur + Hugo, Léo et Stella</strong>',
+      '<strong>7 agents : tout Créateur + Hugo et Léo</strong> (Stella en option à 19€, incluse en Business)',
       '<strong>Hugo gère ta boîte mail entière</strong> : vide les pubs, range en dossiers (Prospects, Clients, Factures), répond aux vrais clients — envoi auto ou brouillon, tu choisis',
       'Hugo envoie depuis TON adresse (Gmail, Outlook ou ton domaine) + séquences et relances',
       'Léo : prospection auto + CRM, filtrable par région, métier et activité — tes commentaires sur un prospect sont lus par tous les agents',
@@ -454,7 +454,7 @@ export const fr: Translations = {
     planProBadge: 'Recommandé',
     planProSubtitle: 'TPE & entrepreneur ambitieux',
     planProBullets: [
-      '<strong>8 agents : tout Créateur + Hugo, Léo, Stella</strong>',
+      '<strong>7 agents : tout Créateur + Hugo et Léo</strong>',
       '<strong>Hugo gère ta boîte mail</strong> : vide les pubs, range, répond aux vrais clients',
       'Léo : prospection auto + CRM filtrable par région et métier',
       'Stella (WhatsApp) : confirmations + rappel la veille, fini les no-shows',
