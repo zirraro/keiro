@@ -405,6 +405,10 @@ export async function runKenBurnsMontage(opts: {
       for (let i = 0; i < restShots; i++) clipDurations.push(restEach);
     }
 
+    // On ne comptabilise QUE les plans réellement produits : si un rendu
+    // échoue, sa durée ne doit pas être comptée (sinon on annonce 25s pour un
+    // fichier de 6s).
+    const usedDurations: number[] = [];
     for (let i = 0; i < clipDurations.length; i++) {
       const variant = clipDurations.length === 1
         ? SAFE_SINGLE[Math.floor(Math.random() * SAFE_SINGLE.length)]
@@ -412,12 +416,37 @@ export async function runKenBurnsMontage(opts: {
           ? HOOK_DYNAMIC[Math.floor(Math.random() * HOOK_DYNAMIC.length)] // 1er plan = hook accrocheur
           : (moveBase + i * 3) % VARIANT_COUNT;
       const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, clipDurations[i], variant);
-      if (clip) clipUrls.push(clip);
+      if (clip) { clipUrls.push(clip); usedDurations.push(clipDurations[i]); }
     }
     if (!clipUrls.length) return null;
-    const realDuration = clipDurations.slice(0, clipUrls.length).reduce((a, b) => a + b, 0);
+
+    // FILET DE SÉCURITÉ (founder 29/07 : "qu'on se retrouve pas avec 1 seul
+    // reel de 2,5s, que ça aille bien au bout"). Depuis que le plan d'accroche
+    // ne dure que 2,5s, une série d'échecs de rendu pourrait livrer un reel
+    // ridiculement court. Tant qu'on est sous le plancher, on rajoute des
+    // plans (photos et mouvements différents) jusqu'à retomber sur une durée
+    // publiable.
+    const MIN_REEL_SEC = 8;
+    let total = usedDurations.reduce((a, b) => a + b, 0);
+    let attempts = 0;
+    while (total < MIN_REEL_SEC && attempts < 6) {
+      const idx = clipUrls.length + attempts;
+      const d = Math.min(4, Math.max(2.5, MIN_REEL_SEC - total));
+      const variant = (moveBase + idx * 5) % VARIANT_COUNT;
+      const clip = await kenBurnsClip(photos[idx % photos.length], opts.postId, 100 + idx, d, variant);
+      if (clip) { clipUrls.push(clip); usedDurations.push(d); total += d; }
+      attempts++;
+    }
+    if (total < 4) {
+      console.warn(`[ken-burns] reel trop court (${total}s) après rattrapage — on abandonne plutôt que publier un clip tronqué`);
+      return null;
+    }
+    if (total < MIN_REEL_SEC) {
+      console.warn(`[ken-burns] reel de ${total}s seulement (plancher ${MIN_REEL_SEC}s) — rendus en échec`);
+    }
+
     return await finalizeReel(clipUrls, {
-      postId: opts.postId, durationSec: Math.round(realDuration),
+      postId: opts.postId, durationSec: Math.round(total),
       mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang, bakeAudio: opts.bakeAudio,
     });
   } catch { return null; }

@@ -735,7 +735,7 @@ Exemples :
 - "go" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
 - "c'est parti lance tout" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
 - "envoie les mails" → {"directives":[],"settings":{},"immediate_action":"email","schedule":null}
-- "trie ma boîte" / "nettoie ma boîte mail" / "range mes emails" / "supprime les pubs" / "réponds aux mails importants" / "gère ma boîte" → {"directives":[],"settings":{},"immediate_action":"mailbox","schedule":null}
+- "trie ma boîte" / "nettoie ma boîte mail" / "nettoie mes emails des pubs" / "range mes emails" / "supprime les pubs" / "vire les newsletters" / "désencombre ma boîte" / "fais le ménage dans mes mails" / "réponds aux mails importants" / "gère ma boîte" → {"directives":[],"settings":{},"immediate_action":"mailbox","schedule":null}
 - "trouve des prospects" → {"directives":[],"settings":{},"immediate_action":"commercial","schedule":null}
 - "fais un post sur la pizza" → {"directives":["content topic: pizza"],"settings":{},"immediate_action":"content","schedule":null}
 - "publie à 9h, 13h et 19h" → {"directives":["custom schedule: 9h, 13h, 19h"],"settings":{},"immediate_action":null,"schedule":{"content":["09:00","13:00","19:00"]}}
