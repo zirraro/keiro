@@ -179,7 +179,17 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
       res.questions.push({ from: m.from, subject: m.subject, question: d.question });
       continue; // on n'agit PAS
     }
-    if (opts.dryRun) { continue; }
+    if (opts.dryRun) {
+      // 2026-07-30 — Un dry run doit annoncer ce qui SERAIT fait. Avant, on
+      // sortait avant d'incrémenter : le rapport affichait « 0 supprimé,
+      // 0 archivé » sur 25 mails analysés, donc il ne servait à rien.
+      if (d.action === 'trash') res.trashed++;
+      else if (d.action === 'archive') res.archived++;
+      else if (d.action === 'reply') res.replied++;
+      else if (d.action === 'label') res.labeled++;
+      else res.kept++;
+      continue;
+    }
     try {
       if (d.action === 'trash') { await ops.trash(m.id); res.trashed++; }
       else if (d.action === 'archive') { await ops.archive(m.id); res.archived++; }
