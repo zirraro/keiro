@@ -259,6 +259,81 @@ export async function cleanStaleGmailDrafts(userId: string): Promise<{ enabled: 
   return { enabled: true, deleted };
 }
 
+/**
+ * NETTOYAGE EN MASSE — pour les boîtes réelles (30 000+ mails).
+ *
+ * 2026-07-30 — Le triage classait 25 messages par passage via le modèle : sur
+ * une boîte de 34 000 mails, c'est une goutte d'eau, et faire juger 34 000
+ * messages par un LLM serait long et coûteux pour rien.
+ *
+ * Gmail sait déjà reconnaître ses propres catégories. On s'en sert : on
+ * sélectionne par requête (`category:promotions`, `category:social`,
+ * `list:` = listes de diffusion) et on applique l'action à 1000 messages par
+ * appel avec `batchModify`. Aucun coût de modèle, et une boîte entière traitée
+ * en quelques minutes. Le modèle ne sert plus qu'au reliquat ambigu.
+ *
+ * `TRASH` et `INBOX` étant des libellés côté Gmail, batchModify suffit pour
+ * corbeille et archivage — et rien n'est supprimé définitivement.
+ */
+export async function bulkModifyByQuery(
+  userId: string,
+  opts: {
+    query: string;
+    action: 'trash' | 'archive' | 'label';
+    labelId?: string;
+    /** Plafond de sécurité, pour ne jamais partir en boucle infinie. */
+    maxMessages?: number;
+    dryRun?: boolean;
+  },
+): Promise<{ enabled: boolean; matched: number; modified: number; error?: string }> {
+  if (!(await mailboxEnabled(userId))) return { enabled: false, matched: 0, modified: 0 };
+  const tok = await getValidGmailToken(userId);
+  if (!tok) return { enabled: false, matched: 0, modified: 0 };
+
+  const cap = Math.min(Math.max(opts.maxMessages || 5000, 1), 50_000);
+  const auth = { Authorization: `Bearer ${tok.accessToken}`, 'Content-Type': 'application/json' };
+  let pageToken: string | undefined;
+  let matched = 0;
+  let modified = 0;
+
+  try {
+    do {
+      const url = new URL(`${GMAIL_API}/messages`);
+      url.searchParams.set('q', opts.query);
+      url.searchParams.set('maxResults', '500');
+      if (pageToken) url.searchParams.set('pageToken', pageToken);
+      const lr = await fetch(url.toString(), { headers: { Authorization: `Bearer ${tok.accessToken}` } });
+      if (!lr.ok) return { enabled: true, matched, modified, error: `list HTTP ${lr.status}` };
+      const ld = await lr.json();
+      const ids: string[] = (ld.messages || []).map((m: any) => m.id);
+      pageToken = ld.nextPageToken;
+      matched += ids.length;
+      if (ids.length === 0) break;
+
+      if (!opts.dryRun) {
+        // batchModify accepte 1000 ids par appel.
+        for (let i = 0; i < ids.length; i += 1000) {
+          const chunk = ids.slice(i, i + 1000);
+          const body: Record<string, any> = { ids: chunk };
+          if (opts.action === 'trash') body.addLabelIds = ['TRASH'];
+          else if (opts.action === 'archive') body.removeLabelIds = ['INBOX'];
+          else if (opts.action === 'label' && opts.labelId) body.addLabelIds = [opts.labelId];
+          else return { enabled: true, matched, modified, error: 'label sans labelId' };
+
+          const br = await fetch(`${GMAIL_API}/messages/batchModify`, { method: 'POST', headers: auth, body: JSON.stringify(body) });
+          if (!br.ok) return { enabled: true, matched, modified, error: `batchModify HTTP ${br.status}` };
+          modified += chunk.length;
+        }
+      }
+    } while (pageToken && matched < cap);
+
+    logGoogleDataAccess(userId, `bulk_${opts.action}`, 'gmail.modify', { query: opts.query, matched, modified });
+    return { enabled: true, matched, modified };
+  } catch (e: any) {
+    return { enabled: true, matched, modified, error: e?.message?.slice(0, 160) };
+  }
+}
+
 /** Crée un libellé (dossier) Gmail. Retourne l'id (existant ou créé). gmail.modify. */
 export async function getOrCreateGmailLabel(userId: string, name: string): Promise<{ enabled: boolean; id?: string }> {
   if (!(await mailboxEnabled(userId))) return { enabled: false };

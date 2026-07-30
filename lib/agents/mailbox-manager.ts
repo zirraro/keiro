@@ -135,7 +135,7 @@ function imapOps(userId: string): MailOps {
   };
 }
 
-export async function triageMailbox(userId: string, opts: { max?: number; dryRun?: boolean } = {}): Promise<TriageResult> {
+export async function triageMailbox(userId: string, opts: { max?: number; dryRun?: boolean; bulk?: boolean } = {}): Promise<TriageResult> {
   const empty: TriageResult = { enabled: false, processed: 0, trashed: 0, archived: 0, labeled: 0, kept: 0, replied: 0, drafted: 0, questions: [], summary: '' };
 
   // Contexte + mode d'envoi (toggle Hugo : auto_send | draft).
@@ -155,8 +155,40 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
 
   const replyMode = await getEmailReplyMode(sb, userId).catch(() => 'auto_send' as const);
 
+  // ── PASSE EN MASSE (Gmail) — avant de faire juger quoi que ce soit ──
+  // 2026-07-30 : une vraie boîte fait 30 000+ mails. Classer 25 messages par
+  // passage avec un modèle n'y change rien, et en faire juger 34 000 serait
+  // long et cher pour un résultat que Gmail sait déjà donner. On utilise donc
+  // ses catégories natives et batchModify (1000 messages par appel) : les pubs
+  // partent à la corbeille, le bruit social est archivé, le tout en quelques
+  // minutes et sans coût de modèle. Le modèle ne juge plus que le reliquat.
+  // On épargne les 7 derniers jours : une promo récente peut encore servir.
+  const bulk = { trashed: 0, archived: 0 };
+  if (ops.provider === 'gmail' && opts.bulk !== false) {
+    try {
+      const { bulkModifyByQuery } = await import('@/lib/gmail-read');
+      const plan: Array<{ query: string; action: 'trash' | 'archive' }> = [
+        { query: 'in:inbox category:promotions older_than:7d', action: 'trash' },
+        { query: 'in:inbox category:social older_than:7d', action: 'archive' },
+        { query: 'in:inbox category:forums older_than:14d', action: 'archive' },
+        { query: 'in:inbox category:updates older_than:30d', action: 'archive' },
+      ];
+      for (const step of plan) {
+        const r = await bulkModifyByQuery(userId, { query: step.query, action: step.action, maxMessages: 20_000, dryRun: !!opts.dryRun });
+        const n = opts.dryRun ? r.matched : r.modified;
+        if (step.action === 'trash') bulk.trashed += n; else bulk.archived += n;
+      }
+    } catch (e: any) {
+      console.warn('[mailbox] passe en masse indisponible:', e?.message);
+    }
+  }
+
   const { enabled, messages } = await ops.list(opts.max || 25);
-  if (!enabled || messages.length === 0) return { ...empty, enabled, provider: ops.provider, summary: enabled ? 'Boîte déjà vide/propre.' : '' };
+  if (!enabled || messages.length === 0) {
+    const bulkTotal = bulk.trashed + bulk.archived;
+    return { ...empty, enabled, provider: ops.provider, trashed: bulk.trashed, archived: bulk.archived,
+      summary: !enabled ? '' : bulkTotal > 0 ? `${bulk.trashed} pub(s) à la corbeille, ${bulk.archived} archivé(s) — plus rien à trier dans la boîte.` : 'Boîte déjà vide/propre.' };
+  }
 
   const listText = messages.map((m, i) => `${i}. De: ${m.from} | Objet: ${m.subject} | ${(m.snippet || '').slice(0, 160)}`).join('\n');
   let decisions: Decision[] = [];
@@ -225,7 +257,14 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
 
   const replyBit = replyMode === 'auto_send' ? (res.replied ? `, ${res.replied} réponse(s) envoyée(s)` : '') : (res.drafted ? `, ${res.drafted} brouillon(s) de réponse préparé(s)` : '');
   const staleBit = staleCleaned ? `, ${staleCleaned} brouillon(s) caduc(s) nettoyé(s)` : '';
-  res.summary = `${res.trashed} supprimé(s), ${res.archived} archivé(s), ${res.labeled} rangé(s)${replyBit}${staleBit}, ${res.kept} gardé(s)${res.questions.length ? `, ${res.questions.length} question(s)` : ''}.`;
+  // Le total inclut la passe en masse : c'est elle qui traite le gros du volume
+  // sur une vraie boîte, la passe modèle ne fait que le reliquat.
+  res.trashed += bulk.trashed;
+  res.archived += bulk.archived;
+  const bulkBit = (bulk.trashed + bulk.archived) > 0
+    ? ` (dont ${bulk.trashed} pub(s) et ${bulk.archived} notification(s) traitées en masse)`
+    : '';
+  res.summary = `${res.trashed} supprimé(s), ${res.archived} archivé(s), ${res.labeled} rangé(s)${replyBit}${staleBit}, ${res.kept} gardé(s)${res.questions.length ? `, ${res.questions.length} question(s)` : ''}${bulkBit}.`;
 
   // Hugo pose ses questions au client (in-app) — il n'a pas agi sur ces mails.
   if (res.questions.length > 0) {
