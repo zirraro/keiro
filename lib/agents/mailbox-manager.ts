@@ -157,39 +157,61 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
 
   const replyMode = await getEmailReplyMode(sb, userId).catch(() => 'auto_send' as const);
 
-  // ── PASSE EN MASSE (Gmail) — avant de faire juger quoi que ce soit ──
-  // 2026-07-30 : une vraie boîte fait 30 000+ mails. Classer 25 messages par
-  // passage avec un modèle n'y change rien, et en faire juger 34 000 serait
-  // long et cher pour un résultat que Gmail sait déjà donner. On utilise donc
-  // ses catégories natives et batchModify (1000 messages par appel) : les pubs
-  // partent à la corbeille, le bruit social est archivé, le tout en quelques
-  // minutes et sans coût de modèle. Le modèle ne juge plus que le reliquat.
-  // On épargne les 7 derniers jours : une promo récente peut encore servir.
+  // ── PASSE EN MASSE (Gmail) : PROTÉGER → RANGER → NETTOYER ──
+  // Une vraie boîte fait 100 000+ mails : un modèle qui en juge 25 par passage
+  // n'y change rien, et en faire juger 100 000 serait long et cher. On travaille
+  // donc en opérateurs de recherche Gmail + batchModify (1000 par appel), et le
+  // modèle ne s'occupe plus que du reliquat ambigu.
+  //
+  // L'ORDRE EST LA CORRECTION PRINCIPALE (retour fondateur 30/07) : on RANGE
+  // avant de nettoyer, parce qu'un message étiqueté devient intouchable pour la
+  // phase de nettoyage. Auparavant l'inverse envoyait à la corbeille des mails
+  // de clients tombés dans l'onglet Promotions. Le détail des règles est dans
+  // lib/agents/mailbox-rules.ts.
   const bulk: { trashed: number; archived: number; labeled: number; folders: Record<string, number> } = { trashed: 0, archived: 0, labeled: 0, folders: {} };
   if (ops.provider === 'gmail' && opts.bulk !== false) {
     try {
-      const { bulkModifyByQuery } = await import('@/lib/gmail-read');
-      const plan: Array<{ query: string; action: 'trash' | 'archive' }> = [
-        { query: 'in:inbox category:promotions older_than:7d', action: 'trash' },
-        { query: 'in:inbox category:social older_than:7d', action: 'archive' },
-        { query: 'in:inbox category:forums older_than:14d', action: 'archive' },
-        { query: 'in:inbox category:updates older_than:30d', action: 'archive' },
-      ];
-      for (const step of plan) {
-        const r = await bulkModifyByQuery(userId, { query: step.query, action: step.action, maxMessages: 60_000, dryRun: !!opts.dryRun });
-        const n = opts.dryRun ? r.matched : r.modified;
-        if (step.action === 'trash') bulk.trashed += n; else bulk.archived += n;
-      }
-      // RANGEMENT : Gmail ne crée pas de dossier métier, c'est l'apport de Hugo.
-      // On classe toute la boîte, pas seulement les mails vus par le modèle.
-      const { bulkFileIntoFolders } = await import('@/lib/gmail-read');
+      const { bulkModifyByQuery, getOrCreateGmailLabel } = await import('@/lib/gmail-read');
+      const { buildMailboxPlan } = await import('@/lib/agents/mailbox-rules');
+
       const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
       const { data: crm } = await sb.from('crm_prospects').select('email,status').eq('user_id', userId).not('email', 'is', null).limit(2000);
       const clients = (crm || []).filter((p: any) => ['client', 'gagne', 'signe'].includes(String(p.status))).map((p: any) => p.email);
       const prospects = (crm || []).filter((p: any) => !['client', 'gagne', 'signe'].includes(String(p.status))).map((p: any) => p.email);
-      const fr = await bulkFileIntoFolders(userId, { crmClientEmails: clients, crmProspectEmails: prospects, dryRun: !!opts.dryRun });
-      for (const n of Object.values(fr.filed)) bulk.labeled += n;
-      bulk.folders = fr.filed;
+
+      // Réglages client : noms de dossiers et expéditeurs protégés.
+      const { data: cfgRow } = await sb.from('org_agent_configs').select('config').eq('user_id', userId).eq('agent_id', 'email').order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const cfg = (cfgRow?.config || {}) as any;
+      const names = Array.isArray(cfg.email_dossiers) ? cfg.email_dossiers : [];
+      const plan = buildMailboxPlan({
+        crmClients: clients,
+        crmProspects: prospects,
+        protectedSenders: Array.isArray(cfg.email_expediteurs_proteges) ? cfg.email_expediteurs_proteges : [],
+        folderNames: names.length >= 4 ? { admin: names[0], todo: names[1], clients: names[2], prospects: names[3] } : undefined,
+      });
+
+      // ÉTAPE 1 — RANGER D'ABORD. C'est ce qui protège : une fois étiqueté, un
+      // message est exclu du nettoyage (les requêtes de nettoyage excluent
+      // -has:userlabels). L'ordre inverse envoyait à la corbeille des mails de
+      // clients tombés dans l'onglet Promotions.
+      const labelIds: Record<string, string | undefined> = {};
+      for (const step of plan.file) {
+        if (!labelIds[step.folder]) labelIds[step.folder] = (await getOrCreateGmailLabel(userId, step.folder)).id;
+        const labelId = labelIds[step.folder];
+        if (!labelId) continue;
+        const r = await bulkModifyByQuery(userId, { query: step.query, action: 'label', labelId, maxMessages: 60_000, dryRun: !!opts.dryRun });
+        const n = opts.dryRun ? r.matched : r.modified;
+        bulk.labeled += n;
+        bulk.folders[step.folder] = (bulk.folders[step.folder] || 0) + n;
+      }
+
+      // ÉTAPE 2 — NETTOYER le reste, en épargnant tout ce qui vient d'être
+      // rangé, ce que le client a suivi, et la Principale.
+      for (const step of plan.clean) {
+        const r = await bulkModifyByQuery(userId, { query: step.query, action: step.action, maxMessages: 60_000, dryRun: !!opts.dryRun });
+        const n = opts.dryRun ? r.matched : r.modified;
+        if (step.action === 'trash') bulk.trashed += n; else bulk.archived += n;
+      }
     } catch (e: any) {
       console.warn('[mailbox] passe en masse indisponible:', e?.message);
     }
