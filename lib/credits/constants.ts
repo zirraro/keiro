@@ -250,10 +250,15 @@ export const ADDON_TIER_1 = 8;
 export const ADDON_TIER_2 = 12;
 export const ADDON_TIER_3 = 15;
 
-// Agent addon prices — May 2026 consolidation.
-// Oscar (seo) absorbed by Théo, Sara/Max/Louis admin_only, Emma/Axel
-// absorbed by Jade. The remaining sellable addon roster is now:
-// Léna, Jade, Hugo, Léo, Théo. Ami & Clara stay free across all plans.
+// Agent addon prices.
+// 2026-07-29 — Après la révision du découpage par plan, la plupart de ces
+// tarifs ne correspondent plus à une vente possible : Léna, Jade, Théo, Sara
+// et Louis sont inclus dès Créateur, donc il n'y a rien à leur vendre à ce
+// niveau. Les seuls add-ons qui gardent un sens sont ceux d'un agent absent du
+// plan du client — aujourd'hui Stella (WhatsApp, 19€, facturée séparément) et,
+// pour un compte gratuit, les agents payants. On garde les tarifs ici comme
+// référence de coût par agent ; c'est getAvailableAddons() qui décide ce qui
+// est réellement proposé, à partir du minPlan réel.
 export const AGENT_ADDON_PRICES: Record<string, number> = {
   // Tier 3 (15€) — génération IA lourde / Sonnet
   content: ADDON_TIER_3,       // Léna — images/vidéos Seedream sur 3 réseaux
@@ -273,56 +278,57 @@ export const AGENT_ADDON_PRICES: Record<string, number> = {
 };
 
 /**
- * Per-plan included agent set. The founder rule (May 2026) is that
- * any client can buy missing agents 1-by-1 starting from Créateur up
- * to the next tier — so Créateur clients can grab Léna or Théo as an
- * addon without upgrading to Pro.
+ * Add-ons réellement achetables pour un plan donné.
  *
- * Créateur — 2 free + 1 paid agent of choice already inside (Jade by
- *   default for DM revenue). Other paid agents available as addons.
- * Pro — all 5 paid agents + 2 free. Multi-network publishing unlocked.
- * Business — same agents + multi-account, higher quotas, dedicated
- *   support. Anciennement Elite.
+ * 2026-07-29 — Réécrit. Cette fonction portait sa PROPRE table de ce que
+ * contient chaque plan, en doublon de `CLIENT_AGENTS` (lib/agents/client-context).
+ * Après la révision du découpage par plan du 25/07, les deux avaient divergé :
+ * on aurait proposé à un client Créateur d'acheter Théo ou Sara qu'il possède
+ * déjà. Elle dérive maintenant du `minPlan` réel — plus de doublon, donc plus
+ * de dérive possible.
+ *
+ * Doctrine add-on (règle fondateur 29/07) : la vente à l'agent près reste
+ * possible, mais elle ne doit PAS noyer les plans. On ne propose donc un
+ * add-on que pour un agent réellement absent du plan, et on n'en met qu'un en
+ * avant côté marketing (Stella). Le reste suit les plans.
  */
-export function getAvailableAddons(plan: string): Array<{ agentId: string; name: string; price: number; tier: number }> {
-  const FREE_AGENTS = new Set(['marketing', 'onboarding']);
-  // Créateur : Léna (contenu) + Jade (DM) INCLUS. Jade est du texte (coût quasi
-  // nul) → ne pèse pas sur la marge (le COGS reste les générations vidéo/image de
-  // Léna, inchangé). Les autres agents (Hugo, Théo, Léo) restent en add-on.
-  const CREATEUR_AGENTS = new Set([...FREE_AGENTS, 'content', 'dm_instagram']);
-  // Pro : all paid agents
-  const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'dm_instagram', 'email', 'commercial', 'gmaps']);
-  // Business = Pro + Sara (RH/juridique) + multi-account + support (le pack "tous les agents")
-  const BUSINESS_AGENTS = new Set([...PRO_AGENTS, 'rh']);
-
-  const planAgents: Record<string, Set<string>> = {
-    free: FREE_AGENTS,
-    gratuit: FREE_AGENTS,
-    createur: CREATEUR_AGENTS,
-    pro: PRO_AGENTS,
-    fondateurs: BUSINESS_AGENTS,
-    business: BUSINESS_AGENTS,
-    elite: BUSINESS_AGENTS,
-  };
+export function getAvailableAddons(
+  plan: string,
+  planAgents?: Array<{ id: string; minPlan: string; displayName?: string }>,
+): Array<{ agentId: string; name: string; price: number; tier: number }> {
+  const PLAN_ORDER = ['gratuit', 'free', 'sprint', 'solo', 'createur', 'pro', 'fondateurs', 'standard', 'business', 'elite', 'agence'];
+  const userIdx = PLAN_ORDER.indexOf((plan || 'gratuit').toLowerCase());
 
   const AGENT_NAMES: Record<string, string> = {
     content: 'Léna (Contenu IG/TT/LI)',
-    dm_instagram: 'Jade (DM, comments, engagement)',
-    email: 'Hugo (Email)',
-    commercial: 'Léo (Prospection)',
-    gmaps: 'Théo (Réputation + SEO)',
-    rh: 'Sara (RH + Juridique : contrats, docs, conseil)',
+    dm_instagram: 'Jade (DM, commentaires, engagement)',
+    email: 'Hugo (Emails + gestion de boîte)',
+    commercial: 'Léo (Prospection + CRM)',
+    gmaps: 'Théo (Avis, fiche Google + SEO)',
+    rh: 'Sara (RH + Juridique)',
+    comptable: 'Louis (Finance)',
   };
 
-  const included = planAgents[plan] || planAgents.free;
-  return Object.entries(AGENT_ADDON_PRICES)
-    .filter(([id, price]) => price > 0 && !included.has(id))
-    .map(([id, price]) => ({
-      agentId: id,
-      name: AGENT_NAMES[id] || id,
-      price,
-      tier: price === ADDON_TIER_3 ? 3 : price === ADDON_TIER_2 ? 2 : 1,
-    }))
+  // Sans le roster passé en argument (contexte client-only), on ne peut pas
+  // savoir ce qui est inclus : on ne propose rien plutôt que de proposer à tort.
+  if (!planAgents || planAgents.length === 0) return [];
+
+  return planAgents
+    .filter(a => {
+      const price = AGENT_ADDON_PRICES[a.id];
+      if (!price || price <= 0) return false;                 // agent gratuit
+      const requiredIdx = PLAN_ORDER.indexOf(a.minPlan);
+      return requiredIdx > userIdx;                           // pas encore inclus
+    })
+    .map(a => {
+      const price = AGENT_ADDON_PRICES[a.id];
+      return {
+        agentId: a.id,
+        name: AGENT_NAMES[a.id] || a.displayName || a.id,
+        price,
+        tier: price === ADDON_TIER_3 ? 3 : price === ADDON_TIER_2 ? 2 : 1,
+      };
+    })
     .sort((a, b) => a.tier - b.tier);
 }
 

@@ -454,6 +454,27 @@ function PricingPageInner() {
           </div>
         </div>
 
+        {/* Add-ons — volontairement DISCRET (règle fondateur 2026-07-29 :
+            l'achat à l'agent près reste possible, mais il ne doit pas noyer
+            les plans). Une seule ligne, un seul add-on mis en avant. */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <p className="text-center text-xs text-neutral-500 leading-relaxed">
+            {locale === 'fr' ? (
+              <>
+                <span className="font-semibold text-neutral-700">Un seul agent te manque ?</span>{' '}
+                Stella (WhatsApp) s&apos;ajoute à <span className="font-semibold">19€/mois</span> sur Créateur et Pro — elle est incluse en Business.
+                Les autres agents suivent les plans : rien à acheter à la découpe, rien à configurer.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold text-neutral-700">Missing just one agent?</span>{' '}
+                Stella (WhatsApp) can be added for <span className="font-semibold">€19/month</span> on Creator and Pro — she&apos;s included in Business.
+                Every other agent follows the plans: nothing to buy piecemeal, nothing to configure.
+              </>
+            )}
+          </p>
+        </div>
+
         {/* Agence — Sur devis */}
 
         <div className="max-w-2xl mx-auto mb-10">

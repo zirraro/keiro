@@ -86,7 +86,12 @@ Principe clé : on a **consolidé agressivement**. Beaucoup de personas historiq
 
 ## 5. Modèle économique & pricing
 
-- Plans publics : **Créateur 49€ / Pro 99€ / Business 149€** (+ annuel = 2 mois offerts, onglet annuel pré-sélectionné). Add-ons : **Stella 19€**, **Louis 12€**. Packs de crédits ponctuels.
+- Plans publics : **Créateur 49€ / Pro 99€ / Business 149€** (+ annuel = 2 mois offerts, onglet annuel pré-sélectionné). Packs de crédits ponctuels.
+- **Qui est inclus où** (source de vérité = `minPlan` dans `lib/agents/client-context.ts`) :
+  - **Créateur** : Léna (contenu), Jade (DM/commentaires/follows), Théo (avis + fiche Google), Sara (RH/juridique), Louis (finance) — plus Ami et Clara, gratuits sur tous les plans.
+  - **Pro** : + Hugo (emails + gestion de boîte), Léo (prospection + CRM), et le SEO/blog de Théo.
+  - **Business** : + Stella (WhatsApp) incluse, multi-comptes 1+5, vidéos longues, double volume de crédits, support prioritaire.
+- **Doctrine add-on (fondateur 29/07)** : l'achat à l'agent près reste possible, mais **il ne doit pas noyer les plans**. Un seul add-on est mis en avant : **Stella 19€/mois** (Créateur et Pro ; incluse en Business). L'**add-on Louis 12€ est retiré de la vente** depuis qu'il est inclus dès Créateur — le prix Stripe reste actif pour les abonnements en cours, mais `create-checkout` refuse d'en créer de nouveaux. `getAvailableAddons()` dérive de `minPlan` : impossible de proposer un agent que le client possède déjà.
 - **Crédits** : chaque génération (image/vidéo/post) consomme des crédits ; marge pilotée (~80% cible Pro), coût/post suivi, alertes admin marge.
 - **Essai** : cold = génération gratuite sans carte (`/generate`) ; essai 7 j avec carte (0€ débité) mentionné seulement quand on parle d'automatisation.
 - **Anti-gaspillage** : budget caps sur APIs coûteuses, thinking sélectif, Sonnet→Haiku sur le volume, crons consolidés.
