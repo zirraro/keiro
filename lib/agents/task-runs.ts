@@ -100,7 +100,38 @@ export async function finishTaskRun(
     });
   } catch { /* le suivi ne doit jamais casser l'action */ }
 
-  if (opts.notify === false || !opts.userId) return;
+  if (!opts.userId) return;
+
+  // 2026-07-30 — La tâche doit ANNONCER SA FIN DANS LE CHAT, pas seulement par
+  // notification : le client a lancé l'action en conversation, c'est là qu'il
+  // attend le résultat. Le chat coupe à 60 s alors que le travail dure
+  // plusieurs minutes, donc on écrit le message dans le fil au moment où le
+  // travail se termine réellement. Il apparaît dans la conversation.
+  try {
+    const résultat = (opts.summary || '').trim();
+    const contenu = opts.ok
+      ? `✅ C'est terminé.${résultat ? ` ${résultat.charAt(0).toUpperCase()}${résultat.slice(1)}.` : ''}`
+      : `❌ Je n'ai pas pu terminer.${résultat ? ` ${résultat}.` : ''} Dis-moi si je relance.`;
+
+    const { data: row } = await supabase
+      .from('client_agent_chats')
+      .select('id, messages')
+      .eq('user_id', opts.userId)
+      .eq('agent_id', opts.agent)
+      .maybeSingle();
+
+    const now = new Date().toISOString();
+    const messages = Array.isArray(row?.messages) ? row!.messages : [];
+    messages.push({ role: 'assistant', content: contenu, timestamp: now });
+
+    if (row?.id) {
+      await supabase.from('client_agent_chats').update({ messages, updated_at: now }).eq('id', row.id);
+    } else {
+      await supabase.from('client_agent_chats').insert({ user_id: opts.userId, agent_id: opts.agent, messages, updated_at: now });
+    }
+  } catch { /* le suivi ne doit jamais casser l'action */ }
+
+  if (opts.notify === false) return;
   try {
     const { notifyClient } = await import('@/lib/agents/notify-client');
     const résultat = (opts.summary || '').trim();

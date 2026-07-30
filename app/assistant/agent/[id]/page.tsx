@@ -1569,6 +1569,39 @@ export default function AgentWorkspacePage() {
     load();
   }, [agentId]);
 
+  // ─── Relève des messages arrivés en arrière-plan ──────
+  // 2026-07-30 (fondateur) : « même si le chat s'arrête à 60 s, il faut suivre
+  // la tâche et dire au client via le chat quand c'est fini ». Une tâche longue
+  // (tri d'une boîte de 100 000 mails) se termine bien après la réponse ; son
+  // message de fin est écrit dans le fil côté serveur. Sans cette relève, il
+  // n'apparaîtrait qu'au prochain rafraîchissement de la page.
+  useEffect(() => {
+    if (!agentId) return;
+    const tick = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return; // onglet en arrière-plan : on ne sollicite pas
+      try {
+        const res = await fetch(`/api/agents/client-chat?agent_id=${agentId}`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const serverMsgs: any[] = Array.isArray(data.messages) ? data.messages : [];
+        setMessages(prev => {
+          // On n'ajoute que la queue non encore affichée, pour ne jamais
+          // écraser ce que l'utilisateur est en train de lire ou d'écrire.
+          if (serverMsgs.length <= prev.length) return prev;
+          const tail = serverMsgs.slice(prev.length).map((m: any, i: number) => ({
+            id: `bg_${prev.length + i}`,
+            role: m.role,
+            content: m.content,
+            created_at: m.timestamp || m.created_at || new Date().toISOString(),
+          }));
+          return [...prev, ...tail];
+        });
+      } catch { /* silencieux : une relève ratée n'a aucune conséquence */ }
+    };
+    const id = setInterval(tick, 20_000);
+    return () => clearInterval(id);
+  }, [agentId]);
+
   // ─── Load avatar fallback ─────────────────────────────
   useEffect(() => {
     if (agentInfo || !agent) return;
