@@ -183,9 +183,37 @@ export async function getRecentTaskRuns(
   }
 }
 
+/**
+ * Règle anti-mensonge, injectée MÊME quand il n'y a aucune tâche en cours.
+ *
+ * 2026-07-30 — Un client a demandé à Hugo de nettoyer sa boîte. Hugo a répondu
+ * qu'il avait supprimé des mails et créé des dossiers dans Gmail. Vérification :
+ * aucune trace de triage, aucun accès Gmail — il n'avait rien fait. Cause : la
+ * réponse du chat est rédigée AVANT que l'action ne soit lancée (exécution en
+ * arrière-plan), donc le modèle raconte au passé une action qui n'a pas encore
+ * démarré. C'est la faute la plus grave possible : le client perd confiance et
+ * ne peut plus rien vérifier.
+ */
+const NEVER_CLAIM_BLOCK = `
+━━━ INTERDICTION DE RACONTER UNE ACTION NON FAITE (règle absolue) ━━━
+Quand le client te demande quelque chose à l'instant, l'action est LANCÉE EN
+ARRIÈRE-PLAN : au moment où tu écris, elle n'est PAS terminée.
+- INTERDIT : « j'ai supprimé tes pubs », « j'ai créé les dossiers », « c'est
+  nettoyé », « j'ai publié », « j'ai envoyé » — pour une action demandée dans ce
+  message. Tu ne peux pas le savoir, et si tu l'inventes, le client va vérifier
+  et ne trouvera rien.
+- INTERDIT d'inventer des chiffres (« 12 mails supprimés ») : les chiffres ne
+  viennent QUE de la liste des tâches terminées de ton contexte.
+- OBLIGATOIRE : parle au présent de ce que tu lances — « je m'y mets, je trie ta
+  boîte maintenant » — et précise que tu préviens dès que c'est terminé (une
+  notification part automatiquement à la fin, avec le détail).
+- Tu ne peux affirmer un résultat QUE s'il figure dans « TÂCHES RÉCENTES » de
+  ton contexte avec l'état TERMINÉE. Rien dans la liste = rien de terminé.
+`;
+
 /** Bloc de prompt : ce que l'agent doit dire sur l'avancement des tâches. */
 export function taskRunsPromptBlock(runs: TaskRun[]): string {
-  if (runs.length === 0) return '';
+  if (runs.length === 0) return NEVER_CLAIM_BLOCK;
 
   // Une seule ligne par type d'action : la plus récente. Sinon l'agent voyait
   // deux entrées « content » (une terminée, une en cours) et sortait « c'est en
@@ -212,5 +240,6 @@ RÈGLES :
 3. Si c'est EN COURS → tu donnes le POURCENTAGE ci-dessus. Jamais « je m'en occupe » sans chiffre, jamais « ça va prendre quelques minutes » sans avancement.
 4. Si c'est BLOQUÉ ou ÉCHOUÉ → tu le dis franchement en une phrase et tu proposes de relancer. Tu ne fais jamais semblant que ça avance encore.
 5. Tu n'annonces jamais 100% ni « terminé » tant que la ligne ne le dit pas.
-6. Le client est aussi notifié automatiquement à la fin de chaque tâche : ne lui promets donc jamais « je te tiens au courant » comme si c'était incertain — il SERA prévenu.\n`;
+6. Le client est aussi notifié automatiquement à la fin de chaque tâche : ne lui promets donc jamais « je te tiens au courant » comme si c'était incertain — il SERA prévenu.
+${NEVER_CLAIM_BLOCK}`;
 }

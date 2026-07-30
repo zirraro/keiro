@@ -232,7 +232,28 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
 
-    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext + scrapedContext + ragContext + partnerContext;
+    // 2026-07-30 — Ces deux blocs vivaient dans /api/agents/chat (route admin),
+    // alors que TOUS les panneaux clients appellent CETTE route. Résultat :
+    // Hugo demandait au client s'il était connecté, et racontait des actions
+    // qu'il n'avait pas faites. Ils sont donc injectés ici aussi.
+    let connectionContext = '';
+    let taskRunsContext = '';
+    try {
+      const [{ getConnectionState, connectionPromptBlock }, { getRecentTaskRuns, taskRunsPromptBlock }] = await Promise.all([
+        import('@/lib/agents/connection-state'),
+        import('@/lib/agents/task-runs'),
+      ]);
+      const [connState, runs] = await Promise.all([
+        getConnectionState(supabase, user.id),
+        getRecentTaskRuns(supabase, user.id, { hours: 6 }),
+      ]);
+      connectionContext = connectionPromptBlock(connState);
+      taskRunsContext = taskRunsPromptBlock(runs);
+    } catch (e: any) {
+      console.warn('[ClientChat] contexte connexions/tâches indisponible:', e?.message);
+    }
+
+    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + connectionContext + taskRunsContext + enrichedContext + scrapedContext + ragContext + partnerContext;
 
     // 8. Load last 20 messages from client_agent_chats for conversation history
     const { data: chatRow } = await supabase
@@ -290,6 +311,31 @@ Pour exécuter une action, INCLUS le tag DANS ta réponse:
 - Répondre commentaires: [ACTION:{"type":"reply_comments"}]
 - Écrire/prospecter via WhatsApp (Stella): [ACTION:{"type":"whatsapp_send","phone":"33612345678","message":"Bonjour, ..."}]
 - Changer l'usage autorisé des fichiers du client: [ACTION:{"type":"set_asset_policy","mode":"raw|light|free","allow_mix":true,"allow_add_elements":false}]
+- Trier / nettoyer la boîte mail (Hugo): [ACTION:{"type":"mailbox_triage"}]
+- Changer un RÉGLAGE durable de l'agent: [ACTION:{"type":"set_settings","agent":"content","settings":{"posts_per_day_ig":3}}]
+
+TRIER LA BOÎTE MAIL (Hugo) — tu le FAIS, tu ne l'expliques pas :
+« nettoie mes mails », « nettoie mes emails des pubs », « vire les newsletters »,
+« range ma boîte », « fais le ménage dans mes mails », « réponds aux mails
+importants », « trie ma boîte » → émets [ACTION:{"type":"mailbox_triage"}].
+Tu ne réponds JAMAIS « je n'ai pas accès à ta boîte » et tu ne proposes JAMAIS un
+guide pour qu'il le fasse lui-même. Si la boîte n'est pas connectée, l'état des
+connexions te le dit : tu donnes alors le chemin exact pour la brancher.
+
+RÉGLAGES DEMANDÉS EN CONVERSATION — tu les APPLIQUES :
+Un réglage demandé à l'oral vaut un réglage changé dans l'interface. Émets
+[ACTION:{"type":"set_settings","agent":"<agent>","settings":{...}}] avec les clés
+exactes : posts_per_day_ig / posts_per_day_tt / posts_per_day_li (nombre, 0 =
+on coupe), ig_enabled / tt_enabled / li_enabled (true|false), formats_ig
+("stories"|"reels"|"carrousels"|"posts"|"mix"), video_ratio (0-100), auto_mode
+(true = publie seul, false = le client valide), reply_mode ("auto_send"|"draft"),
+auto_reply_reviews (true|false), personality (texte), custom_instructions (texte
+libre pour tout ce qui n'a pas de clé), escalation_keywords (liste de mots).
+Exemples : « poste 3 fois par jour sur insta » → {"posts_per_day_ig":3} ·
+« arrête TikTok » → {"tt_enabled":false,"posts_per_day_tt":0} · « je veux valider
+avant publication » → {"auto_mode":false} · « réponds directement aux mails » →
+{"reply_mode":"auto_send"} · « on ferme du 1er au 20 août » →
+{"custom_instructions":"fermeture du 1er au 20 août"}.
 
 PUBLIER MAINTENANT — COMPRENDS TOUTES LES FORMULATIONS (founder 21/07) :
 Dès que le client demande une publication immédiate, QUELLE QUE SOIT la façon de le
@@ -530,6 +576,65 @@ détail vit dans le Planning.`;
           if (existing?.id) await supabase.from('org_agent_configs').update({ config: nextConfig }).eq('id', existing.id);
           else await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: 'content', config: nextConfig });
           actionResult = `Préférences d'utilisation de tes fichiers mises à jour : ${mode === 'raw' ? 'brut uniquement' : mode === 'light' ? 'retouche qualité légère' : 'création libre'}${policy.allow_mix ? ', mixage autorisé' : ''}${policy.allow_add_elements ? ', ajout d\'éléments autorisé' : ''}.`;
+        } else if (actionType === 'mailbox_triage') {
+          // 2026-07-30 — Cette action MANQUAIT : un client demandait à Hugo de
+          // nettoyer sa boîte, aucune action n'existait pour ça dans cette
+          // route, alors l'agent le racontait sans le faire.
+          const { startTaskRun, finishTaskRun } = await import('@/lib/agents/task-runs');
+          const runId = await startTaskRun(supabase, { userId: user.id, agent: 'email', action: 'mailbox', label: 'tri de la boîte mail' });
+          const res = await fetch(`${baseUrl}/api/agents/email/mailbox-triage?user_id=${user.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            body: JSON.stringify({}),
+          });
+          const data = await res.json().catch(() => ({} as any));
+          if (data?.ok) {
+            const bits = [
+              data.trashed ? `${data.trashed} pub(s) à la corbeille` : null,
+              data.archived ? `${data.archived} archivé(s)` : null,
+              data.labeled ? `${data.labeled} rangé(s) en dossier` : null,
+              data.replied ? `${data.replied} réponse(s) envoyée(s)` : null,
+              data.drafted ? `${data.drafted} brouillon(s) préparé(s)` : null,
+              data.questions?.length ? `${data.questions.length} question(s) pour toi` : null,
+            ].filter(Boolean);
+            actionResult = bits.length
+              ? `Boîte triée (${data.processed} mails analysés) : ${bits.join(', ')}.`
+              : `Boîte analysée (${data.processed} mails) : rien à changer, tout était déjà en ordre.`;
+          } else {
+            actionResult = data?.enabled === false
+              ? `Je ne peux pas encore agir sur ta boîte : ${data.error || 'aucune boîte connectée'}.`
+              : `Le tri n'a pas abouti : ${data?.error || `HTTP ${res.status}`}.`;
+          }
+          await finishTaskRun(supabase, runId, { userId: user.id, agent: 'email', action: 'mailbox', ok: !!data?.ok, summary: actionResult });
+        } else if (actionType === 'set_settings') {
+          // Un réglage demandé en conversation doit être APPLIQUÉ, exactement
+          // comme s'il avait été changé dans l'interface (règle fondateur).
+          const ALLOWED = new Set([
+            'posts_per_day_ig', 'posts_per_day_tt', 'posts_per_day_li',
+            'ig_enabled', 'tt_enabled', 'li_enabled',
+            'formats_ig', 'video_ratio', 'content_frequency_mode',
+            'auto_mode', 'reply_mode', 'auto_reply_reviews', 'gbp_mode',
+            'report_frequency', 'email_notify', 'personality',
+            'custom_instructions', 'escalation_keywords', 'prospection_sessions',
+          ]);
+          const targetAgent = ['content', 'email', 'commercial', 'dm_instagram', 'gmaps', 'seo', 'rh', 'comptable', 'whatsapp'].includes(String(actionJson.agent))
+            ? String(actionJson.agent)
+            : (agent_id === 'ceo' || agent_id === 'marketing' ? 'content' : agent_id);
+          const incoming = (actionJson.settings && typeof actionJson.settings === 'object') ? actionJson.settings : {};
+          const clean: Record<string, any> = {};
+          for (const [k, v] of Object.entries(incoming)) if (ALLOWED.has(k)) clean[k] = v;
+
+          if (Object.keys(clean).length === 0) {
+            actionResult = 'Aucun réglage reconnu dans ta demande — dis-moi précisément ce que tu veux changer.';
+          } else {
+            const { data: existing } = await supabase.from('org_agent_configs')
+              .select('id, config').eq('user_id', user.id).eq('agent_id', targetAgent)
+              .order('created_at', { ascending: false }).limit(1).maybeSingle();
+            const nextConfig = { ...((existing?.config as any) || {}), ...clean, updated_at: new Date().toISOString() };
+            if (existing?.id) await supabase.from('org_agent_configs').update({ config: nextConfig }).eq('id', existing.id);
+            else await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: targetAgent, config: nextConfig });
+            actionResult = `Réglage appliqué (${targetAgent}) : ${Object.entries(clean).map(([k, v]) => `${k} = ${Array.isArray(v) ? v.join(', ') : v}`).join(' · ')}. C'est actif dès maintenant.`;
+          }
         }
 
         if (actionResult) {
