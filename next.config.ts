@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
   // scanners don't flag a tech-stack disclosure. Vercel did this
   // automatically; we have to opt-in on self-hosted.
   poweredByHeader: false,
+  // 2026-07-30 — Optimiseur d'images DÉSACTIVÉ.
+  // L'avis de sécurité « Next.js self-hosted applications vulnerable to DoS via
+  // Image Optimizer remotePatterns configuration » vise l'endpoint /_next/image,
+  // et son correctif exige Next 16 (migration majeure, risque de régression sur
+  // une prod vivante). Or on ne s'en sert PAS : `next/image` n'était importé
+  // qu'une fois, sans jamais être rendu. Le désactiver supprime entièrement la
+  // surface d'attaque, sans changer le rendu. À revoir si on adopte next/image.
+  images: { unoptimized: true },
   serverExternalPackages: ['ffmpeg-static', 'fluent-ffmpeg'],
   experimental: {
     serverActions: {
