@@ -70,7 +70,7 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   content: {
     agentId: 'content', displayName: 'Léna',
     actions: [
-      { tag: '{"type":"generate_post","platform":"instagram","format":"post"}', label: 'créer et publier un post', phrasings: ['publie', 'poste', 'fais un post', 'mets en ligne', 'balance un post'] },
+      { tag: '{"type":"generate_post","platform":"instagram","format":"post"}', label: 'créer et publier un post', phrasings: ['publie', 'poste', 'fais un post', 'mets en ligne', 'balance un post', 'publish', 'post it', 'make a post', 'put it live'] },
       { tag: '{"type":"list_posts"}', label: 'montrer les posts planifiés', phrasings: ['montre le planning', 'qu\'est-ce qui est prévu', 'mes prochains posts'] },
     ],
     settings: [
@@ -91,8 +91,8 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   email: {
     agentId: 'email', displayName: 'Hugo',
     actions: [
-      { tag: '{"type":"mailbox_triage"}', label: 'trier et nettoyer la boîte mail', phrasings: ['nettoie mes mails', 'nettoie mes emails des pubs', 'vire les newsletters', 'range ma boîte', 'fais le ménage', 'trie ma boîte'] },
-      { tag: '{"type":"send_emails"}', label: 'envoyer les emails de prospection du jour', phrasings: ['envoie les mails', 'lance la prospection email', 'relance les prospects'] },
+      { tag: '{"type":"mailbox_triage"}', label: 'trier et nettoyer la boîte mail', phrasings: ['nettoie mes mails', 'nettoie mes emails des pubs', 'vire les newsletters', 'range ma boîte', 'fais le ménage', 'trie ma boîte', 'clean my inbox', 'clean up my emails', 'sort my mailbox', 'unsubscribe me from the junk', 'tidy my inbox'] },
+      { tag: '{"type":"send_emails"}', label: 'envoyer les emails de prospection du jour', phrasings: ['envoie les mails', 'lance la prospection email', 'relance les prospects', 'send the emails', 'run the email outreach', 'follow up with prospects'] },
     ],
     settings: [
       { key: 'reply_mode', label: 'répondre directement ou préparer un brouillon', type: 'enum', values: ['auto_send', 'draft'], example: '« réponds directement » → auto_send' },
@@ -109,7 +109,7 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   },
   commercial: {
     agentId: 'commercial', displayName: 'Léo',
-    actions: [{ tag: '{"type":"prospect","query":"restaurant Paris"}', label: 'chercher des prospects', phrasings: ['trouve des prospects', 'prospecte', 'cherche des clients', 'remplis le CRM'] }],
+    actions: [{ tag: '{"type":"prospect","query":"restaurant Paris"}', label: 'chercher des prospects', phrasings: ['trouve des prospects', 'prospecte', 'cherche des clients', 'remplis le CRM', 'find prospects', 'find me leads', 'fill the CRM'] }],
     settings: [
       { key: 'prospection_sessions', label: 'nombre de sessions de prospection par jour', type: 'number' },
       { key: 'prospect_zones', label: 'zones géographiques ciblées', type: 'list', example: '« cherche seulement dans le 92 et le 78 »' },
@@ -125,8 +125,8 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   dm_instagram: {
     agentId: 'dm_instagram', displayName: 'Jade',
     actions: [
-      { tag: '{"type":"scan_dms"}', label: 'traiter les DM en attente', phrasings: ['réponds aux DM', 'scanne les messages', 'regarde mes DM'] },
-      { tag: '{"type":"reply_comments"}', label: 'répondre aux commentaires', phrasings: ['réponds aux commentaires', 'gère les commentaires'] },
+      { tag: '{"type":"scan_dms"}', label: 'traiter les DM en attente', phrasings: ['réponds aux DM', 'scanne les messages', 'regarde mes DM', 'reply to my DMs', 'check my messages'] },
+      { tag: '{"type":"reply_comments"}', label: 'répondre aux commentaires', phrasings: ['réponds aux commentaires', 'gère les commentaires', 'reply to comments', 'handle the comments'] },
     ],
     settings: [
       { key: 'dm_max_par_jour', label: 'nombre maximum de DM par jour', type: 'number' },
@@ -139,7 +139,7 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   },
   gmaps: {
     agentId: 'gmaps', displayName: 'Théo',
-    actions: [{ tag: '{"type":"gmaps_run"}', label: 'répondre aux avis et optimiser la fiche', phrasings: ['réponds aux avis', 'optimise ma fiche google', 'gère ma réputation'] }],
+    actions: [{ tag: '{"type":"gmaps_run"}', label: 'répondre aux avis et optimiser la fiche', phrasings: ['réponds aux avis', 'optimise ma fiche google', 'gère ma réputation', 'reply to my reviews', 'optimise my Google listing', 'manage my reputation'] }],
     settings: [
       { key: 'auto_reply_reviews', label: 'répondre automatiquement aux avis', type: 'boolean' },
       { key: 'gbp_mode', label: 'modifier la fiche ou seulement proposer', type: 'enum', values: ['auto', 'suggest'] },
@@ -153,7 +153,7 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   },
   seo: {
     agentId: 'seo', displayName: 'Théo (SEO)',
-    actions: [{ tag: '{"type":"seo_article"}', label: 'écrire un article de blog optimisé', phrasings: ['écris un article', 'fais un blog', 'travaille mon référencement'] }],
+    actions: [{ tag: '{"type":"seo_article"}', label: 'écrire un article de blog optimisé', phrasings: ['écris un article', 'fais un blog', 'travaille mon référencement', 'write an article', 'write a blog post', 'work on my SEO'] }],
     settings: [
       { key: 'seo_mots_cles', label: 'mots-clés prioritaires', type: 'list', example: '« vise boulangerie bio Lille »' },
       { key: 'seo_zone', label: 'zone géographique à travailler', type: 'string' },
@@ -165,7 +165,7 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   },
   whatsapp: {
     agentId: 'whatsapp', displayName: 'Stella',
-    actions: [{ tag: '{"type":"whatsapp_send","phone":"33612345678","message":"..."}', label: 'envoyer un message WhatsApp', phrasings: ['envoie un whatsapp', 'confirme le rendez-vous', 'rappelle le client'] }],
+    actions: [{ tag: '{"type":"whatsapp_send","phone":"33612345678","message":"..."}', label: 'envoyer un message WhatsApp', phrasings: ['envoie un whatsapp', 'confirme le rendez-vous', 'rappelle le client', 'send a WhatsApp', 'confirm the booking', 'remind the customer'] }],
     settings: [
       { key: 'wa_rappel_avant_h', label: 'combien d\'heures avant le RDV envoyer le rappel', type: 'number', example: '« rappelle la veille » → 24' },
       { key: 'wa_plage_envoi', label: 'plage horaire d\'envoi', type: 'string', example: '« pas après 20h » → "9h-20h"' },
@@ -178,7 +178,7 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   rh: {
     agentId: 'rh', displayName: 'Sara',
     actions: [
-      { tag: '{"type":"rh_document","doc":"cdi"}', label: 'rédiger un contrat de travail', phrasings: ['fais-moi un contrat', 'génère un CDI', 'un CDD pour un saisonnier'] },
+      { tag: '{"type":"rh_document","doc":"cdi"}', label: 'rédiger un contrat de travail', phrasings: ['fais-moi un contrat', 'génère un CDI', 'un CDD pour un saisonnier', 'draft an employment contract', 'I need a contract'] },
       { tag: '{"type":"rh_document","doc":"avenant"}', label: 'rédiger un avenant', phrasings: ['fais un avenant', 'je change ses horaires'] },
       { tag: '{"type":"rh_document","doc":"attestation"}', label: 'rédiger une attestation', phrasings: ['une attestation de travail', 'un certificat de travail'] },
       { tag: '{"type":"rh_document","doc":"rupture"}', label: 'préparer une rupture conventionnelle', phrasings: ['rupture conventionnelle', 'je veux me séparer de quelqu\'un'] },
@@ -198,8 +198,8 @@ export const AGENT_CAPABILITIES: Record<string, AgentCapability> = {
   comptable: {
     agentId: 'comptable', displayName: 'Louis',
     actions: [
-      { tag: '{"type":"finance_document","doc":"previsionnel"}', label: 'produire un prévisionnel', phrasings: ['fais un prévisionnel', 'projection sur 3 ans'] },
-      { tag: '{"type":"finance_document","doc":"business_plan"}', label: 'produire un business plan', phrasings: ['business plan', 'dossier pour la banque'] },
+      { tag: '{"type":"finance_document","doc":"previsionnel"}', label: 'produire un prévisionnel', phrasings: ['fais un prévisionnel', 'projection sur 3 ans', 'build a forecast', 'a 3-year projection'] },
+      { tag: '{"type":"finance_document","doc":"business_plan"}', label: 'produire un business plan', phrasings: ['business plan', 'dossier pour la banque', 'a business plan', 'a file for the bank'] },
       { tag: '{"type":"finance_document","doc":"tresorerie"}', label: 'produire un plan de trésorerie', phrasings: ['plan de trésorerie', 'je veux voir mes flux'] },
       { tag: '{"type":"finance_document","doc":"rentabilite"}', label: 'calculer le seuil de rentabilité', phrasings: ['seuil de rentabilité', 'à partir de combien je gagne'] },
     ],

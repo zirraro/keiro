@@ -258,15 +258,27 @@ export async function POST(request: NextRequest) {
     // partagée avec la validation de set_settings — un agent ne peut plus
     // annoncer un réglage que le code refuserait.
     let capabilitiesContext = '';
+    let languageContext = '';
     try {
       const { capabilitiesPromptBlock, currentSettingsPromptBlock } = await import('@/lib/agents/agent-capabilities');
       // Ce qu'il sait faire + ce que le client a DÉJÀ réglé. Le second bloc est
       // ce qui rend les réglages réels : l'agent les voit et doit les appliquer.
       capabilitiesContext = capabilitiesPromptBlock(agent_id)
         + await currentSettingsPromptBlock(supabase, user.id, agent_id);
+
+      // Langue de travail : réglage explicite du client, sinon langue du message
+      // qu'il vient d'écrire, sinon français. Sans ça, un client anglophone
+      // recevait des réponses en français (« Réponds en français » était codé en
+      // dur dans les prompts).
+      const { resolveLang, languagePromptBlock } = await import('@/lib/agents/language');
+      const { data: langCfg } = await supabase
+        .from('org_agent_configs').select('config')
+        .eq('user_id', user.id).eq('agent_id', agent_id)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      languageContext = languagePromptBlock(resolveLang((langCfg?.config as any)?.langue, message));
     } catch { /* non bloquant */ }
 
-    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + capabilitiesContext + connectionContext + taskRunsContext + enrichedContext + scrapedContext + ragContext + partnerContext;
+    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + languageContext + capabilitiesContext + connectionContext + taskRunsContext + enrichedContext + scrapedContext + ragContext + partnerContext;
 
     // 8. Load last 20 messages from client_agent_chats for conversation history
     const { data: chatRow } = await supabase
