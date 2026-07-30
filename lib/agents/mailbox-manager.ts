@@ -165,7 +165,7 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
   // partent à la corbeille, le bruit social est archivé, le tout en quelques
   // minutes et sans coût de modèle. Le modèle ne juge plus que le reliquat.
   // On épargne les 7 derniers jours : une promo récente peut encore servir.
-  const bulk = { trashed: 0, archived: 0 };
+  const bulk: { trashed: number; archived: number; labeled: number; folders: Record<string, number> } = { trashed: 0, archived: 0, labeled: 0, folders: {} };
   if (ops.provider === 'gmail' && opts.bulk !== false) {
     try {
       const { bulkModifyByQuery } = await import('@/lib/gmail-read');
@@ -180,6 +180,16 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
         const n = opts.dryRun ? r.matched : r.modified;
         if (step.action === 'trash') bulk.trashed += n; else bulk.archived += n;
       }
+      // RANGEMENT : Gmail ne crée pas de dossier métier, c'est l'apport de Hugo.
+      // On classe toute la boîte, pas seulement les mails vus par le modèle.
+      const { bulkFileIntoFolders } = await import('@/lib/gmail-read');
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
+      const { data: crm } = await sb.from('crm_prospects').select('email,status').eq('user_id', userId).not('email', 'is', null).limit(2000);
+      const clients = (crm || []).filter((p: any) => ['client', 'gagne', 'signe'].includes(String(p.status))).map((p: any) => p.email);
+      const prospects = (crm || []).filter((p: any) => !['client', 'gagne', 'signe'].includes(String(p.status))).map((p: any) => p.email);
+      const fr = await bulkFileIntoFolders(userId, { crmClientEmails: clients, crmProspectEmails: prospects, dryRun: !!opts.dryRun });
+      for (const n of Object.values(fr.filed)) bulk.labeled += n;
+      bulk.folders = fr.filed;
     } catch (e: any) {
       console.warn('[mailbox] passe en masse indisponible:', e?.message);
     }
@@ -263,6 +273,8 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
   // sur une vraie boîte, la passe modèle ne fait que le reliquat.
   res.trashed += bulk.trashed;
   res.archived += bulk.archived;
+  res.labeled += bulk.labeled;
+  const folderBit = Object.keys(bulk.folders).length ? ' — dossiers : ' + Object.entries(bulk.folders).filter(([, n]) => n > 0).map(([f, n]) => f + ' (' + n + ')').join(', ') : '';
   const bulkBit = (bulk.trashed + bulk.archived) > 0
     ? ` (dont ${bulk.trashed} pub(s) et ${bulk.archived} notification(s) traitées en masse)`
     : '';

@@ -334,6 +334,60 @@ export async function bulkModifyByQuery(
   }
 }
 
+/**
+ * RANGEMENT AUTOMATIQUE EN DOSSIERS, à l'échelle de la boîte.
+ *
+ * 2026-07-30 — Gmail trie déjà en Promotions / Réseaux / Mises à jour et
+ * calcule l'importance, mais il ne crée AUCUN dossier métier. C'est là que Hugo
+ * apporte quelque chose : Factures & Admin, Clients, Prospects, À traiter.
+ *
+ * Le rangement se fait par requête + batchModify, donc sur toute la boîte —
+ * l'ancien tri au fil du modèle n'en traitait que quelques dizaines. Les
+ * dossiers ne retirent pas de la boîte de réception : on classe sans faire
+ * disparaître, le client garde la main.
+ */
+export async function bulkFileIntoFolders(
+  userId: string,
+  opts: { crmClientEmails?: string[]; crmProspectEmails?: string[]; dryRun?: boolean } = {},
+): Promise<{ enabled: boolean; filed: Record<string, number>; error?: string }> {
+  const filed: Record<string, number> = {};
+  if (!(await mailboxEnabled(userId))) return { enabled: false, filed };
+
+  const ensure = async (name: string) => (await getOrCreateGmailLabel(userId, name)).id;
+
+  // Factures, banque, impôts : reconnaissables à des mots-clés stables.
+  const ADMIN_Q = 'in:inbox (subject:facture OR subject:invoice OR subject:"reçu" OR subject:devis OR subject:virement OR subject:"relevé" OR subject:prélèvement OR subject:échéance OR from:urssaf OR from:impots.gouv.fr OR from:ameli OR from:banque OR from:stripe OR from:qonto)';
+  // Ce qui attend vraiment une action : Gmail a déjà calculé l'importance.
+  const TODO_Q = 'in:inbox is:important is:unread category:primary';
+
+  const plan: Array<{ folder: string; query: string }> = [
+    { folder: 'Factures & Admin', query: ADMIN_Q },
+    { folder: 'À traiter', query: TODO_Q },
+  ];
+
+  // Clients et prospects : on interroge par paquets d'expéditeurs connus du CRM.
+  const chunk = (arr: string[], n: number) => arr.reduce<string[][]>((a, v, i) => (i % n ? a[a.length - 1].push(v) : a.push([v]), a), []);
+  for (const [folder, emails] of [['Clients', opts.crmClientEmails || []], ['Prospects', opts.crmProspectEmails || []]] as const) {
+    for (const group of chunk([...new Set(emails.filter(Boolean))], 40)) {
+      plan.push({ folder, query: `in:inbox from:(${group.join(' OR ')})` });
+    }
+  }
+
+  try {
+    for (const step of plan) {
+      const labelId = await ensure(step.folder);
+      if (!labelId) continue;
+      const r = await bulkModifyByQuery(userId, { query: step.query, action: 'label', labelId, maxMessages: 20_000, dryRun: opts.dryRun });
+      const n = opts.dryRun ? r.matched : r.modified;
+      filed[step.folder] = (filed[step.folder] || 0) + n;
+      if (r.error) return { enabled: true, filed, error: r.error };
+    }
+    return { enabled: true, filed };
+  } catch (e: any) {
+    return { enabled: true, filed, error: e?.message?.slice(0, 160) };
+  }
+}
+
 /** Crée un libellé (dossier) Gmail. Retourne l'id (existant ou créé). gmail.modify. */
 export async function getOrCreateGmailLabel(userId: string, name: string): Promise<{ enabled: boolean; id?: string }> {
   if (!(await mailboxEnabled(userId))) return { enabled: false };
