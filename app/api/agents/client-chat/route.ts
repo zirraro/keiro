@@ -259,8 +259,11 @@ export async function POST(request: NextRequest) {
     // annoncer un réglage que le code refuserait.
     let capabilitiesContext = '';
     try {
-      const { capabilitiesPromptBlock } = await import('@/lib/agents/agent-capabilities');
-      capabilitiesContext = capabilitiesPromptBlock(agent_id);
+      const { capabilitiesPromptBlock, currentSettingsPromptBlock } = await import('@/lib/agents/agent-capabilities');
+      // Ce qu'il sait faire + ce que le client a DÉJÀ réglé. Le second bloc est
+      // ce qui rend les réglages réels : l'agent les voit et doit les appliquer.
+      capabilitiesContext = capabilitiesPromptBlock(agent_id)
+        + await currentSettingsPromptBlock(supabase, user.id, agent_id);
     } catch { /* non bloquant */ }
 
     const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + capabilitiesContext + connectionContext + taskRunsContext + enrichedContext + scrapedContext + ragContext + partnerContext;

@@ -5066,7 +5066,15 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   const prompt = getWeeklyPlanPrompt({ existingPlanned });
 
   // The elite system prompt already contains all visual rules, timing, and brand guidelines
-  const enhancedSystemPrompt = getContentSystemPrompt(planBizType) + await loadAssetPolicyRules(supabase, userId);
+  // Réglages du client injectés dans la GÉNÉRATION, pas seulement dans le chat :
+  // un réglage que Léna ne voit pas est un réglage qui n'existe pas.
+  const clientSettingsBlock = await (async () => {
+    try {
+      const { currentSettingsPromptBlock } = await import('@/lib/agents/agent-capabilities');
+      return await currentSettingsPromptBlock(supabase, userId, 'content');
+    } catch { return ''; }
+  })();
+  const enhancedSystemPrompt = getContentSystemPrompt(planBizType) + await loadAssetPolicyRules(supabase, userId) + clientSettingsBlock;
 
   let rawText: string;
   try {
@@ -5432,7 +5440,13 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
   }
 
   const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + newsHistoryContext + cadenceBlock + knowledgeBlock;
-  const systemPrompt = getContentSystemPrompt(planBizType) + await loadAssetPolicyRules(supabase, userId);
+  const clientSettingsBlock2 = await (async () => {
+    try {
+      const { currentSettingsPromptBlock } = await import('@/lib/agents/agent-capabilities');
+      return await currentSettingsPromptBlock(supabase, userId, 'content');
+    } catch { return ''; }
+  })();
+  const systemPrompt = getContentSystemPrompt(planBizType) + await loadAssetPolicyRules(supabase, userId) + clientSettingsBlock2;
 
   let rawText: string;
   try {
