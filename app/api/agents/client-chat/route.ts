@@ -253,7 +253,17 @@ export async function POST(request: NextRequest) {
       console.warn('[ClientChat] contexte connexions/tâches indisponible:', e?.message);
     }
 
-    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + connectionContext + taskRunsContext + enrichedContext + scrapedContext + ragContext + partnerContext;
+    // Catalogue des capacités de CET agent : actions exécutables et réglages
+    // applicables, avec les formulations clientes typiques. Source unique,
+    // partagée avec la validation de set_settings — un agent ne peut plus
+    // annoncer un réglage que le code refuserait.
+    let capabilitiesContext = '';
+    try {
+      const { capabilitiesPromptBlock } = await import('@/lib/agents/agent-capabilities');
+      capabilitiesContext = capabilitiesPromptBlock(agent_id);
+    } catch { /* non bloquant */ }
+
+    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + capabilitiesContext + connectionContext + taskRunsContext + enrichedContext + scrapedContext + ragContext + partnerContext;
 
     // 8. Load last 20 messages from client_agent_chats for conversation history
     const { data: chatRow } = await supabase
@@ -493,6 +503,9 @@ détail vit dans le Planning.`;
 
     // 9.5 Detect and execute ACTION from agent response
     // Format: [ACTION:{"type":"publish","platform":"instagram"}]
+    // Une action a-t-elle RÉELLEMENT tourné ? C'est ce qui autorise l'agent à
+    // annoncer un résultat au passé (cf. garde-fou anti-mensonge plus bas).
+    let actionRan = false;
     const actionMatch = reply.match(/\[ACTION:\{.*?\}\]/);
     if (actionMatch) {
       try {
@@ -609,17 +622,14 @@ détail vit dans le Planning.`;
         } else if (actionType === 'set_settings') {
           // Un réglage demandé en conversation doit être APPLIQUÉ, exactement
           // comme s'il avait été changé dans l'interface (règle fondateur).
-          const ALLOWED = new Set([
-            'posts_per_day_ig', 'posts_per_day_tt', 'posts_per_day_li',
-            'ig_enabled', 'tt_enabled', 'li_enabled',
-            'formats_ig', 'video_ratio', 'content_frequency_mode',
-            'auto_mode', 'reply_mode', 'auto_reply_reviews', 'gbp_mode',
-            'report_frequency', 'email_notify', 'personality',
-            'custom_instructions', 'escalation_keywords', 'prospection_sessions',
-          ]);
           const targetAgent = ['content', 'email', 'commercial', 'dm_instagram', 'gmaps', 'seo', 'rh', 'comptable', 'whatsapp'].includes(String(actionJson.agent))
             ? String(actionJson.agent)
             : (agent_id === 'ceo' || agent_id === 'marketing' ? 'content' : agent_id);
+          // Liste blanche issue du catalogue de capacités — même source que le
+          // prompt, donc jamais de décalage entre ce que l'agent annonce et ce
+          // que le serveur accepte.
+          const { allowedSettingKeys } = await import('@/lib/agents/agent-capabilities');
+          const ALLOWED = allowedSettingKeys(targetAgent);
           const incoming = (actionJson.settings && typeof actionJson.settings === 'object') ? actionJson.settings : {};
           const clean: Record<string, any> = {};
           for (const [k, v] of Object.entries(incoming)) if (ALLOWED.has(k)) clean[k] = v;
@@ -638,6 +648,7 @@ détail vit dans le Planning.`;
         }
 
         if (actionResult) {
+          actionRan = true;
           reply = reply.replace(/\[ACTION:\{.*?\}\]/, '').trim();
           reply += `\n\n✅ **Résultat:** ${actionResult}`;
         }
@@ -713,6 +724,37 @@ détail vit dans le Planning.`;
       // Remove email block from visible reply
       reply = reply.replace(/\[EMAIL_CLIENT\][\s\S]*?\[\/EMAIL_CLIENT\]/, '').trim();
       reply += '\n\nRecap envoye par email !';
+    }
+
+    // 9bis. GARDE-FOU ANTI-MENSONGE (fondateur 30/07 : « s'il dit qu'il fait,
+    // c'est vrai »). On ne se contente pas de la consigne : on VÉRIFIE. Si la
+    // réponse affirme un acte accompli alors qu'aucune action n'a été
+    // déclenchée et qu'aucune tâche n'est terminée, on fait réécrire le modèle,
+    // et à défaut on neutralise l'affirmation.
+    try {
+      const { detectUnbackedClaim, CLAIM_CORRECTION_INSTRUCTION, neutralizeClaim } = await import('@/lib/agents/claim-guard');
+      const hasFinishedTask = /TERMINÉE/.test(taskRunsContext || '');
+      // Une action a réellement tourné si le tag a été exécuté et a produit un
+      // résultat (`actionResult` est renseigné dans ce cas).
+      const verdict = detectUnbackedClaim(reply, { actionEmitted: actionRan, hasFinishedTask });
+      if (verdict.unbacked) {
+        console.warn(`[ClientChat] affirmation non prouvée (${agent_id}) : "${verdict.matched}" — réécriture`);
+        let rewritten = '';
+        try {
+          const { callGeminiChat } = await import('@/lib/agents/gemini');
+          rewritten = await callGeminiChat({
+            system: fullSystemPrompt,
+            message: `${message}\n\n[CORRECTION SYSTÈME]\n${CLAIM_CORRECTION_INSTRUCTION}\n\nTa réponse fautive était :\n"""${reply}"""`,
+            history: [],
+          });
+        } catch (e: any) {
+          console.warn('[ClientChat] réécriture impossible:', e?.message);
+        }
+        const stillBad = !rewritten || detectUnbackedClaim(rewritten, { actionEmitted: false, hasFinishedTask }).unbacked;
+        reply = stillBad ? neutralizeClaim(reply) : rewritten;
+      }
+    } catch (e: any) {
+      console.warn('[ClientChat] garde-fou anti-mensonge indisponible:', e?.message);
     }
 
     // 10. Save both user message and agent reply to client_agent_chats
