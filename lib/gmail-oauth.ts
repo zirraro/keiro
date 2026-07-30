@@ -18,6 +18,33 @@ function getSupabase() {
 }
 
 /**
+ * Client OAuth à utiliser.
+ *
+ * 2026-07-30 — Le client de PROD est vérifié pour `gmail.send` uniquement
+ * (Option A). Une app en production ne peut pas demander de scopes restreints
+ * non approuvés : impossible d'activer la gestion de boîte dessus sans passer
+ * la vérification + CASA.
+ *
+ * Mais un compte de TEST n'a pas à attendre ça : un client OAuth dont l'écran
+ * de consentement reste en statut « Test » peut demander readonly/compose/modify
+ * pour ses utilisateurs de test (jusqu'à 100), sans vérification. On accepte donc
+ * un second couple d'identifiants, utilisé UNIQUEMENT pour Option B. Si ces
+ * variables ne sont pas définies, on retombe sur le client principal (comportement
+ * d'avant, aucune régression).
+ */
+function gmailClient(optionB: boolean): { id: string; secret: string } {
+  if (optionB && process.env.GOOGLE_CLIENT_ID_OPTION_B && process.env.GOOGLE_CLIENT_SECRET_OPTION_B) {
+    return { id: process.env.GOOGLE_CLIENT_ID_OPTION_B, secret: process.env.GOOGLE_CLIENT_SECRET_OPTION_B };
+  }
+  return { id: process.env.GOOGLE_CLIENT_ID!, secret: process.env.GOOGLE_CLIENT_SECRET! };
+}
+
+/** Un client Option B distinct est-il configuré ? */
+export function hasOptionBClient(): boolean {
+  return !!(process.env.GOOGLE_CLIENT_ID_OPTION_B && process.env.GOOGLE_CLIENT_SECRET_OPTION_B);
+}
+
+/**
  * Build Gmail OAuth URL for consent screen.
  */
 export function getGmailOAuthUrl(redirectUri: string, state: string, optionB = false): string {
@@ -26,7 +53,7 @@ export function getGmailOAuthUrl(redirectUri: string, state: string, optionB = f
   // le comportement global (env GMAIL_OPTION_B reste off en prod).
   const wantOptionB = process.env.GMAIL_OPTION_B === 'on' || optionB;
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID!,
+    client_id: gmailClient(wantOptionB).id,
     redirect_uri: redirectUri,
     response_type: 'code',
     // SCOPES (décision founder 29/06 — set final minimal, post-nettoyage console) :
@@ -77,14 +104,16 @@ export function getGmailOAuthUrl(redirectUri: string, state: string, optionB = f
 /**
  * Exchange authorization code for Gmail tokens.
  */
-export async function exchangeGmailCode(code: string, redirectUri: string) {
+export async function exchangeGmailCode(code: string, redirectUri: string, optionB = false) {
+  const wantOptionB = process.env.GMAIL_OPTION_B === 'on' || optionB;
+  const client = gmailClient(wantOptionB);
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      client_id: client.id,
+      client_secret: client.secret,
       redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }),
@@ -100,19 +129,32 @@ export async function exchangeGmailCode(code: string, redirectUri: string) {
  * Refresh Gmail access token.
  */
 export async function refreshGmailToken(refreshToken: string): Promise<string> {
-  const res = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      refresh_token: refreshToken,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      grant_type: 'refresh_token',
-    }),
-  });
-  if (!res.ok) throw new Error('Gmail token refresh failed');
-  const data = await res.json();
-  return data.access_token;
+  // Un refresh token n'est valable QUE pour le client qui l'a émis. On ne sait
+  // pas lequel a servi (pas de colonne dédiée), donc on essaie le client
+  // principal puis, s'il existe, le client Option B — et inversement. Ça évite
+  // d'avoir à migrer le schéma pour un cas qui ne concerne que les comptes test.
+  const candidates = [gmailClient(false)];
+  if (hasOptionBClient()) candidates.push(gmailClient(true));
+
+  let lastErr = '';
+  for (const client of candidates) {
+    const res = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        refresh_token: refreshToken,
+        client_id: client.id,
+        client_secret: client.secret,
+        grant_type: 'refresh_token',
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.access_token;
+    }
+    lastErr = await res.text().catch(() => '');
+  }
+  throw new Error(`Gmail token refresh failed${lastErr ? `: ${lastErr.slice(0, 160)}` : ''}`);
 }
 
 /**

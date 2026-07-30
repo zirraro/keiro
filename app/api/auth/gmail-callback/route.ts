@@ -48,7 +48,10 @@ export async function GET(req: NextRequest) {
 
   try {
     // Exchange code for tokens
-    const tokens = await exchangeGmailCode(code, redirectUri);
+    // L'échange doit se faire avec le MÊME client OAuth que l'autorisation :
+    // un compte test passé par le client Option B ne peut pas échanger son code
+    // avec le client de prod (invalid_client).
+    const tokens = await exchangeGmailCode(code, redirectUri, optionB);
 
     if (!tokens.refresh_token) {
       console.error('[Gmail Callback] No refresh_token received — user may need to re-consent');

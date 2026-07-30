@@ -33,6 +33,21 @@ const PROFILE_COLUMNS = [
   'google_business_account_id', 'google_business_access_token', 'google_business_location_name',
 ].join(', ');
 
+/** Le toggle « gestion complète de la boîte » est-il activé pour ce client ? */
+async function userHasFullMailbox(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('org_agent_configs')
+      .select('config')
+      .eq('user_id', userId)
+      .eq('agent_id', 'email')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return !!(data?.config as any)?.full_mailbox;
+  } catch { return false; }
+}
+
 export async function getConnectionState(supabase: any, userId: string | null): Promise<ConnectionState | null> {
   if (!userId) return null;
   try {
@@ -73,8 +88,13 @@ export async function getConnectionState(supabase: any, userId: string | null): 
         connected: !!mailProvider,
         provider: mailProvider,
         address: p.gmail_email || p.outlook_email || p.smtp_user || null,
-        // Gestion complète (corbeille, dossiers, réponses) : Gmail Option B ou IMAP.
-        canManage: mailProvider === 'imap' || (mailProvider === 'gmail' && process.env.GMAIL_OPTION_B === 'on'),
+        // Gestion complète (corbeille, dossiers, rangement, réponses) : IMAP
+        // domaine perso, OU Gmail avec Option B — laquelle s'active par le flag
+        // global OU par le toggle PAR UTILISATEUR (`full_mailbox`), pour ne pas
+        // pénaliser un compte de test en attendant la vérification Google.
+        canManage: !!p.smtp_user && !!p.smtp_host
+          ? true
+          : (mailProvider === 'gmail' && (process.env.GMAIL_OPTION_B === 'on' || await userHasFullMailbox(supabase, userId))),
       },
       googleBusiness: { connected: !!p.google_business_account_id && !!p.google_business_access_token, location: p.google_business_location_name },
       whatsapp: { connected: whatsappConnected },
