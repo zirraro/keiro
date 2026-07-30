@@ -51,6 +51,8 @@ const SYSTEM = `Tu es Hugo, assistant administratif email de NIVEAU ÉLITE. Tu g
 
 Règles : sois PRUDENT — en cas de doute sur "trash", préfère "archive" ou "ask". Ne mets JAMAIS en trash un mail qui pourrait être un client, un prospect, une facture, une administration, ou une réponse attendue. En cas de doute entre "reply" et "ask" (enjeu élevé), choisis "ask". Marque "important": true pour tout ce qui mérite l'attention du propriétaire.
 
+LANGUE : "question" et "reason" s'adressent au propriétaire de la boîte et doivent être écrits en FRANÇAIS, quelle que soit la langue du mail analysé. Une question posée en anglais à un commerçant français est inutilisable.
+
 Réponds UNIQUEMENT en JSON : {"decisions":[{"i":0,"action":"trash","label":null,"important":false,"reason":"pub","question":null}, ...]}. Pas de markdown.`;
 
 export interface TriageResult {
