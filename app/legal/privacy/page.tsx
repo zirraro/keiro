@@ -118,14 +118,33 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 text-neutral-700 mb-4 space-y-2">
               <li>
-                <strong>Gmail</strong> &mdash; so our assistant can send prospecting and follow-up emails
-                from your own Gmail address, on your behalf. Emails are sent only after you review or
-                configure them in the Keiro app. We do <strong>not</strong> read, label, archive or
-                delete your mailbox &mdash; we request no read access.
+                <strong>Gmail &mdash; sending only</strong> (default): our assistant sends prospecting and
+                follow-up emails from your own Gmail address, on your behalf. Emails are sent only after
+                you review or configure them in the Keiro app.
                 <ul className="list-disc pl-6 mt-2 space-y-1">
                   <li><code>gmail.send</code> &mdash; send emails from your address, on your behalf.</li>
                   <li><code>userinfo.email</code> / <code>userinfo.profile</code> &mdash; identify the connected mailbox (name and email shown in the app).</li>
                 </ul>
+              </li>
+              <li>
+                <strong>Gmail &mdash; assisted mailbox management</strong> (optional, only if you enable it):
+                our assistant Hugo keeps your inbox in order for you. It reads incoming messages to sort
+                them, moves advertising and newsletters to the trash, archives what is already handled,
+                files the rest into folders (Prospects, Customers, Invoices), and either drafts or sends
+                replies to real customers &mdash; according to the setting you choose. When it is unsure,
+                it asks you instead of acting.
+                <ul className="list-disc pl-6 mt-2 space-y-1">
+                  <li><code>gmail.modify</code> &mdash; read messages in order to classify them, apply and
+                      create labels, archive, move to trash, mark as read, create and send drafts and
+                      replies. This single scope is requested instead of a combination of narrower ones
+                      because it is the minimum scope that covers all of these operations.</li>
+                </ul>
+                We never permanently delete your messages: they go to your Gmail trash, where you can
+                restore them. The only thing the assistant deletes outright is a draft it wrote itself
+                and that has become obsolete &mdash; for example when you have already answered that
+                thread yourself. Every read and every write performed on your behalf is logged with a
+                timestamp so you can audit what the assistant did. You can turn this off at any time,
+                which reverts the integration to sending only.
               </li>
               <li>
                 <strong>Google Business Profile</strong> (<code>business.manage</code>) &mdash; so our assistant

@@ -1,75 +1,140 @@
-# Option B (Gmail readonly + compose) — étapes de soumission détaillées
+# Option B — Gestion complète de la boîte Gmail : dossier de soumission
 
-> Objectif : obtenir les scopes RESTREINTS `gmail.readonly` + `gmail.compose`
-> pour la gestion complète de la boîte mail (lecture native + brouillons natifs),
-> SANS casser l'Option A (`gmail.send`) déjà approuvée et en prod.
+> **Objectif** : obtenir `gmail.modify` pour que Hugo gère la boîte du client
+> (lire pour trier, corbeille, archiver, ranger en dossiers, brouillons et
+> réponses). À terme c'est le SEUL mode : Option A (`gmail.send`) disparaît.
+
+## Décision de périmètre (2026-07-30) — LIRE EN PREMIER
+
+**On demande UN SEUL scope restreint : `gmail.modify`.**
+
+Avant, le code demandait `gmail.readonly` + `gmail.compose` + `gmail.modify`.
+C'est redondant : `gmail.modify` est un sur-ensemble des deux (« all read/write
+operations except immediate, permanent deletion »). Vérifié contre **tous** les
+appels réellement effectués par le code :
+
+| Opération | Endpoint | Couvert par modify |
+|---|---|---|
+| Lister / lire les messages | `messages.list`, `messages.get` | ✅ |
+| Archiver, marquer lu, étiqueter, déplacer | `messages/{id}/modify` | ✅ |
+| Mettre à la corbeille | `messages/{id}/trash` | ✅ |
+| Envoyer | `messages.send` | ✅ |
+| Brouillons (créer / modifier / envoyer) | `drafts.*` | ✅ |
+| Lister / créer des libellés | `labels.*` | ✅ |
+| Identifier la boîte | `profile` | ✅ |
+
+**Pourquoi ça compte** : Google contrôle la minimalité des scopes et rejette les
+demandes qui se chevauchent. Trois scopes restreints à justifier au lieu d'un
+seul, c'était un motif de refus gratuit — pour exactement la même capacité.
+
+Scopes finaux de l'écran de consentement :
+`gmail.modify` (restreint) · `business.manage` (sensible) ·
+`userinfo.email` · `userinfo.profile` (non sensibles).
+→ `gmail.send` est **retiré** : `modify` l'englobe.
+
+## État du code — FAIT
+
+- Scope gaté (`lib/gmail-oauth.ts`) : `gmail.modify` si `GMAIL_OPTION_B=on` **ou**
+  toggle par utilisateur `full_mailbox`, sinon `gmail.send`. Prod inchangée tant
+  que rien n'est activé.
+- Toutes les primitives : `lib/gmail-read.ts` (lecture, trash, archive, label,
+  move, star), `lib/gmail-oauth.ts` (brouillons, envoi), `lib/agents/mailbox-manager.ts`
+  (triage complet avec classification et réponses).
+- **Journalisation** de chaque accès (`logGoogleDataAccess`) — exigence CASA V7
+  et Limited Use : on peut prouver ce qui a été lu et écrit, et quand.
+- **Jamais de suppression définitive** : uniquement la corbeille, restaurable.
+- Toggle par utilisateur, réversible : le client repasse en envoi seul quand il veut.
+- Privacy policy à jour avec `gmail.modify` + clause Limited Use (section 4.4).
+- UI de démonstration : `GmailNativeInbox` dans le panneau Hugo (liste des mails
+  reçus + bouton de préparation de réponse) + `ReplyModeToggle` (auto/brouillon).
+- Client OAuth secondaire possible (`GOOGLE_CLIENT_ID_OPTION_B`) pour filmer ou
+  tester en mode Test sans toucher au client de production.
+
+## Ce que TU dois faire, dans l'ordre
+
+### Étape 0 — Prérequis vérifiables (avant de toucher à Google)
+- [ ] **2FA activé** sur : compte Google propriétaire du projet, Supabase, OVH, GitHub. Google et le CASA le demandent, et c'est vérifié.
+- [ ] Dernier run du workflow `security-audit` **sans High/Critical** (GitHub → Actions).
+- [ ] `keiroai.com` toujours validé dans **Search Console** sous le compte propriétaire du projet GCP.
+- [ ] Écran de consentement : nom « KeiroAI », logo, email de support @keiroai.com, page d'accueil `https://keiroai.com`, confidentialité `https://keiroai.com/legal/privacy`, CGU `https://keiroai.com/legal/terms`.
+
+### Étape 1 — Console Google : le scope
+1. console.cloud.google.com → projet KeiroAI → **APIs & Services → OAuth consent screen → Data access**.
+2. **Add or remove scopes** : ajoute `https://www.googleapis.com/auth/gmail.modify`.
+3. **Retire** `gmail.readonly`, `gmail.compose` et `gmail.send` s'ils y figurent (modify les couvre ; en laisser fait perdre la minimalité).
+4. Garde `business.manage`, `userinfo.email`, `userinfo.profile`.
+5. Enregistre → l'app repasse en « Verification required » pour `gmail.modify`.
+
+### Étape 2 — Justification du scope (à coller tel quel)
+
+> KeiroAI is an AI assistant for small local businesses (bakeries, restaurants,
+> hair salons, florists, independent professionals). Our agent "Hugo" manages the
+> business owner's mailbox on their behalf, because these owners have no
+> assistant and no time: their inbox is buried under advertising and they miss
+> real customer emails.
 >
-> Principe de non-régression : **tout le code Option B est gaté derrière
-> `GMAIL_OPTION_B`**. Tant que ce flag n'est pas `on`, l'app demande uniquement
-> `gmail.send` et se comporte exactement comme aujourd'hui. On n'active le flag
-> qu'APRÈS l'approbation Google.
+> With `gmail.modify`, Hugo performs exactly the operations a human assistant
+> would: it reads each incoming message in order to classify it, moves
+> advertising and newsletters to the trash, archives what is already handled,
+> files the rest into folders (Prospects, Customers, Invoices, To handle), and
+> either prepares a draft reply or sends a reply to genuine customer emails —
+> according to a setting the user controls. When Hugo is unsure, it notifies the
+> user instead of acting.
+>
+> We request `gmail.modify` alone rather than a combination of `gmail.readonly`,
+> `gmail.compose` and `gmail.send`, because `gmail.modify` is the single minimum
+> scope that covers all of the above; requesting several overlapping scopes would
+> grant no less access.
+>
+> We never permanently delete data: messages are moved to the user's Gmail trash
+> and remain restorable. Every read and every write performed on the user's
+> behalf is logged with a timestamp, so the user can audit exactly what the
+> assistant did. The feature is opt-in, per user, and reversible at any time —
+> turning it off returns the integration to sending only. Google user data is
+> never sold, never used for advertising, and never used to train or improve any
+> generalized AI or ML model.
 
-## État du code (fait)
-- Scopes gatés (`lib/gmail-oauth.ts`) : `readonly`+`compose` si `GMAIL_OPTION_B=on`, sinon `send`.
-- Primitives natives gatées (`lib/gmail-read.ts`) : `listRecentGmail` (readonly) + `createGmailDraft` (compose), inertes si flag off.
-- Endpoints gatés (`/api/me/gmail-inbox` GET+POST) : renvoient `enabled:false` tant que le flag est off.
-- Journalisation d'accès Google (`logGoogleDataAccess`) sur chaque lecture/brouillon (exigence CASA V7 + Limited Use).
-- Pack docs sécurité (`docs/security/`) : politique, rétention/suppression, incident, data-handling, checklist ASVS L2.
+### Étape 3 — Vidéo de démonstration (obligatoire)
 
-## Ordre des opérations (à faire — toi)
+Règles strictes, une seule erreur = rejet automatique :
+- **Écran de consentement OAuth en ANGLAIS** — règle le compte/navigateur en English AVANT de filmer.
+- L'URL `keiroai.com` doit être **visible** dans la barre d'adresse.
+- Le scope doit être **lisible** à l'écran : zoome 4-5 secondes sur la ligne
+  « Read, compose, send and permanently delete all your email from Gmail ».
+- Chaque capacité doit être **montrée en action**, pas décrite.
 
-### Étape 0 — Prérequis (avant de toucher à Google)
-- [ ] **MFA/2FA** activé et prouvable sur : compte Google (owner), Supabase, OVH, GitHub. (CASA #4)
-- [ ] Le workflow `security-audit` passe sans High/Critical (onglet Actions → dernier run). (CASA #10)
-- [ ] Privacy policy live liste bien `gmail.readonly` + `gmail.compose` + clause **Limited Use**. (déjà : keiroai.com/legal/privacy — vérifier que les 2 scopes y figurent)
+Déroulé à filmer (3 à 5 minutes, YouTube en « non répertorié ») :
+1. Page d'accueil `keiroai.com`, puis connexion à l'app.
+2. Panneau de Hugo → bouton de connexion Gmail → **écran de consentement en anglais**, zoom sur le scope.
+3. **Lecture** : la boîte du client s'affiche dans KeiroAI (liste des messages reçus).
+4. **Tri** : lancer le triage → montrer une pub partie à la corbeille, un message archivé, un message rangé dans un dossier créé par Hugo.
+5. **Brouillon** : Hugo prépare une réponse à un vrai email → montrer le brouillon **dans Gmail**.
+6. **Envoi** : basculer le réglage sur envoi automatique → montrer une réponse envoyée.
+7. **Réversibilité** : montrer le toggle qui coupe la gestion complète, et le lien de déconnexion.
+8. Filmer aussi `keiroai.com/legal/privacy` en descendant jusqu'à la section 4.4 (Limited Use + `gmail.modify`).
 
-### Étape 1 — Google Cloud Console (ajout des scopes)
-1. console.cloud.google.com → projet KeiroAI → **APIs & Services → OAuth consent screen**.
-2. **Data access → Add or remove scopes** → ajoute :
-   - `https://www.googleapis.com/auth/gmail.readonly`
-   - `https://www.googleapis.com/auth/gmail.compose`
-   (garde `gmail.send`, `userinfo.email`, `userinfo.profile`)
-3. **Save** → l'app repasse en **"Verification required"** pour les 2 nouveaux scopes.
-4. Renseigne, pour chaque scope restreint, la **justification** (voir textes prêts plus bas).
+Pour filmer, il faut que le scope soit réellement demandé : passe
+`GMAIL_OPTION_B=on` sur le VPS (ou utilise ton compte, qui a déjà le toggle
+`full_mailbox`), filme, puis remets `off` si tu ne veux pas exposer les vrais
+clients avant l'approbation.
 
-> ⚠️ Ne PAS activer `GMAIL_OPTION_B` encore. La prod continue en `gmail.send`.
+### Étape 4 — CASA (obligatoire pour un scope restreint en production)
+1. Google envoie une invitation vers un laboratoire agréé (souvent **TAC Security**).
+2. Choisir **Tier 2 — self-scan + LOV (Letter of Validation)**.
+3. Lancer le scan sur `keiroai.com` + fournir l'accès au dépôt si demandé.
+4. Corriger tout **High/Critical** (rien de connu à ce jour ; le pack `docs/security/` couvre les réponses au questionnaire).
+5. La LOV est valable 12 mois → **re-scan annuel** à prévoir.
 
-### Étape 2 — Vidéo de démonstration (obligatoire)
-Google exige une vidéo (YouTube non répertorié) montrant :
-1. L'écran de consentement OAuth (en anglais) avec **les 2 scopes** demandés.
-2. `gmail.readonly` EN ACTION : la boîte du client s'affiche dans KeiroAI (Hugo lit les réponses des prospects).
-3. `gmail.compose` EN ACTION : Hugo crée un **brouillon dans le dossier Brouillons Gmail** du client, que le client relit puis envoie.
-4. Le lien vers la **privacy policy** + clause Limited Use.
-
-> Pour filmer : activer `GMAIL_OPTION_B=on` sur un environnement de test (ou brièvement), connecter un compte Gmail de test, montrer inbox + brouillon via l'UI Hugo. Puis remettre off.
-
-### Étape 3 — CASA (Cloud Application Security Assessment) Tier 2
-1. Depuis la Console, quand Google le demande pour les scopes restreints → tu es dirigé vers **CASA** (via un assesseur autorisé, ex. **TAC Security / affiliés**, ou l'auto-scan approuvé).
-2. Fournis les docs de `docs/security/` (politique sécu, rétention, incident, data-handling, checklist ASVS L2).
-3. Lance le **scan statique + dynamique** sur keiroai.com → corrige tout **High/Critical** (plan : `remediation-plan.md`).
-4. À la fin → **Letter of Validation (LOV)**, valable 12 mois, transmise à Google.
-
-### Étape 4 — Attendre l'approbation Google
-- Verification restreinte = plusieurs semaines. Tant que ce n'est pas approuvé, **ne pas** flip le flag.
-
-### Étape 5 — Activation (le jour où Google approuve)
-```bash
-ssh root@51.68.226.25
-cd /opt/keiro
-grep -q GMAIL_OPTION_B .env.local || echo 'GMAIL_OPTION_B=on' >> .env.local
-bash scripts/deploy.sh   # rebuild
-```
-- Les clients qui reconnectent Gmail verront le nouvel écran (readonly+compose).
-- Les clients déjà connectés en `gmail.send` gardent leur token ; on peut demander une reconnexion pour élargir le scope.
-
-## Justifications de scope (prêtes à coller dans la Console)
-
-**gmail.readonly**
-> KeiroAI reads the incoming emails in the user's mailbox solely to detect and surface replies from the user's own prospects/customers, so our assistant "Hugo" can draft accurate, context-aware responses on the user's behalf. We do not modify, label, archive or delete any message. Data is used only to provide this in-app feature to the user, per Google Limited Use.
-
-**gmail.compose**
-> KeiroAI creates and updates email drafts in the user's Gmail Drafts folder so the user can review and send them from their own account. This powers the "prepare a reply for me to approve" workflow. We never send without the user's action for this scope. Data is used only to provide this feature to the user, per Google Limited Use.
+### Étape 5 — Après approbation
+1. `GMAIL_OPTION_B=on` dans `.env.local` du VPS, puis `bash scripts/deploy.sh`.
+2. Chaque client existant doit **reconnecter Gmail** une fois (son token actuel ne porte que `gmail.send`).
+3. Retirer le repli Option A du code une fois tous les clients migrés (le mode envoi seul n'aura plus de raison d'être).
 
 ## Rappel non-régression
-- `GMAIL_OPTION_B` off = Option A pure (aujourd'hui). Rien ne change pour les clients actuels.
-- Aucun code de production n'appelle Gmail readonly/compose tant que le flag est off (vérifié : les primitives renvoient `enabled:false`).
+- Flag off et toggle off = Option A pure. Rien ne change pour les clients actuels.
+- Les primitives Option B renvoient `enabled:false` tant que rien n'est activé.
+
+## Documents du pack sécurité (déjà écrits, à fournir sur demande)
+`docs/security/` : politique de sécurité, rétention et suppression des données,
+plan de réponse à incident, traitement des données utilisateur Google,
+checklist ASVS L2, plan de remédiation.

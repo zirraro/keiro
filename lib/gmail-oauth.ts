@@ -56,37 +56,46 @@ export function getGmailOAuthUrl(redirectUri: string, state: string, optionB = f
     client_id: gmailClient(wantOptionB).id,
     redirect_uri: redirectUri,
     response_type: 'code',
-    // SCOPES (décision founder 29/06 — set final minimal, post-nettoyage console) :
-    //   - gmail.compose  → CRÉE / REPREND / MODIFIE des brouillons ET envoie. SENSIBLE.
-    //                      Remplace gmail.send (compose envoie aussi) et couvre le mode
-    //                      brouillon (Hugo prépare → le client relit/envoie ; ou le client
-    //                      a commencé un brouillon → Hugo le reprend/améliore).
-    //   - gmail.readonly → LIRE la boîte du client (réponses prospects + mails reçus)
-    //                      pour analyser et répondre en auto (Hugo). RESTREINT →
-    //                      nécessite l'audit CASA pour la prod >100 users (gratuit en
-    //                      mode test). On NE demande PAS gmail.modify (jamais).
+    // SCOPES — deux modes, un seul actif à la fois.
+    //
+    // OPTION A (live, approuvée par Google le 20/07/2026) = `gmail.send` :
+    //   Hugo envoie depuis l'adresse du client. SENSIBLE, donc pas de CASA. Les
+    //   brouillons à valider vivent dans l'UI KeiroAI, et les réponses reviennent
+    //   par Reply-To via le webhook. C'est le mode par défaut, inchangé.
+    //
+    // OPTION B (en cours de soumission) = `gmail.modify` SEUL. RESTREINT, donc
+    //   vérification Google + CASA. Hugo gère la boîte entière : il lit pour
+    //   classer, met les pubs à la corbeille, archive, range en dossiers, prépare
+    //   ou envoie les réponses. Un seul scope parce que `modify` est un
+    //   sur-ensemble de readonly ET compose — demander les trois n'accorderait
+    //   pas moins d'accès et casserait le critère de minimalité que Google
+    //   contrôle. Détail et justification : docs/security/option-b-submission-steps.md
+    //
+    // Jamais de suppression définitive : uniquement la corbeille, restaurable par
+    // le client. Chaque lecture et chaque écriture est journalisée
+    // (logGoogleDataAccess) — exigence CASA V7 et Limited Use.
+    //
+    // Activation : `GMAIL_OPTION_B=on` (global) ou le toggle par utilisateur
+    // `full_mailbox`. Tant que rien n'est activé, l'écran de consentement reste
+    // `gmail.send`. Ne pas activer globalement avant l'approbation.
     //   - userinfo.email/profile → identifier la boîte connectée (nom/photo affichés).
-    // CORRECTION 15/07 : Google classe gmail.compose ET gmail.readonly en
-    // RESTREINT (→ CASA). Le SEUL scope Gmail sensible = gmail.send (envoi seul,
-    // pas de CASA). OPTION A (lancement rapide) = gmail.send : Hugo envoie depuis
-    // l'adresse du client ; les brouillons-à-valider vivent dans l'UI KeiroAI (pas
-    // le dossier Brouillons Gmail) ; les réponses reviennent via Reply-To (webhook).
-    // OPTION B (plus tard, avec CASA) : remplacer par gmail.compose + gmail.readonly
-    // → brouillons natifs dans Gmail + lecture native de la boîte.
-    // OPTION A (live, approuvé Google) = gmail.send. OPTION B (readonly+compose,
-    // CASA) = gatée derrière GMAIL_OPTION_B=on, INERTE par défaut → l'écran de
-    // consentement reste `gmail.send` tant que le flag n'est pas activé (post-CASA
-    // + nouvelle vérif Google). Ne JAMAIS activer avant approbation Option B.
     scope: [
+      // OPTION B — UN SEUL scope restreint : `gmail.modify`.
+      //
+      // 2026-07-30 — On demandait readonly + compose + modify. C'est redondant :
+      // `gmail.modify` est un SUR-ENSEMBLE des deux (« all read/write operations
+      // except immediate, permanent deletion »). Vérifié contre tous les appels
+      // réellement faits par le code — messages.list/get, messages/{id}/modify
+      // (archiver, marquer lu, étiqueter, déplacer), messages/{id}/trash,
+      // messages.send, drafts.create/update/send, labels.list — modify les
+      // couvre tous.
+      //
+      // Pourquoi ça compte : Google contrôle la MINIMALITÉ des scopes et rejette
+      // les demandes qui se chevauchent. Trois scopes restreints à justifier au
+      // lieu d'un seul, c'était un motif de refus gratuit. Un seul scope = une
+      // seule justification, un seul périmètre à défendre, même capacité.
       ...(wantOptionB
-        ? [
-            'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.compose',
-            // gmail.modify (founder 25/07) : gestion complète de la boîte —
-            // corbeille / archivage / déplacement de libellés / marquer lu.
-            // RESTREINT → CASA en prod ; gaté avec le reste d'Option B.
-            'https://www.googleapis.com/auth/gmail.modify',
-          ]
+        ? ['https://www.googleapis.com/auth/gmail.modify']
         : ['https://www.googleapis.com/auth/gmail.send']),
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
