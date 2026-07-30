@@ -124,6 +124,35 @@ export interface OptimalSlots {
 }
 
 /**
+ * Distributeur de créneaux pour une fournée de posts.
+ *
+ * Garantit qu'on ne dépasse pas la cadence du jour et qu'aucun post ne tombe
+ * sur une heure déjà occupée — y compris par des posts déjà en base. Renvoie
+ * null quand le jour est plein : au caller de décaler.
+ */
+export function createSlotAssigner(
+  slots: OptimalSlots,
+  busy: Iterable<string> = [],
+) {
+  const taken = new Set<string>(busy); // "YYYY-MM-DD|HH:MM:SS"
+  return {
+    /** Prochain créneau libre pour cette plateforme ce jour-là, ou null. */
+    next(platform: Platform, date: string): string | null {
+      const list = platform === 'tiktok' ? slots.tiktok : slots.instagram;
+      for (const slot of list) {
+        const key = `${date}|${slot}`;
+        if (taken.has(key)) continue;
+        taken.add(key);
+        return slot;
+      }
+      return null;
+    },
+    /** Marque un créneau comme pris (posts insérés par une autre voie). */
+    reserve(date: string, time: string) { taken.add(`${date}|${time}`); },
+  };
+}
+
+/**
  * Créneaux du jour, tous distincts, toutes plateformes confondues.
  *
  * L'unicité est garantie globalement : TikTok ne peut pas tomber sur une heure

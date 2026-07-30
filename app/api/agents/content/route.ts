@@ -5132,6 +5132,28 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     console.warn('[Content] event guard indisponible:', e?.message);
   }
 
+  // 2026-07-30 — Heures de publication DYNAMIQUES, propres à CE client (règle
+  // fondateur : « les heures doivent s'adapter en fonction des performances de
+  // chaque client »). On classe les heures sur 90 jours de données réelles du
+  // client, on impose 70 min d'écart et l'unicité globale, et on ignore le
+  // `best_time` inventé par le modèle : la donnée bat la supposition.
+  let slotAssigner: { next: (p: any, d: string) => string | null } | null = null;
+  try {
+    const { computeOptimalSlots, createSlotAssigner } = await import('@/lib/content/posting-slots');
+    const slots = await computeOptimalSlots(supabase, contentUserId, { igPerDay: 6, ttPerDay: 2, businessType: planBizType });
+    // Créneaux déjà occupés sur la période visée → aucune collision possible.
+    const { data: already } = await supabase
+      .from('content_calendar')
+      .select('scheduled_date, scheduled_time')
+      .eq('user_id', contentUserId || '')
+      .gte('scheduled_date', mondayDate.toISOString().split('T')[0])
+      .not('status', 'in', '("skipped","archived")');
+    slotAssigner = createSlotAssigner(slots, (already || []).map((r: any) => `${r.scheduled_date}|${String(r.scheduled_time).slice(0, 8)}`));
+    console.log(`[Content] créneaux ${slots.source} — IG ${slots.instagram.join(' ')} · TT ${slots.tiktok.join(' ')}`);
+  } catch (e: any) {
+    console.warn('[Content] créneaux dynamiques indisponibles:', e?.message);
+  }
+
   let inserted = 0;
   for (const post of weekPlan) {
     const dayNum = dayMap[(post.day || '').toLowerCase()] ?? null;
@@ -5144,7 +5166,8 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       scheduledDate = postDate.toISOString().split('T')[0];
     }
 
-    // Parse optimal time
+    // Heure de repli si les créneaux dynamiques sont indisponibles : on garde
+    // l'ancien comportement (suggestion du modèle, sinon midi).
     let scheduledTime = '12:00';
     if (post.best_time) {
       const timeMatch = post.best_time.match(/(\d{1,2})[h:](\d{2})?/);
@@ -5170,6 +5193,24 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       if (!verdict.ok) {
         eventRejections.push(`${scheduledDate} ${postPlatform} — ${verdict.reason}`);
         console.warn('[Content] post événement rejeté:', verdict.reason);
+        continue;
+      }
+    }
+
+    // Créneau dynamique du client. Si le jour est plein (6 IG / 2 TikTok), on
+    // décale au premier jour qui a de la place plutôt que d'entasser deux posts
+    // à la même heure.
+    if (slotAssigner) {
+      let slot: string | null = null;
+      const probe = new Date(`${scheduledDate}T00:00:00Z`);
+      for (let shift = 0; shift < 14 && !slot; shift++) {
+        const date = probe.toISOString().split('T')[0];
+        slot = slotAssigner.next(postPlatform as any, date);
+        if (slot) { scheduledDate = date; scheduledTime = slot; break; }
+        probe.setUTCDate(probe.getUTCDate() + 1);
+      }
+      if (!slot) {
+        console.warn(`[Content] aucun créneau libre sous 14 jours pour ${postPlatform} — post ignoré`);
         continue;
       }
     }
@@ -5495,6 +5536,23 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     console.warn('[Content] event guard indisponible:', e?.message);
   }
 
+  // Créneaux dynamiques du client (mêmes règles que le plan hebdo).
+  let slotAssigner: { next: (p: any, d: string) => string | null } | null = null;
+  try {
+    const { computeOptimalSlots, createSlotAssigner } = await import('@/lib/content/posting-slots');
+    const slots = await computeOptimalSlots(supabase, userId || null, { igPerDay: 6, ttPerDay: 2, businessType: planBizType });
+    const { data: already } = await supabase
+      .from('content_calendar')
+      .select('scheduled_date, scheduled_time')
+      .eq('user_id', userId || '')
+      .gte('scheduled_date', mondayDate.toISOString().split('T')[0])
+      .not('status', 'in', '("skipped","archived")');
+    slotAssigner = createSlotAssigner(slots, (already || []).map((r: any) => `${r.scheduled_date}|${String(r.scheduled_time).slice(0, 8)}`));
+    console.log(`[Content] créneaux ${slots.source} — IG ${slots.instagram.join(' ')} · TT ${slots.tiktok.join(' ')}`);
+  } catch (e: any) {
+    console.warn('[Content] créneaux dynamiques indisponibles:', e?.message);
+  }
+
   // Process posts sequentially (Seedream rate limits)
   for (const post of weekPlan) {
     const qa = qaResults[weekPlan.indexOf(post)] || null;
@@ -5533,6 +5591,22 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
       if (!verdict.ok) {
         eventRejections.push(`${scheduledDate} ${platform} — ${verdict.reason}`);
         console.warn('[Content] post événement rejeté:', verdict.reason);
+        continue;
+      }
+    }
+
+    // Créneau dynamique du client, décalage au premier jour libre si complet.
+    if (slotAssigner) {
+      let slot: string | null = null;
+      const probe = new Date(`${scheduledDate}T00:00:00Z`);
+      for (let shift = 0; shift < 14 && !slot; shift++) {
+        const date = probe.toISOString().split('T')[0];
+        slot = slotAssigner.next(platform as any, date);
+        if (slot) { scheduledDate = date; scheduledTime = slot; break; }
+        probe.setUTCDate(probe.getUTCDate() + 1);
+      }
+      if (!slot) {
+        console.warn(`[Content] aucun créneau libre sous 14 jours pour ${platform} — post ignoré`);
         continue;
       }
     }
