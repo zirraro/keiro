@@ -387,6 +387,11 @@ const AGENT_ENDPOINTS: Record<string, { path: string; method: string }> = {
   gmaps: { path: '/api/agents/gmaps', method: 'GET' },
   rh: { path: '/api/agents/rh', method: 'GET' },
   comptable: { path: '/api/agents/comptable', method: 'GET' },
+  // 2026-07-29 — Agents qui n'avaient AUCUN point d'exécution : une demande
+  // « lance-le maintenant » sur eux ne faisait rien du tout, en silence.
+  whatsapp: { path: '/api/agents/whatsapp', method: 'GET' },
+  linkedin: { path: '/api/agents/content?platform=linkedin', method: 'GET' },
+  chatbot: { path: '/api/agents/onboarding', method: 'GET' },
 };
 
 /**
@@ -595,7 +600,28 @@ export async function POST(request: NextRequest) {
     // LLM to confirm changes in its own conversational voice.
     const naturalAckGuide = `\n\nQUAND LE CLIENT TE DEMANDE UN CHANGEMENT (horaire, fréquence, stratégie, ton, plateforme, etc.) : confirme NATURELLEMENT dans ta réponse que tu prends en compte la demande, sans formule robotique ("✓ Noté"). Sois conversationnel. Exemple : "OK, à partir de demain je décale la publi Insta à 8h" ou "Reçu, je passe en mode tips éducationnels pour les 2 prochaines semaines".`;
 
-    const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext + partnerContext + peerInsightsContext + naturalAckGuide;
+    // 2026-07-29 — L'agent DOIT savoir seul ce qui est branché et où en sont
+    // les tâches lancées. Un client s'est fait répondre « connecte-toi d'abord
+    // et dis-moi quand c'est fait » : c'est exactement ce que ces deux blocs
+    // rendent impossible. Vaut pour TOUS les agents.
+    let connectionContext = '';
+    let taskRunsContext = '';
+    try {
+      const [{ getConnectionState, connectionPromptBlock }, { getRecentTaskRuns, taskRunsPromptBlock }] = await Promise.all([
+        import('@/lib/agents/connection-state'),
+        import('@/lib/agents/task-runs'),
+      ]);
+      const [connState, runs] = await Promise.all([
+        getConnectionState(supabase, user.id),
+        getRecentTaskRuns(supabase, user.id, { hours: 6 }),
+      ]);
+      connectionContext = connectionPromptBlock(connState);
+      taskRunsContext = taskRunsPromptBlock(runs);
+    } catch (e: any) {
+      console.warn('[AgentChat] contexte connexions/tâches indisponible:', e?.message);
+    }
+
+    const systemPrompt = agentConfig.systemPrompt + connectionContext + taskRunsContext + activityContext + statsContext + partnerContext + peerInsightsContext + naturalAckGuide;
 
     // 2026-06-09 — Token budget guard : tronque l'historique au-delà
     // des 20 derniers messages. Sur conversation longue (>50 msgs),
@@ -711,7 +737,15 @@ export async function POST(request: NextRequest) {
     // ── Chat-to-Settings + Immediate Execution ──
     // 1. Detect directives → save to org_agent_configs (persistent)
     // 2. Detect action requests → execute agent NOW (not wait for cron)
-    const DIRECTIVE_AGENTS = new Set(['content', 'dm_instagram', 'email', 'marketing', 'ceo', 'commercial', 'seo', 'gmaps']);
+    // 2026-07-29 — TOUS les agents (règle fondateur). Avant, Sara, Louis,
+    // Stella, Axel, Clara et LinkedIn étaient absents : un client pouvait leur
+    // demander une action ou un réglage, rien n'était capté ni exécuté, en
+    // silence. Un client parle à l'agent qu'il a sous les yeux, pas à la liste
+    // que le code connaît.
+    const DIRECTIVE_AGENTS = new Set([
+      'content', 'dm_instagram', 'email', 'marketing', 'ceo', 'commercial', 'seo', 'gmaps',
+      'rh', 'comptable', 'whatsapp', 'tiktok_comments', 'onboarding', 'chatbot', 'linkedin', 'retention',
+    ]);
     if (DIRECTIVE_AGENTS.has(agent)) {
       (async () => {
         try {
@@ -728,9 +762,47 @@ export async function POST(request: NextRequest) {
 
 HORAIRES : si l'utilisateur demande de changer les horaires, extrais dans schedule.
 
+RÉGLAGES RECONNUS (utilise EXACTEMENT ces clés dans "settings" — c'est ce que les agents lisent) :
+- posts_per_day_ig / posts_per_day_tt / posts_per_day_li : nombre (0 = on arrête ce réseau)
+- ig_enabled / tt_enabled / li_enabled : true|false (activer/couper un réseau)
+- formats_ig : "stories" | "reels" | "carrousels" | "posts" | "mix"
+- video_ratio : 0-100 (part de vidéo dans le mix)
+- content_frequency_mode : "low" | "normal" | "high"
+- auto_mode : true|false (publication automatique vs validation manuelle)
+- reply_mode : "auto_send" | "draft" (Hugo : répondre directement ou préparer un brouillon)
+- auto_reply_reviews : true|false (Théo : réponses automatiques aux avis)
+- gbp_mode : "auto" | "suggest" (Théo : modifier la fiche Google ou proposer)
+- report_frequency : "daily" | "weekly" | "monthly" · email_notify : true|false
+- personality : ton de voix demandé (ex "plus direct", "plus chaleureux")
+- custom_instructions : consigne libre à respecter durablement
+- escalation_keywords : liste de mots qui doivent te faire prévenir le client
+- prospection_sessions : nombre de sessions de prospection par jour (Léo)
+
+Le client peut formuler ça de mille façons et pour tous types de commerce.
+Comprends l'INTENTION métier, pas les mots. Quelques cas réels :
+- "poste 3 fois par jour sur insta et 1 sur tiktok" → settings {posts_per_day_ig:3, posts_per_day_tt:1}
+- "arrête TikTok pour le moment" → settings {tt_enabled:false, posts_per_day_tt:0}
+- "je veux valider avant publication" → settings {auto_mode:false}
+- "laisse tourner tout seul" / "j'ai pas le temps de valider" → settings {auto_mode:true}
+- "réponds directement aux mails, ne me demande pas" → settings {reply_mode:"auto_send"}
+- "prépare-moi les réponses mais n'envoie pas" → settings {reply_mode:"draft"}
+- "réponds aux avis Google tout seul" → settings {auto_reply_reviews:true}
+- "plus de vidéo, moins de photos" → settings {video_ratio:70}
+- "parle moins commercial, plus humain" → settings {personality:"plus humain, moins commercial"}
+- "préviens-moi si un client parle d'annulation ou de remboursement" → settings {escalation_keywords:["annulation","remboursement"]}
+- "on ferme du 1er au 20 août" → directive (fermeture) — NE PAS inventer de clé, mets-la dans custom_instructions
+Si une demande ne correspond à AUCUNE clé, mets-la dans custom_instructions plutôt que d'inventer une clé.
+
 Exemples :
 - "publie plus de stories" → {"directives":["format_preference: more stories"],"settings":{"formats_ig":"stories"},"immediate_action":null,"schedule":null}
 - "poste 5 fois par jour" → {"directives":["posting frequency: 5 per day"],"settings":{"posts_per_day_ig":5},"immediate_action":null,"schedule":null}
+- "génère-moi un contrat CDD" → {"directives":[],"settings":{},"immediate_action":"rh","schedule":null}
+- "fais-moi un prévisionnel de trésorerie" → {"directives":[],"settings":{},"immediate_action":"comptable","schedule":null}
+- "envoie les rappels de RDV de demain" → {"directives":[],"settings":{},"immediate_action":"whatsapp","schedule":null}
+- "réponds aux commentaires TikTok" → {"directives":[],"settings":{},"immediate_action":"tiktok_comments","schedule":null}
+- "réponds à mes avis Google" / "optimise ma fiche Google" → {"directives":[],"settings":{},"immediate_action":"gmaps","schedule":null}
+- "écris un article de blog sur mon métier" → {"directives":[],"settings":{},"immediate_action":"seo","schedule":null}
+- "où ça en est ?" / "c'est fini ?" / "ça avance ?" → {"directives":[],"settings":{},"immediate_action":null,"schedule":null} (ne relance RIEN : l'état des tâches est déjà dans ton contexte, réponds avec le pourcentage)
 - "publie maintenant" → {"directives":[],"settings":{},"immediate_action":"content","schedule":null}
 - "go" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
 - "c'est parti lance tout" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
@@ -876,14 +948,47 @@ Retourne UNIQUEMENT du JSON valide.`,
               const separator = endpoint.path.includes('?') ? '&' : '?';
               const url = `${appUrl}${endpoint.path}${separator}user_id=${user.id}`;
               console.log(`[AgentChat] 🚀 IMMEDIATE EXECUTION: ${actionAgent} for user ${user.id.substring(0, 8)}`);
+
+              // 2026-07-29 — Toute tâche lancée depuis le chat est tracée :
+              // ouverture + clôture. C'est ce qui permet de confirmer « c'est
+              // terminé », de donner un % si le client redemande, et de ne
+              // jamais laisser une tâche bloquée sans que personne le voie.
+              const { startTaskRun, finishTaskRun } = await import('@/lib/agents/task-runs');
+              const runId = await startTaskRun(supabase, { userId: user.id, agent: actionAgent, action: actionAgent, label: message?.slice(0, 120) });
+
+              // Filet de sécurité : si l'appel ne répond jamais, on clôt
+              // quand même en échec plutôt que de laisser la tâche ouverte.
+              const timeout = AbortSignal.timeout(10 * 60 * 1000);
               fetch(url, {
                 method: endpoint.method,
                 headers: cronSecret ? { 'Authorization': `Bearer ${cronSecret}`, 'Content-Type': 'application/json' } : {},
+                signal: timeout,
               }).then(async (res) => {
                 const data = await res.json().catch(() => ({}));
                 console.log(`[AgentChat] ✓ ${actionAgent} executed: HTTP ${res.status}`, JSON.stringify(data).substring(0, 200));
-              }).catch((e) => {
+                const ok = res.ok && (data as any)?.ok !== false;
+                // Résumé chiffré quand l'agent en renvoie un — « c'est fait »
+                // sans chiffre ne vaut rien pour le client.
+                const d: any = data || {};
+                const bits = [
+                  d.postsPlanned != null ? `${d.postsPlanned} post(s) planifié(s)` : null,
+                  d.published != null ? `${d.published} publié(s)` : null,
+                  d.sent != null ? `${d.sent} envoyé(s)` : null,
+                  d.prospects != null ? `${d.prospects} prospect(s)` : null,
+                  d.triaged != null ? `${d.triaged} mail(s) traité(s)` : null,
+                  d.replied != null ? `${d.replied} réponse(s)` : null,
+                  d.skipped ? `ignoré (${d.skipped})` : null,
+                ].filter(Boolean);
+                await finishTaskRun(supabase, runId, {
+                  userId: user.id, agent: actionAgent, action: actionAgent, ok,
+                  summary: bits.length ? bits.join(', ') : (ok ? 'terminé' : (d.error || `HTTP ${res.status}`)),
+                });
+              }).catch(async (e) => {
                 console.error(`[AgentChat] ✗ ${actionAgent} execution failed:`, e.message);
+                await finishTaskRun(supabase, runId, {
+                  userId: user.id, agent: actionAgent, action: actionAgent, ok: false,
+                  summary: e.name === 'TimeoutError' ? 'aucune réponse après 10 min — tâche abandonnée' : (e.message || 'échec'),
+                });
               });
             }
           }

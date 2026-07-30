@@ -152,6 +152,38 @@ export async function GET(req: NextRequest) {
   } catch (e: any) { actions.stale_dm_queue_cleanup_error = e?.message; }
   actions.stale_dm_queue_cleanup = { expired: dmExpired };
 
+  // ── 4. stuck_chat_tasks ───────────────────────────────────
+  // Une tâche lancée depuis le chat ne doit JAMAIS rester ouverte
+  // indéfiniment sans que personne s'en aperçoive (règle fondateur 29/07).
+  // On clôt en échec toute tâche ouverte depuis plus de 30 min sans clôture :
+  // le client verra « bloquée, je relance ? » au lieu d'un silence.
+  let stuckClosed = 0;
+  try {
+    const { RUN_STUCK_AFTER_MIN } = await import('@/lib/agents/task-runs');
+    const cutoff = new Date(Date.now() - 2 * RUN_STUCK_AFTER_MIN * 60_000).toISOString();
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data: started } = await supabase.from('agent_logs')
+      .select('id, agent, user_id, created_at, data')
+      .eq('action', 'chat_action_started')
+      .gte('created_at', since).lt('created_at', cutoff).limit(200);
+    const { data: finished } = await supabase.from('agent_logs')
+      .select('data')
+      .eq('action', 'chat_action_finished')
+      .gte('created_at', since).limit(500);
+    const closedIds = new Set((finished || []).map((r: any) => r?.data?.run_id).filter(Boolean));
+    for (const run of started || []) {
+      if (closedIds.has(run.id)) continue;
+      await supabase.from('agent_logs').insert({
+        agent: run.agent, action: 'chat_action_finished', status: 'error',
+        user_id: run.user_id,
+        error_message: `tâche restée ouverte plus de ${2 * RUN_STUCK_AFTER_MIN} min — clôturée automatiquement`,
+        data: { run_id: run.id, target_action: run?.data?.target_action || run.agent, ok: false, summary: 'bloquée, jamais terminée — à relancer', auto_closed: true },
+      });
+      stuckClosed++;
+    }
+  } catch (e: any) { actions.stuck_chat_tasks_error = e?.message; }
+  actions.stuck_chat_tasks = { closed: stuckClosed };
+
   // ── Log de traçabilité (chaque remédiation est tracée) ──
   try {
     await supabase.from('agent_logs').insert({
