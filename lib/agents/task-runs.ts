@@ -74,11 +74,20 @@ export async function startTaskRun(
   }
 }
 
-/** Clôture une tâche : c'est CE log qui autorise à confirmer au client. */
+/**
+ * Clôture une tâche : c'est CE log qui autorise à confirmer au client.
+ *
+ * Envoie AUSSI une notification (règle fondateur 2026-07-29 : « les agents
+ * doivent dire quand c'est fini via notif — c'est à ça que doivent servir les
+ * notifs, pas à spammer pour rien »). Une tâche lancée depuis le chat est par
+ * définition attendue par le client : c'est la notification la plus utile qui
+ * existe. On ne notifie QUE ces fins de tâche demandées, jamais les runs
+ * automatiques de fond.
+ */
 export async function finishTaskRun(
   supabase: any,
   runId: string | null,
-  opts: { userId: string | null; agent: string; action: string; ok: boolean; summary?: string },
+  opts: { userId: string | null; agent: string; action: string; ok: boolean; summary?: string; notify?: boolean },
 ): Promise<void> {
   try {
     await supabase.from('agent_logs').insert({
@@ -90,6 +99,26 @@ export async function finishTaskRun(
       data: { run_id: runId, target_action: opts.action, ok: opts.ok, summary: (opts.summary || '').slice(0, 500), finished_at: new Date().toISOString() },
     });
   } catch { /* le suivi ne doit jamais casser l'action */ }
+
+  if (opts.notify === false || !opts.userId) return;
+  try {
+    const { notifyClient } = await import('@/lib/agents/notify-client');
+    const résultat = (opts.summary || '').trim();
+    await notifyClient(supabase, {
+      userId: opts.userId,
+      agent: opts.agent,
+      // 'action' quand ça a échoué (le client doit décider de relancer),
+      // 'info' quand c'est fait (pas d'action attendue de sa part).
+      type: opts.ok ? 'info' : 'action',
+      title: opts.ok
+        ? { fr: 'c\'est terminé', en: 'done' }
+        : { fr: 'ça n\'a pas abouti', en: 'it did not go through' },
+      message: opts.ok
+        ? { fr: `Ce que tu m'as demandé est terminé${résultat ? ` : ${résultat}` : ''}.`, en: `What you asked for is done${résultat ? `: ${résultat}` : ''}.` }
+        : { fr: `Je n'ai pas pu terminer${résultat ? ` : ${résultat}` : ''}. Dis-moi si je relance.`, en: `I couldn't finish${résultat ? `: ${résultat}` : ''}. Tell me if I should retry.` },
+      data: { run_id: runId, target_action: opts.action, ok: opts.ok, source: 'chat_task' },
+    });
+  } catch { /* la notif ne doit jamais casser l'action */ }
 }
 
 /**
@@ -157,6 +186,15 @@ export async function getRecentTaskRuns(
 /** Bloc de prompt : ce que l'agent doit dire sur l'avancement des tâches. */
 export function taskRunsPromptBlock(runs: TaskRun[]): string {
   if (runs.length === 0) return '';
+
+  // Une seule ligne par type d'action : la plus récente. Sinon l'agent voyait
+  // deux entrées « content » (une terminée, une en cours) et sortait « c'est en
+  // cours » ET « c'est fini » dans le même message — exactement ce que le
+  // fondateur a signalé le 29/07.
+  const latestByAction = new Map<string, TaskRun>();
+  for (const r of runs) if (!latestByAction.has(r.action)) latestByAction.set(r.action, r);
+  runs = [...latestByAction.values()];
+
   const lines = runs.slice(0, 6).map(r => {
     const when = new Date(r.startedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     if (r.state === 'terminee') return `  • ${r.action} (lancée à ${when}) : TERMINÉE ✅${r.summary ? ` — ${r.summary.slice(0, 120)}` : ''}`;
@@ -169,8 +207,10 @@ export function taskRunsPromptBlock(runs: TaskRun[]): string {
 ${lines.join('\n')}
 
 RÈGLES :
-1. Le client demande « où ça en est ? » → tu réponds avec l'état et le POURCENTAGE ci-dessus, jamais « je suis en train de m'en occuper » sans chiffre.
-2. Une tâche TERMINÉE se confirme explicitement, avec ce qui a été fait (combien de posts, de mails, de prospects). Pas de « c'est fait » vague.
-3. Une tâche BLOQUÉE ou ÉCHOUÉE : tu le dis franchement et tu proposes de la relancer. Tu ne fais jamais semblant qu'elle avance encore.
-4. Tu n'annonces jamais 100% tant que la fin n'est pas confirmée dans cette liste.\n`;
+1. UN SEUL ÉTAT PAR RÉPONSE. Cette liste donne l'état LE PLUS RÉCENT de chaque action. Il est INTERDIT de dire « c'est en cours » et « c'est terminé » dans le même message : tu regardes la ligne, et tu annonces CET état, point.
+2. Si c'est TERMINÉ → tu donnes DIRECTEMENT LES RÉSULTATS, dès la première phrase, avec les chiffres ci-dessus. Pas de « je viens de finir, laisse-moi te dire… » : les résultats d'abord.
+3. Si c'est EN COURS → tu donnes le POURCENTAGE ci-dessus. Jamais « je m'en occupe » sans chiffre, jamais « ça va prendre quelques minutes » sans avancement.
+4. Si c'est BLOQUÉ ou ÉCHOUÉ → tu le dis franchement en une phrase et tu proposes de relancer. Tu ne fais jamais semblant que ça avance encore.
+5. Tu n'annonces jamais 100% ni « terminé » tant que la ligne ne le dit pas.
+6. Le client est aussi notifié automatiquement à la fin de chaque tâche : ne lui promets donc jamais « je te tiens au courant » comme si c'était incertain — il SERA prévenu.\n`;
 }
