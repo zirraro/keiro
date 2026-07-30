@@ -5,7 +5,7 @@ import { mailboxEnabled } from '@/lib/gmail-read';
 import { hasImap } from '@/lib/agents/imap-mailbox';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 600; // boîte réelle : 100 000+ messages à parcourir
 export const dynamic = 'force-dynamic';
 
 /**

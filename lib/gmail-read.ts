@@ -290,7 +290,7 @@ export async function bulkModifyByQuery(
   const tok = await getValidGmailToken(userId);
   if (!tok) return { enabled: false, matched: 0, modified: 0 };
 
-  const cap = Math.min(Math.max(opts.maxMessages || 5000, 1), 50_000);
+  const cap = Math.min(Math.max(opts.maxMessages || 5000, 1), 120_000);
   const auth = { Authorization: `Bearer ${tok.accessToken}`, 'Content-Type': 'application/json' };
   let pageToken: string | undefined;
   let matched = 0;

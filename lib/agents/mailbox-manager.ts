@@ -176,7 +176,7 @@ export async function triageMailbox(userId: string, opts: { max?: number; dryRun
         { query: 'in:inbox category:updates older_than:30d', action: 'archive' },
       ];
       for (const step of plan) {
-        const r = await bulkModifyByQuery(userId, { query: step.query, action: step.action, maxMessages: 20_000, dryRun: !!opts.dryRun });
+        const r = await bulkModifyByQuery(userId, { query: step.query, action: step.action, maxMessages: 60_000, dryRun: !!opts.dryRun });
         const n = opts.dryRun ? r.matched : r.modified;
         if (step.action === 'trash') bulk.trashed += n; else bulk.archived += n;
       }
