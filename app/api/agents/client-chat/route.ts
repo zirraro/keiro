@@ -608,15 +608,22 @@ détail vit dans le Planning.`;
           // 2026-07-30 — Cette action MANQUAIT : un client demandait à Hugo de
           // nettoyer sa boîte, aucune action n'existait pour ça dans cette
           // route, alors l'agent le racontait sans le faire.
+          // Sur une vraie boîte (100 000+ messages) le tri prend plusieurs
+          // minutes, alors que cette route coupe à 60 s : attendre la fin
+          // ferait échouer la conversation. On LANCE, on trace, et la
+          // notification de fin apporte le résultat chiffré. C'est aussi ce
+          // qu'impose la règle anti-mensonge : on annonce ce qu'on lance, pas
+          // un résultat qu'on n'a pas encore.
           const { startTaskRun, finishTaskRun } = await import('@/lib/agents/task-runs');
           const runId = await startTaskRun(supabase, { userId: user.id, agent: 'email', action: 'mailbox', label: 'tri de la boîte mail' });
-          const res = await fetch(`${baseUrl}/api/agents/email/mailbox-triage?user_id=${user.id}`, {
+
+          fetch(`${baseUrl}/api/agents/email/mailbox-triage?user_id=${user.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
             body: JSON.stringify({}),
-          });
-          const data = await res.json().catch(() => ({} as any));
-          if (data?.ok) {
+            signal: AbortSignal.timeout(15 * 60 * 1000),
+          }).then(async (res) => {
+            const data = await res.json().catch(() => ({} as any));
             const bits = [
               data.trashed ? `${data.trashed} pub(s) à la corbeille` : null,
               data.archived ? `${data.archived} archivé(s)` : null,
@@ -625,15 +632,20 @@ détail vit dans le Planning.`;
               data.drafted ? `${data.drafted} brouillon(s) préparé(s)` : null,
               data.questions?.length ? `${data.questions.length} question(s) pour toi` : null,
             ].filter(Boolean);
-            actionResult = bits.length
-              ? `Boîte triée (${data.processed} mails analysés) : ${bits.join(', ')}.`
-              : `Boîte analysée (${data.processed} mails) : rien à changer, tout était déjà en ordre.`;
-          } else {
-            actionResult = data?.enabled === false
-              ? `Je ne peux pas encore agir sur ta boîte : ${data.error || 'aucune boîte connectée'}.`
-              : `Le tri n'a pas abouti : ${data?.error || `HTTP ${res.status}`}.`;
-          }
-          await finishTaskRun(supabase, runId, { userId: user.id, agent: 'email', action: 'mailbox', ok: !!data?.ok, summary: actionResult });
+            await finishTaskRun(supabase, runId, {
+              userId: user.id, agent: 'email', action: 'mailbox', ok: !!data?.ok,
+              summary: data?.ok
+                ? (bits.length ? bits.join(', ') : 'rien à changer, la boîte était déjà en ordre')
+                : (data?.enabled === false ? (data.error || 'aucune boîte connectée') : (data?.error || `HTTP ${res.status}`)),
+            });
+          }).catch(async (e) => {
+            await finishTaskRun(supabase, runId, {
+              userId: user.id, agent: 'email', action: 'mailbox', ok: false,
+              summary: e?.name === 'TimeoutError' ? 'le tri a dépassé 15 min — interrompu' : (e?.message || 'échec'),
+            });
+          });
+
+          actionResult = 'Tri de la boîte LANCÉ — je te préviens dès que c\'est terminé, avec le détail de ce qui a été fait.';
         } else if (actionType === 'set_settings') {
           // Un réglage demandé en conversation doit être APPLIQUÉ, exactement
           // comme s'il avait été changé dans l'interface (règle fondateur).
