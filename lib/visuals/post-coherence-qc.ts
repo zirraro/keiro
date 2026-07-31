@@ -36,6 +36,16 @@
  *
  *   5. HASHTAGS À CÔTÉ — les hashtags annoncent un sujet absent du post.
  *
+ *   6. LIEN À L'ACTUALITÉ FORCÉ — le post s'accroche à un événement sans
+ *      rapport réel. Test : si la phrase marche encore en changeant de métier,
+ *      le lien est forcé. Un lien opportuniste fait plus de mal que pas
+ *      d'actualité du tout.
+ *
+ *   7. ACCROCHE MOLLE — la première ligne ne retient pas. Elle est notée à
+ *      part (hookScore) : sur Instagram elle est seule visible avant « plus »,
+ *      sur TikTok elle joue dans les trois premières secondes. Elle ne bloque
+ *      pas seule mais pèse sur la note globale.
+ *
  * Le verdict porte DEUX jugements séparés : le post est-il publiable en
  * l'état, et l'image mérite-t-elle d'être republiée sous une autre légende.
  * Seule l'image vide est irrécupérable ; tous les autres défauts se corrigent
@@ -44,6 +54,8 @@
  * On demande au modèle de DÉCRIRE l'image avant de juger : un jugement rendu
  * sans description explicite se contente trop souvent de valider.
  */
+
+export interface CoherenceUnavailable { unavailableReason: 'billing' }
 
 export interface CoherenceVerdict {
   /** Publiable en l'état ? */
@@ -73,7 +85,13 @@ export interface CoherenceVerdict {
     offTopic: boolean;
     emptyVisual: boolean;
     hashtagMismatch: boolean;
+    /** Le post s'accroche à une actualité ou un événement sans lien réel. */
+    forcedNewsLink: boolean;
+    /** La première ligne ne retient pas — le lecteur passe. */
+    weakHook: boolean;
   };
+  /** 0-10 — force de l'accroche seule (première ligne, 3 premières secondes). */
+  hookScore: number;
 }
 
 const MODEL = 'claude-sonnet-4-6';
@@ -124,12 +142,30 @@ Puis évalue quatre points :
 5. HASHTAGS À CÔTÉ
    Les hashtags annoncent-ils un sujet, un métier ou un lieu absent du post ?
 
-NOTE GLOBALE sur 10 (cohérence image ↔ légende ↔ hashtags) :
+6. LIEN AVEC L'ACTUALITÉ — FORT OU FORCÉ ?
+   Si le post s'appuie sur une actualité, un événement, une saison ou une tendance (Tour de France, rentrée, canicule, sortie d'un film, trend TikTok), demande-toi si le lien tient VRAIMENT.
+   ✅ LIEN FORT — l'actualité et le métier se rejoignent naturellement, et le rapprochement apporte quelque chose :
+      « Canicule annoncée : nos glaces artisanales sortent du congélateur à -18°, elles tiennent le trajet jusqu'à chez toi. »
+      « Rentrée : on garde le pain au levain au chaud jusqu'à 19h pour ceux qui sortent tard du bureau. »
+   ⛔ LIEN FORCÉ — l'actualité sert de prétexte, on l'aurait collée à n'importe quel métier :
+      « Le Tour de France passe. Nous aussi on avance ! Découvre nos prestations. »
+      « Comme les JO, on vise l'excellence. »
+   Le test : si tu remplaces le métier par un autre et que la phrase marche encore, le lien est forcé. Un lien forcé fait plus de mal que pas d'actualité du tout — le lecteur sent l'opportunisme.
+   Ne coche ce défaut QUE si le post invoque réellement une actualité. Un post intemporel n'est pas concerné.
+
+7. FORCE DE L'ACCROCHE
+   La PREMIÈRE ligne décide de tout : sur Instagram elle est seule visible avant « plus », sur TikTok elle joue dans les 3 premières secondes.
+   ✅ Une accroche forte pose une tension, une surprise, un chiffre concret, une question qui pique, ou nomme le problème du lecteur.
+   ⛔ Une accroche faible commence par une généralité (« Le marketing digital est essentiel »), se présente (« Chez nous, nous... »), ou annonce ce que le post va dire au lieu de le dire.
+   Note-la à part, sur 10.
+
+NOTE GLOBALE sur 10 (cohérence image ↔ légende ↔ hashtags, force de l'accroche, justesse du lien avec l'actualité) :
   9-10 : image forte et parfaitement raccord, on publie sans hésiter
   7-8  : cohérent et propre, ça peut partir
   5-6  : le lien existe mais reste faible, ça sent le remplissage
   3-4  : hors-sujet ou image sans contenu
   0-2  : aucun rapport entre l'image et le texte
+  Un lien à l'actualité forcé plafonne la note à 5. Une accroche molle coûte 2 points.
 
 NOTE DE L'IMAGE SEULE, indépendamment de la légende :
   Cette image mérite-t-elle d'être publiée avec une AUTRE légende, mieux écrite ?
@@ -153,9 +189,11 @@ const TOOL = {
       off_topic: { type: 'boolean', description: "L'image n'illustre pas le propos" },
       empty_visual: { type: 'boolean', description: 'Pictogramme ou symbole abstrait isolé, sans contenu' },
       hashtag_mismatch: { type: 'boolean', description: 'Les hashtags annoncent un sujet absent' },
+      forced_news_link: { type: 'boolean', description: "Le post s'accroche à une actualité ou un événement sans lien réel avec le métier" },
+      hook_score: { type: 'number', description: "Force de la première ligne sur 10 : retient-elle le lecteur ?" },
       reasons: { type: 'array', items: { type: 'string' }, description: 'Motifs de rejet en français, du plus grave au moins grave. Vide si le post est bon.' },
     },
-    required: ['image_description', 'score', 'invented_client', 'implausible_claim', 'image_usable', 'off_topic', 'empty_visual', 'hashtag_mismatch', 'reasons'],
+    required: ['image_description', 'score', 'invented_client', 'implausible_claim', 'image_usable', 'off_topic', 'empty_visual', 'hashtag_mismatch', 'forced_news_link', 'hook_score', 'reasons'],
   },
 };
 
@@ -189,7 +227,7 @@ export async function assessPostCoherence(input: {
   hashtags?: string[] | null;
   platform?: string;
   format?: string;
-}): Promise<CoherenceVerdict | null> {
+}): Promise<CoherenceVerdict | CoherenceUnavailable | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !input.visualUrl) return null;
 
@@ -225,7 +263,21 @@ export async function assessPostCoherence(input: {
         }],
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Un contrôle muet ressemble à un contrôle qui passe : on trace la
+      // cause. Un 429 en rafale doit se voir, sinon on croit à tort que les
+      // images sont illisibles et on laisse filer des posts non vérifiés.
+      const corps = await res.text().catch(() => '');
+      console.warn(`[QC] contrôle refusé (${res.status}) : ${corps.slice(0, 200)}`);
+      // Panne de FACTURATION : ce n'est pas un incident passager, ça dure tant
+      // que personne ne recharge. Publier à l'aveugle pendant ce temps
+      // reviendrait à désactiver le contrôle sans que personne s'en aperçoive.
+      // On le signale explicitement pour que l'appelant retienne le post.
+      if (res.status === 400 && /credit balance|billing/i.test(corps)) {
+        return { unavailableReason: 'billing' } as any;
+      }
+      return null;
+    }
     const j = await res.json();
     const use = (j.content || []).find((c: any) => c.type === 'tool_use');
     if (!use?.input) return null;
@@ -237,17 +289,25 @@ export async function assessPostCoherence(input: {
       offTopic: !!v.off_topic,
       emptyVisual: !!v.empty_visual,
       hashtagMismatch: !!v.hashtag_mismatch,
+      forcedNewsLink: !!v.forced_news_link,
+      weakHook: (Number(v.hook_score) || 0) < 6,
     };
+    const hookScore = Math.max(0, Math.min(10, Number(v.hook_score) || 0));
     const score = Math.max(0, Math.min(10, Number(v.score) || 0));
 
     // Ce qui bloque la publication EN L'ÉTAT.
     // Un client inventé et nommé bloque toujours ; un ordre de grandeur
     // illustratif ne bloque plus (arbitrage fondateur du 31/07 : « les %
     // inventés ne sont pas le plus grave, ça doit juste pas être aberrant »).
+    // Un lien à l'actualité forcé bloque au même titre qu'un hors-sujet :
+    // dans les deux cas le post affirme une connexion qui n'existe pas, et le
+    // lecteur le sent immédiatement. Une accroche molle ne bloque pas seule —
+    // elle pèse déjà sur la note globale.
     const pass = !flags.inventedClient
       && !flags.implausibleClaim
       && !flags.offTopic
       && !flags.emptyVisual
+      && !flags.forcedNewsLink
       && score >= COHERENCE_PASS_SCORE;
 
     return {
@@ -256,6 +316,7 @@ export async function assessPostCoherence(input: {
       // (hors-sujet, hashtags, texte) se corrige en réécrivant la légende.
       imageUsable: !!v.image_usable && !flags.emptyVisual,
       score,
+      hookScore,
       imageDescription: String(v.image_description || '').slice(0, 400),
       reasons: Array.isArray(v.reasons) ? v.reasons.map((r: any) => String(r).slice(0, 240)) : [],
       flags,

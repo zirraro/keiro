@@ -3622,13 +3622,29 @@ export async function POST(request: NextRequest) {
               platform: targetPlatform,
               format: pubPost.format,
             });
-            if (coh && !coh.pass) {
+            // Panne de facturation : le contrôle est hors service tant que
+            // personne ne recharge. On retient plutôt que de publier à
+            // l'aveugle — sinon le garde-fou se désactive tout seul, en
+            // silence, et pour plusieurs jours.
+            if (coh && (coh as any).unavailableReason === 'billing') {
+              await supabase.from('content_calendar').update({
+                status: 'draft',
+                publish_diagnostic: 'qc_indisponible_facturation: contrôle qualité hors service (crédit API épuisé)',
+                updated_at: new Date().toISOString(),
+              }).eq('id', body.postId);
+              console.error('[Content] contrôle qualité HORS SERVICE (crédit API) — publication retenue');
+              return NextResponse.json({
+                ok: false, held: true, reason: 'qc_unavailable_billing',
+                message: "Contrôle qualité indisponible (crédit API épuisé) — le post est retenu au lieu d'être publié sans vérification.",
+              });
+            }
+            if (coh && 'pass' in coh && !coh.pass) {
               await supabase.from('content_calendar').update({
                 status: 'draft',
                 publish_diagnostic: `qc_coherence_bloque: ${coh.reasons[0] || 'incohérent'}`.slice(0, 500),
                 updated_at: new Date().toISOString(),
               }).eq('id', body.postId);
-              console.warn(`[Content] publication retenue ${body.postId} (${coh.score}/10): ${coh.reasons[0] || ''}`);
+              console.warn(`[Content] publication retenue ${body.postId} (${(coh as any).score}/10): ${(coh as any).reasons[0] || ''}`);
               return NextResponse.json({
                 ok: false,
                 held: true,

@@ -45,9 +45,18 @@ CE QUE TU PEUX FAIRE, et qui marche mieux :
 ✅ Un cas SANS identité (« un commerce qui passe de 2 à 8 publications par semaine »).
 ✅ Une projection assumée (« si tu t'y mets 10 minutes par semaine… »).
 
+L'ACCROCHE — c'est 80% du travail :
+La PREMIÈRE LIGNE est souvent la SEULE que le lecteur verra : sur Instagram elle est seule visible avant « plus », sur TikTok elle joue dans les trois premières secondes.
+✅ Pose une tension, une surprise, un chiffre concret, ou nomme le problème du lecteur : « Une fuite qui goutte, c'est 10 litres par jour dans le vide. »
+⛔ Ne commence jamais par une généralité (« Le marketing digital est essentiel »), par toi (« Chez nous, nous… »), ni par l'annonce de ce que tu vas dire.
+
+L'ACTUALITÉ — seulement si le lien tient vraiment :
+Tu peux t'appuyer sur une saison, un événement ou une tendance, à condition que le rapprochement apporte quelque chose au lecteur.
+✅ « Canicule annoncée : nos glaces sortent à -18°, elles tiennent le trajet jusqu'à chez toi. »
+⛔ « Le Tour de France passe. Nous aussi on avance ! » — si la phrase marche en changeant de métier, le lien est forcé et le lecteur sent l'opportunisme. Mieux vaut aucune actualité qu'une actualité plaquée.
+
 FORME :
 - 3 à 6 lignes, aérées par des sauts de ligne. Tutoiement, ton direct, zéro jargon.
-- La PREMIÈRE LIGNE décide de tout : elle doit accrocher en moins de 3 secondes, et être compréhensible seule.
 - Jamais le mot « IA » dans la légende.
 - Une seule invitation à agir à la fin, simple.
 - 5 à 8 hashtags, tous justifiés par l'image ou le texte. Pas de hashtag de ville ou de métier si l'image ne le montre pas. Pas de # dans le tableau, juste les mots.
@@ -134,7 +143,13 @@ export async function repairPostText(input: {
         }],
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Un contrôle muet ressemble à un contrôle qui passe : on trace la
+      // cause. Un 429 en rafale doit se voir, sinon on croit à tort que les
+      // images sont illisibles et on laisse filer des posts non vérifiés.
+      console.warn(`[QC] réécriture refusée (${res.status}) — post non traité`);
+      return null;
+    }
     const j = await res.json();
     const use = (j.content || []).find((c: any) => c.type === 'tool_use');
     if (!use?.input?.caption) return null;
@@ -150,7 +165,9 @@ export async function repairPostText(input: {
       platform: input.platform, format: input.format,
     });
 
-    return { caption, hashtags, verdict };
+    // Un contrôle indisponible n'est pas un verdict : on renvoie null pour
+    // que l'appelant sache qu'il n'a rien vérifié.
+    return { caption, hashtags, verdict: verdict && 'pass' in verdict ? verdict : null };
   } catch {
     return null;
   }
