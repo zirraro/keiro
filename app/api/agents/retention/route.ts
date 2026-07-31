@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     // Get all paying users (have a plan that's not 'gratuit')
     const { data: clients } = await supabase
       .from('profiles')
-      .select('id, email, first_name, business_type, business_name, plan, credits_balance, created_at, updated_at, next_renewal_at, health_score, health_level, phone, quartier')
+      .select('id, email, first_name, business_type, business_name, plan:subscription_plan, credits_balance, created_at, updated_at, next_renewal_at, health_score, health_level, phone, quartier')
       .not('plan', 'is', null)
       .not('plan', 'eq', 'gratuit')
       .not('plan', 'eq', 'free');

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     // 1. Count paying clients and calculate MRR
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, plan, first_name, business_type, created_at')
+      .select('id, plan:subscription_plan, first_name, business_type, created_at')
       .not('plan', 'in', '("gratuit","free","")');
 
     const planPrices: Record<string, number> = {
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     // Return current financial stats
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('plan')
+      .select('plan:subscription_plan')
       .not('plan', 'in', '("gratuit","free","")');
 
     const planPrices: Record<string, number> = {

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabase();
 
   // Gating pack.
-  const { data: prof } = await supabase.from('profiles').select('plan').eq('id', userId).maybeSingle();
+  const { data: prof } = await supabase.from('profiles').select('plan:subscription_plan').eq('id', userId).maybeSingle();
   if (!SEO_PLANS.has(String(prof?.plan || '').toLowerCase())) {
     return NextResponse.json({ ok: false, reason: 'plan_locked', upsell: 'Agent SEO Fiche disponible à partir du pack Pro.' });
   }

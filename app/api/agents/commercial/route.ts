@@ -754,7 +754,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       try {
         const { data: ownerProfile } = await supabase
           .from('profiles')
-          .select('plan')
+          .select('plan:subscription_plan')
           .eq('id', clientUserId)
           .maybeSingle();
         const plan = (ownerProfile?.plan || '').toLowerCase();

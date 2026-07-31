@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
         // Get user profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name, business_type, business_name, plan, credits_balance, last_generation_at, created_at')
+          .select('first_name, business_type, business_name, plan:subscription_plan, credits_balance, last_generation_at, created_at')
           .eq('id', item.user_id)
           .single();
 
@@ -658,7 +658,7 @@ async function detectAndScheduleDynamicSteps(
         // Check user is still on Sprint
         const { data: profile } = await supabase
           .from('profiles')
-          .select('plan')
+          .select('plan:subscription_plan')
           .eq('id', userId)
           .single();
 

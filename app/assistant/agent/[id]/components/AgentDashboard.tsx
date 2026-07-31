@@ -291,14 +291,17 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           per-agent stats already show evolution which makes this banner
           redundant. */}
 
-      {/* Launch campaign button — only for agents WITHOUT their own
-          campaign UI. Excluded: onboarding (Clara), ceo (Noah, bg),
-          qa, content (Léna has her own publish flow), marketing (AMI
-          orchestrates via chat), dm_instagram (Jade has 5 specific
-          mini-campaign buttons below the stats). Founder rule 16 mai
-          2026: "enleve lancer une campagne de jade, on lance déjà
-          des mini campagnes ciblées plus bas en dessous des stats". */}
-      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && agentId !== 'marketing' && agentId !== 'dm_instagram' && (
+      {/* Lancer une campagne — réservé aux agents de prospection.
+          Founder 2026-07-31 : « enlève l'onglet campagne sauf si tu le trouves
+          pertinent, mais dans ce cas dispo pour les agents de prospection et
+          donc des plans Pro ».
+          On passe d'une liste d'exclusions à une liste d'inclusions : la
+          précédente laissait le bouton sur Sara (contrats) et Louis (Excel),
+          où il ouvrait un assistant générique sans rapport avec leur métier —
+          « lancer une campagne » ne veut rien dire pour un contrat de travail.
+          Léo et Hugo sont les deux agents dont le travail EST une campagne, et
+          tous deux sont des agents du plan Pro. */}
+      {!isAdmin && (agentId === 'commercial' || agentId === 'email') && (
         <div data-tour="launch-campaign" className="mx-5 mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}

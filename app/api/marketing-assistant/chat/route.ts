@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     // 1. Récupérer profil utilisateur pour contexte
     const { data: profile } = await supabase
       .from('profiles')
-      .select('business_type, business_description, full_name, plan')
+      .select('business_type, business_description, full_name, plan:subscription_plan')
       .eq('id', user.id)
       .single();
 

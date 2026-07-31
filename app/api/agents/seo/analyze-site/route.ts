@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: 'no_site', message: 'Ajoute l\'URL de ton site dans l\'onboarding pour lancer l\'analyse SEO.' });
   }
 
-  const { data: prof } = await supabase.from('profiles').select('plan').eq('id', user.id).maybeSingle();
+  const { data: prof } = await supabase.from('profiles').select('plan:subscription_plan').eq('id', user.id).maybeSingle();
   const isPro = SEO_PLANS.has(String(prof?.plan || '').toLowerCase());
 
   // Cache 7j (sauf force) — l'analyse coûte un appel LLM + un crawl.

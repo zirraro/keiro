@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
   // on livrait donc plus que ce qu'on vend, et de façon incohérente d'un post à
   // l'autre. On ramène la durée dans la limite du plan, sans jamais l'allonger.
   try {
-    const { data: prof } = await supabase.from('profiles').select('plan').eq('id', post.user_id).maybeSingle();
+    const { data: prof } = await supabase.from('profiles').select('plan:subscription_plan').eq('id', post.user_id).maybeSingle();
     const maxSec = getPlanQuotas(prof?.plan).video_max_seconds;
     if (maxSec > 0 && plan.durationSec > maxSec) {
       const sceneCount = Math.max(1, Math.round(maxSec / (plan.perClipSec || 10)));

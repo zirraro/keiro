@@ -1490,7 +1490,7 @@ export async function GET(request: NextRequest) {
     if (firstProspect?.user_id) {
       const { data: ownerProfile } = await supabase
         .from('profiles')
-        .select('plan')
+        .select('plan:subscription_plan')
         .eq('id', firstProspect.user_id)
         .maybeSingle();
       const plan = (ownerProfile?.plan || '').toLowerCase();
