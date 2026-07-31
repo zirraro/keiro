@@ -854,7 +854,7 @@ function HomeKeiroInner() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
             <Plan
               title={`\uD83D\uDC8E ${locale === 'fr' ? 'Créateur' : 'Creator'}`}
-              price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
+              price={billingPeriod === 'annual' ? `490\u20AC${t.common.perYear}` : `49\u20AC${t.common.perMonth}`}
               subtitle={locale === 'fr' ? 'Boutiques, restos, freelances' : 'Shops, restaurants, freelancers'}
               bullets={[
                 locale === 'fr' ? '5 agents : Léna, Jade, Théo, Sara, Louis' : '5 agents: Léna, Jade, Théo, Sara, Louis',
@@ -875,7 +875,7 @@ function HomeKeiroInner() {
 
             <Plan
               title={`\uD83D\uDE80 ${t.home.planProTitle}`}
-              price={billingPeriod === 'annual' ? `990\u20AC ${t.common.perYear}` : `99\u20AC ${t.common.perMonth}`}
+              price={billingPeriod === 'annual' ? `990\u20AC${t.common.perYear}` : `99\u20AC${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
               bullets={[
@@ -891,7 +891,7 @@ function HomeKeiroInner() {
 
             <Plan
               title={`🏢 ${t.home.planBusinessTitle}`}
-              price={billingPeriod === 'annual' ? `1 490€ ${t.common.perYear}` : `149€ ${t.common.perMonth}`}
+              price={billingPeriod === 'annual' ? `1 490€${t.common.perYear}` : `149€${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNoteBusiness : undefined}
               subtitle={locale === 'fr' ? 'PME, hotels, multi-sites' : 'SMEs, hotels, multi-site'}
               special

@@ -9,6 +9,7 @@ import AgentChatPanel, { type ChatMessage } from './components/AgentChatPanel';
 import DossierBanner from './components/DossierBanner';
 import ComingSoonBanner from './components/ComingSoonBanner';
 import AgentTeams from './components/AgentTeams';
+import CustomStatsGrid from './components/CustomStatsGrid';
 import WorkspaceCrm from './components/WorkspaceCrm';
 import NotificationBell, { AgentNotifBadge } from './components/NotificationBell';
 import InstagramTokenAlert from './components/InstagramTokenAlert';
@@ -1226,6 +1227,11 @@ export default function AssistantPage() {
             </div>
           </div>
         )}
+
+        {/* Les chiffres que le client a choisi de suivre — le bloc KPI
+            ci-dessus reste fixe (les quatre repères communs), celui-ci est le
+            sien. */}
+        {!COMING_SOON_MODE && !isVisitor && <CustomStatsGrid />}
 
         {/* AMI Performance: moved to agent workspace /assistant/agent/marketing */}
 
