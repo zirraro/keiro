@@ -47,17 +47,31 @@ const COST = {
   fixed_overhead:   0.50,  // OVH + tooling share per client
 };
 
-// Plan revenue (EUR / mois) — used to compute margin
-const PLAN_REVENUE: Record<string, number> = {
+// Chiffre d'affaires HT par plan, en euros.
+//
+// 2026-07-31 — Les prix affichés au client sont TTC. Les compter comme du
+// revenu net gonflait la marge de 20 points et rendait ce calculateur
+// incohérent avec lib/credits/margin.ts, corrigé le même jour. Fondateurs y
+// était en plus à 79€ et Elite à 299€, deux tarifs qui n'existent plus.
+//
+// À lire avec sa portée exacte : la marge renvoyée ici ne couvre que le COÛT
+// DE GÉNÉRATION DU CONTENU. Elle ne déduit ni les autres agents (DM, avis,
+// documents), ni l'infrastructure par client, ni les frais Stripe. C'est un
+// indicateur de pilotage de la cadence, pas la marge nette de l'entreprise.
+const VAT_RATE = 1.2;
+const PLAN_PRICE_TTC: Record<string, number> = {
   free: 0,
   createur: 49,
   pro: 99,
-  fondateurs: 79,
+  fondateurs: 149,
   business: 149,
-  elite: 299,
+  elite: 999,
   agence: 499,
   admin: 0,
 };
+const PLAN_REVENUE: Record<string, number> = Object.fromEntries(
+  Object.entries(PLAN_PRICE_TTC).map(([k, ttc]) => [k, Math.round((ttc / VAT_RATE) * 100) / 100]),
+);
 
 interface CadenceOutput {
   plan: string;
