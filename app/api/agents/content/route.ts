@@ -3108,21 +3108,39 @@ export async function GET(request: NextRequest) {
                   cloneScheduled.setHours(18, 30, 0, 0);
                   const cloneDateStr = cloneScheduled.toISOString().split('T')[0];
 
-                  // Anti-pattern guard: skip clone if an Insta post is
-                  // already planned ±2 days around the target slot for
-                  // this user. We don't want consecutive Insta repeats.
+                  // Anti-pattern guard : on évite deux REPRISES rapprochées,
+                  // pas deux posts Instagram rapprochés.
+                  //
+                  // 2026-07-31 — Le garde-fou cherchait N'IMPORTE QUEL post
+                  // Instagram à ±2 jours. Dès qu'un client publie plusieurs
+                  // fois par semaine sur Insta — c'est-à-dire tout le monde —
+                  // la fenêtre n'était jamais vide et la reprise ne partait
+                  // pratiquement jamais. On perdait la moitié de la portée
+                  // qu'un reel déjà payé pouvait rapporter : le fichier est
+                  // généré une fois, le republier sur l'autre réseau ne coûte
+                  // rien de plus.
+                  //
+                  // Ce qu'on veut vraiment éviter, c'est que l'abonné qui
+                  // suit les deux comptes voie deux fois la même image dans
+                  // la même semaine. On ne regarde donc que les reprises et
+                  // les posts qui réutilisent le MÊME visuel.
                   const windowStart = new Date(cloneScheduled.getTime() - 2 * 86400000).toISOString().split('T')[0];
                   const windowEnd = new Date(cloneScheduled.getTime() + 2 * 86400000).toISOString().split('T')[0];
-                  const { count: nearbyCount } = await supabase
+                  const reusedVisual = postWithMedia.visual_url || fullPost.visual_url || '';
+                  const { data: nearbyRows } = await supabase
                     .from('content_calendar')
-                    .select('id', { count: 'exact', head: true })
+                    .select('id, source, visual_url')
                     .eq('user_id', fullPost.user_id)
                     .eq('platform', 'instagram')
                     .gte('scheduled_date', windowStart)
                     .lte('scheduled_date', windowEnd);
+                  const nearbyCount = (nearbyRows || []).filter((r: any) =>
+                    String(r.source || '').startsWith('cross_post')
+                    || (reusedVisual && r.visual_url === reusedVisual)
+                  ).length;
 
-                  if ((nearbyCount || 0) > 0) {
-                    console.log(`[Content] Cross-post skipped for ${post.id}: Insta already planned ±2d around ${cloneDateStr}`);
+                  if (nearbyCount > 0) {
+                    console.log(`[Content] Cross-post skipped for ${post.id}: reprise déjà prévue ±2j autour du ${cloneDateStr}`);
                   } else {
                     // Rewrite caption: drop TikTok-specific markers, swap
                     // the hook angle. We keep the asset but reframe so the
@@ -5439,7 +5457,18 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     }
   }
 
-  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + newsHistoryContext + cadenceBlock + knowledgeBlock;
+  const { WEEKLY_BASELINE, videoBudgetFor } = await import('@/lib/content/adaptive-frequency');
+  const planForCadence = await (async () => {
+    try {
+      const { resolveEffectivePlan } = await import('@/lib/credits/plan-budget-guard');
+      return (await resolveEffectivePlan(supabase, userId || '', 'content')) || 'createur';
+    } catch { return 'createur'; }
+  })();
+  const prompt = getWeeklyPlanPrompt({
+    existingPlanned,
+    videoBudget: videoBudgetFor(planForCadence),
+    weeklyTarget: WEEKLY_BASELINE[planForCadence] ?? 18,
+  }) + visualDedupContext + newsHistoryContext + cadenceBlock + knowledgeBlock;
   const clientSettingsBlock2 = await (async () => {
     try {
       const { currentSettingsPromptBlock } = await import('@/lib/agents/agent-capabilities');

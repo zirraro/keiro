@@ -5,28 +5,38 @@
  * client sert aussi aux DM, aux emails, au chatbot et à la vidéo. On raisonne
  * donc en OBJECTIF HEBDOMADAIRE par plan, ajusté au budget restant.
  *
- * ── Recalibrage 2026-07-31 (demande fondateur : « vérifie la grille des
- * crédits et nos crédits dits en page accueil et tarifs avec nos marges ») ──
+ * ── Recalibrage 2026-07-31 ──
  *
  * L'ancien socle (5 / 10 / 18) promettait deux fois moins que les pages de
- * vente (10 / 20 / 30 par semaine). Le client payait pour une cadence qu'il
- * ne recevait pas — le pire des deux mondes, puisque le pool de crédits, lui,
- * pouvait la financer.
+ * vente. Un premier passage l'avait porté à 8 / 20 / 30, mais ce calcul
+ * comptait une génération = une publication. C'est faux : on produit pour
+ * Instagram ET TikTok, et le même fichier vaut deux publications.
  *
- * Coût réel d'un post, mesuré sur le pipeline en place :
- *   • reel  = 1 image hero générée (~0,025€) + 60% du temps une animation i2v
- *             ≤10s (~0,30€), 40% du temps un Ken Burns local (gratuit) + QC
- *             vision → ~0,23€ en moyenne, soit ~44 crédits débités ;
- *   • post/carrousel = 1 à 3 images (~0,06€) → 5 à 15 crédits.
+ * Coût réel, mesuré sur le pipeline en place :
+ *   • reel/vidéo générée = 1 image hero (~0,025€) + 60% du temps une
+ *     animation i2v ≤10s (~0,30€), 40% un Ken Burns local (gratuit), + QC
+ *     vision → ~0,23€, soit ~44 crédits ;
+ *   • carrousel / photo mode = 1 à 3 images → 5 à 15 crédits ;
+ *   • REPRISE sur l'autre réseau = 0 crédit. Le visuel est réutilisé tel
+ *     quel, seule la légende est réécrite. C'est le levier central.
  *
- * Au mix 50/50 réel, à la cadence annoncée :
- *   Créateur  8/sem  → ~930 cr sur 1 000 (93%)  · marge ≈ 78%
- *   Pro      20/sem  → ~2 540 cr sur 3 000 (85%) · marge ≈ 81%
- *   Business 30/sem  → ~3 840 cr sur 6 000 (64%) · marge ≈ 82%
+ * Semaine type finançable, avec la moitié des publications Instagram en
+ * reprise des vidéos TikTok :
+ *   Créateur 18/sem →   541 cr/mois sur 1 000 (54%) · marge 89%
+ *   Pro      30/sem → 1 949 cr/mois sur 3 000 (65%) · marge 87%
+ *   Business 40/sem → 3 745 cr/mois sur 6 000 (62%) · marge 88%
  *
- * Créateur est plafonné à 8 et non 10 : à 10, la consommation dépasse le pool
- * vers le 26 du mois et le client tombe en panne sèche avant la fin. Mieux
- * vaut promettre 8 et les tenir.
+ * Ces trois lignes ne sont pas une estimation de ma part : elles sortent de
+ * /api/agents/content/cadence-preview, le calculateur que le produit utilise
+ * déjà pour injecter la cadence dans le prompt de Léna. Le planificateur
+ * n'y était simplement pas branché — il plafonnait à 5 publications par
+ * semaine pendant que le calculateur en autorisait 18.
+ *
+ * Ce qui tient le budget n'est donc pas le NOMBRE de publications mais la
+ * part de vidéos générées (VIDEO_BUDGET_PER_WEEK ci-dessous). Publier plus
+ * en réutilisant coûte zéro ; publier plus en générant des vidéos coûte
+ * cher. Toute hausse du socle doit s'accompagner du budget vidéo qui va
+ * avec, sinon le client tombe à sec avant la fin du mois.
  *
  * Le multiplicateur ci-dessous protège ensuite le pool au cas par cas.
  */
@@ -40,14 +50,40 @@ export type ContentPlan = 'free' | 'createur' | 'pro' | 'fondateurs' | 'business
  */
 export const WEEKLY_BASELINE: Record<string, number> = {
   free: 0,
-  createur: 8,
-  pro: 20,
-  fondateurs: 25,
-  business: 30,
-  elite: 35,
-  agence: 42,
-  admin: 42,
+  createur: 18,
+  pro: 30,
+  fondateurs: 30,
+  business: 40,
+  elite: 50,
+  agence: 60,
+  admin: 60,
 };
+
+/**
+ * Vidéos GÉNÉRÉES autorisées par semaine et par plan.
+ *
+ * C'est le vrai plafond économique : une vidéo coûte ~44 crédits, un
+ * carrousel 5 à 15, une reprise sur l'autre réseau zéro. Sans ce budget, un
+ * mix 50/50 sur 14 publications reviendrait à 1 800 crédits par mois chez un
+ * Créateur qui en a 1 000 — panne sèche vers le 20 du mois.
+ *
+ * Le reste de la cadence se remplit avec des carrousels et des reprises, qui
+ * portent autant sans rien coûter de plus.
+ */
+export const VIDEO_BUDGET_PER_WEEK: Record<string, number> = {
+  free: 0,
+  createur: 3,
+  pro: 6,
+  fondateurs: 8,
+  business: 10,
+  elite: 14,
+  agence: 20,
+  admin: 20,
+};
+
+export function videoBudgetFor(plan: string | null | undefined): number {
+  return VIDEO_BUDGET_PER_WEEK[(plan || 'free').toLowerCase()] ?? VIDEO_BUDGET_PER_WEEK.free;
+}
 
 export type AdaptiveContext = {
   plan: string;
@@ -75,7 +111,7 @@ export type AdaptiveResult = {
  *   - else                             → 1.0 (baseline)
  *
  * Daily cap:
- *   Target/7 rounded up, capped at 6 (max slots the cron fires per day).
+ *   Target/7 rounded up, capped at 8 (max slots the cron fires per day).
  */
 export function getWeeklyContentTarget(ctx: AdaptiveContext): AdaptiveResult {
   const baseline = WEEKLY_BASELINE[ctx.plan] ?? WEEKLY_BASELINE.free;
@@ -104,7 +140,7 @@ export function getWeeklyContentTarget(ctx: AdaptiveContext): AdaptiveResult {
   }
 
   const weeklyTarget = Math.max(1, Math.round(baseline * multiplier));
-  const dailyCap = Math.min(6, Math.max(1, Math.ceil(weeklyTarget / 7)));
+  const dailyCap = Math.min(8, Math.max(1, Math.ceil(weeklyTarget / 7)));
 
   return { weeklyTarget, dailyCap, multiplier, reason };
 }

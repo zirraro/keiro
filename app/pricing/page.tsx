@@ -339,7 +339,7 @@ function PricingPageInner() {
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold leading-relaxed">{locale === 'fr' ? "Ton compte tourne sans toi : ~10 publications/semaine, publiées aux heures où ton audience est là." : "Your account runs itself: ~10 posts a week, published when your audience is actually online."}</p>
+              <p className="text-xs font-semibold leading-relaxed">{locale === 'fr' ? "Ton compte tourne sans toi : ~18 publications/semaine sur Instagram et TikTok, publiées aux heures où ton audience est là." : "Your account runs itself: ~18 posts a week across Instagram and TikTok, published when your audience is actually online."}</p>
             </div>
 
             <ul className="space-y-3 mb-4 text-sm flex-1">
@@ -546,7 +546,7 @@ function PricingPageInner() {
                 {/* Crédits */}
                 {(locale === 'fr' ? [
                   // 2026-06-04 \— Aligned with backend service-guarantees.ts so the marketing matches what Lena/Jade/Hugo/L\éo actually deliver.
-                  { name: 'Publications (IG + TikTok + LinkedIn)', c: '~8/semaine', p: '~20/semaine', b: '~30/semaine', e: 'Sur mesure', bold: true },
+                  { name: 'Publications (IG + TikTok + LinkedIn)', c: '~18/semaine', p: '~30/semaine', b: '~40/semaine', e: 'Sur mesure', bold: true },
                   { name: 'Cr\édits inclus / mois', c: '1 000', p: '3 000', b: '6 000', e: 'Illimit\é', bold: true },
                   { name: 'Reels & vid\éos courtes', c: '\✓', p: '\✓ (formats plus longs)', b: '\✓ (jusqu\u2019à 90s)', e: 'Illimit\é' },
                   { name: 'Mix format auto (photo + carrousel + vid\éo)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
@@ -572,7 +572,7 @@ function PricingPageInner() {
                   { name: 'Multi-comptes', c: '\—', p: '\—', b: '1+5', e: 'Illimit\é', biz: true },
                   { name: 'Marque blanche', c: '\—', p: '\—', b: '\—', e: '\✓' },
                 ] : [
-                  { name: 'Posts (IG + TikTok + LinkedIn)', c: '~8/week', p: '~20/week', b: '~30/week', e: 'Custom', bold: true },
+                  { name: 'Posts (IG + TikTok + LinkedIn)', c: '~18/week', p: '~30/week', b: '~40/week', e: 'Custom', bold: true },
                   { name: 'Credits included / month', c: '1,000', p: '3,000', b: '6,000', e: 'Unlimited', bold: true },
                   { name: 'Reels & short videos', c: '✓', p: '✓ (longer formats)', b: '✓ (up to 90s)', e: 'Unlimited' },
                   { name: 'Auto format mix (photo + carousel + video)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
@@ -806,7 +806,7 @@ function PricingPageInner() {
                       { feature: 'VIDÉO PRÊTE À PUBLIER', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ko, text: 'Ne génère pas de vidéo' }, createur: { icon: ok, text: 'Reel monté, musique + hook' }, business: { icon: ok, text: 'Jusqu\u2019à 90s' } },
                       { feature: 'Audio dans la vidéo', free: { icon: ko }, pro: { icon: ko, text: 'Lecture à voix haute seulement — rien à monter' }, createur: { icon: ok, text: 'Musique + narration déjà dans le fichier' }, business: { icon: ok, text: 'Musique + narration déjà dans le fichier' } },
                       { feature: 'Publication automatique', highlight: 'emerald', bold: true, free: { icon: ko }, pro: { icon: ko, text: 'Tu copies-colles' }, createur: { icon: ok, text: 'IG + TikTok + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn, multi-comptes' } },
-                      { feature: 'Publie tout seul, sans toi', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '~8 posts/semaine' }, business: { icon: ok, text: '~30 posts/semaine' } },
+                      { feature: 'Publie tout seul, sans toi', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '~18 publications/semaine' }, business: { icon: ok, text: '~40 publications/semaine' } },
                       { feature: 'Choisit l\u2019heure de publication', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Selon TES vues' }, business: { icon: ok, text: 'Selon TES vues' } },
                       { feature: 'Images', free: { icon: ok, text: 'Qualité correcte' }, pro: { icon: ok, text: 'Bonne qualité' }, createur: { icon: ok, text: 'Ton commerce, ton style' }, business: { icon: ok, text: 'Ton commerce, ton style' } },
                       { feature: 'Tes propres photos réutilisées', free: { icon: ko }, pro: { icon: warn, text: 'Retouche ponctuelle' }, createur: { icon: ok, text: 'Retouchées, mixées ou publiées brutes' }, business: { icon: ok, text: 'Retouchées, mixées ou publiées brutes' } },
@@ -827,7 +827,7 @@ function PricingPageInner() {
                       { feature: 'READY-TO-POST VIDEO', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ko, text: 'Does not generate video' }, createur: { icon: ok, text: 'Edited reel, music + hook' }, business: { icon: ok, text: 'Up to 90s' } },
                       { feature: 'Audio inside the video', free: { icon: ko }, pro: { icon: ko, text: 'Read-aloud only \u2014 nothing to edit in' }, createur: { icon: ok, text: 'Music + narration already in the file' }, business: { icon: ok, text: 'Music + narration already in the file' } },
                       { feature: 'Automatic publishing', highlight: 'emerald', bold: true, free: { icon: ko }, pro: { icon: ko, text: 'You copy-paste' }, createur: { icon: ok, text: 'IG + TikTok + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn, multi-account' } },
-                      { feature: 'Posts without you', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '~8 posts/week' }, business: { icon: ok, text: '~30 posts/week' } },
+                      { feature: 'Posts without you', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '~18 posts/week' }, business: { icon: ok, text: '~40 posts/week' } },
                       { feature: 'Picks the posting time', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'From YOUR views' }, business: { icon: ok, text: 'From YOUR views' } },
                       { feature: 'Images', free: { icon: ok, text: 'Decent quality' }, pro: { icon: ok, text: 'Good quality' }, createur: { icon: ok, text: 'Your business, your style' }, business: { icon: ok, text: 'Your business, your style' } },
                       { feature: 'Reuses your own photos', free: { icon: ko }, pro: { icon: warn, text: 'One-off retouch' }, createur: { icon: ok, text: 'Retouched, mixed or posted raw' }, business: { icon: ok, text: 'Retouched, mixed or posted raw' } },

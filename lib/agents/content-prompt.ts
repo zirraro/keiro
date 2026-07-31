@@ -1211,20 +1211,31 @@ export function getWeeklyPlanPrompt(context: {
   followerCount?: number;
   topPosts?: string;
   existingPlanned?: string;
+  /** Vidéos générées autorisées cette semaine (voir VIDEO_BUDGET_PER_WEEK). */
+  videoBudget?: number;
+  /** Publications visées sur la semaine (voir WEEKLY_BASELINE). */
+  weeklyTarget?: number;
 }): string {
   const { weekTrends, followerCount, topPosts, existingPlanned } = context;
+  const videoBudget = context.videoBudget ?? 3;
+  const weeklyTarget = context.weeklyTarget ?? 14;
 
   return `Planifie la semaine ÉLITE complète de KeiroAI — PUBLICATION QUOTIDIENNE SUR 2 RÉSEAUX.
 
 ⛔ CADENCE OBLIGATOIRE — pour CHAQUE jour de la semaine (lundi → dimanche, les 7 jours), tu planifies AU MINIMUM :
   • 1 publication INSTAGRAM (post/carrousel/reel selon le mix)
   • 1 publication TIKTOK (photo mode ou vidéo selon le mix)
-Soit AU MOINS 14 publications sur la semaine (7 IG + 7 TikTok), plus les stories. JAMAIS un jour sans Instagram ET sans TikTok. Le champ "platform" de chaque objet est obligatoire ("instagram" ou "tiktok").
+Soit environ ${weeklyTarget} publications sur la semaine, réparties entre les deux réseaux, plus les stories. JAMAIS un jour sans Instagram ET sans TikTok. Le champ "platform" de chaque objet est obligatoire ("instagram" ou "tiktok").
 
-MIX IMAGE / VIDÉO : équilibre image et vidéo sur la semaine selon la stratégie (par défaut ~50/50). TikTok privilégie le format natif vidéo ; Instagram alterne carrousel image et reel. Reste dans la marge — pas de sur-production vidéo si le mix penche image.
+BUDGET VIDÉO DE LA SEMAINE : ${videoBudget} vidéos générées AU MAXIMUM, sur ${weeklyTarget} publications. Ce n'est pas une suggestion : au-delà, le client épuise ses crédits avant la fin du mois et la publication s'arrête d'elle-même.
+Comment tenir la cadence sans dépasser :
+  • les ${videoBudget} vidéos partent d'abord sur TIKTOK (format natif, meilleure portée) ;
+  • chacune est REPRISE en Reel Instagram quelques jours plus tard, avec un angle et une légende réécrits — le fichier existe déjà, la reprise ne coûte rien ;
+  • tout le reste est du CARROUSEL (Instagram) et du PHOTO MODE (TikTok), qui portent très bien en 2026 et coûtent une fraction d'une vidéo.
+Autrement dit : la moitié environ des publications Instagram sont des reprises des vidéos TikTok, et c'est voulu.
 
 STRATÉGIE FORMATS & CROSS-POST (founder 23/07) — À RESPECTER :
-- INSTAGRAM : augmente la part de REELS. Vise AU MOINS 3 Reels Instagram par semaine (le Reel est le format n°1 pour toucher les non-abonnés). Les Reels doivent être de QUALITÉ (vrai mouvement cinématique, cohérents, pas de diaporama figé — cf. QC). Alterne avec les carrousels, mais ne descends pas sous 3 Reels/semaine.
+- INSTAGRAM : vise AU MOINS 3 Reels par semaine — en priorité des REPRISES des vidéos TikTok de la semaine, qui ne consomment pas le budget vidéo (le Reel est le format n°1 pour toucher les non-abonnés). Les Reels doivent être de QUALITÉ (vrai mouvement cinématique, cohérents, pas de diaporama figé — cf. QC). Alterne avec les carrousels, mais ne descends pas sous 3 Reels/semaine.
 - TIKTOK : publie PLUS de CARROUSELS (photo mode). Vise AU MOINS 3 carrousels TikTok par semaine (le photo mode TikTok performe très fort en 2026 et coûte moins cher à produire). Alterne avec les vidéos.
 - CROSS-POST INTELLIGENT (réutilisation croisée) : réutilise une partie du contenu d'un réseau sur l'autre — un bon Reel Instagram peut être republié en vidéo TikTok, un bon carrousel/vidéo TikTok peut être adapté en Reel/carrousel Instagram. Adapte le format et le cadrage (9:16 natif, retire tout watermark, ajuste le hook au réseau) — jamais un simple copier-coller. Utilise le cross-post pour ~1-2 contenus/semaine par sens, en gardant de l'original à côté.
 

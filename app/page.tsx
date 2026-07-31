@@ -616,7 +616,7 @@ function HomeKeiroInner() {
                     : 'Generates + auto-publishes your Instagram, TikTok, LinkedIn posts. Reels, carousels, stories.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? '~8 publications/semaine, aux meilleures heures' : '~8 posts/week, at peak hours'}</li>
+                  <li>✓ {locale === 'fr' ? '~18 publications/semaine sur Instagram et TikTok, aux meilleures heures' : '~18 posts/week across Instagram and TikTok, at peak hours'}</li>
                   <li>✓ <strong>{locale === 'fr' ? 'Dépose tes propres photos' : 'Drop in your own photos'}</strong> {locale === 'fr' ? '— elle les retouche, les mixe entre elles… ou les publie BRUTES quand c\'est plus authentique' : '— she retouches them, mixes them… or posts them RAW when that feels more authentic'}</li>
                   <li>✓ {locale === 'fr' ? 'Surfe sur les vrais événements (dates réelles, jamais après coup)' : 'Rides real events (real dates, never after the fact)'}</li>
                   <li>✓ {locale === 'fr' ? 'Contrôle qualité avant publication : un visuel raté ne sort pas' : 'Quality gate before publishing: a bad visual never ships'}</li>
@@ -843,8 +843,8 @@ function HomeKeiroInner() {
                 </div>
                 <p className="text-[11px] text-emerald-900 leading-relaxed">
                   {locale === 'fr'
-                    ? 'Tu connectes tes comptes une fois. Léna génère 8 posts/semaine, les programme, les publie aux meilleures heures. Tu valides quand tu veux ou tu laisses tourner en auto.'
-                    : 'Connect your accounts once. Léna generates 8 posts/week, schedules them, publishes at peak hours. Approve whenever you want, or let it run on auto.'}
+                    ? 'Tu connectes tes comptes une fois. Léna génère 18 publications/semaine, les programme, les publie aux meilleures heures. Tu valides quand tu veux ou tu laisses tourner en auto.'
+                    : 'Connect your accounts once. Léna generates 18 posts/week, schedules them, publishes at peak hours. Approve whenever you want, or let it run on auto.'}
                 </p>
               </div>
             </div>
