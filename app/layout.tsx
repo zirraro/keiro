@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/lib/theme/context";
 import NewsPrefetcher from "@/components/NewsPrefetcher";
 import ChatbotWidget from "@/components/ChatbotWidget";
 import GlobalNotifBubble from "@/components/GlobalNotifBubble";
+import TaskDoneToast from "@/components/TaskDoneToast";
 import { VortexBackground } from "@/components/ui/vortex-bg";
 import { StickyCtaBar } from "@/components/ui/StickyCtaBar";
 
@@ -179,6 +180,7 @@ export default function RootLayout({
           <BottomNav />
           <StickyCtaBar />
           <GlobalNotifBubble />
+          <TaskDoneToast />
           <ChatbotWidget />
           <CookieConsent />
         </LanguageProvider>
