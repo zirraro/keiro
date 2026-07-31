@@ -1,4 +1,4 @@
-import { assessPostCoherence, type CoherenceVerdict } from './post-coherence-qc';
+import { assessPostCoherence, jugerAvecVision, type CoherenceVerdict } from './post-coherence-qc';
 
 /**
  * Réécrit la légende et les hashtags d'un post À PARTIR DE SON IMAGE.
@@ -125,34 +125,12 @@ export async function repairPostText(input: {
   ].join('\n');
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1200,
-        system: SYSTEM,
-        tools: [TOOL],
-        tool_choice: { type: 'tool', name: 'reecriture' },
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } },
-            { type: 'text', text: contexte },
-          ],
-        }],
-      }),
+    const sortie = await jugerAvecVision({
+      system: SYSTEM, tool: TOOL, imageBase64: img.data, mediaType: img.mediaType,
+      texte: contexte, maxTokens: 1200,
     });
-    if (!res.ok) {
-      // Un contrôle muet ressemble à un contrôle qui passe : on trace la
-      // cause. Un 429 en rafale doit se voir, sinon on croit à tort que les
-      // images sont illisibles et on laisse filer des posts non vérifiés.
-      console.warn(`[QC] réécriture refusée (${res.status}) — post non traité`);
-      return null;
-    }
-    const j = await res.json();
-    const use = (j.content || []).find((c: any) => c.type === 'tool_use');
-    if (!use?.input?.caption) return null;
+    if (!sortie?.caption) return null;
+    const use = { input: sortie };
 
     const caption = String(use.input.caption).trim();
     const hashtags = (Array.isArray(use.input.hashtags) ? use.input.hashtags : [])

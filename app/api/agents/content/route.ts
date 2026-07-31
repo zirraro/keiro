@@ -3626,16 +3626,16 @@ export async function POST(request: NextRequest) {
             // personne ne recharge. On retient plutôt que de publier à
             // l'aveugle — sinon le garde-fou se désactive tout seul, en
             // silence, et pour plusieurs jours.
-            if (coh && (coh as any).unavailableReason === 'billing') {
+            if (coh && (coh as any).unavailableReason) {
               await supabase.from('content_calendar').update({
                 status: 'draft',
-                publish_diagnostic: 'qc_indisponible_facturation: contrôle qualité hors service (crédit API épuisé)',
+                publish_diagnostic: 'qc_indisponible: contrôle qualité hors service (Anthropic ET Gemini en échec)',
                 updated_at: new Date().toISOString(),
               }).eq('id', body.postId);
-              console.error('[Content] contrôle qualité HORS SERVICE (crédit API) — publication retenue');
+              console.error('[Content] contrôle qualité HORS SERVICE (les deux fournisseurs) — publication retenue');
               return NextResponse.json({
                 ok: false, held: true, reason: 'qc_unavailable_billing',
-                message: "Contrôle qualité indisponible (crédit API épuisé) — le post est retenu au lieu d'être publié sans vérification.",
+                message: "Contrôle qualité indisponible — le post est retenu au lieu d'être publié sans vérification.",
               });
             }
             if (coh && 'pass' in coh && !coh.pass) {

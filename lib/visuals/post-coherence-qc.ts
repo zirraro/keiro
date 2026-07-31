@@ -55,7 +55,8 @@
  * sans description explicite se contente trop souvent de valider.
  */
 
-export interface CoherenceUnavailable { unavailableReason: 'billing' }
+/** Le contrôle n'a PAS pu être rendu — à ne jamais confondre avec un verdict. */
+export interface CoherenceUnavailable { unavailableReason: 'both_providers_down' }
 
 export interface CoherenceVerdict {
   /** Publiable en l'état ? */
@@ -197,6 +198,118 @@ const TOOL = {
   },
 };
 
+
+/**
+ * Interroge un modèle de vision, Anthropic d'abord, Gemini en repli.
+ *
+ * Le repli n'est pas un luxe : quand le crédit Anthropic s'épuise, sans lui le
+ * contrôle qualité s'arrête net et tout part sans vérification. Gemini rend un
+ * jugement de qualité comparable sur cette tâche, et coûte moins cher.
+ *
+ * Renvoie l'objet structuré demandé, ou `{ __indisponible: true }` si AUCUN
+ * des deux n'a pu répondre — à ne jamais confondre avec un verdict.
+ */
+export async function jugerAvecVision(opts: {
+  system: string;
+  tool: { name: string; description: string; input_schema: any };
+  imageBase64: string;
+  mediaType: string;
+  texte: string;
+  maxTokens: number;
+}): Promise<any | null> {
+  const { system, tool, imageBase64, mediaType, texte, maxTokens } = opts;
+
+  // ── 1. Anthropic ──
+  const cleAnthropic = process.env.ANTHROPIC_API_KEY;
+  if (cleAnthropic) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': cleAnthropic, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6', max_tokens: maxTokens, system,
+          tools: [tool], tool_choice: { type: 'tool', name: tool.name },
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+            { type: 'text', text: texte },
+          ] }],
+        }),
+      });
+      if (res.ok) {
+        const j = await res.json();
+        const use = (j.content || []).find((c: any) => c.type === 'tool_use');
+        if (use?.input) return use.input;
+      } else {
+        const corps = await res.text().catch(() => '');
+        console.warn(`[QC] Anthropic refuse (${res.status}) : ${corps.slice(0, 140)} — repli Gemini`);
+      }
+    } catch (e: any) {
+      console.warn('[QC] Anthropic injoignable, repli Gemini :', e?.message);
+    }
+  }
+
+  // ── 2. Gemini ──
+  const cleGemini = process.env.GEMINI_API_KEY;
+  if (!cleGemini) { console.error('[QC] aucun modèle de vision disponible'); return null; }
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleGemini}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: 'user', parts: [
+            { inline_data: { mime_type: mediaType, data: imageBase64 } },
+            { text: texte },
+          ] }],
+          generationConfig: {
+            // Gemini 2.5 consomme son budget de sortie en raisonnement interne
+            // avant d'écrire : avec 900 tokens il rendait une réponse vide, et
+            // le contrôle croyait à un verdict sans note. On coupe le
+            // raisonnement — un jugement structuré n'en a pas besoin — et on
+            // double la marge.
+            thinkingConfig: { thinkingBudget: 0 },
+            maxOutputTokens: maxTokens * 2,
+            responseMimeType: 'application/json',
+            responseSchema: versSchemaGemini(tool.input_schema),
+          },
+        }),
+      },
+    );
+    if (!res.ok) {
+      console.error(`[QC] Gemini refuse aussi (${res.status}) — post non contrôlé`);
+      return null;
+    }
+    const j = await res.json();
+    const txt = (j.candidates?.[0]?.content?.parts || []).map((p: any) => p.text).filter(Boolean).join('');
+    if (!txt) { console.error('[QC] Gemini a répondu sans contenu'); return null; }
+    return JSON.parse(txt);
+  } catch (e: any) {
+    console.error('[QC] Gemini en échec :', e?.message);
+    return null;
+  }
+}
+
+/**
+ * Gemini n'accepte pas `additionalProperties` ni les descriptions imbriquées
+ * de la même façon qu'Anthropic : on ne garde que ce qu'il comprend.
+ */
+function versSchemaGemini(schema: any): any {
+  const conv = (s: any): any => {
+    if (!s || typeof s !== 'object') return s;
+    const out: any = { type: String(s.type || 'string').toUpperCase() };
+    if (s.description) out.description = s.description;
+    if (s.type === 'object' && s.properties) {
+      out.properties = Object.fromEntries(Object.entries(s.properties).map(([k, v]) => [k, conv(v)]));
+      if (Array.isArray(s.required)) out.required = s.required;
+    }
+    if (s.type === 'array' && s.items) out.items = conv(s.items);
+    return out;
+  };
+  return conv(schema);
+}
+
 async function fetchImageBase64(url: string): Promise<{ data: string; mediaType: string } | null> {
   try {
     const r = await fetch(url);
@@ -245,43 +358,14 @@ export async function assessPostCoherence(input: {
   ].join('\n');
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 900,
-        system: SYSTEM,
-        tools: [TOOL],
-        tool_choice: { type: 'tool', name: 'verdict' },
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } },
-            { type: 'text', text: contexte },
-          ],
-        }],
-      }),
+    const v = await jugerAvecVision({
+      system: SYSTEM, tool: TOOL, imageBase64: img.data, mediaType: img.mediaType,
+      texte: contexte, maxTokens: 900,
     });
-    if (!res.ok) {
-      // Un contrôle muet ressemble à un contrôle qui passe : on trace la
-      // cause. Un 429 en rafale doit se voir, sinon on croit à tort que les
-      // images sont illisibles et on laisse filer des posts non vérifiés.
-      const corps = await res.text().catch(() => '');
-      console.warn(`[QC] contrôle refusé (${res.status}) : ${corps.slice(0, 200)}`);
-      // Panne de FACTURATION : ce n'est pas un incident passager, ça dure tant
-      // que personne ne recharge. Publier à l'aveugle pendant ce temps
-      // reviendrait à désactiver le contrôle sans que personne s'en aperçoive.
-      // On le signale explicitement pour que l'appelant retienne le post.
-      if (res.status === 400 && /credit balance|billing/i.test(corps)) {
-        return { unavailableReason: 'billing' } as any;
-      }
-      return null;
-    }
-    const j = await res.json();
-    const use = (j.content || []).find((c: any) => c.type === 'tool_use');
-    if (!use?.input) return null;
-    const v = use.input;
+    // Les DEUX modèles ont échoué : ce n'est plus un incident isolé sur une
+    // image, c'est le contrôle qui est hors service. On le dit explicitement
+    // pour que l'appelant retienne le post au lieu de publier à l'aveugle.
+    if (!v) return { unavailableReason: 'both_providers_down' } as any;
 
     const flags = {
       inventedClient: !!v.invented_client,
