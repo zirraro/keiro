@@ -266,6 +266,14 @@ export async function POST(request: NextRequest) {
       capabilitiesContext = capabilitiesPromptBlock(agent_id)
         + await currentSettingsPromptBlock(supabase, user.id, agent_id);
 
+      // Clara (onboarding / chatbot) peut MONTRER les démonstrations vidéo
+      // plutôt que de décrire le produit. Le bloc est vide tant qu'aucune
+      // vidéo n'est tournée : elle ne promettra jamais un lien inexistant.
+      if (agent_id === 'onboarding' || agent_id === 'chatbot' || agent_id === 'marketing') {
+        const { videosPromptBlock } = await import('@/lib/marketing/agent-videos');
+        capabilitiesContext += videosPromptBlock();
+      }
+
       // Langue de travail : réglage explicite du client, sinon langue du message
       // qu'il vient d'écrire, sinon français. Sans ça, un client anglophone
       // recevait des réponses en français (« Réponds en français » était codé en

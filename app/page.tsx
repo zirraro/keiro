@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import AgentDemoVideo from "@/components/AgentDemoVideo";
 import Link from 'next/link';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
@@ -610,6 +611,7 @@ function HomeKeiroInner() {
                   <li>✓ {locale === 'fr' ? 'Surfe sur les vrais événements (dates réelles, jamais après coup)' : 'Rides real events (real dates, never after the fact)'}</li>
                   <li>✓ {locale === 'fr' ? 'Contrôle qualité avant publication : un visuel raté ne sort pas' : 'Quality gate before publishing: a bad visual never ships'}</li>
                 </ul>
+                <AgentDemoVideo agentId="content" />
               </div>
 
               {/* Hugo */}
@@ -633,6 +635,7 @@ function HomeKeiroInner() {
                   <li>✓ {locale === 'fr' ? 'Gmail, Outlook ou ton domaine perso (IMAP)' : 'Gmail, Outlook or your own domain (IMAP)'}</li>
                   <li>✓ {locale === 'fr' ? 'Séquences de prospection + relances, désabos détectés' : 'Prospecting sequences + follow-ups, unsubscribes handled'}</li>
                 </ul>
+                <AgentDemoVideo agentId="email" />
               </div>
 
               {/* Jade */}
@@ -655,6 +658,7 @@ function HomeKeiroInner() {
                   <li>✓ {locale === 'fr' ? 'Comptes pertinents à suivre' : 'Relevant accounts to follow'}</li>
                   <li>✓ {locale === 'fr' ? 'Mode humain en 1 clic' : 'Human mode in 1 click'}</li>
                 </ul>
+                <AgentDemoVideo agentId="dm_instagram" />
               </div>
 
               {/* Léo */}
@@ -678,6 +682,7 @@ function HomeKeiroInner() {
                   <li>✓ <strong>{locale === 'fr' ? 'Tes commentaires sont lus par TOUS les agents' : 'Your notes are read by EVERY agent'}</strong> {locale === 'fr' ? '— ce que tu notes sur un prospect, Hugo et Jade le savent' : '— what you note on a prospect, Hugo and Jade know it'}</li>
                   <li>✓ {locale === 'fr' ? 'Jamais de doublon, jamais un prospect supprimé par erreur' : 'Never a duplicate, never a prospect deleted by mistake'}</li>
                 </ul>
+                <AgentDemoVideo agentId="commercial" />
               </div>
 
               {/* Théo */}
@@ -701,6 +706,7 @@ function HomeKeiroInner() {
                   <li>✓ {locale === 'fr' ? 'SEO local : être le premier trouvé dans ton quartier' : 'Local SEO: be the first found in your area'}</li>
                   <li>✓ {locale === 'fr' ? 'Articles de blog optimisés (dès Pro)' : 'Optimised blog articles (from Pro)'}</li>
                 </ul>
+                <AgentDemoVideo agentId="gmaps" />
               </div>
 
               {/* Clara */}
@@ -768,6 +774,7 @@ function HomeKeiroInner() {
                   <li>✓ {locale === 'fr' ? 'Quand le client écrit en premier, la réponse ne coûte rien' : 'When the customer writes first, replying costs nothing'}</li>
                   <li>✓ {locale === 'fr' ? 'Relance avis Google (avec Théo)' : 'Google review follow-up (with Théo)'}</li>
                 </ul>
+                <AgentDemoVideo agentId="whatsapp" />
               </div>
 
               {/* Sara */}
@@ -790,6 +797,7 @@ function HomeKeiroInner() {
                   <li>✓ {locale === 'fr' ? 'Première embauche, prud\'hommes, licenciement : tu demandes, elle explique' : 'First hire, tribunal, dismissal: just ask, she explains'}</li>
                   <li>✓ {locale === 'fr' ? 'CGV, RGPD, mentions légales de ton site' : 'T&Cs, GDPR, legal notices for your site'}</li>
                 </ul>
+                <AgentDemoVideo agentId="rh" />
               </div>
 
               {/* Louis */}
@@ -812,6 +820,7 @@ function HomeKeiroInner() {
                   <li>✓ {locale === 'fr' ? 'Prévisionnel de trésorerie, seuil de rentabilité, marge par produit' : 'Cash-flow forecast, break-even, margin per product'}</li>
                   <li>✓ {locale === 'fr' ? 'Dossier prêt pour une demande de prêt ou une subvention' : 'File ready for a loan or grant application'}</li>
                 </ul>
+                <AgentDemoVideo agentId="comptable" />
               </div>
 
               {/* Bonus highlight card — auto-publication callout */}
