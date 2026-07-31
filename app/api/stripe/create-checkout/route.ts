@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
     // jamais une capacité qui n'est pas encore réellement livrée.
     const ADDONS: Record<string, { agent: string; envPrice: string; label: string; includedFrom: string; capability?: string }> = {
       stella_addon: { agent: 'whatsapp', envPrice: 'STRIPE_PRICE_STELLA_ADDON', label: 'Stella (WhatsApp)', includedFrom: 'pro', capability: 'stella_whatsapp' },
-      theo_addon: { agent: 'gmaps', envPrice: 'STRIPE_PRICE_THEO_ADDON', label: 'Théo (avis Google)', includedFrom: 'createur' },
-      sara_addon: { agent: 'rh', envPrice: 'STRIPE_PRICE_SARA_ADDON', label: 'Sara (RH & juridique)', includedFrom: 'createur' },
+      theo_addon: { agent: 'gmaps', envPrice: 'STRIPE_PRICE_THEO_ADDON', label: 'Théo (avis Google)', includedFrom: 'createur', capability: 'theo_reviews' },
+      sara_addon: { agent: 'rh', envPrice: 'STRIPE_PRICE_SARA_ADDON', label: 'Sara (RH & juridique)', includedFrom: 'createur', capability: 'sara_docs' },
     };
 
     // Louis a été retiré de la vente le 2026-07-29 : il est inclus dès Créateur.

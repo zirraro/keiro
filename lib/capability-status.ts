@@ -35,7 +35,11 @@ export const CAPABILITIES: Record<string, Capability> = {
   hugo_email:       { key: 'hugo_email',       agent: 'email',      status: 'live', billable: true },
   leo_prospection:  { key: 'leo_prospection',  agent: 'commercial', status: 'live', billable: true },
   // ── Add-ons / différenciateurs ──
-  stella_whatsapp:  { key: 'stella_whatsapp',  agent: 'whatsapp',  status: 'soon', billable: false }, // BSP Meta Cloud API PENDING — NE PAS facturer avant 'live'
+  // 2026-07-31 : passée en 'live'. Le drapeau était resté sur 'BSP Meta
+  // PENDING' alors que la Cloud API tourne avec un token System User
+  // permanent et que les envois aboutissent en production. Tant qu'il était
+  // à 'soon', tout achat de l'add-on Stella était refusé en caisse.
+  stella_whatsapp:  { key: 'stella_whatsapp',  agent: 'whatsapp',  status: 'live', billable: true },
   sara_docs:        { key: 'sara_docs',        agent: 'rh',        status: 'beta', billable: false }, // bêta offerte tant que les docs ne sortent pas irréprochables
   louis_docs:       { key: 'louis_docs',       agent: 'comptable', status: 'beta', billable: false },
 };

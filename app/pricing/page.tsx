@@ -903,7 +903,7 @@ function PricingPageInner() {
                 id: 'sara_addon', emoji: '⚖️', name: 'Sara', role: 'RH & juridique',
                 price: '14€', for: 'Dès que tu embauches ou que tu signes',
                 does: ['CDI, CDD, avenant, rupture — prêts à signer', 'À ta marque, logo et couleurs compris', 'Te conseille avant de te tromper'],
-                accent: 'fuchsia',
+                accent: 'fuchsia', soon: true,
               },
             ] : [
               {
@@ -922,7 +922,7 @@ function PricingPageInner() {
                 id: 'sara_addon', emoji: '⚖️', name: 'Sara', role: 'HR & legal',
                 price: '€14', for: 'The moment you hire or sign anything',
                 does: ['Contracts and amendments, ready to sign', 'In your branding, logo and colours included', 'Advises you before you get it wrong'],
-                accent: 'fuchsia',
+                accent: 'fuchsia', soon: true,
               },
             ]).map(a => (
               <div key={a.id} className="rounded-2xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-white/5 p-5 flex flex-col hover:shadow-lg hover:-translate-y-0.5 transition-all">
@@ -944,12 +944,23 @@ function PricingPageInner() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  onClick={() => startCheckout(a.id)}
-                  className="mt-4 w-full py-2.5 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-[13px] font-semibold hover:opacity-90 transition-opacity"
-                >
-                  {locale === 'fr' ? `Ajouter ${a.name}` : `Add ${a.name}`}
-                </button>
+                {/* Un agent marqué `soon` n'a pas de bouton d'achat : sa
+                    capacité est encore en bêta non facturable côté serveur
+                    (lib/capability-status), donc le paiement serait refusé en
+                    caisse. Mieux vaut annoncer « bientôt » que promener le
+                    client jusqu'à un refus. */}
+                {(a as any).soon ? (
+                  <span className="mt-4 block w-full text-center py-2.5 rounded-xl bg-neutral-100 dark:bg-white/10 text-neutral-500 dark:text-white/50 text-[13px] font-semibold">
+                    {locale === 'fr' ? 'Bientôt disponible seule' : 'Standalone coming soon'}
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => startCheckout(a.id)}
+                    className="mt-4 w-full py-2.5 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-[13px] font-semibold hover:opacity-90 transition-opacity"
+                  >
+                    {locale === 'fr' ? `Ajouter ${a.name}` : `Add ${a.name}`}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -957,7 +968,7 @@ function PricingPageInner() {
           <p className="text-center text-xs text-neutral-500 mt-5 max-w-xl mx-auto">
             {locale === 'fr'
               ? 'À trois agents seuls, tu dépasses le prix du plan Créateur qui en contient sept, contenu et publication compris. L\u2019à la carte sert un besoin précis, pas à reconstituer une offre.'
-              : 'Three standalone agents already cost more than the Créateur plan, which includes seven of them plus content and publishing. À la carte is for one precise need, not for rebuilding a plan.'}
+              : 'À la carte is for one precise need, not for rebuilding a plan: two standalone agents already cost €38 while the Créateur plan includes seven for €49, content and publishing included.'}
           </p>
         </div>
 
