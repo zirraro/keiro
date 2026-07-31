@@ -251,7 +251,7 @@ export const en: Translations = {
     planCreateurTitle: 'Creator',
     planCreateurSubtitle: '1,000 credits/month — Local business & entrepreneur',
     planCreateurBullets: [
-      '<strong>5 agents: Léna (content), Jade (comments), Théo (reviews + Google listing), Sara (HR), Louis (Finance)</strong>',
+      '<strong>7 agents: Léna (content), Jade (comments), Théo (reviews + Google listing), Sara (HR), Louis (finance), Ami (strategy), Clara (support)</strong>',
       'Auto-publishing: Reels, carousels & stories on 2 networks (Instagram, TikTok or LinkedIn)',
       '<strong>Bring your own photos</strong> — Léna retouches them, mixes them, or posts them raw when that feels more authentic',
       'Quality gate before publishing: a bad visual or a disjointed edit never ships',
@@ -265,7 +265,7 @@ export const en: Translations = {
     planProTitle: 'Pro',
     planProSubtitle: '3,000 credits/month — Growing business',
     planProBullets: [
-      '<strong>7 agents: everything in Creator + Hugo and Léo</strong> (Stella optional at €19, included in Business)',
+      '<strong>10 agents: everything in Creator + Hugo, Léo and Stella</strong> — 3,000 credits/month',
       '<strong>Hugo runs your whole inbox</strong>: bins the ads, files everything (Prospects, Clients, Invoices), answers real customers — auto-send or draft, your call',
       'Hugo sends from YOUR address (Gmail, Outlook or your own domain) + sequences and follow-ups',
       'Léo: automated prospecting + CRM, filterable by area, trade and activity — your notes on a prospect are read by every agent',
@@ -793,7 +793,7 @@ export const en: Translations = {
     loginToSeeUsage: 'Sign in to see your usage',
     proPrice: 'Pro — €89/mo',
     foundersPrice: 'Founders — €149/mo',
-    foundersFeatures: 'Founders: TikTok + LinkedIn + 700 credits/month',
+    foundersFeatures: 'Founders: TikTok + LinkedIn + 4,000 credits/month',
     promoExpiresOn: 'Promo access expires on',
     subscribe: 'Subscribe',
     foundersExpiresOn: 'Founders access expires on',
@@ -3150,7 +3150,7 @@ export const en: Translations = {
     strategyApply: 'Apply this strategy',
     strategyApplying: 'Applying...',
     strategyDone: 'Strategy applied',
-    strategyOverLimit: 'Exceeds Creator plan (400 credits)',
+    strategyOverLimit: 'Exceeds Creator plan (1,000 credits)',
 
     // ─── Chatbot (Clara) ──────────────────────────────────────
     chatbotKpiVisitors: 'Visitors greeted',

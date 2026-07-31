@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
       // brief v3 §C.5 — "upsell" ne doit pas être visible dans l'URL avant
       // inscription. /checkout/upsell → /essai (301, query préservée).
       { source: '/checkout/upsell', destination: '/essai', permanent: true },
+      // /offre dupliquait la page tarifs avec des données périmées (Business à
+      // 199€, 400 crédits) et n'était liée depuis nulle part. Une page de vente
+      // orpheline qui ment est pire qu'une page en moins : on redirige vers la
+      // seule qui fait foi, ce qui préserve les liens déjà partagés.
+      { source: '/offre', destination: '/pricing', permanent: true },
     ];
   },
   async headers() {

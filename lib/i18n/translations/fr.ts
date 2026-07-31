@@ -472,7 +472,7 @@ export const fr: Translations = {
     planFondateursBadge: '#1 — jusqu au 25 mai 2026',
     planFondateursSubtitle: '= Accès Business complet, prix verrouillé à vie',
     planFondateursBullets: [
-      '3 500 crédits/mois',
+      '4 000 crédits/mois',
       '= Accès Business complet',
       '<strong>Tous les agents actifs</strong> : tous les agents + multi-comptes',
 
@@ -797,7 +797,7 @@ export const fr: Translations = {
     loginToSeeUsage: 'Connectez-vous pour voir votre usage',
     proPrice: 'Pro \u2014 89\u20ac/mois',
     foundersPrice: 'Fondateurs \u2014 149\u20ac/mois',
-    foundersFeatures: 'Fondateurs : TikTok + LinkedIn + 700 cr\u00e9dits/mois',
+    foundersFeatures: 'Fondateurs : TikTok + LinkedIn + 4 000 cr\u00e9dits/mois',
     promoExpiresOn: 'Acc\u00e8s promo expire le',
     subscribe: 'S\'abonner',
     foundersExpiresOn: 'Acc\u00e8s Fondateurs expire le',
@@ -3196,7 +3196,7 @@ export const fr: Translations = {
     strategyApply: 'Appliquer cette stratégie',
     strategyApplying: 'Application...',
     strategyDone: 'Stratégie appliquée',
-    strategyOverLimit: 'Dépasse Créateur (400 cr)',
+    strategyOverLimit: 'Dépasse Créateur (1 000 cr)',
 
     // ─── Chatbot (Clara) ──────────────────────────────────────
     chatbotKpiVisitors: 'Visiteurs accueillis',

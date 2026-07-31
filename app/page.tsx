@@ -274,7 +274,7 @@ function HomeKeiroInner() {
               {locale === 'fr' ? '🚀 Automatisation 24/7' : '🚀 24/7 automation'}
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-neutral-900 leading-tight mb-1">
-              {locale === 'fr' ? '10 agents IA qui font le travail à ta place' : '7 AI agents that do the work for you'}
+              {locale === 'fr' ? '10 agents IA qui font le travail à ta place' : '10 AI agents that do the work for you'}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto">
               {locale === 'fr'
@@ -590,7 +590,7 @@ function HomeKeiroInner() {
             <div className="text-center mb-4 sm:mb-5">
               <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
               <h3 className="text-lg sm:text-2xl font-black text-neutral-900 mb-1 leading-tight">
-                {locale === 'fr' ? '10 agents IA qui bossent pour toi 24/7' : '7 AI agents working for you 24/7'}
+                {locale === 'fr' ? '10 agents IA qui bossent pour toi 24/7' : '10 AI agents working for you 24/7'}
               </h3>
               <p className="text-xs sm:text-sm text-neutral-600 max-w-2xl mx-auto px-2">
                 {locale === 'fr'
@@ -857,8 +857,8 @@ function HomeKeiroInner() {
               price={billingPeriod === 'annual' ? `490\u20AC${t.common.perYear}` : `49\u20AC${t.common.perMonth}`}
               subtitle={locale === 'fr' ? 'Boutiques, restos, freelances' : 'Shops, restaurants, freelancers'}
               bullets={[
-                locale === 'fr' ? '5 agents : Léna, Jade, Théo, Sara, Louis' : '5 agents: Léna, Jade, Théo, Sara, Louis',
-                locale === 'fr' ? '1 000 crédits/mois' : '1,000 credits/month',
+                locale === 'fr' ? '7 agents : Léna, Jade, Théo, Sara, Louis, Ami, Clara' : '7 agents: Léna, Jade, Théo, Sara, Louis, Ami, Clara',
+                locale === 'fr' ? '~18 publications/semaine · 1 000 crédits/mois' : '~18 posts/week · 1,000 credits/month',
                 locale === 'fr' ? 'Contenu + commentaires + avis Google' : 'Content + comments + Google reviews',
                 locale === 'fr' ? 'RH & finance · stratégie + onboarding inclus' : 'HR & finance · strategy + onboarding included',
               ]}
@@ -879,8 +879,8 @@ function HomeKeiroInner() {
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
               bullets={[
-                locale === 'fr' ? '7 agents : tout Créateur + Hugo et Léo' : '7 agents: all Creator + Hugo and Léo',
-                locale === 'fr' ? '3 000 crédits/mois' : '3,000 credits/month',
+                locale === 'fr' ? '10 agents : tout Créateur + Hugo, Léo et Stella' : '10 agents: all Creator + Hugo, Léo and Stella',
+                locale === 'fr' ? '~30 publications/semaine · 3 000 crédits/mois' : '~30 posts/week · 3,000 credits/month',
                 locale === 'fr' ? 'Emails + boîte mail gérée · prospection + CRM' : 'Emails + managed inbox · prospecting + CRM',
                 locale === 'fr' ? 'WhatsApp clients · SEO & blogs · 3 réseaux' : 'Customer WhatsApp · SEO & blogs · 3 networks',
               ]}
@@ -898,7 +898,7 @@ function HomeKeiroInner() {
               highlight
               bullets={[
                 locale === 'fr' ? 'Toute l\'équipe + priorité sur les nouveaux agents' : 'The whole team + priority on new agents',
-                locale === 'fr' ? '6 000 crédits/mois — le double du volume Pro' : '6,000 credits/month — double the Pro volume',
+                locale === 'fr' ? '~40 publications/semaine · 6 000 crédits/mois' : '~40 posts/week · 6,000 credits/month',
                 locale === 'fr' ? 'Multi-comptes (1+5) : plusieurs commerces, un seul espace' : 'Multi-account (1+5): several shops, one workspace',
                 locale === 'fr' ? 'Vidéos longues (45s à 90s) · support prioritaire' : 'Long videos (45s to 90s) · priority support',
               ]}
