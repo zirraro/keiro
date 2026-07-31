@@ -3597,6 +3597,51 @@ export async function POST(request: NextRequest) {
             message: `Post déjà en état ${pubPost.status} — pas re-publié.`,
           });
         }
+        // ── Dernier filet avant publication : cohérence image ↔ texte ──
+        //
+        // 2026-07-31 — Le contrôle qualité couvrait la netteté de l'image et
+        // la diversité du feed, mais personne ne vérifiait que l'image PARLE
+        // DU MÊME SUJET que la légende. Un balayage du calendrier a trouvé
+        // 355 posts programmés sur 516 qui ne passaient pas : légendes citant
+        // des clients inventés, visuels sans rapport, pictogrammes abstraits.
+        //
+        // On contrôle ici plutôt qu'à la génération parce qu'un post peut être
+        // édité, recyclé ou repris d'un autre réseau entre les deux. C'est le
+        // seul endroit par lequel tout passe forcément.
+        //
+        // Un contrôle qui échoue (image illisible, API indisponible) ne bloque
+        // PAS : on ne suspend pas la publication d'un client sur une panne
+        // technique de notre côté. Seul un verdict explicitement négatif retient.
+        if (pubPost.visual_url && !pubPost.video_url && process.env.SKIP_COHERENCE_QC !== '1') {
+          try {
+            const { assessPostCoherence } = await import('@/lib/visuals/post-coherence-qc');
+            const coh = await assessPostCoherence({
+              visualUrl: pubPost.visual_url,
+              caption: pubPost.caption || '',
+              hashtags: pubPost.hashtags as any,
+              platform: targetPlatform,
+              format: pubPost.format,
+            });
+            if (coh && !coh.pass) {
+              await supabase.from('content_calendar').update({
+                status: 'draft',
+                publish_diagnostic: `qc_coherence_bloque: ${coh.reasons[0] || 'incohérent'}`.slice(0, 500),
+                updated_at: new Date().toISOString(),
+              }).eq('id', body.postId);
+              console.warn(`[Content] publication retenue ${body.postId} (${coh.score}/10): ${coh.reasons[0] || ''}`);
+              return NextResponse.json({
+                ok: false,
+                held: true,
+                score: coh.score,
+                reasons: coh.reasons,
+                message: 'Post retenu par le contrôle qualité — il repasse en brouillon.',
+              });
+            }
+          } catch (e: any) {
+            console.warn('[Content] contrôle de cohérence indisponible, publication maintenue:', e?.message);
+          }
+        }
+
         pubUpdate.published_at = new Date().toISOString();
 
         let pubPermalink: string | undefined;
