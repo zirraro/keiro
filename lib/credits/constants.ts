@@ -382,12 +382,22 @@ export const FREE_FEATURES = [
   'Conversion vidéo',
 ] as const;
 
-// Packs crédits à l'achat (plus cher que l'abonnement pour pousser vers l'abo)
-// Référence : Fondateurs = 700cr/149€ = 0,21€/cr
+// Packs de crédits à l'achat — recalibrés le 2026-07-31.
+//
+// L'ancienne grille (0,25 à 0,17€/crédit) datait d'un temps où Fondateurs
+// donnait 700 crédits pour 149€. Les pools ont été multipliés par 5 depuis
+// (Créateur = 1 000 crédits pour 49€, soit 0,049€/crédit) mais pas les packs :
+// on vendait donc le crédit à l'unité 5 à 6 fois le prix de l'abonnement. Pour
+// un client qui vient juste de tomber en panne sèche, c'est une punition.
+//
+// Nouvelle règle : le pack reste PLUS CHER que l'abonnement (sinon personne ne
+// s'abonne) mais dans un rapport défendable — environ 1,5× le tarif Créateur.
+// Le coût réel étant d'environ 0,01€ par crédit, la marge reste au-dessus de
+// 80% sur les trois paliers.
 export const CREDIT_PACKS = [
-  { id: 'starter', name: 'Starter', credits: 60, price: 14.99, priceLabel: '14,99€', perCredit: '0,25€' },
-  { id: 'pro', name: 'Pro', credits: 180, price: 39.99, priceLabel: '39,99€', perCredit: '0,22€' },
-  { id: 'expert', name: 'Expert', credits: 400, price: 69.99, priceLabel: '69,99€', perCredit: '0,17€' },
+  { id: 'starter', name: 'Starter', credits: 300, price: 24.99, priceLabel: '24,99€', perCredit: '0,083€' },
+  { id: 'pro', name: 'Pro', credits: 800, price: 59.99, priceLabel: '59,99€', perCredit: '0,075€' },
+  { id: 'expert', name: 'Expert', credits: 2000, price: 129.99, priceLabel: '129,99€', perCredit: '0,065€' },
 ] as const;
 
 // Crédits offerts code promo (= Fondateurs)

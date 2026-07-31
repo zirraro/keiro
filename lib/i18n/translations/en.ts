@@ -443,8 +443,8 @@ export const en: Translations = {
     planCreateurTitle: 'Creator',
     planCreateurSubtitle: 'Local business & entrepreneur',
     planCreateurBullets: [
-      '<strong>5 agents</strong>: Léna, Jade, Théo, Sara, Louis',
-      '~10 posts/week (Reels, carousels, stories), published at peak hours',
+      '<strong>7 agents</strong>: Léna, Jade, Théo, Sara, Louis, Ami, Clara — 1,000 credits/month',
+      '~8 posts/week (Reels, carousels, stories), published at peak hours',
       '<strong>Bring your own photos</strong>: retouched, mixed, or posted raw for authenticity',
       'IG & TikTok comments answered in your brand voice',
       'Google reviews auto-answered + business listing fixed (hours, photos, categories)',
@@ -459,7 +459,7 @@ export const en: Translations = {
     planProBadge: 'Recommended',
     planProSubtitle: 'Growing business',
     planProBullets: [
-      '<strong>7 agents: everything in Creator + Hugo and Léo</strong>',
+      '<strong>10 agents: everything in Creator + Hugo, Léo and Stella</strong> — 3,000 credits/month',
       '<strong>Hugo runs your inbox</strong>: bins the ads, files everything, answers real customers',
       'Léo: automated prospecting + CRM, filterable by area and trade',
       'Stella (WhatsApp): confirmations + reminder the day before, no more no-shows',

@@ -150,13 +150,16 @@ function MonComptePage() {
     }
   };
 
-  // Calcul prix unitaire dégressif (sliding scale basé sur les packs)
-  // 1-49cr: 0,30€/cr | 50-149cr: 0,30€/cr | 150-299cr: 0,27€/cr | 300+: 0,23€/cr
+  // Prix unitaire dégressif, aligné sur CREDIT_PACKS (recalibrés le 31/07/2026).
+  // L'ancienne grille montait à 0,30€/crédit, soit six fois le tarif de
+  // l'abonnement Créateur — intenable à défendre face à un client à sec.
+  // 10-299 cr : 0,095€ | 300-799 : 0,083€ | 800-1999 : 0,075€ | 2000+ : 0,065€
   const getCustomCreditPrice = (qty: number): { total: number; perCredit: number } => {
     let perCredit: number;
-    if (qty >= 300) perCredit = 0.23;
-    else if (qty >= 150) perCredit = 0.27;
-    else perCredit = 0.30;
+    if (qty >= 2000) perCredit = 0.065;
+    else if (qty >= 800) perCredit = 0.075;
+    else if (qty >= 300) perCredit = 0.083;
+    else perCredit = 0.095;
     return { total: Math.round(qty * perCredit * 100) / 100, perCredit };
   };
 
@@ -686,9 +689,9 @@ function MonComptePage() {
                     <input
                       type="number"
                       min={10}
-                      max={5000}
+                      max={3000}
                       value={customCredits}
-                      onChange={(e) => setCustomCredits(Math.max(10, Math.min(5000, Number(e.target.value) || 10)))}
+                      onChange={(e) => setCustomCredits(Math.max(10, Math.min(3000, Number(e.target.value) || 10)))}
                       className="w-20 text-center text-sm border border-neutral-300 rounded-lg px-2 py-1 font-bold"
                     />
                     <span className="text-sm text-neutral-500">crédits</span>
@@ -697,19 +700,19 @@ function MonComptePage() {
                 <input
                   type="range"
                   min={10}
-                  max={1000}
-                  step={10}
-                  value={Math.min(customCredits, 1000)}
+                  max={2000}
+                  step={50}
+                  value={Math.min(customCredits, 2000)}
                   onChange={(e) => setCustomCredits(Number(e.target.value))}
                   className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-purple-600 mb-3"
                 />
                 <div className="flex items-center justify-between text-xs text-neutral-400 mb-4">
                   <span>10</span>
                   <div className="flex gap-4">
-                    <span className={customCredits >= 150 ? 'text-purple-500 font-medium' : ''}>150+ = 0,27€/cr</span>
-                    <span className={customCredits >= 300 ? 'text-purple-600 font-medium' : ''}>300+ = 0,23€/cr</span>
+                    <span className={customCredits >= 300 ? 'text-purple-500 font-medium' : ''}>300+ = 0,083€/cr</span>
+                    <span className={customCredits >= 800 ? 'text-purple-600 font-medium' : ''}>800+ = 0,075€/cr</span>
                   </div>
-                  <span>1000</span>
+                  <span>2000</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, AMOUNT_TO_PLAN, AMOUNT_TO_PACK, getPriceToPlan } from '@/lib/stripe';
+import { CREDIT_PACKS } from '@/lib/credits/constants';
 import { PLAN_CREDITS } from '@/lib/credits/constants';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
@@ -96,6 +97,8 @@ export async function POST(request: NextRequest) {
 const ADDON_TO_AGENT: Record<string, string> = {
   stella: 'whatsapp',
   louis: 'comptable',
+  theo: 'gmaps',
+  sara: 'rh',
 };
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -349,11 +352,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     } else if (planKey?.startsWith('pack_')) {
       // Pack crédits
-      const packCredits: Record<string, number> = {
-        pack_starter: 50,
-        pack_pro: 150,
-        pack_expert: 300,
-      };
+      // Dérivé de CREDIT_PACKS — cette table était recopiée à la main et
+      // ne correspondait plus à ce que la page annonçait.
+      const packCredits: Record<string, number> = Object.fromEntries(
+        CREDIT_PACKS.map(p => [`pack_${p.id}`, p.credits]),
+      );
       const credits = packCredits[planKey] || 0;
       if (credits > 0) {
         const { data: profile } = await supabase

@@ -52,8 +52,18 @@ function HomeKeiroInner() {
               <span className="text-[#7fa0c4]/50">{locale === 'fr' ? 'Pour ' : 'For '}</span>
               <TextRotator
                 words={locale === 'fr'
-                  ? ['restaurants', 'coachs sportifs', 'boutiques', 'cavistes', 'coiffeurs', 'artisans']
-                  : ['restaurants', 'fitness coaches', 'shops', 'wine bars', 'hair salons', 'artisans']
+                  ? [
+                    'PME', 'restaurants', 'coachs sportifs', 'boutiques', 'cavistes', 'coiffeurs',
+                    'artisans', 'instituts de beauté', 'boulangeries', 'fleuristes', 'garages',
+                    'agences immobilières', 'cabinets d\'experts', 'traiteurs', 'hôtels',
+                    'salles de sport', 'opticiens', 'plombiers & électriciens', 'freelances', 'agences',
+                  ]
+                  : [
+                    'SMEs', 'restaurants', 'fitness coaches', 'shops', 'wine merchants', 'hair salons',
+                    'tradespeople', 'beauty salons', 'bakeries', 'florists', 'garages',
+                    'estate agents', 'professional practices', 'caterers', 'hotels',
+                    'gyms', 'opticians', 'plumbers & electricians', 'freelancers', 'agencies',
+                  ]
                 }
                 className="gradient-text font-bold"
                 interval={2500}
@@ -606,7 +616,7 @@ function HomeKeiroInner() {
                     : 'Generates + auto-publishes your Instagram, TikTok, LinkedIn posts. Reels, carousels, stories.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? '~10 publications/semaine, aux meilleures heures' : '~10 posts/week, at peak hours'}</li>
+                  <li>✓ {locale === 'fr' ? '~8 publications/semaine, aux meilleures heures' : '~8 posts/week, at peak hours'}</li>
                   <li>✓ <strong>{locale === 'fr' ? 'Dépose tes propres photos' : 'Drop in your own photos'}</strong> {locale === 'fr' ? '— elle les retouche, les mixe entre elles… ou les publie BRUTES quand c\'est plus authentique' : '— she retouches them, mixes them… or posts them RAW when that feels more authentic'}</li>
                   <li>✓ {locale === 'fr' ? 'Surfe sur les vrais événements (dates réelles, jamais après coup)' : 'Rides real events (real dates, never after the fact)'}</li>
                   <li>✓ {locale === 'fr' ? 'Contrôle qualité avant publication : un visuel raté ne sort pas' : 'Quality gate before publishing: a bad visual never ships'}</li>
@@ -701,7 +711,8 @@ function HomeKeiroInner() {
                     : 'Answers your Google reviews, optimises your business listing, gets you found first.'}
                 </p>
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
-                  <li>✓ {locale === 'fr' ? 'Chaque avis répondu dans ton ton — les ≤3★ te remontent avant envoi' : 'Every review answered in your voice — ≤3★ escalated to you first'}</li>
+                  <li>✓ {locale === 'fr' ? 'Répond à chaque avis dans ton ton de voix' : 'Answers every review in your tone of voice'}</li>
+                  <li>✓ {locale === 'fr' ? 'Un avis mécontent ? Il te le montre AVANT de répondre' : 'An unhappy review? It shows you BEFORE replying'}</li>
                   <li>✓ <strong>{locale === 'fr' ? 'Répare ta fiche Google' : 'Fixes your Google listing'}</strong> {locale === 'fr' ? ' : horaires, photos, catégories, description — ce que 90% des commerces laissent vide' : ': hours, photos, categories, description — what 90% of shops leave empty'}</li>
                   <li>✓ {locale === 'fr' ? 'SEO local : être le premier trouvé dans ton quartier' : 'Local SEO: be the first found in your area'}</li>
                   <li>✓ {locale === 'fr' ? 'Articles de blog optimisés (dès Pro)' : 'Optimised blog articles (from Pro)'}</li>
@@ -771,7 +782,8 @@ function HomeKeiroInner() {
                 <ul className="text-[10px] text-neutral-600 space-y-0.5">
                   <li>✓ <strong>{locale === 'fr' ? 'Rappel la veille du RDV' : 'Reminder the day before'}</strong> {locale === 'fr' ? '— le no-show, c\'est du chiffre perdu qui ne revient pas' : '— a no-show is revenue that never comes back'}</li>
                   <li>✓ {locale === 'fr' ? 'Répond dans la langue du client, avec ton dossier business' : 'Answers in the customer\'s language, from your business file'}</li>
-                  <li>✓ {locale === 'fr' ? 'Quand le client écrit en premier, la réponse ne coûte rien' : 'When the customer writes first, replying costs nothing'}</li>
+                  <li>✓ <strong>{locale === 'fr' ? '70 messages WhatsApp par mois inclus' : '70 WhatsApp messages per month included'}</strong></li>
+                  <li>✓ {locale === 'fr' ? 'Quand ton client écrit en premier, les réponses sont incluses' : 'When your customer writes first, replies are included'}</li>
                   <li>✓ {locale === 'fr' ? 'Relance avis Google (avec Théo)' : 'Google review follow-up (with Théo)'}</li>
                 </ul>
                 <AgentDemoVideo agentId="whatsapp" />
@@ -831,8 +843,8 @@ function HomeKeiroInner() {
                 </div>
                 <p className="text-[11px] text-emerald-900 leading-relaxed">
                   {locale === 'fr'
-                    ? 'Tu connectes tes comptes une fois. Léna génère 10 posts/semaine, les programme, les publie aux meilleures heures. Tu valides quand tu veux ou tu laisses tourner en auto.'
-                    : 'Connect your accounts once. Léna generates 10 posts/week, schedules them, publishes at peak hours. Approve whenever you want, or let it run on auto.'}
+                    ? 'Tu connectes tes comptes une fois. Léna génère 8 posts/semaine, les programme, les publie aux meilleures heures. Tu valides quand tu veux ou tu laisses tourner en auto.'
+                    : 'Connect your accounts once. Léna generates 8 posts/week, schedules them, publishes at peak hours. Approve whenever you want, or let it run on auto.'}
                 </p>
               </div>
             </div>

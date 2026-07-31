@@ -420,14 +420,19 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
             By default, Hugo sends from <span className="text-white/70 font-medium">contact@keiroai.com</span>.
             You can connect your own domain to send from <span className="text-white/70 font-medium">contact@yourcompany.com</span>.
           </p>
+          {/* 2026-07-31 — Ce bloc demandait au client de créer un compte chez
+              notre fournisseur d'envoi, d'y configurer son domaine et de NOUS
+              transmettre sa clé API. C'était l'inverse de la promesse produit,
+              ça nommait notre prestataire, et faire circuler une clé API par
+              message est une mauvaise pratique. On s'en charge. */}
           <div className="rounded-lg bg-white/[0.03] border border-white/10 p-3 space-y-2">
-            <h4 className="text-[11px] text-white/70 font-semibold">How to:</h4>
+            <h4 className="text-[11px] text-white/70 font-semibold">How it works:</h4>
             <ol className="text-[10px] text-white/40 space-y-1.5 list-decimal pl-4">
-              <li>Create an account on <a href="https://app.brevo.com" target="_blank" rel="noopener" className="text-purple-400 hover:underline">Brevo</a> (free, 300 emails/day)</li>
-              <li>Add and verify your domain in Brevo (DNS: SPF + DKIM)</li>
-              <li>Get your Brevo API key</li>
-              <li>Share it with us during onboarding</li>
+              <li>Tell us the address you want to send from — for example contact@yourcompany.com</li>
+              <li>We give you two DNS records to paste into your domain provider</li>
+              <li>We handle the rest and confirm once your domain is authenticated</li>
             </ol>
+            <p className="text-[10px] text-white/30">No account to create anywhere, and never share an API key by message.</p>
           </div>
           <div className="flex items-center gap-3">
             <a href="https://cal.com" target="_blank" rel="noopener" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-xl hover:shadow-lg transition min-h-[44px] flex items-center gap-1">

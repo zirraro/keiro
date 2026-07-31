@@ -57,20 +57,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ---- ADD-ON STELLA (WhatsApp) 19€/mois — founder 05/07 ----
-    // Abonnement séparé qui débloque l'agent whatsapp (sans changer le plan).
-    // Auth requise (on doit savoir à qui accorder l'add-on).
-    if (planKey === 'stella_addon') {
-      // Garde-fou honnêteté (capability_status) : on NE facture JAMAIS une capacité
-      // qui n'est pas encore 'live'. Stella = 'soon' tant que le BSP n'est pas actif.
-      const { isBillable } = await import('@/lib/capability-status');
-      if (!isBillable('stella_whatsapp')) {
-        return NextResponse.json({ error: 'Stella arrive bientôt — pas encore facturable. On te préviendra dès son activation.' }, { status: 409 });
+    // ---- AGENTS VENDUS SEULS (add-ons) ----
+    //
+    // 2026-07-31 — Généralisé à partir du cas Stella. Un add-on est un
+    // abonnement séparé qui débloque UN agent sans toucher au plan.
+    //
+    // Deux garde-fous, appris de Louis : on ne facture jamais un agent que le
+    // plan du client contient déjà (ce serait vendre du vide), et on ne facture
+    // jamais une capacité qui n'est pas encore réellement livrée.
+    const ADDONS: Record<string, { agent: string; envPrice: string; label: string; includedFrom: string; capability?: string }> = {
+      stella_addon: { agent: 'whatsapp', envPrice: 'STRIPE_PRICE_STELLA_ADDON', label: 'Stella (WhatsApp)', includedFrom: 'pro', capability: 'stella_whatsapp' },
+      theo_addon: { agent: 'gmaps', envPrice: 'STRIPE_PRICE_THEO_ADDON', label: 'Théo (avis Google)', includedFrom: 'createur' },
+      sara_addon: { agent: 'rh', envPrice: 'STRIPE_PRICE_SARA_ADDON', label: 'Sara (RH & juridique)', includedFrom: 'createur' },
+    };
+
+    // Louis a été retiré de la vente le 2026-07-29 : il est inclus dès Créateur.
+    // Le prix Stripe reste actif pour les abonnements en cours (le webhook les
+    // honore), mais on ne crée plus de checkout.
+    if (planKey === 'louis_addon') {
+      return NextResponse.json({
+        error: 'Louis (Finance) est inclus dès le plan Créateur — aucun add-on nécessaire.',
+        included_from: 'createur',
+      }, { status: 400 });
+    }
+
+    if (ADDONS[planKey]) {
+      const addon = ADDONS[planKey];
+
+      // Honnêteté : on ne facture pas une capacité qui n'est pas encore live.
+      if (addon.capability) {
+        const { isBillable } = await import('@/lib/capability-status');
+        if (!isBillable(addon.capability as any)) {
+          return NextResponse.json({ error: `${addon.label} arrive bientôt — pas encore facturable. On te préviendra dès son activation.` }, { status: 409 });
+        }
       }
-      const addonPrice = process.env.STRIPE_PRICE_STELLA_ADDON;
-      if (!addonPrice) return NextResponse.json({ error: 'Add-on Stella non configuré' }, { status: 400 });
+
       if (!isAuthenticated) return NextResponse.json({ error: 'Connexion requise pour activer un add-on' }, { status: 401 });
-      const addonMeta = { addon: 'stella', userId: user!.id };
+
+      // Le plan du client contient peut-être déjà l'agent : dans ce cas on
+      // refuse l'achat au lieu de l'encaisser.
+      try {
+        // Runtime edge : pas de client Supabase, on interroge PostgREST en REST.
+        const profRes = await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${user!.id}&select=subscription_plan`,
+          { headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}` } },
+        );
+        const prof = (await profRes.json())?.[0];
+        const PLAN_RANK = ['free', 'gratuit', 'sprint', 'solo', 'createur', 'pro', 'fondateurs', 'standard', 'business', 'elite', 'agence'];
+        const current = PLAN_RANK.indexOf(String(prof?.subscription_plan || 'free'));
+        const needed = PLAN_RANK.indexOf(addon.includedFrom);
+        if (needed >= 0 && current >= needed) {
+          return NextResponse.json({
+            error: `${addon.label} est déjà inclus dans ton plan — aucun add-on nécessaire.`,
+            included_from: addon.includedFrom,
+          }, { status: 400 });
+        }
+      } catch { /* profil illisible → on laisse passer plutôt que bloquer un achat légitime */ }
+
+      const addonPrice = process.env[addon.envPrice];
+      if (!addonPrice) return NextResponse.json({ error: `Add-on ${addon.label} non configuré` }, { status: 400 });
+
+      const addonKey = planKey.replace('_addon', '');
+      const addonMeta = { addon: addonKey, userId: user!.id };
       const addonSession = await stripe.checkout.sessions.create({
         mode: 'subscription',
         line_items: [{ price: addonPrice, quantity: 1 }],
@@ -79,22 +127,10 @@ export async function POST(request: NextRequest) {
         subscription_data: { metadata: addonMeta },
         payment_method_collection: 'always',
         allow_promotion_codes: true,
-        success_url: `${SITE_URL}/assistant/agent/whatsapp?addon=success`,
-        cancel_url: `${SITE_URL}/assistant/agent/whatsapp?addon=cancelled`,
+        success_url: `${SITE_URL}/assistant/agent/${addon.agent}?addon=success`,
+        cancel_url: `${SITE_URL}/assistant/agent/${addon.agent}?addon=cancelled`,
       });
       return NextResponse.json({ url: addonSession.url });
-    }
-
-    // ---- ADD-ON LOUIS — RETIRÉ DE LA VENTE (2026-07-29) ----
-    // Louis (comptable) est désormais INCLUS dès le plan Créateur : facturer
-    // 12€/mois un agent que le client possède déjà serait vendre du vide. Le
-    // prix Stripe reste actif pour les éventuels abonnements en cours (le
-    // webhook continue de les honorer), mais on ne crée plus de checkout.
-    if (planKey === 'louis_addon') {
-      return NextResponse.json({
-        error: 'Louis (Finance) est inclus dès le plan Créateur — aucun add-on nécessaire.',
-        included_from: 'createur',
-      }, { status: 400 });
     }
 
     // Détecter si c'est un plan annuel (ex: pro_annual → basePlan=pro, annual=true)

@@ -1,3 +1,4 @@
+import { CREDIT_PACKS } from '@/lib/credits/constants';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
@@ -25,11 +26,17 @@ export const AMOUNT_TO_PLAN: Record<number, string> = {
   99900: 'elite',      // 999€
 };
 
-// Mapping montant en centimes → pack crédits
+// Montant payé (en centimes) → crédits accordés.
+// Dérivé de CREDIT_PACKS : la table était recopiée à la main et avait déjà
+// divergé (50/150/300 ici contre 60/180/400 dans les constantes), donc un
+// acheteur recevait moins que ce qu'on lui avait annoncé.
 export const AMOUNT_TO_PACK: Record<number, number> = {
-  1499: 50,   // 14,99€ → 50 crédits
-  3999: 150,  // 39,99€ → 150 crédits
-  6999: 300,  // 69,99€ → 300 crédits
+  // Anciens montants, conservés pour qu'un paiement parti avant le
+  // recalibrage du 31/07/2026 soit toujours crédité correctement.
+  1499: 60,
+  3999: 180,
+  6999: 400,
+  ...Object.fromEntries(CREDIT_PACKS.map(p => [Math.round(p.price * 100), p.credits])),
 };
 
 // ====== NOUVEAU: Mapping Price ID → plan (abonnements récurrents) ======

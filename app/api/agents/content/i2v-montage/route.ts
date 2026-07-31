@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { chooseMontagePlan, runI2vMontage, runKenBurnsMontage, finalizeReel, MontagePlan } from '@/lib/visuals/i2v-montage';
+import { getPlanQuotas } from '@/lib/credits/constants';
 import { searchPixabayImages } from '@/lib/stock/pixabay';
 import { generateJadeImage, generateJadeImageFromReference } from '@/lib/visuals/jade-prompter';
 import { assessReelQuality } from '@/lib/visuals/reel-qc';
@@ -94,6 +95,23 @@ export async function POST(req: NextRequest) {
         ? { kind: 'montage', durationSec: body.durationSec, sceneCount: 1, perClipSec: Math.min(10, body.durationSec), reason: 'forced single' }
         : { kind: 'montage', durationSec: body.durationSec, sceneCount: Math.max(2, Math.round(body.durationSec / 10)), perClipSec: 10, reason: 'forced montage' })
     : chooseMontagePlan({ pillar: post.pillar, topicLength: (post.caption || '').length, format: 'reel', seed: (post.id || '').split('').reduce((a: number, c: string) => (a * 31 + c.charCodeAt(0)) | 0, 0) });
+
+  // Un reel ne peut pas dépasser la durée que le plan du client autorise.
+  // chooseMontagePlan() raisonne sur le sujet (jusqu'à 60s) sans rien savoir de
+  // l'abonnement : un Créateur, plafonné à 30s, se retrouvait avec des reels de
+  // 45 ou 60s. Le montage Ken Burns étant local, aucun quota ne s'y opposait —
+  // on livrait donc plus que ce qu'on vend, et de façon incohérente d'un post à
+  // l'autre. On ramène la durée dans la limite du plan, sans jamais l'allonger.
+  try {
+    const { data: prof } = await supabase.from('profiles').select('plan').eq('id', post.user_id).maybeSingle();
+    const maxSec = getPlanQuotas(prof?.plan).video_max_seconds;
+    if (maxSec > 0 && plan.durationSec > maxSec) {
+      const sceneCount = Math.max(1, Math.round(maxSec / (plan.perClipSec || 10)));
+      console.log(`[Montage] durée ${plan.durationSec}s > plafond du plan ${prof?.plan} (${maxSec}s) → ramenée à ${maxSec}s`);
+      plan.durationSec = maxSec;
+      plan.sceneCount = Math.min(plan.sceneCount, sceneCount);
+    }
+  } catch { /* pas de profil lisible → on garde le plan tel quel */ }
 
   // Only the AUTO path may skip (single-beat handled by the normal reel flow);
   // a forced single is intentional and proceeds as a 1-scene i2v.

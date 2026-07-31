@@ -43,17 +43,29 @@ export const OP_COST_EUR = {
   gmaps_details: 0.021,        // Places API details fetch (per new prospect)
 } as const;
 
-/** Plan HT revenue in EUR for margin calculation. */
-const PLAN_REVENUE_HT: Record<string, number> = {
+/**
+ * Chiffre d'affaires HT par plan, en euros.
+ *
+ * 2026-07-31 — Deux corrections : Business était resté à 199€ alors que le
+ * tarif en vigueur est 149€, et surtout les montants annoncés au client sont
+ * des prix TTC. Les compter comme du HT gonflait artificiellement la marge de
+ * 20% et repoussait d'autant le disjoncteur ci-dessous. On divise donc par
+ * 1,20 (TVA française) pour ne piloter que sur le revenu réellement encaissé.
+ */
+const VAT_RATE = 1.2;
+const PLAN_PRICE_TTC: Record<string, number> = {
   free: 0,
   createur: 49,
   pro: 99,
   fondateurs: 149,
-  business: 199,
+  business: 149,
   elite: 999,
   agence: 499,
   admin: 0,
 };
+const PLAN_REVENUE_HT: Record<string, number> = Object.fromEntries(
+  Object.entries(PLAN_PRICE_TTC).map(([k, ttc]) => [k, Math.round((ttc / VAT_RATE) * 100) / 100]),
+);
 
 /**
  * Fixed per-client infra amortisation estimate. Grows slowly with scale but

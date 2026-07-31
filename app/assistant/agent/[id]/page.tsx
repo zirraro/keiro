@@ -75,7 +75,7 @@ function getAgentSettings(agentId: string): SettingField[] {
       // Envoi
       { key: 'send_hour_1', label: 'Heure envoi matin', type: 'time', default: '09:00', description: '1er creneau d\'envoi (heure locale)' },
       { key: 'send_hour_2', label: 'Heure envoi apres-midi', type: 'time', default: '14:00', description: '2eme creneau d\'envoi' },
-      { key: 'max_per_day', label: 'Max emails/jour', type: 'number', default: 50, description: 'Limite d\'emails envoyes par jour (max 300 Brevo)' },
+      { key: 'max_per_day', label: 'Max emails/jour', type: 'number', default: 50, description: 'Limite d\'emails envoyes par jour' },
       // Sequence
       { key: 'auto_relance', label: 'Relance auto', type: 'toggle', default: true, description: 'Relancer automatiquement les non-reponses' },
       { key: 'relance_delay', label: 'Delai entre relances (jours)', type: 'number', default: 3, description: 'Jours entre chaque relance' },

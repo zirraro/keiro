@@ -339,7 +339,7 @@ function PricingPageInner() {
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">{t.pricing.planCreateurBullets[1]}</p>
+              <p className="text-xs font-semibold leading-relaxed">{locale === 'fr' ? "Ton compte tourne sans toi : ~10 publications/semaine, publiées aux heures où ton audience est là." : "Your account runs itself: ~10 posts a week, published when your audience is actually online."}</p>
             </div>
 
             <ul className="space-y-3 mb-4 text-sm flex-1">
@@ -385,7 +385,7 @@ function PricingPageInner() {
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">{t.pricing.planProBullets[1]}</p>
+              <p className="text-xs font-semibold leading-relaxed">{locale === 'fr' ? "Tu arrêtes de chercher des clients : Léo les trouve, Hugo écrit et relance depuis ta vraie adresse, Stella confirme sur WhatsApp. Ta boîte mail est triée le matin." : "You stop hunting for customers: Léo finds them, Hugo writes and follows up from your real address, Stella confirms on WhatsApp. Your inbox is sorted by morning."}</p>
             </div>
 
             <ul className="space-y-3 mb-4 text-sm flex-1">
@@ -436,7 +436,7 @@ function PricingPageInner() {
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">{t.pricing.planBusinessBullets[1]}</p>
+              <p className="text-xs font-semibold leading-relaxed">{locale === 'fr' ? "Toute l’équipe, 6 000 crédits/mois et jusqu’à 6 commerces pilotés depuis un seul espace." : "The whole team, 6,000 credits a month and up to 6 businesses run from a single workspace."}</p>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
@@ -454,22 +454,20 @@ function PricingPageInner() {
           </div>
         </div>
 
-        {/* Add-ons — volontairement DISCRET (règle fondateur 2026-07-29 :
-            l'achat à l'agent près reste possible, mais il ne doit pas noyer
-            les plans). Une seule ligne, un seul add-on mis en avant. */}
+        {/* Renvoi vers les agents vendus seuls, détaillés plus bas. On ne
+            détaille pas ici : répéter l'offre à deux endroits, c'est se garantir
+            qu'un des deux finira périmé. */}
         <div className="max-w-2xl mx-auto mb-8">
           <p className="text-center text-xs text-neutral-500 leading-relaxed">
             {locale === 'fr' ? (
               <>
-                <span className="font-semibold text-neutral-700">Un seul agent te manque ?</span>{' '}
-                Stella (WhatsApp) s&apos;ajoute à <span className="font-semibold">19€/mois</span> sur Créateur et Pro — elle est incluse en Business.
-                Les autres agents suivent les plans : rien à acheter à la découpe, rien à configurer.
+                <span className="font-semibold text-neutral-700 dark:text-neutral-200">Un seul agent te suffit ?</span>{' '}
+                Stella, Théo et Sara se prennent aussi <a href="#a-la-carte" className="underline underline-offset-2 hover:text-neutral-700">seuls, sans plan</a>. Les autres suivent les plans : rien à acheter à la découpe, rien à configurer.
               </>
             ) : (
               <>
-                <span className="font-semibold text-neutral-700">Missing just one agent?</span>{' '}
-                Stella (WhatsApp) can be added for <span className="font-semibold">€19/month</span> on Creator and Pro — she&apos;s included in Business.
-                Every other agent follows the plans: nothing to buy piecemeal, nothing to configure.
+                <span className="font-semibold text-neutral-700 dark:text-neutral-200">Only need one agent?</span>{' '}
+                Stella, Théo and Sara can also be taken <a href="#a-la-carte" className="underline underline-offset-2 hover:text-neutral-700">on their own, with no plan</a>. The rest follow the plans: nothing to buy piecemeal, nothing to configure.
               </>
             )}
           </p>
@@ -496,70 +494,6 @@ function PricingPageInner() {
             shared spaces) now route through the Agence sur devis card above.
             Removed per founder direction: "on retire le plan elite, on met
             sur devis pour partage de l'espace etc." */}
-
-        {/* Concrètement, c'est quoi la différence ? */}
-
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">{locale === 'fr' ? 'Concrètement, c\u2019est quoi la différence ?' : 'In plain terms \— what\u2019s the difference?'}</h3>
-          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            {/* Créateur card */}
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
-              <h4 className="text-lg font-bold text-purple-900 mb-1">{locale === 'fr' ? 'Ta vitrine Instagram, pro et autonome' : 'Your Instagram storefront, professional and autonomous'}</h4>
-              <p className="text-sm text-purple-600 font-semibold mb-4">{locale === 'fr' ? 'Créateur \— 49\u20AC/mois après essai' : 'Creator \— \u20AC49/month after trial'}</p>
-              <ul className="space-y-3 text-sm text-neutral-700">
-                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Un flyer distribué à 5 000 personnes \— pro, ciblé et mesurable' : 'A flyer handed to 5,000 people \— pro, targeted, measurable'}</li>
-                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</span> {locale === 'fr' ? 'Le neveu qui poste 1x/mois + Canva' : 'The nephew posting 1×/month + Canva'}</li>
-                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'En concret...' : 'Concretely...'}</span> {locale === 'fr' ? 'LÉNA + JADE + AMI basique + vidéos + trend surfing' : 'LÉNA + JADE + basic AMI + videos + trend surfing'}</li>
-                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'Ça coûte...' : 'It costs...'}</span> {locale === 'fr' ? 'Le prix de 2 dîners au restaurant' : 'The price of 2 dinners out'}</li>
-                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</span> {locale === 'fr' ? '1 vente en plus (boutique) / 5 couverts (resto)' : '1 extra sale (shop) / 5 covers (resto)'}</li>
-              </ul>
-            </div>
-            {/* Business value card */}
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border-2 border-cyan-300 p-6 shadow-lg">
-              <h4 className="text-lg font-bold text-cyan-900 mb-1">{locale === 'fr' ? 'Automatisation complète pour PME et multi-sites' : 'Complete automation for SMEs and multi-site'}</h4>
-              <p className="text-sm text-cyan-600 font-semibold mb-4">{locale === 'fr' ? 'Business \— 199\u20AC/mois \— tous les agents' : 'Business \— \u20AC199/month \— tous les agents'}</p>
-              <ul className="space-y-3 text-sm text-neutral-700">
-                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Avoir une équipe marketing complète à temps plein' : 'Having a full-time complete marketing team'}</li>
-                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</span> {locale === 'fr' ? 'Un graphiste (800\u20AC) + un CM (1 500\u20AC) + un comptable (200\u20AC) + 3 outils SaaS' : 'A designer (\u20AC800) + a CM (\u20AC1,500) + an accountant (\u20AC200) + 3 SaaS tools'}</li>
-                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'En concret...' : 'Concretely...'}</span> {locale === 'fr' ? 'tous les agents, CRM, finance, juridique, chatbot, 6 000 crédits/mois' : 'tous les agents, CRM, finance, legal, chatbot, 6,000 credits/month'}</li>
-                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</span> {locale === 'fr' ? '3 clients en plus par mois (restaurant) / 2 ventes (boutique)' : '3 extra clients/month (restaurant) / 2 sales (shop)'}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Agents IA — Automatisation */}
-
-        <div className="bg-gradient-to-br from-[#0c1a3a] to-purple-900 rounded-2xl border border-purple-500/20 p-6 mb-10 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
-          <h3 className="text-lg font-bold mb-2 flex items-center gap-2 relative z-10">
-            <span>🤖</span> {locale === 'fr' ? 'Agents \— Automatisation incluse' : 'Agents \— Automation included'}
-          </h3>
-          <p className="text-purple-200 text-sm mb-4 relative z-10">
-            {locale === 'fr' ? 'Pas un chatbot. Des agents qui ' : 'Not a chatbot. Agents that '}<strong>{locale === 'fr' ? 'exécutent' : 'execute'}</strong>{locale === 'fr' ? ' les tâches à ta place, 24/7.' : ' tasks for you, 24/7.'}
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
-            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-green-300 mb-1">{locale === 'fr' ? 'Gratuit' : 'Free'}</p>
-              <p className="text-[11px] text-purple-200">AMI ({locale === 'fr' ? 'basique' : 'basic'}) + CLARA</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-purple-300 mb-1">{locale === 'fr' ? 'Créateur \— 49\u20AC/mois après essai' : 'Creator \— \u20AC49/month after trial'}</p>
-              <p className="text-[11px] text-purple-200">{locale === 'fr' ? 'LÉNA + JADE + AMI + CLARA' : 'LÉNA + JADE + AMI + CLARA'}</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-blue-300 mb-1">{locale === 'fr' ? 'Pro \— 99\u20AC/mois après essai' : 'Pro \— \u20AC99/month after trial'}</p>
-              <p className="text-[11px] text-purple-200">{locale === 'fr' ? '+ HUGO + LÉO + THÉO + Branding IG/TT/LI' : '+ HUGO + LÉO + THÉO + Branding IG/TT/LI'}</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-amber-300 mb-1">{locale === 'fr' ? 'Business \— 199\u20AC/mois après essai' : 'Business \— \u20AC199/month after trial'}</p>
-              <p className="text-[11px] text-purple-200">+ {locale === 'fr' ? 'Multi-comptes, crédits ×4, support prioritaire' : 'Multi-account, 4× credits, priority support'}</p>
-            </div>
-          </div>
-          <p className="text-[10px] text-purple-300 mt-3 relative z-10">
-            {locale === 'fr' ? 'Tous les agents optimisent ton KeiroAI en arrière-plan, quel que soit ton plan.' : 'All agents optimise your KeiroAI in the background, whatever your plan.'}
-          </p>
-        </div>
 
         {/* Inclus gratuitement */}
         <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 dark:from-[#0c1a3a] dark:to-purple-900/20 rounded-2xl border border-purple-200 dark:border-purple-500/20 p-6 mb-10">
@@ -612,11 +546,12 @@ function PricingPageInner() {
                 {/* Crédits */}
                 {(locale === 'fr' ? [
                   // 2026-06-04 \— Aligned with backend service-guarantees.ts so the marketing matches what Lena/Jade/Hugo/L\éo actually deliver.
-                  { name: 'Publications/mois (IG + TikTok + LinkedIn)', c: '~30 (1/jour)', p: '~60 (2/jour)', b: '~90 (3/jour)', e: '120+ (4/jour)', bold: true },
-                  { name: 'Vid\éos TikTok/Reels', c: '1/jour max 15-30s', p: '1-2/jour 7-60s', b: '2-3/jour libre', e: 'Illimit\é' },
+                  { name: 'Publications (IG + TikTok + LinkedIn)', c: '~8/semaine', p: '~20/semaine', b: '~30/semaine', e: 'Sur mesure', bold: true },
+                  { name: 'Cr\édits inclus / mois', c: '1 000', p: '3 000', b: '6 000', e: 'Illimit\é', bold: true },
+                  { name: 'Reels & vid\éos courtes', c: '\✓', p: '\✓ (formats plus longs)', b: '\✓ (jusqu\u2019à 90s)', e: 'Illimit\é' },
                   { name: 'Mix format auto (photo + carrousel + vid\éo)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
-                  { name: 'Planning programm\é \à l\u2019avance', c: '7 jours', p: '7 / 14 / 21 / 30 jours', b: '7 / 14 / 21 / 30 jours', e: 'Custom' },
-                  { name: 'Agents inclus', c: '5', p: '7', b: 'Toute l\u2019\équipe', e: 'Toute l\u2019\équipe', bold: true },
+                  { name: 'Planning programm\é \à l\u2019avance', c: '7 jours', p: 'jusqu\u2019à 30 jours', b: 'jusqu\u2019à 60 et 90 jours', e: 'Sur mesure' },
+                  { name: 'Agents inclus', c: '7', p: '10', b: '10 + multi-comptes', e: 'Toute l\u2019\équipe', bold: true },
                   { name: 'L\u00c9NA Contenu IG/TT/LI', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'L\u00c9NA \— tes propres photos retouch\ées, mix\ées ou publi\ées brutes', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Contr\ôle qualit\é avant publication (visuel rat\é = bloqu\é)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
@@ -630,7 +565,6 @@ function PricingPageInner() {
                   { name: 'L\u00c9O CRM & Prospection automatique', c: '\—', p: '\✓ (~300/mois)', b: '\✓ (~750/mois)', e: '\✓ (~1 200/mois)', pro: true },
                   { name: 'TH\u00c9O SEO poussé + articles de blog', c: '\—', p: '\✓', b: '\✓', e: '\✓', pro: true },
                   { name: 'STELLA WhatsApp (confirmations, rappels, r\éponses auto)', c: '\—', p: '+19\u20ac/mois (option)', b: '\✓ inclus', e: '\✓', biz: true },
-                  { name: 'Scrape Insta + TikTok prospects (ambiance/domaine)', c: '\—', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Tendances temps r\éel + Trend Winners', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Calendrier adaptatif data-driven', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'R\éutilisation cross-platform IG \u2194 TikTok', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
@@ -638,11 +572,12 @@ function PricingPageInner() {
                   { name: 'Multi-comptes', c: '\—', p: '\—', b: '1+5', e: 'Illimit\é', biz: true },
                   { name: 'Marque blanche', c: '\—', p: '\—', b: '\—', e: '\✓' },
                 ] : [
-                  { name: 'Posts/month (IG + TikTok + LinkedIn)', c: '~30 (1/day)', p: '~60 (2/day)', b: '~90 (3/day)', e: '120+ (4/day)', bold: true },
-                  { name: 'TikTok/Reel videos', c: '1/day max 15-30s', p: '1-2/day 7-60s', b: '2-3/day free', e: 'Unlimited' },
+                  { name: 'Posts (IG + TikTok + LinkedIn)', c: '~8/week', p: '~20/week', b: '~30/week', e: 'Custom', bold: true },
+                  { name: 'Credits included / month', c: '1,000', p: '3,000', b: '6,000', e: 'Unlimited', bold: true },
+                  { name: 'Reels & short videos', c: '✓', p: '✓ (longer formats)', b: '✓ (up to 90s)', e: 'Unlimited' },
                   { name: 'Auto format mix (photo + carousel + video)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
-                  { name: 'Schedule planned ahead', c: '7 days', p: '7 / 14 / 21 / 30 days', b: '7 / 14 / 21 / 30 days', e: 'Custom' },
-                  { name: 'Included agents', c: '5', p: '7', b: 'Whole team', e: 'Whole team', bold: true },
+                  { name: 'Schedule planned ahead', c: '7 days', p: 'up to 30 days', b: 'up to 60 and 90 days', e: 'Custom' },
+                  { name: 'Included agents', c: '7', p: '10', b: '10 + multi-account', e: 'Whole team', bold: true },
                   { name: 'L\u00c9NA Content IG/TT/LI', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'L\u00c9NA \— your own photos retouched, mixed or posted raw', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Quality gate before publishing (bad visual = blocked)', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
@@ -656,7 +591,6 @@ function PricingPageInner() {
                   { name: 'L\u00c9O CRM & auto-prospecting', c: '\—', p: '\✓ (~300/mo)', b: '\✓ (~750/mo)', e: '\✓ (~1,200/mo)', pro: true },
                   { name: 'TH\u00c9O Advanced SEO + blog articles', c: '\—', p: '\✓', b: '\✓', e: '\✓', pro: true },
                   { name: 'STELLA WhatsApp (confirmations, reminders, auto-replies)', c: '\—', p: '+\u20ac19/mo (add-on)', b: '\✓ included', e: '\✓', biz: true },
-                  { name: 'Scrape Insta + TikTok prospects (vibe/niche)', c: '\—', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Real-time trends + Trend Winners', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Data-driven adaptive calendar', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
                   { name: 'Cross-platform reuse IG \u2194 TikTok', c: '\✓', p: '\✓', b: '\✓', e: '\✓' },
@@ -675,9 +609,9 @@ function PricingPageInner() {
                 {/* Prix */}
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
-                  <td className="text-center py-3 px-2 font-bold text-purple-600">{locale === 'fr' ? '49\u20AC/mois' : '\u20AC49/mo'}</td>
-                  <td className="text-center py-3 px-2 font-bold text-blue-600">{locale === 'fr' ? '99\u20AC/mois' : '\u20AC99/mo'}</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">{locale === 'fr' ? '199\u20AC/mois' : '\u20AC199/mo'}</td>
+                  <td className="text-center py-3 px-2 font-bold text-purple-600">{locale === 'fr' ? '49\u20AC TTC/mois' : '\u20AC49 incl. VAT/mo'}</td>
+                  <td className="text-center py-3 px-2 font-bold text-blue-600">{locale === 'fr' ? '99\u20AC TTC/mois' : '\u20AC99 incl. VAT/mo'}</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">{locale === 'fr' ? '149\u20AC TTC/mois' : '\u20AC149 incl. VAT/mo'}</td>
                   <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">{locale === 'fr' ? 'Sur devis' : 'Custom'}</td>
                 </tr>
               </tbody>
@@ -869,52 +803,46 @@ function PricingPageInner() {
                     type Cell = { icon?: React.ReactNode; text?: string; strong?: string; note?: string };
                     type Row = { feature: string; free: Cell; pro: Cell; createur: Cell; business: Cell; highlight?: 'cyan' | 'emerald'; bold?: boolean };
                     const fr: Row[] = [
-                      { feature: 'GÉNÉRATION DE VIDÉOS', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ok, text: 'Vidéos 5s-90s' }, createur: { icon: ok, text: 'Vidéos 5s-90s' }, business: { icon: ok, text: 'Vidéos 5s-90s' } },
-                      { feature: 'TikTok (format + publication)', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok, text: 'Format optimisé' } },
-                      { feature: 'Vidéo + audio narration', free: { icon: ko, text: '(audio séparé)' }, pro: { icon: ok, text: 'Intégré' }, createur: { icon: ok, text: 'Intégré' }, business: { icon: ok, text: 'Intégré' } },
-                      { feature: 'Images', free: { icon: ok, text: 'Qualité correcte' }, pro: { icon: ok, text: 'Meilleure qualité' }, createur: { icon: ok, text: 'Optimisé commerce' }, business: { icon: ok, text: 'Optimisé commerce' } },
-                      { feature: 'Qualité de génération', highlight: 'emerald', bold: true, free: { text: 'Basique', note: 'DALL-E 3 basique' }, pro: { text: 'Bonne', note: 'DALL-E 3 / GPT-4o' }, createur: { strong: 'Premium', note: 'Seedream 4.5 + Seedance' }, business: { strong: 'Elite Studio', note: 'Niveau graphiste pro' } },
-                      { feature: 'Rendus disponibles', free: { text: '1 seul' }, pro: { text: '1 seul' }, createur: { strong: '6 rendus', note: 'Photo, ciné, aquarelle...' }, business: { strong: '6 rendus', note: 'Photo, ciné, aquarelle...' } },
-                      { feature: 'Temps par post', free: { text: '20-30 min' }, pro: { text: '20-30 min' }, createur: { strong: '3 min' }, business: { strong: '3 min' } },
+                      { feature: 'VIDÉO PRÊTE À PUBLIER', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ko, text: 'Ne génère pas de vidéo' }, createur: { icon: ok, text: 'Reel monté, musique + hook' }, business: { icon: ok, text: 'Jusqu\u2019à 90s' } },
+                      { feature: 'Audio dans la vidéo', free: { icon: ko }, pro: { icon: ko, text: 'Lecture à voix haute seulement — rien à monter' }, createur: { icon: ok, text: 'Musique + narration déjà dans le fichier' }, business: { icon: ok, text: 'Musique + narration déjà dans le fichier' } },
+                      { feature: 'Publication automatique', highlight: 'emerald', bold: true, free: { icon: ko }, pro: { icon: ko, text: 'Tu copies-colles' }, createur: { icon: ok, text: 'IG + TikTok + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn, multi-comptes' } },
+                      { feature: 'Publie tout seul, sans toi', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '~8 posts/semaine' }, business: { icon: ok, text: '~30 posts/semaine' } },
+                      { feature: 'Choisit l\u2019heure de publication', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Selon TES vues' }, business: { icon: ok, text: 'Selon TES vues' } },
+                      { feature: 'Images', free: { icon: ok, text: 'Qualité correcte' }, pro: { icon: ok, text: 'Bonne qualité' }, createur: { icon: ok, text: 'Ton commerce, ton style' }, business: { icon: ok, text: 'Ton commerce, ton style' } },
+                      { feature: 'Tes propres photos réutilisées', free: { icon: ko }, pro: { icon: warn, text: 'Retouche ponctuelle' }, createur: { icon: ok, text: 'Retouchées, mixées ou publiées brutes' }, business: { icon: ok, text: 'Retouchées, mixées ou publiées brutes' } },
+                      { feature: 'Contrôle qualité avant publication', free: { icon: ko }, pro: { icon: ko, text: 'C\u2019est toi le filtre' }, createur: { icon: ok, text: 'Un visuel raté ne sort pas' }, business: { icon: ok, text: 'Un visuel raté ne sort pas' } },
+                      { feature: 'Lié à l\u2019actu et aux tendances du jour', free: { icon: ko, text: 'Tu cherches' }, pro: { icon: ko, text: 'Tu cherches' }, createur: { icon: ok, text: 'Automatique' }, business: { icon: ok, text: 'Automatique' } },
+                      { feature: 'Répond à tes commentaires et DM', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Dans ton ton de voix' }, business: { icon: ok, text: 'Dans ton ton de voix' } },
+                      { feature: 'Répond à tes avis Google', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Les avis sévères passent par toi' }, business: { icon: ok, text: 'Les avis sévères passent par toi' } },
+                      { feature: 'Branding mémorisé (logo + couleurs)', free: { icon: ko, text: 'À re-décrire à chaque fois' }, pro: { icon: ko, text: 'À re-décrire à chaque fois' }, createur: { icon: ok, text: 'Retenu une fois' }, business: { icon: ok, text: 'Retenu une fois' } },
+                      { feature: 'Légendes + hashtags', free: { icon: warn, text: 'Si tu demandes' }, pro: { icon: warn, text: 'Si tu demandes' }, createur: { icon: ok, text: 'Automatiques' }, business: { icon: ok, text: 'Automatiques' } },
+                      { feature: 'Calendrier programmé à l\u2019avance', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '7 jours' }, business: { icon: ok, text: '60 à 90 jours' } },
+                      { feature: 'Stats et recommandations', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Instagram + TikTok' }, business: { icon: ok, text: 'Toutes plateformes' } },
+                      { feature: 'Apprend de tes performances', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Reproduit ce qui marche' }, business: { icon: ok, text: 'Reproduit ce qui marche' } },
+                      { feature: 'Temps que ça te prend', highlight: 'emerald', bold: true, free: { text: '20-30 min par post' }, pro: { text: '20-30 min par post' }, createur: { strong: '0 min' }, business: { strong: '0 min' } },
                       { feature: 'Compétence requise', free: { text: 'Savoir prompter' }, pro: { text: 'Savoir prompter' }, createur: { strong: 'Aucune' }, business: { strong: 'Aucune' } },
-                      { feature: 'Lié à l\u2019actu du jour', free: { icon: ko, text: 'Tu cherches' }, pro: { icon: ko, text: 'Tu cherches' }, createur: { icon: ok, text: 'Automatique' }, business: { icon: ok, text: 'Automatique' } },
-                      { feature: 'Branding (logo + couleurs)', free: { icon: ko, text: 'Re-décrire' }, pro: { icon: ko, text: 'Re-décrire' }, createur: { icon: ko }, business: { icon: ok, text: 'Mémorisé, auto' } },
-                      { feature: 'Multi-format (post + Story + Reel)', free: { icon: ko, text: '1 par 1' }, pro: { icon: ko, text: '1 par 1' }, createur: { icon: ko }, business: { icon: ok, text: '1 clic = 3 formats' } },
-                      { feature: 'Légendes Instagram', free: { icon: warn, text: 'Si demandé' }, pro: { icon: warn, text: 'Si demandé' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
-                      { feature: 'Hashtags', free: { icon: warn, text: 'Si demandé' }, pro: { icon: warn, text: 'Si demandé' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
-                      { feature: 'Text-to-speech', free: { icon: ko }, pro: { icon: ok, text: '+ MP3' }, createur: { icon: ok, text: 'Intégré vidéo' }, business: { icon: ok, text: 'Intégré vidéo' } },
-                      { feature: 'Calendrier publication', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Stats Instagram', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Stats multi-plateforme', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok } },
-                      { feature: 'Recommandations auto', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Publication multi-plateforme', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'IG + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn' } },
-                      { feature: 'Galerie organisée', free: { icon: ko, text: 'Historique chat' }, pro: { icon: ko, text: 'Historique chat' }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Retouche visuelle', free: { icon: ko, text: 'Regénérer' }, pro: { icon: ko, text: 'Regénérer' }, createur: { icon: ok, text: 'Lumière, ambiance' }, business: { icon: ok, text: 'Lumière, ambiance' } },
-                      { feature: 'Support', free: { icon: ko }, pro: { text: 'Email 48h' }, createur: { text: 'Email 48h' }, business: { strong: 'Prioritaire 12h' } },
+                      { feature: 'Support', free: { icon: ko }, pro: { text: 'Centre d\u2019aide' }, createur: { text: 'Email sous 12h' }, business: { strong: 'Prioritaire sous 3h' } },
                     ];
                     const en: Row[] = [
-                      { feature: 'VIDEO GENERATION', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ok, text: '5s-90s videos' }, createur: { icon: ok, text: '5s-90s videos' }, business: { icon: ok, text: '5s-90s videos' } },
-                      { feature: 'TikTok (format + publishing)', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok, text: 'Optimised format' } },
-                      { feature: 'Video + audio narration', free: { icon: ko, text: '(separate audio)' }, pro: { icon: ok, text: 'Built-in' }, createur: { icon: ok, text: 'Built-in' }, business: { icon: ok, text: 'Built-in' } },
-                      { feature: 'Images', free: { icon: ok, text: 'Decent quality' }, pro: { icon: ok, text: 'Better quality' }, createur: { icon: ok, text: 'Business-optimised' }, business: { icon: ok, text: 'Business-optimised' } },
-                      { feature: 'Generation quality', highlight: 'emerald', bold: true, free: { text: 'Basic', note: 'DALL-E 3 basic' }, pro: { text: 'Good', note: 'DALL-E 3 / GPT-4o' }, createur: { strong: 'Premium', note: 'Seedream 4.5 + Seedance' }, business: { strong: 'Elite Studio', note: 'Pro designer level' } },
-                      { feature: 'Available renders', free: { text: '1 only' }, pro: { text: '1 only' }, createur: { strong: '6 renders', note: 'Photo, cine, watercolor...' }, business: { strong: '6 renders', note: 'Photo, cine, watercolor...' } },
-                      { feature: 'Time per post', free: { text: '20-30 min' }, pro: { text: '20-30 min' }, createur: { strong: '3 min' }, business: { strong: '3 min' } },
+                      { feature: 'READY-TO-POST VIDEO', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ko, text: 'Does not generate video' }, createur: { icon: ok, text: 'Edited reel, music + hook' }, business: { icon: ok, text: 'Up to 90s' } },
+                      { feature: 'Audio inside the video', free: { icon: ko }, pro: { icon: ko, text: 'Read-aloud only \u2014 nothing to edit in' }, createur: { icon: ok, text: 'Music + narration already in the file' }, business: { icon: ok, text: 'Music + narration already in the file' } },
+                      { feature: 'Automatic publishing', highlight: 'emerald', bold: true, free: { icon: ko }, pro: { icon: ko, text: 'You copy-paste' }, createur: { icon: ok, text: 'IG + TikTok + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn, multi-account' } },
+                      { feature: 'Posts without you', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '~8 posts/week' }, business: { icon: ok, text: '~30 posts/week' } },
+                      { feature: 'Picks the posting time', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'From YOUR views' }, business: { icon: ok, text: 'From YOUR views' } },
+                      { feature: 'Images', free: { icon: ok, text: 'Decent quality' }, pro: { icon: ok, text: 'Good quality' }, createur: { icon: ok, text: 'Your business, your style' }, business: { icon: ok, text: 'Your business, your style' } },
+                      { feature: 'Reuses your own photos', free: { icon: ko }, pro: { icon: warn, text: 'One-off retouch' }, createur: { icon: ok, text: 'Retouched, mixed or posted raw' }, business: { icon: ok, text: 'Retouched, mixed or posted raw' } },
+                      { feature: 'Quality gate before publishing', free: { icon: ko }, pro: { icon: ko, text: 'You are the filter' }, createur: { icon: ok, text: 'A bad visual never ships' }, business: { icon: ok, text: 'A bad visual never ships' } },
+                      { feature: 'Tied to today\u2019s news and trends', free: { icon: ko, text: 'You search' }, pro: { icon: ko, text: 'You search' }, createur: { icon: ok, text: 'Automatic' }, business: { icon: ok, text: 'Automatic' } },
+                      { feature: 'Answers your comments and DMs', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'In your brand voice' }, business: { icon: ok, text: 'In your brand voice' } },
+                      { feature: 'Answers your Google reviews', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Harsh ones come to you first' }, business: { icon: ok, text: 'Harsh ones come to you first' } },
+                      { feature: 'Remembers your branding (logo + colors)', free: { icon: ko, text: 'Re-describe every time' }, pro: { icon: ko, text: 'Re-describe every time' }, createur: { icon: ok, text: 'Set once' }, business: { icon: ok, text: 'Set once' } },
+                      { feature: 'Captions + hashtags', free: { icon: warn, text: 'If you ask' }, pro: { icon: warn, text: 'If you ask' }, createur: { icon: ok, text: 'Automatic' }, business: { icon: ok, text: 'Automatic' } },
+                      { feature: 'Calendar scheduled ahead', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: '7 days' }, business: { icon: ok, text: '60 to 90 days' } },
+                      { feature: 'Stats and recommendations', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Instagram + TikTok' }, business: { icon: ok, text: 'All platforms' } },
+                      { feature: 'Learns from your performance', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'Repeats what works' }, business: { icon: ok, text: 'Repeats what works' } },
+                      { feature: 'Time it costs you', highlight: 'emerald', bold: true, free: { text: '20-30 min per post' }, pro: { text: '20-30 min per post' }, createur: { strong: '0 min' }, business: { strong: '0 min' } },
                       { feature: 'Skill required', free: { text: 'Prompting skill' }, pro: { text: 'Prompting skill' }, createur: { strong: 'None' }, business: { strong: 'None' } },
-                      { feature: 'Tied to today\u2019s news', free: { icon: ko, text: 'You search' }, pro: { icon: ko, text: 'You search' }, createur: { icon: ok, text: 'Automatic' }, business: { icon: ok, text: 'Automatic' } },
-                      { feature: 'Branding (logo + colors)', free: { icon: ko, text: 'Re-describe' }, pro: { icon: ko, text: 'Re-describe' }, createur: { icon: ko }, business: { icon: ok, text: 'Remembered, auto' } },
-                      { feature: 'Multi-format (post + Story + Reel)', free: { icon: ko, text: 'One by one' }, pro: { icon: ko, text: 'One by one' }, createur: { icon: ko }, business: { icon: ok, text: '1 click = 3 formats' } },
-                      { feature: 'Instagram captions', free: { icon: warn, text: 'If asked' }, pro: { icon: warn, text: 'If asked' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
-                      { feature: 'Hashtags', free: { icon: warn, text: 'If asked' }, pro: { icon: warn, text: 'If asked' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
-                      { feature: 'Text-to-speech', free: { icon: ko }, pro: { icon: ok, text: '+ MP3' }, createur: { icon: ok, text: 'In video' }, business: { icon: ok, text: 'In video' } },
-                      { feature: 'Publishing calendar', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Instagram stats', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Multi-platform stats', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok } },
-                      { feature: 'Auto recommendations', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Multi-platform publishing', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'IG + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn' } },
-                      { feature: 'Organised gallery', free: { icon: ko, text: 'Chat history' }, pro: { icon: ko, text: 'Chat history' }, createur: { icon: ok }, business: { icon: ok } },
-                      { feature: 'Visual retouch', free: { icon: ko, text: 'Regenerate' }, pro: { icon: ko, text: 'Regenerate' }, createur: { icon: ok, text: 'Light, mood' }, business: { icon: ok, text: 'Light, mood' } },
-                      { feature: 'Support', free: { icon: ko }, pro: { text: 'Email 48h' }, createur: { text: 'Email 48h' }, business: { strong: 'Priority 12h' } },
+                      { feature: 'Support', free: { icon: ko }, pro: { text: 'Help centre' }, createur: { text: 'Email within 12h' }, business: { strong: 'Priority within 3h' } },
                     ];
                     const renderCell = (c: Cell) => (
                       <>
@@ -944,60 +872,92 @@ function PricingPageInner() {
           </div>
         </div>
 
-        {/* Credit Packs — Boosters à la demande */}
-        <div className="max-w-5xl mx-auto mb-20">
+        {/* Agents à la carte — un agent seul, pour un besoin précis */}
+        <div id="a-la-carte" className="max-w-5xl mx-auto mb-20 scroll-mt-24">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2">💎 Packs à la demande</h2>
-            <p className="text-neutral-600 text-sm">
-              Tu as épuisé ton quota mensuel ou besoin de plus pour une grosse campagne ?
-              <br />
-              Recharge sans changer de plan, à utiliser à ton rythme.
+            <h2 className="text-3xl font-bold mb-2">
+              {locale === 'fr' ? 'Un seul agent te suffit ?' : 'Only need one agent?'}
+            </h2>
+            <p className="text-neutral-600 dark:text-neutral-300 text-sm max-w-xl mx-auto">
+              {locale === 'fr'
+                ? 'Certains agents rendent un service complet tout seuls. Prends-en un, sans plan, et ajoute le reste plus tard si tu veux.'
+                : 'Some agents do a complete job on their own. Take one, no plan required, and add the rest later if you want.'}
             </p>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { id: 'starter', label: 'Starter', credits: 50, price: '14,99', bonus: 'Idéal pour 1 reel + 5 posts', recommended: false },
-              { id: 'pro', label: 'Pro', credits: 150, price: '39,99', bonus: '3 reels + 30 posts • -11% vs Starter', recommended: true },
-              { id: 'expert', label: 'Expert', credits: 300, price: '69,99', bonus: '6 reels + 60 posts • -23% vs Starter', recommended: false },
-            ].map(pack => (
-              <div
-                key={pack.id}
-                className={`relative rounded-2xl border-2 p-6 transition-all ${
-                  pack.recommended
-                    ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-white shadow-xl scale-[1.02]'
-                    : 'border-neutral-200 bg-white hover:shadow-md'
-                }`}
-              >
-                {pack.recommended && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-cyan-500 text-white text-[10px] font-bold rounded-full">
-                    MEILLEUR RATIO
+            {(locale === 'fr' ? [
+              {
+                id: 'stella_addon', emoji: '📲', name: 'Stella', role: 'WhatsApp',
+                price: '19€', for: 'Restaurants, instituts, cabinets — tout ce qui prend des rendez-vous',
+                does: ['Confirme chaque réservation', 'Rappelle la veille (fini les no-shows)', 'Répond aux questions courantes'],
+                accent: 'emerald',
+              },
+              {
+                id: 'theo_addon', emoji: '📍', name: 'Théo', role: 'Avis Google & fiche',
+                price: '19€', for: 'Commerces avec du passage et des avis qui dorment',
+                does: ['Répond à chaque avis dans ton ton', 'Les avis sévères passent par toi avant envoi', 'Répare ta fiche : horaires, photos, catégories'],
+                accent: 'blue',
+              },
+              {
+                id: 'sara_addon', emoji: '⚖️', name: 'Sara', role: 'RH & juridique',
+                price: '14€', for: 'Dès que tu embauches ou que tu signes',
+                does: ['CDI, CDD, avenant, rupture — prêts à signer', 'À ta marque, logo et couleurs compris', 'Te conseille avant de te tromper'],
+                accent: 'fuchsia',
+              },
+            ] : [
+              {
+                id: 'stella_addon', emoji: '📲', name: 'Stella', role: 'WhatsApp',
+                price: '€19', for: 'Restaurants, salons, clinics — anything with bookings',
+                does: ['Confirms every booking', 'Reminds the day before (no more no-shows)', 'Answers the usual questions'],
+                accent: 'emerald',
+              },
+              {
+                id: 'theo_addon', emoji: '📍', name: 'Théo', role: 'Google reviews & listing',
+                price: '€19', for: 'Businesses with footfall and reviews left unanswered',
+                does: ['Answers every review in your voice', 'Harsh ones come to you before sending', 'Fixes your listing: hours, photos, categories'],
+                accent: 'blue',
+              },
+              {
+                id: 'sara_addon', emoji: '⚖️', name: 'Sara', role: 'HR & legal',
+                price: '€14', for: 'The moment you hire or sign anything',
+                does: ['Contracts and amendments, ready to sign', 'In your branding, logo and colours included', 'Advises you before you get it wrong'],
+                accent: 'fuchsia',
+              },
+            ]).map(a => (
+              <div key={a.id} className="rounded-2xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-white/5 p-5 flex flex-col hover:shadow-lg hover:-translate-y-0.5 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">{a.emoji}</span>
+                  <div>
+                    <p className="font-bold text-neutral-900 dark:text-white leading-tight">{a.name}</p>
+                    <p className="text-[11px] text-neutral-500">{a.role}</p>
                   </div>
-                )}
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-2">
-                    Pack {pack.label}
-                  </div>
-                  <div className="text-4xl font-extrabold text-[#0c1a3a] mb-1">
-                    {pack.credits} <span className="text-base font-medium text-neutral-500">crédits</span>
-                  </div>
-                  <div className="text-2xl font-bold text-cyan-600 mb-3">{pack.price} €</div>
-                  <p className="text-xs text-neutral-600 mb-5">{pack.bonus}</p>
-                  <Link
-                    href="/assistant"
-                    className={`block w-full py-2.5 rounded-xl text-sm font-bold transition ${
-                      pack.recommended
-                        ? 'bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] hover:opacity-90'
-                        : 'bg-[#0c1a3a] text-white hover:bg-[#0c1a3a]/90'
-                    }`}
-                  >
-                    Acheter ce pack
-                  </Link>
+                  <p className="ml-auto text-lg font-bold text-neutral-900 dark:text-white">
+                    {a.price}<span className="text-[11px] font-normal text-neutral-400">{locale === 'fr' ? ' TTC/mois' : '/mo'}</span>
+                  </p>
                 </div>
+                <p className="text-[11px] text-neutral-500 italic mb-3">{a.for}</p>
+                <ul className="space-y-1.5 text-[12px] text-neutral-600 dark:text-neutral-300 flex-1">
+                  {a.does.map(d => (
+                    <li key={d} className="flex gap-2">
+                      <span className="text-green-600 flex-shrink-0">✓</span><span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => startCheckout(a.id)}
+                  className="mt-4 w-full py-2.5 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-[13px] font-semibold hover:opacity-90 transition-opacity"
+                >
+                  {locale === 'fr' ? `Ajouter ${a.name}` : `Add ${a.name}`}
+                </button>
               </div>
             ))}
           </div>
-          <p className="text-center text-xs text-neutral-400 mt-4">
-            Les crédits achetés en pack n'expirent pas. Paiement unique, aucun engagement.
+
+          <p className="text-center text-xs text-neutral-500 mt-5 max-w-xl mx-auto">
+            {locale === 'fr'
+              ? 'À trois agents seuls, tu dépasses le prix du plan Créateur qui en contient sept, contenu et publication compris. L\u2019à la carte sert un besoin précis, pas à reconstituer une offre.'
+              : 'Three standalone agents already cost more than the Créateur plan, which includes seven of them plus content and publishing. À la carte is for one precise need, not for rebuilding a plan.'}
           </p>
         </div>
 

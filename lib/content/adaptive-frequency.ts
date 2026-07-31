@@ -1,42 +1,52 @@
 /**
- * Adaptive content publication frequency.
+ * Cadence de publication adaptative.
  *
- * Fixed daily post quotas (`posts_per_day_ig = 3`) made sense for a demo
- * but don't hold when the customer's whole credit budget has to serve
- * content + DMs + chatbot + video + TTS. A Créateur (400 cr/mo) who
- * publishes 3×/day on image posts (12 cr/day = 360 cr) blows 90% of their
- * monthly allowance on content alone and starves every other agent.
+ * Un quota fixe en posts/jour ne tient pas : le budget crédits du
+ * client sert aussi aux DM, aux emails, au chatbot et à la vidéo. On raisonne
+ * donc en OBJECTIF HEBDOMADAIRE par plan, ajusté au budget restant.
  *
- * So we shift from daily gate to a WEEKLY TARGET per plan, adaptive to:
- *   - plan baseline (Créateur 5, Pro 10, Business 18, Elite 25 posts/week)
- *   - credits remaining vs. expected month-to-date burn
- *   - how much the OTHER agents are already consuming
+ * ── Recalibrage 2026-07-31 (demande fondateur : « vérifie la grille des
+ * crédits et nos crédits dits en page accueil et tarifs avec nos marges ») ──
  *
- * The scheduler calls `getWeeklyContentTarget()` before firing a slot.
- * If posts already published this week >= target, the slot is skipped.
- * This way every agent shares the credit pie adaptively instead of a
- * fixed lane eating it all.
+ * L'ancien socle (5 / 10 / 18) promettait deux fois moins que les pages de
+ * vente (10 / 20 / 30 par semaine). Le client payait pour une cadence qu'il
+ * ne recevait pas — le pire des deux mondes, puisque le pool de crédits, lui,
+ * pouvait la financer.
+ *
+ * Coût réel d'un post, mesuré sur le pipeline en place :
+ *   • reel  = 1 image hero générée (~0,025€) + 60% du temps une animation i2v
+ *             ≤10s (~0,30€), 40% du temps un Ken Burns local (gratuit) + QC
+ *             vision → ~0,23€ en moyenne, soit ~44 crédits débités ;
+ *   • post/carrousel = 1 à 3 images (~0,06€) → 5 à 15 crédits.
+ *
+ * Au mix 50/50 réel, à la cadence annoncée :
+ *   Créateur  8/sem  → ~930 cr sur 1 000 (93%)  · marge ≈ 78%
+ *   Pro      20/sem  → ~2 540 cr sur 3 000 (85%) · marge ≈ 81%
+ *   Business 30/sem  → ~3 840 cr sur 6 000 (64%) · marge ≈ 82%
+ *
+ * Créateur est plafonné à 8 et non 10 : à 10, la consommation dépasse le pool
+ * vers le 26 du mois et le client tombe en panne sèche avant la fin. Mieux
+ * vaut promettre 8 et les tenir.
+ *
+ * Le multiplicateur ci-dessous protège ensuite le pool au cas par cas.
  */
-
 export type ContentPlan = 'free' | 'createur' | 'pro' | 'fondateurs' | 'business' | 'elite' | 'agence' | 'admin';
 
 /**
- * Baseline weekly targets per plan. Matches the "promised cadence" of each
- * tier while leaving room for DMs/emails/chatbot/video on the same budget.
- *
- * Créateur 5/week × ~10 cr (mix image post + carousel) = 50 cr/week = 200
- * cr/month ≈ 50% of allowance. Other 50% goes to DM enrichment, video (5
- * vids max per month), emails, CRM scoring, daily analytics.
+ * Socle hebdomadaire par plan — c'est ce chiffre que les pages de vente
+ * annoncent. Toute modification ici doit être répercutée dans les textes
+ * (lib/i18n/translations) et inversement : deux chiffres différents, c'est
+ * une promesse non tenue.
  */
 export const WEEKLY_BASELINE: Record<string, number> = {
   free: 0,
-  createur: 5,
-  pro: 10,
-  fondateurs: 18,
-  business: 18,
-  elite: 25,
-  agence: 35,
-  admin: 35,
+  createur: 8,
+  pro: 20,
+  fondateurs: 25,
+  business: 30,
+  elite: 35,
+  agence: 42,
+  admin: 42,
 };
 
 export type AdaptiveContext = {
@@ -65,7 +75,7 @@ export type AdaptiveResult = {
  *   - else                             → 1.0 (baseline)
  *
  * Daily cap:
- *   Target/7 rounded up, capped at 3 (max slots the cron fires per day).
+ *   Target/7 rounded up, capped at 6 (max slots the cron fires per day).
  */
 export function getWeeklyContentTarget(ctx: AdaptiveContext): AdaptiveResult {
   const baseline = WEEKLY_BASELINE[ctx.plan] ?? WEEKLY_BASELINE.free;
@@ -94,7 +104,7 @@ export function getWeeklyContentTarget(ctx: AdaptiveContext): AdaptiveResult {
   }
 
   const weeklyTarget = Math.max(1, Math.round(baseline * multiplier));
-  const dailyCap = Math.min(3, Math.max(1, Math.ceil(weeklyTarget / 7)));
+  const dailyCap = Math.min(6, Math.max(1, Math.ceil(weeklyTarget / 7)));
 
   return { weeklyTarget, dailyCap, multiplier, reason };
 }
