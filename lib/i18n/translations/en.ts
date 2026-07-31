@@ -3104,7 +3104,7 @@ export const en: Translations = {
     gmapsToggleAutoDesc: 'Theo replies to every new review automatically',
     gmapsToggleManualDesc: 'You choose when and what to reply',
 
-    // ─── SEO (Oscar) ────────────────────────────────────────
+    // ─── SEO (handled by Théo — Oscar no longer exists) ────
     seoKpiArticles: 'Blog articles',
     seoKpiKeywords: 'Keywords tracked',
     seoKpiActions: 'SEO actions',
@@ -3180,7 +3180,7 @@ export const en: Translations = {
     whatsappLabelReplyRate: 'Reply rate',
     whatsappLabelLeadRate: 'Lead conversion',
 
-    // ─── TikTok Comments (Axel) ─────────────────────────────
+    // ─── TikTok comments (handled by Jade — Axel no longer exists) ─
     tiktokKpiVideos: 'Videos',
     tiktokKpiViews: 'Views',
     tiktokKpiEngagement: 'Engagement',
@@ -3198,10 +3198,10 @@ export const en: Translations = {
     tiktokBtnConfigure: 'Configure engagement',
     tiktokToggleAutoLabel: 'Automatic engagement',
     tiktokToggleManualLabel: 'Manual engagement',
-    tiktokToggleAutoDesc: 'Axel comments and engages automatically',
+    tiktokToggleAutoDesc: 'Jade comments and engages automatically',
     tiktokToggleManualDesc: 'You validate each interaction',
 
-    // ─── Ads (Felix) ────────────────────────────────────────
+    // ─── Ads (pulled from the offer — Félix no longer exists) ─
     adsKpiActive: 'Active campaigns',
     adsKpiBudget: 'Total budget',
     adsKpiRoas: 'Average ROAS',

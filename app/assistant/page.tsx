@@ -1165,69 +1165,12 @@ export default function AssistantPage() {
           </div>
         )}
 
-        {/* ═══ KPI CARDS — Vue d'ensemble rapide ═══ */}
-        {!COMING_SOON_MODE && !isVisitor && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiActiveAgents || 'Active agents'}</span>
-              </div>
-              <div className="text-white text-2xl font-bold">{activeAgents}</div>
-              <div className="text-white/30 text-[10px] mt-0.5">{(nt.kpiActiveAgentsOf || 'of {n} agents').replace('{n}', String(agents.length))}</div>
-            </div>
-
-            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiActions || 'Actions'}</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-cyan-400 text-2xl font-bold">+{summary?.globalStats?.actionsToday ?? 0}</div>
-                <div className="text-white/30 text-[10px]">/ {summary?.globalStats?.actionsTotal ?? totalActions}</div>
-              </div>
-              <div className="text-white/30 text-[10px] mt-0.5">{(nt.kpiActionsToday as string) || (summary?.locale === 'en' ? 'today · total' : "aujourd'hui · total")}</div>
-            </div>
-
-            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiProspects || 'Prospects'}</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-cyan-400 text-2xl font-bold">+{summary?.globalStats?.prospectsToday ?? 0}</div>
-                <div className="text-white/30 text-[10px]">/ {totalProspects}</div>
-              </div>
-              <div className="text-white/30 text-[10px] mt-0.5">{(nt.kpiProspectsToday as string) || (summary?.locale === 'en' ? 'today · in pipeline' : "aujourd'hui · en pipeline")}</div>
-            </div>
-
-            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiClients || 'Clients'}</span>
-              </div>
-              <div className="text-white text-2xl font-bold">{totalClients}</div>
-              <div className="text-green-400/70 text-[10px] mt-0.5 font-medium">{(nt.kpiConversion || '{n}% conversion').replace('{n}', String(conversionRate))}</div>
-            </div>
-          </div>
-        )}
-
+        {/* Les quatre tuiles fixes (agents actifs, actions, prospects, clients)
+            ont été retirées le 2026-07-31 : elles faisaient doublon avec la
+            grille configurable juste en dessous, qui affiche déjà prospects et
+            conversion. Le fondateur : « enlever celles en dur en haut pour
+            laisser place à celles à choisir ». Un même chiffre affiché deux
+            fois à deux endroits finit toujours par diverger. */}
         {/* Les chiffres que le client a choisi de suivre — le bloc KPI
             ci-dessus reste fixe (les quatre repères communs), celui-ci est le
             sien. */}

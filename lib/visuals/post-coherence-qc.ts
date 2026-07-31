@@ -112,7 +112,14 @@ Puis évalue quatre points :
 4. IMAGE VIDE
    L'image se réduit-elle à un pictogramme ou un symbole abstrait isolé — flèche, ampoule, engrenage, point d'interrogation, forme géométrique — posé sur un fond uni ou dégradé ?
    Ce type d'image ne montre rien, n'apprend rien, ne donne envie de rien. Elle est rejetée même si elle est jolie et techniquement parfaite.
-   Une photo de situation, un produit, un lieu, une personne, une capture d'écran parlante, un graphique lisible : ce n'est PAS une image vide.
+
+   ⚠️ NE CONFONDS PAS « abstrait » et « sans produit ». Tous les métiers n'ont pas un objet à photographier, et le sujet concret change selon l'activité :
+     • Commerce avec produit (restaurant, boulangerie, boutique, fleuriste, caviste) → le plat, l'étal, la vitrine, le produit en main.
+     • Service à la personne (coiffeur, institut, ongles, coach, kiné) → le geste professionnel, le résultat sur la personne, le salon, la cabine.
+     • Artisan (plombier, menuisier, électricien, garage, bâtiment) → les mains au travail, l'outil, le chantier, l'avant/après d'une réparation, le véhicule d'intervention.
+     • PME, B2B, profession libérale (comptable, consultant, agence, bureau d'études, industrie) → l'atelier, la ligne de production, l'équipe en situation, un poste de travail, un document ou un écran LISIBLE, un graphique dont on comprend l'axe.
+   Pour un service ou une PME, une personne au travail, un lieu professionnel, un outil ou un écran lisible sont des sujets PARFAITEMENT concrets. Ne pénalise jamais l'absence d'objet physique : ce qui compte est qu'on identifie une activité réelle.
+   Le seul vrai critère : l'image montre-t-elle une SCÈNE ou un OBJET identifiable, ou juste un symbole décoratif ?
 
 5. HASHTAGS À CÔTÉ
    Les hashtags annoncent-ils un sujet, un métier ou un lieu absent du post ?

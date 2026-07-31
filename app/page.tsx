@@ -283,7 +283,7 @@ function HomeKeiroInner() {
             </p>
           </div>
           {/* 4-col grid (compact on mobile, larger on desktop) */}
-          <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             {[
               { emoji: '🎨', label: 'Léna', role: locale === 'fr' ? 'Posts auto' : 'Auto posts', accent: 'from-purple-500 to-pink-500', avatar: '/avatars-3d/content.png' },
               { emoji: '📧', label: 'Hugo', role: locale === 'fr' ? 'Emails' : 'Emails', accent: 'from-cyan-500 to-blue-500', avatar: '/avatars-3d/email.png' },
@@ -294,6 +294,7 @@ function HomeKeiroInner() {
               { emoji: '📊', label: 'Ami', role: locale === 'fr' ? 'Analyse' : 'Analytics', accent: 'from-indigo-500 to-blue-600', avatar: '/avatars-3d/marketing.png' },
               { emoji: '💚', label: 'Stella', role: locale === 'fr' ? 'WhatsApp' : 'WhatsApp', accent: 'from-green-500 to-emerald-600', avatar: '/avatars-3d/whatsapp.png' },
               { emoji: '⚖️', label: 'Sara', role: locale === 'fr' ? 'RH & juridique' : 'HR & legal', accent: 'from-slate-500 to-slate-700', avatar: '/avatars-3d/rh.png' },
+              { emoji: '💰', label: 'Louis', role: locale === 'fr' ? 'Finance & documents' : 'Finance & documents', accent: 'from-cyan-700 to-teal-800', avatar: '/avatars-3d/comptable.png' },
             ].map(a => (
               <div key={a.label} className="rounded-xl bg-white border border-neutral-200 p-2 sm:p-3 text-center shadow-sm hover:shadow-md transition">
                 {/* Avatar with the activity emoji as a tiny corner badge —

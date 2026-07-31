@@ -80,6 +80,7 @@ export async function GET() {
 
   // ── DM et commentaires ──────────────────────────────────────────
   try {
+    // Déjà en count exact : pas de plafond ici.
     const { count: sent } = await sb.from('dm_queue').select('id', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('status', 'sent').gte('updated_at', since);
     const { count: pending } = await sb.from('dm_queue').select('id', { count: 'exact', head: true })
@@ -92,7 +93,10 @@ export async function GET() {
   try {
     const { data: logs } = await sb.from('agent_logs')
       .select('agent, action, status, data')
-      .eq('user_id', user.id).gte('created_at', since).limit(3000);
+      // PostgREST plafonne à 1 000 lignes : au-delà, ces totaux sous-estiment.
+      // Acceptable pour un journal d'activité sur 30 jours, à revoir si un
+      // client dépasse ce volume — les compteurs deviendraient trompeurs.
+      .eq('user_id', user.id).gte('created_at', since).limit(1000);
     const rows = logs || [];
     metrics.actions_done = rows.filter(l => l.status === 'success' || l.status === 'ok').length;
     metrics.agents_active = new Set(rows.map(l => l.agent)).size;
@@ -109,22 +113,61 @@ export async function GET() {
     if (cleaned > 0) metrics.inbox_cleaned = cleaned;
   } catch { /* ignore */ }
 
-  // ── Prospection et CRM ──────────────────────────────────────────
+  // ── WhatsApp (Stella) ───────────────────────────────────────────
+  // Compté sur les vraies conversations, pas sur le journal des agents : un
+  // client qui écrit en premier n'y laisse aucune trace côté agent.
   try {
-    const { data: prospects } = await sb.from('crm_prospects')
-      .select('status, temperature, created_at')
-      .eq('user_id', user.id).limit(5000);
-    const rows = prospects || [];
-    metrics.prospects_found = rows.filter(p => String(p.created_at) >= since).length;
-    metrics.prospects_hot = rows.filter(p => p.temperature === 'hot').length;
-    const contacted = rows.filter(p => !['nouveau', 'a_contacter', null, ''].includes(String(p.status)));
-    const replied = rows.filter(p => ['repondu', 'interesse', 'demo'].includes(String(p.status)));
-    const won = rows.filter(p => ['client', 'gagne', 'signe'].includes(String(p.status)));
-    metrics.prospects_contacted = contacted.length;
-    metrics.prospects_replied = replied.length;
-    metrics.clients_converted = won.length;
-    if (contacted.length > 0) metrics.conversion_rate = Math.round((won.length / contacted.length) * 1000) / 10;
-  } catch { /* ignore */ }
+    const { count: waConv } = await sb.from('whatsapp_conversations')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', user.id).gte('created_at', since);
+    if (waConv != null) metrics.wa_conversations = waConv;
+  } catch { /* Stella pas branchée : métrique absente, pas nulle */ }
+
+  // ── Prospection et CRM ──────────────────────────────────────────
+  //
+  // 2026-07-31 — Réécrit après un chiffre faux affiché au client : la tuile
+  // « prospects contactés » annonçait 1 000 pile. Ce n'était pas un résultat,
+  // c'était le PLAFOND de PostgREST, qui ne renvoie jamais plus de 1 000
+  // lignes quelle que soit la limite demandée. Sur 9 643 prospects, on
+  // comptait donc dans un échantillon tronqué, et le même plafond faussait
+  // toutes les métriques calculées en ramenant des lignes.
+  //
+  // On compte désormais côté serveur (count exact, head: true) : une requête
+  // par métrique, aucune ligne transférée, aucun plafond.
+  //
+  // Le vocabulaire des statuts a été relevé dans la base plutôt que supposé.
+  // L'ancien code traitait « identifie » et « perdu » comme des prospects
+  // contactés — soit 8 759 sur 9 643 comptés à tort.
+  try {
+    const compte = async (filtre: (q: any) => any) => {
+      const { count } = await filtre(
+        sb.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      );
+      return count ?? 0;
+    };
+
+    // Un prospect a été touché à partir du moment où on lui a écrit.
+    const TOUCHES = ['contacte', 'relance_1', 'relance_2', 'relance_3', 'repondu', 'interesse', 'demo', 'negociation', 'client', 'gagne', 'signe'];
+    const REPONDU = ['repondu', 'interesse', 'demo', 'negociation', 'client', 'gagne', 'signe'];
+    const SIGNE = ['client', 'gagne', 'signe'];
+
+    const [trouves, chauds, contactes, repondus, signes] = await Promise.all([
+      compte(q => q.gte('created_at', since)),
+      compte(q => q.eq('temperature', 'hot')),
+      compte(q => q.in('status', TOUCHES)),
+      compte(q => q.in('status', REPONDU)),
+      compte(q => q.in('status', SIGNE)),
+    ]);
+
+    metrics.prospects_found = trouves;
+    metrics.prospects_hot = chauds;
+    metrics.prospects_contacted = contactes;
+    metrics.prospects_replied = repondus;
+    metrics.clients_converted = signes;
+    // Un taux calculé sur zéro contact ne veut rien dire : on ne l'affiche pas.
+    if (contactes > 0) metrics.conversion_rate = Math.round((signes / contactes) * 1000) / 10;
+    if (contactes > 0) metrics.reply_rate = Math.round((repondus / contactes) * 1000) / 10;
+  } catch { /* métrique absente plutôt que fausse */ }
 
   // ── Emails ──────────────────────────────────────────────────────
   try {

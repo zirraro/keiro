@@ -50,7 +50,6 @@ export const STAT_CATALOG: StatDef[] = [
   { id: 'emails_opened_rate', label: { fr: 'Taux d\'ouverture', en: 'Open rate' }, hint: { fr: 'de tes emails', en: 'of your emails' }, unit: 'pourcentage', agent: 'email', higherIsBetter: true },
   { id: 'emails_replied', label: { fr: 'Réponses reçues', en: 'Replies received' }, hint: { fr: 'de vrais prospects', en: 'from real prospects' }, unit: 'nombre', agent: 'email', higherIsBetter: true },
   { id: 'inbox_cleaned', label: { fr: 'Boîte nettoyée', en: 'Inbox cleaned' }, hint: { fr: 'mails triés par Hugo', en: 'emails sorted by Hugo' }, unit: 'nombre', agent: 'email', higherIsBetter: true },
-  { id: 'drafts_ready', label: { fr: 'Réponses préparées', en: 'Replies drafted' }, hint: { fr: 'à valider', en: 'to approve' }, unit: 'nombre', agent: 'email' },
 
   // ── Prospection et CRM (Léo) ──────────────────────────────────────
   { id: 'prospects_found', label: { fr: 'Prospects trouvés', en: 'Prospects found' }, hint: { fr: 'ce mois-ci', en: 'this month' }, unit: 'nombre', agent: 'commercial', higherIsBetter: true },
@@ -61,15 +60,11 @@ export const STAT_CATALOG: StatDef[] = [
   { id: 'conversion_rate', label: { fr: 'Taux de conversion', en: 'Conversion rate' }, hint: { fr: 'contactés → signés', en: 'contacted → won' }, unit: 'pourcentage', agent: 'commercial', higherIsBetter: true },
 
   // ── Réputation et fiche Google (Théo) ─────────────────────────────
-  { id: 'reviews_received', label: { fr: 'Avis reçus', en: 'Reviews received' }, hint: { fr: 'sur 30 jours', en: 'over 30 days' }, unit: 'nombre', agent: 'gmaps', higherIsBetter: true },
   { id: 'reviews_answered', label: { fr: 'Avis répondus', en: 'Reviews answered' }, hint: { fr: 'par Théo', en: 'by Théo' }, unit: 'nombre', agent: 'gmaps', higherIsBetter: true },
-  { id: 'rating_average', label: { fr: 'Note moyenne', en: 'Average rating' }, hint: { fr: 'sur Google', en: 'on Google' }, unit: 'note', agent: 'gmaps', higherIsBetter: true },
-  { id: 'reviews_negative', label: { fr: 'Avis à surveiller', en: 'Reviews to watch' }, hint: { fr: '3 étoiles ou moins', en: '3 stars or less' }, unit: 'nombre', agent: 'gmaps', higherIsBetter: false },
 
   // ── WhatsApp (Stella) ─────────────────────────────────────────────
   { id: 'wa_messages_sent', label: { fr: 'Messages WhatsApp', en: 'WhatsApp messages' }, hint: { fr: 'envoyés ce mois-ci', en: 'sent this month' }, unit: 'nombre', agent: 'whatsapp' },
   { id: 'wa_conversations', label: { fr: 'Échanges clients', en: 'Customer chats' }, hint: { fr: 'sur WhatsApp', en: 'on WhatsApp' }, unit: 'nombre', agent: 'whatsapp', higherIsBetter: true },
-  { id: 'wa_reminders', label: { fr: 'Rappels de RDV', en: 'Booking reminders' }, hint: { fr: 'envoyés la veille', en: 'sent the day before' }, unit: 'nombre', agent: 'whatsapp', higherIsBetter: true },
 
   // ── Vue d'ensemble ────────────────────────────────────────────────
   { id: 'agents_active', label: { fr: 'Agents au travail', en: 'Agents working' }, hint: { fr: 'actifs cette semaine', en: 'active this week' }, unit: 'nombre', agent: 'global' },
@@ -85,27 +80,37 @@ export const STAT_CATALOG: StatDef[] = [
  * PME vit de son pipeline commercial. Le client reste libre de tout changer.
  */
 const DEFAULTS_BY_TYPE: Record<string, string[]> = {
-  // Commerce de flux : visibilité locale + réputation + no-show
-  restaurant: ['reach_total', 'posts_published', 'reviews_received', 'rating_average', 'wa_reminders', 'dm_conversations'],
-  boulangerie: ['reach_total', 'posts_published', 'reviews_received', 'rating_average', 'likes_total', 'comments_total'],
-  commerce: ['reach_total', 'posts_published', 'reviews_received', 'rating_average', 'views_total', 'dm_conversations'],
-  coiffeur: ['reach_total', 'reviews_received', 'rating_average', 'wa_reminders', 'dm_conversations', 'posts_published'],
-  institut_beaute: ['reach_total', 'reviews_received', 'rating_average', 'wa_reminders', 'dm_conversations', 'posts_published'],
-  hotel: ['reach_total', 'reviews_received', 'rating_average', 'reviews_negative', 'wa_reminders', 'views_total'],
+  // QUATRE par défaut, pour tenir sur une seule ligne (demande fondateur
+  // 2026-07-31). Le client en ajoute jusqu'à douze s'il veut.
+  //
+  // Chaque identifiant listé ici est VÉRIFIÉ calculable par
+  // /api/stats/metrics. La version précédente proposait par défaut
+  // reviews_received et rating_average à tous les commerces de proximité —
+  // deux métriques qu'aucune table ne permet de calculer. Un restaurant
+  // ouvrait donc sa page sur deux tuiles fantômes.
 
-  // Services sur rendez-vous : conversations + rappels
-  coach: ['dm_conversations', 'dm_auto_replied', 'reach_total', 'posts_published', 'wa_reminders', 'engagement_rate'],
-  freelance: ['dm_conversations', 'emails_replied', 'prospects_contacted', 'reach_total', 'posts_published', 'engagement_rate'],
+  // Commerce de flux : on regarde d'abord si les gens voient et réagissent.
+  restaurant:      ['reach_total', 'posts_published', 'engagement_rate', 'dm_conversations'],
+  boulangerie:     ['reach_total', 'posts_published', 'likes_total', 'engagement_rate'],
+  commerce:        ['reach_total', 'posts_published', 'views_total', 'dm_conversations'],
+  coiffeur:        ['reach_total', 'dm_conversations', 'reviews_answered', 'posts_published'],
+  institut_beaute: ['reach_total', 'dm_conversations', 'reviews_answered', 'posts_published'],
+  hotel:           ['reach_total', 'views_total', 'reviews_answered', 'engagement_rate'],
+  artisan:         ['reach_total', 'posts_published', 'reviews_answered', 'dm_conversations'],
 
-  // B2B / PME : pipeline commercial d'abord
-  pme: ['prospects_found', 'prospects_contacted', 'prospects_replied', 'clients_converted', 'conversion_rate', 'emails_opened_rate'],
-  agence: ['prospects_found', 'prospects_contacted', 'clients_converted', 'conversion_rate', 'reach_total', 'emails_replied'],
-  b2b: ['prospects_found', 'prospects_replied', 'clients_converted', 'conversion_rate', 'emails_sent', 'emails_opened_rate'],
-  immobilier: ['prospects_found', 'prospects_hot', 'clients_converted', 'reviews_received', 'reach_total', 'dm_conversations'],
+  // Services sur rendez-vous : la conversation prime sur la portée.
+  coach:      ['dm_conversations', 'dm_auto_replied', 'reach_total', 'posts_published'],
+  freelance:  ['dm_conversations', 'emails_replied', 'prospects_contacted', 'reach_total'],
+
+  // B2B et PME : le pipeline commercial d'abord.
+  pme:        ['prospects_contacted', 'prospects_replied', 'clients_converted', 'conversion_rate'],
+  agence:     ['prospects_contacted', 'clients_converted', 'conversion_rate', 'reach_total'],
+  b2b:        ['prospects_contacted', 'prospects_replied', 'conversion_rate', 'emails_sent'],
+  immobilier: ['prospects_found', 'prospects_hot', 'clients_converted', 'reach_total'],
 };
 
 /** Jeu générique quand le type de commerce n'est pas reconnu. */
-const DEFAULT_GENERIC = ['posts_published', 'reach_total', 'dm_conversations', 'reviews_received', 'prospects_found', 'actions_done'];
+const DEFAULT_GENERIC = ['posts_published', 'reach_total', 'dm_conversations', 'actions_done'];
 
 /** Statistiques affichées par défaut pour ce type de commerce. */
 export function defaultStatsFor(businessType: string | null | undefined): string[] {
@@ -117,6 +122,7 @@ export function defaultStatsFor(businessType: string | null | undefined): string
   }
   if (/pme|société|societe|entreprise|industri|b2b|grossiste/.test(t)) return DEFAULTS_BY_TYPE.pme;
   if (/coach|thérapeute|therapeute|consultant|formateur/.test(t)) return DEFAULTS_BY_TYPE.coach;
+  if (/plombier|électricien|electricien|menuisier|garage|maçon|macon|artisan|peintre|serrurier|chauffagiste|couvreur/.test(t)) return DEFAULTS_BY_TYPE.artisan;
   if (/resto|pizz|brasserie|traiteur|café|cafe|bar/.test(t)) return DEFAULTS_BY_TYPE.restaurant;
   if (/boutique|magasin|concept|caviste|fleur|opticien/.test(t)) return DEFAULTS_BY_TYPE.commerce;
   return DEFAULT_GENERIC;
