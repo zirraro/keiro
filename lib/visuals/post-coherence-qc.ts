@@ -1,3 +1,4 @@
+import { logApiCost } from '@/lib/admin/api-cost-logger';
 /**
  * Contrôle éditorial d'un post AVANT publication : l'image, la légende et les
  * hashtags racontent-ils la même chose ?
@@ -209,6 +210,9 @@ const TOOL = {
  * Renvoie l'objet structuré demandé, ou `{ __indisponible: true }` si AUCUN
  * des deux n'a pu répondre — à ne jamais confondre avec un verdict.
  */
+/** Horodatage jusqu'auquel on n'essaie plus Anthropic (crédit épuisé). */
+let anthropicIndisponibleJusqua = 0;
+
 export async function jugerAvecVision(opts: {
   system: string;
   tool: { name: string; description: string; input_schema: any };
@@ -221,7 +225,11 @@ export async function jugerAvecVision(opts: {
 
   // ── 1. Anthropic ──
   const cleAnthropic = process.env.ANTHROPIC_API_KEY;
-  if (cleAnthropic) {
+  // Coupe-circuit : quand le crédit est épuisé, l'erreur se répète à
+  // l'identique sur chaque appel. Sans ce garde-fou, un balayage de 500 posts
+  // fait 500 aller-retours inutiles avant de basculer à chaque fois. On note
+  // l'heure du refus et on va directement à Gemini pendant dix minutes.
+  if (cleAnthropic && Date.now() > anthropicIndisponibleJusqua) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -237,11 +245,25 @@ export async function jugerAvecVision(opts: {
       });
       if (res.ok) {
         const j = await res.json();
+        // Le coût de CE module n'était pas tracé — comme les 24 autres points
+        // d'appel Anthropic du produit. Résultat : le tableau de bord des coûts
+        // ne voyait que 26 appels sur 14 jours, et le crédit s'est vidé sans
+        // que rien ne le signale. On trace au moins ce qu'on ajoute.
+        void logApiCost({
+          provider: 'anthropic', kind: 'qc_coherence_vision', agent: 'content',
+          units: (j.usage?.input_tokens || 0) + (j.usage?.output_tokens || 0),
+          cost_eur: ((j.usage?.input_tokens || 0) * 3 + (j.usage?.output_tokens || 0) * 15) / 1e6 * 0.92,
+        });
         const use = (j.content || []).find((c: any) => c.type === 'tool_use');
         if (use?.input) return use.input;
       } else {
         const corps = await res.text().catch(() => '');
-        console.warn(`[QC] Anthropic refuse (${res.status}) : ${corps.slice(0, 140)} — repli Gemini`);
+        if (/credit balance|billing/i.test(corps)) {
+          anthropicIndisponibleJusqua = Date.now() + 10 * 60 * 1000;
+          console.warn('[QC] crédit Anthropic épuisé — bascule sur Gemini pour 10 minutes');
+        } else {
+          console.warn(`[QC] Anthropic refuse (${res.status}) : ${corps.slice(0, 140)} — repli Gemini`);
+        }
       }
     } catch (e: any) {
       console.warn('[QC] Anthropic injoignable, repli Gemini :', e?.message);
@@ -282,6 +304,11 @@ export async function jugerAvecVision(opts: {
       return null;
     }
     const j = await res.json();
+    void logApiCost({
+      provider: 'gemini', kind: 'qc_coherence_vision', agent: 'content',
+      units: j.usageMetadata?.totalTokenCount || 0,
+      cost_eur: ((j.usageMetadata?.promptTokenCount || 0) * 0.3 + (j.usageMetadata?.candidatesTokenCount || 0) * 2.5) / 1e6 * 0.92,
+    });
     const txt = (j.candidates?.[0]?.content?.parts || []).map((p: any) => p.text).filter(Boolean).join('');
     if (!txt) { console.error('[QC] Gemini a répondu sans contenu'); return null; }
     return JSON.parse(txt);
