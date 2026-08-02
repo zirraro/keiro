@@ -72,6 +72,8 @@ const GLOBAL_SCHEDULE = [
   { cron: '15 */2 * * *', slot: 'ig_comments_reply', label: 'IG Comments Auto-Reply (every 2h)' },
   { cron: '0 7 * * 1',    path: '/api/agents/weekly-trends', label: 'Weekly Trends (Monday)' },
   { cron: '0 8 * * 2',    path: '/api/cron/keiro-weekly-blog', label: 'Blog hebdo KeiroAI (Théo, mardi)' },
+  { cron: '20 * * * *',   path: '/api/cron/ai-budget-watch', label: 'Surveillance budget IA (horaire)' },
+  { cron: '5,35 * * * *', path: '/api/cron/dm-verify-queue', label: 'Vérification des comptes DM (avant clic)' },
   // 2026-06-03 — Daily refresh of winning content patterns by sector
   // (TikTok / Insta / LinkedIn / Google trends) for Lena to anchor her
   // post generation on what surperforme. Fires once daily 06:00 UTC.

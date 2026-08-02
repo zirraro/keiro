@@ -17,5 +17,15 @@ export async function register() {
     } catch (e: any) {
       console.log('[instrumentation] undici dispatcher non posé:', e?.message);
     }
+
+    // Compteur universel des appels d'IA payants. Posé ICI parce que c'est le
+    // seul endroit exécuté une fois, avant tout le reste : aucun appel ne peut
+    // démarrer avant lui, donc aucun ne peut échapper au compteur.
+    try {
+      const { installerCompteurIA } = await import('@/lib/admin/ai-cost-interceptor');
+      installerCompteurIA();
+    } catch (e: any) {
+      console.log('[instrumentation] compteur IA non posé:', e?.message);
+    }
   }
 }
