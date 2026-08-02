@@ -3612,6 +3612,25 @@ export async function POST(request: NextRequest) {
         // Un contrôle qui échoue (image illisible, API indisponible) ne bloque
         // PAS : on ne suspend pas la publication d'un client sur une panne
         // technique de notre côté. Seul un verdict explicitement négatif retient.
+        // Garde-fou texte, sans appel d'IA : il couvre les REELS et VIDÉOS, que
+        // le contrôle de cohérence ne peut pas juger faute d'image à analyser.
+        // C'est par là qu'est partie « Marie, gérante de sa boutique de créateurs »,
+        // une cliente qui n'existe pas. Déterministe, donc il tourne même quand le
+        // crédit d'IA est épuisé.
+        try {
+          const { detectInventedClaim } = await import('@/lib/visuals/caption-claim-guard');
+          const claim = detectInventedClaim(pubPost.caption);
+          if (claim.blocked) {
+            await supabase.from('content_calendar').update({
+              status: 'draft',
+              publish_diagnostic: ('qc_claim_bloque: ' + claim.reason + ' — « ' + claim.excerpt + ' »').slice(0, 500),
+              updated_at: new Date().toISOString(),
+            }).eq('id', body.postId);
+            console.warn('[Content] publication retenue ' + body.postId + ' — ' + claim.reason);
+            return NextResponse.json({ ok: false, held: true, reason: claim.reason, excerpt: claim.excerpt });
+          }
+        } catch (e) { /* un garde-fou en panne ne bloque pas la publication */ }
+
         if (pubPost.visual_url && !pubPost.video_url && process.env.SKIP_COHERENCE_QC !== '1') {
           try {
             const { assessPostCoherence } = await import('@/lib/visuals/post-coherence-qc');

@@ -10,12 +10,22 @@ import { useState, useEffect, useMemo } from 'react';
  * All elements always rendered — zero conditional mounting.
  * Background: #0c1a3a = exact match with site.
  *
- * Timeline (2.0s total):
- * 1. INSTANT (0-0.25s) — All triangles burst in simultaneously, particles
- * 2. GLOW    (0.25-1.0s) — Logo pulses, text appears, arcs orbit
- * 3. EXPAND  (1.0-1.5s) — Everything expands outward
- * 4. FADE    (1.5-2.0s) — Dissolve to site
- * 5. DONE    (2.0s)     — Unmount
+ * Chronologie — 3,0 s au total (recalée le 2026-08-02).
+ *
+ * Le fondateur : « ça apparaît comme si c'était un bug ; on veut que ça se
+ * lance en mode stylé, logo, et bam la page s'ouvre propre, effet wow ».
+ *
+ * L'ancienne version tenait en 1,1 s, mais ses animations de sortie duraient
+ * 1,4 s : la phase EXPAND était coupée au tiers et la page basculait au milieu
+ * d'un mouvement inachevé. C'est précisément ce qui se lit comme un bug — pas
+ * la vitesse, l'interruption. Le logo n'avait par ailleurs que 0,38 s de vie
+ * stable, trop peu pour lire « KeiroAI · Marketing Intelligence ».
+ *
+ * 1. TRACÉ   (0 → 0,45 s)   — les triangles se dessinent
+ * 2. PRÉSENCE (0,45 → 2,2 s) — logo stable et pulsant, texte lisible : le wow
+ * 3. OUVERTURE (2,2 → 2,7 s) — tout s'écarte, animation qui VA AU BOUT
+ * 4. FONDU   (2,7 → 3,0 s)   — dissolution vers le site
+ * 5. FIN     (3,0 s)         — démontage
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -59,13 +69,14 @@ export function PageReveal() {
 
   useEffect(() => {
     if (shouldReduce) { setPhase('done'); return; }
-    // Shortened timeline (was 2000ms total). Users reported the intro felt
-    // slow — new pacing is 1100ms total while keeping the same 4 phases.
+    // Chaque durée correspond à ce que l'animation a réellement besoin de
+    // temps pour finir : une phase plus courte que son animation donne
+    // l'impression d'un écran qui casse.
     const t = [
-      setTimeout(() => setPhase('glow'), 120),
-      setTimeout(() => setPhase('expand'), 500),
-      setTimeout(() => setPhase('fade'), 800),
-      setTimeout(() => setPhase('done'), 1100),
+      setTimeout(() => setPhase('glow'), 450),
+      setTimeout(() => setPhase('expand'), 2200),
+      setTimeout(() => setPhase('fade'), 2700),
+      setTimeout(() => setPhase('done'), 3000),
     ];
     return () => t.forEach(clearTimeout);
   }, [shouldReduce]);
@@ -85,7 +96,7 @@ export function PageReveal() {
         pointerEvents: isFade ? 'none' : 'all',
       }}
       animate={{ opacity: isFade ? 0 : 1 }}
-      transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
     >
       {/* Background */}
       <div style={{
@@ -131,7 +142,7 @@ export function PageReveal() {
             ? { opacity: 0, x: p.dx * 5, y: p.dy * 5, scale: 0 }
             : { opacity: p.op, x: p.dx, y: p.dy, scale: 1 }
           }
-          transition={{ delay: p.delay, duration: isExpand ? 1.4 : p.dur, ease: 'easeOut' }}
+          transition={{ delay: p.delay, duration: isExpand ? 0.5 : p.dur, ease: 'easeOut' }}
         />
       ))}
 
@@ -154,7 +165,7 @@ export function PageReveal() {
               ? { opacity: 0.9, scale: 1, rotate: 90 + i * 40 }
               : { opacity: 0, scale: 0.4, rotate: 0 }
           }
-          transition={{ duration: isExpand ? 1.4 : 0.6, ease: EASE, delay: i * 0.05 }}
+          transition={{ duration: isExpand ? 0.5 : 0.6, ease: EASE, delay: i * 0.05 }}
         />
       ))}
 
@@ -171,7 +182,7 @@ export function PageReveal() {
             ? { scale: 280, opacity: 0.45 }
             : { scale: 0, opacity: 0 }
         }
-        transition={{ duration: isExpand ? 1.4 : 0.6, ease: EASE }}
+        transition={{ duration: isExpand ? 0.5 : 0.6, ease: EASE }}
       />
 
       {/* Light beams */}
@@ -191,7 +202,7 @@ export function PageReveal() {
             ? { scaleY: 1, opacity: 1 }
             : { scaleY: 0, opacity: 0 }
           }
-          transition={{ duration: 1.2, delay: i * 0.015, ease: EASE }}
+          transition={{ duration: 0.5, delay: i * 0.008, ease: EASE }}
         />
       ))}
 
@@ -204,7 +215,7 @@ export function PageReveal() {
           : { scale: 1, opacity: 1, filter: 'blur(0px)' }
         }
         transition={{
-          duration: isExpand ? 1.4 : 0.3,
+          duration: isExpand ? 0.5 : 0.3,
           ease: EASE,
         }}
       >
@@ -217,7 +228,7 @@ export function PageReveal() {
               'drop-shadow(0 0 30px rgba(59,130,246,0.4))',
             ],
           } : {}}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
         >
           <svg viewBox="0 0 100 100" width="140" height="140">
             {TRIANGLES.map((tri, i) => {
@@ -296,7 +307,7 @@ export function PageReveal() {
             ? isExpand ? { scaleX: 5, opacity: 0 } : { scaleX: 1, opacity: 1 }
             : { scaleX: 0, opacity: 0 }
           }
-          transition={{ duration: isExpand ? 1.4 : 0.3, ease: EASE }}
+          transition={{ duration: isExpand ? 0.5 : 0.3, ease: EASE }}
         />
       </motion.div>
 
@@ -320,7 +331,7 @@ export function PageReveal() {
             ? { opacity: 0, scale: 4 }
             : { opacity: 1, scale: 1 }
           }
-          transition={{ delay: isExpand ? 0 : 0.1 + i * 0.03, duration: isExpand ? 1.4 : 0.3, ease: EASE }}
+          transition={{ delay: isExpand ? 0 : 0.1 + i * 0.03, duration: isExpand ? 0.5 : 0.3, ease: EASE }}
         />
       ))}
     </motion.div>

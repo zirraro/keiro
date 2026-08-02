@@ -777,10 +777,17 @@ export async function publishTikTokVideoViaFileUpload(
   // Step 1: Download video from URL
   console.log('[TikTok] === STEP 1: DOWNLOAD VIDEO ===');
   console.log('[TikTok] Downloading video from URL...');
-  const videoResponse = await fetch(videoUrl);
+  let videoResponse: Response;
+  try {
+    videoResponse = await fetch(videoUrl);
+  } catch (e: any) {
+    // Même raison qu'à l'envoi : sans la cause, « fetch failed » ne dit rien.
+    const cause = String(e?.cause?.message || e?.cause?.code || e?.cause || 'sans cause');
+    throw new Error(`Téléchargement de la vidéo impossible (${videoUrl.slice(0, 80)}) : ${e?.message} (cause : ${cause})`);
+  }
 
   if (!videoResponse.ok) {
-    throw new Error(`Failed to download video: ${videoResponse.statusText}`);
+    throw new Error(`Failed to download video: ${videoResponse.status} ${videoResponse.statusText}`);
   }
 
   const videoArrayBuffer = await videoResponse.arrayBuffer();
@@ -1116,15 +1123,45 @@ export async function publishTikTokVideoViaFileUpload(
 
     console.log(`[TikTok] ✓ Chunk size validation passed, uploading to TikTok...`);
 
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'video/mp4',
-        'Content-Length': chunkActualSize.toString(),
-        'Content-Range': `bytes ${firstByte}-${lastByte}/${videoSize}`,
-      },
-      body: chunkBuffer,
-    });
+    // 2026-08-02 — 15 échecs « fetch failed » en 48h sur la publication TikTok,
+    // contre 1 seule réussite. Le diagnostic a écarté le réseau (l'API répond
+    // en 0,4s), le média (5 Mo téléchargés en 0,3s), le jeton, la concurrence
+    // et la durée de route : rejoués à l'identique, tous passent.
+    //
+    // Il s'agit donc d'une coupure transitoire de connexion pendant l'envoi du
+    // corps — ce que undici remonte sous le libellé opaque « fetch failed », en
+    // rangeant la vraie raison (ECONNRESET, socket hang up, timeout) dans
+    // `cause`. Le code précédent jetait cette cause, ce qui rendait l'incident
+    // indiagnosticable pendant deux jours.
+    //
+    // Deux corrections : on garde la cause, et on réessaie. Un envoi de 5 Mo
+    // qui casse en cours de route réussit presque toujours au second essai —
+    // sans reprise, chaque coupure coûtait une publication au client.
+    let uploadResponse: Response | null = null;
+    let derniereErreur: any = null;
+    for (let essai = 1; essai <= 3; essai++) {
+      try {
+        uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'video/mp4',
+            'Content-Length': chunkActualSize.toString(),
+            'Content-Range': `bytes ${firstByte}-${lastByte}/${videoSize}`,
+          },
+          body: chunkBuffer,
+        });
+        break;
+      } catch (e: any) {
+        derniereErreur = e;
+        const cause = String(e?.cause?.message || e?.cause?.code || e?.cause || 'sans cause');
+        console.warn(`[TikTok] envoi du morceau ${chunkIndex + 1} — essai ${essai}/3 échoué : ${e?.message} (cause : ${cause})`);
+        if (essai < 3) await new Promise(r => setTimeout(r, essai * 2000));
+      }
+    }
+    if (!uploadResponse) {
+      const cause = String(derniereErreur?.cause?.message || derniereErreur?.cause?.code || derniereErreur?.cause || 'sans cause');
+      throw new Error(`Envoi du morceau ${chunkIndex + 1} impossible après 3 essais : ${derniereErreur?.message} (cause : ${cause})`);
+    }
 
     console.log(`[TikTok] Chunk ${chunkIndex + 1} upload response:`, {
       status: uploadResponse.status,
