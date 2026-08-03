@@ -237,10 +237,25 @@ async function sendReconnectEmail(client: any, network: 'tiktok' | 'linkedin' | 
       : network === 'instagram'
         ? '/integrations/meta'
         : '/api/auth/linkedin-oauth';
-    const reconnectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}${reconnectPath}`;
+    // On passe par /reconnecter : cette page efface l'autorisation périmée AVANT
+    // de redemander l'accès. Sans cet effacement, le réseau réutilise l'ancienne
+    // et le client croit avoir reconnecté sans que rien ne change.
+    const reconnectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}/reconnecter?reseau=${network}`;
     const platformLabel = network === 'tiktok' ? 'TikTok' : network === 'instagram' ? 'Instagram' : 'LinkedIn';
     const platformEmoji = network === 'tiktok' ? '🎵' : network === 'instagram' ? '📷' : '💼';
-    const subject = `Reconnecte ton ${platformLabel} à KeiroAI ${platformEmoji}`;
+    // Combien de jours reste-t-il ? Le client doit savoir s'il a le temps ou
+    // s'il est déjà bloqué — c'est ce qui distingue une info d'une urgence.
+    const joursRestants = Number.isFinite(hoursLeft) ? Math.ceil(hoursLeft / 24) : null;
+    const dejaCoupe = joursRestants !== null && joursRestants <= 0;
+    const delai = dejaCoupe
+      ? 'expirée'
+      : joursRestants === 1 ? 'expire demain'
+      : joursRestants !== null ? `expire dans ${joursRestants} jours`
+      : 'arrive à expiration';
+
+    const subject = dejaCoupe
+      ? `${platformEmoji} ${platformLabel} : ton autorisation a expiré, la publication est en pause`
+      : `${platformEmoji} ${platformLabel} : ton autorisation ${delai} — 30 secondes pour la renouveler`;
     // KeiroAI normalement renouvelle ces jetons en silence. Si ce mail
     // arrive, c'est que le renouvellement automatique a échoué (révocation
     // côté plateforme, login ailleurs, scope changé) — il faut une action
@@ -249,15 +264,33 @@ async function sendReconnectEmail(client: any, network: 'tiktok' | 'linkedin' | 
 <!DOCTYPE html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f172a;">
   <h2 style="color:#0c1a3a;margin:0 0 16px;">Salut ${firstName} 👋</h2>
-  <p style="line-height:1.6;">${platformLabel} a coupé l'accès de KeiroAI à ton compte et le renouvellement automatique n'a pas pu repartir.<br><br>Tant que tu ne te reconnectes pas, ton agent contenu ne pourra plus publier sur ${platformLabel}.</p>
-  <p style="line-height:1.6;"><strong>30 secondes pour relancer :</strong> un clic, tu autorises à nouveau, et KeiroAI repart automatiquement (y compris les posts qui étaient en attente).</p>
+  <p style="line-height:1.6;">L'autorisation que tu avais donnée à KeiroAI sur ton compte ${platformLabel} ${delai}.</p>
+  <p style="line-height:1.6;">C'est normal et prévu : ${platformLabel} limite dans le temps les accès qu'on accorde à une application. C'est une sécurité pour toi — tu gardes la main, et rien ne se prolonge tout seul sans que tu le décides.</p>
+  <p style="line-height:1.6;">${dejaCoupe
+    ? `En attendant, ton agent contenu ne peut plus publier sur ${platformLabel}. <strong>Tes publications programmées sont conservées</strong> et repartent dès que l'accès est rétabli — rien n'est perdu.`
+    : `Tant que tu la renouvelles avant l'échéance, <strong>rien ne s'arrête</strong> : la publication continue sans interruption.`}</p>
+  <p style="line-height:1.6;"><strong>30 secondes suffisent :</strong> un clic ci-dessous, tu réautorises chez ${platformLabel}, et c'est reparti.</p>
   <div style="text-align:center;margin:28px 0;">
     <a href="${reconnectUrl}" style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:12px;">Reconnecter mon ${platformLabel} →</a>
   </div>
-  <p style="font-size:13px;color:#64748b;line-height:1.6;">Habituellement les jetons d'accès se renouvellent en silence — KeiroAI fait ça tout seul. On ne t'écrit que quand la plateforme a explicitement révoqué la session et qu'une reconnexion humaine est obligatoire.</p>
+  <p style="font-size:13px;color:#64748b;line-height:1.6;">On renouvelle ces accès en silence chaque fois qu'on le peut. On ne t'écrit que lorsque ${platformLabel} exige que ce soit toi qui valides — c'est le cas ici.</p>
   <p style="font-size:12px;color:#94a3b8;margin-top:24px;">— L'équipe KeiroAI</p>
 </body></html>`;
-    const text = `Salut ${firstName},\n\n${platformLabel} a coupé l'accès de KeiroAI à ton compte (révocation côté plateforme). Le renouvellement auto a échoué — il faut une reconnexion humaine.\n\nReconnecte en 30s : ${reconnectUrl}\n\nDès que c'est fait, KeiroAI repart, y compris les posts en attente.\n\n— KeiroAI`;
+    const text = [
+      `Salut ${firstName},`,
+      ``,
+      `L'autorisation que tu avais donnée à KeiroAI sur ton compte ${platformLabel} ${delai}.`,
+      ``,
+      `C'est normal : ${platformLabel} limite dans le temps les accès accordés aux applications. Tu gardes la main, rien ne se prolonge sans toi.`,
+      ``,
+      dejaCoupe
+        ? `En attendant, la publication est en pause — tes posts programmés sont conservés.`
+        : `Renouvelle avant l'échéance et rien ne s'arrête.`,
+      ``,
+      `30 secondes : ${reconnectUrl}`,
+      ``,
+      `— KeiroAI`,
+    ].join('\n');
     const result = await sendEmailWithFallback({
       to: client.email,
       toName: firstName,

@@ -50,18 +50,25 @@ export async function GET(req: NextRequest) {
   // un compte pro appelant).
   const { data: compte } = await supabase
     .from('profiles')
-    // Même résolution que la publication (content/route) : instagram_igaa_token
-    // d'abord, jeton de page ensuite. La colonne instagram_access_token est un
-    // reliquat qui n'est plus alimenté — l'avoir lue ici a fait échouer tous
-    // les appels, donc condamner tous les comptes.
+    // ⚠️ DEUX jetons coexistent et ne s'utilisent PAS sur la même API :
+    //   • instagram_igaa_token (préfixe IGAA) → graph.INSTAGRAM.com, sert à
+    //     publier sur son propre compte (Instagram Login) ;
+    //   • facebook_page_access_token (préfixe EAA) → graph.FACEBOOK.com, seul
+    //     à autoriser business_discovery, c'est-à-dire consulter un compte TIERS.
+    //
+    // getInstagramProfileSnapshot appelle graph.facebook.com : il lui faut donc
+    // le jeton de PAGE. Lui passer le jeton IGAA renvoie « Cannot parse access
+    // token » sur chaque appel — c'est ce qui a fait croire, le 2026-08-03, que
+    // 397 comptes valides étaient morts, alors que les deux jetons étaient sains.
     .select('id, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token')
     .not('instagram_business_account_id', 'is', null)
     .limit(1)
     .maybeSingle();
 
-  const jetonIg = compte?.instagram_igaa_token || compte?.facebook_page_access_token;
+  // Jeton de PAGE uniquement : c'est la seule clé que business_discovery accepte.
+  const jetonIg = compte?.facebook_page_access_token;
   if (!compte?.instagram_business_account_id || !jetonIg) {
-    return NextResponse.json({ ok: false, raison: 'aucun_compte_instagram_connecte' });
+    return NextResponse.json({ ok: false, raison: 'aucun_jeton_page_facebook — business_discovery impossible sans lui' });
   }
 
   const { data: aVerifier } = await supabase
