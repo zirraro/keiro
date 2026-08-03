@@ -763,7 +763,10 @@ async function applyPublishRetry(
 }
 
 async function publishToInstagram(
-  post: { id?: string; format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
+  // `hook` sert de titre de repli quand la légende est vide : une
+  // publication est partie sans aucun texte le 2026-08-04, et un post sans
+  // texte ne touche personne sur les deux réseaux.
+  post: { id?: string; format?: string; caption?: string; hook?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any,
   orgId?: string | null,
   userId?: string | null
@@ -1068,6 +1071,8 @@ async function publishToInstagram(
     hashtagsArr = hashtagsArr.filter(h => !/(tiktok|tt_|linkedin|linkdn|facebook|fb_)/i.test(String(h)));
 
     // Ensure caption ends with proper spacing before hashtags
+    // Même repli que sur TikTok : un post sans texte ne touche personne.
+    if (!rawCaption.trim() && (post.hook || '').trim()) rawCaption = String(post.hook).trim();
     const captionNeedsSeparator = rawCaption.length > 0 && !rawCaption.endsWith('\n');
     const hashtagLine = hashtagsArr.length > 0 ? hashtagsArr.map(h => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
     const fullCaption = rawCaption + (hashtagLine ? (captionNeedsSeparator ? '\n\n・・・\n\n' : '\n\n') + hashtagLine : '');
@@ -1857,7 +1862,10 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
 // Publish to TikTok (ALWAYS as video — photo API not supported)
 // ──────────────────────────────────────
 async function publishToTikTok(
-  post: { id?: string; format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
+  // `hook` sert de titre de repli quand la légende est vide : une
+  // publication est partie sans aucun texte le 2026-08-04, et un post sans
+  // texte ne touche personne sur les deux réseaux.
+  post: { id?: string; format?: string; caption?: string; hook?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any
 ): Promise<{ success: boolean; publish_id?: string; error?: string; unaudited?: boolean }> {
   // ─── TIKTOK COOLDOWN ─── 2026-06-17: the account got reach-throttled (~June 10
@@ -2110,7 +2118,11 @@ async function publishToTikTok(
     }
 
     let hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
-    let rawCaptionTT = (post.caption || '').trim();
+    // 2026-08-04 — Une publication est partie avec un titre VIDE : le post
+    // n'avait pas de caption, seulement un hook, et seule la caption était lue.
+    // Sur TikTok, un texte vide, c'est zéro découverte — le post existe mais
+    // personne ne le voit. Le hook est le titre naturel de repli.
+    let rawCaptionTT = (post.caption || '').trim() || (post.hook || '').trim();
 
     // 2026-06-03 — Pre-publish guardrails for TikTok. Catches downrank
     // terms (covid cure / 5g danger / etc.), > 6 hashtags, foreign IG
@@ -2163,6 +2175,21 @@ async function publishToTikTok(
     hashtagsArr = optimizeTikTokHashtags(hashtagsArr);
     const hashtagLineTT = hashtagsArr.length > 0 ? hashtagsArr.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
     const fullCaption = rawCaptionTT + (hashtagLineTT ? '\n\n' + hashtagLineTT : '');
+
+    // Dernier filet : publier un texte vide gaspille un créneau ET la vidéo
+    // qu'on a payée pour le produire. Mieux vaut retenir le post et le
+    // signaler que de le brûler pour zéro vue.
+    if (!fullCaption.trim()) {
+      if (post.id) {
+        await supabase.from('content_calendar').update({
+          status: 'draft',
+          publish_diagnostic: 'retenu: aucun texte (ni légende ni hook) — un post sans texte ne touche personne',
+          updated_at: new Date().toISOString(),
+        }).eq('id', post.id);
+      }
+      console.warn(`[TikTok] publication retenue ${post.id} : aucun texte à publier`);
+      return { success: false, error: 'texte_vide' };
+    }
 
     // TikTok: publish as VIDEO or PHOTO depending on content
     // Priority: 1) existing video_url → video, 2) image with photo-friendly format → photo, 3) generate video
@@ -3623,7 +3650,7 @@ export async function POST(request: NextRequest) {
         // crédit d'IA est épuisé.
         try {
           const { detectInventedClaim } = await import('@/lib/visuals/caption-claim-guard');
-          const claim = detectInventedClaim(pubPost.caption);
+          const claim = detectInventedClaim([pubPost.caption, pubPost.hook].filter(Boolean).join(' — '));
           if (claim.blocked) {
             await supabase.from('content_calendar').update({
               status: 'draft',
