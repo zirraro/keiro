@@ -274,9 +274,14 @@ export async function GET(req: NextRequest) {
       });
       const brevoKey = process.env.BREVO_API_KEY;
       if (brevoKey) {
+        // La période était absente de l'objet (retour fondateur 03/08 : « faut
+        // me dire la période »). Un montant « par mois » sans dire qu'il s'agit
+        // d'une projection calculée sur N jours écoulés ne se pilote pas.
+        const mois = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        const periode = `${mois}, ${daysElapsed}j/${daysInMonth}`;
         const subject = noRealClients
-          ? `[KeiroAI] 🧪 Burn interne ${projection.toFixed(0)}€/mois — 0 client réel (${alerts.length} note(s))`
-          : `[KeiroAI] ${marginPct < 60 ? '🚨' : '⚠️'} Marge réelle ${marginPct}% — ${alerts.length} alerte(s)`;
+          ? `[KeiroAI] 🧪 Burn interne ${projection.toFixed(0)}€/mois projeté — ${periode} — 0 client réel (${alerts.length} note(s))`
+          : `[KeiroAI] ${marginPct < 60 ? '🚨' : '⚠️'} Marge réelle ${marginPct}% — ${periode} — ${alerts.length} alerte(s)`;
         const r = await sendBrevoCompat({
             sender: { name: 'KeiroAI Cost Pilot', email: 'contact@keiroai.com' },
             to: [{ email: 'contact@keiroai.com' }],
@@ -334,6 +339,7 @@ function renderAlertEmail(d: any): string {
   <div style="background: #fff; border-radius: 12px; padding: 24px;">
     ${d.noRealClients ? `
     <h1 style="color: #4f46e5; margin-bottom: 8px;">🧪 Burn interne : ${d.projection.toFixed(2)} €/mois projeté</h1>
+    <p style="color:#6b7280;margin:0 0 16px;font-size:13px;">Projection calculée sur ${d.daysElapsed} jour(s) écoulé(s) du mois en cours (${d.totalMtd.toFixed(2)} € dépensés à ce jour, moyenne ${d.dailyAvg.toFixed(2)} €/jour) × ${d.daysInMonth} jours.</p>
     <p style="color: #666;">Jour ${d.daysElapsed}/${d.daysInMonth} · <strong>0 client réel externe</strong>. Compte référence (mrzirraro = KeiroAI, simule un client actif) : <strong>${d.referenceProjCost.toFixed(2)} €/mois</strong>. Supervision (admin + Meta review) : <strong style="color:${d.supervisionOverBudget ? '#dc2626' : '#059669'};">${d.supervisionProjCost.toFixed(2)} €</strong> / budget ${d.supervisionBudget} €.</p>
     ` : `
     <h1 style="color: ${d.marginPct < 60 ? '#dc2626' : '#d97706'}; margin-bottom: 8px;">

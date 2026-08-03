@@ -2581,6 +2581,10 @@ export async function GET(request: NextRequest) {
           // If notify mode and post is draft (not yet approved), send notification instead of publishing.
           // Mode is resolved per-platform from the client's auto-publish toggle.
           let postPublishMode = resolvePublishMode(postPlatform);
+          // Pourquoi la publication n'est pas automatique — le client doit le
+          // savoir, sinon il croit son réglage ignoré (retour fondateur 03/08).
+          let motifBlocage: 'connexion_expiree' | 'validation_demandee' | 'controle_qualite' | 'compte_en_pause' =
+            postPublishMode === 'auto' ? 'controle_qualite' : 'validation_demandee';
           // QA gate (brief v3 Section 3): brand-kit-grounded checks on the post
           // text BEFORE auto-publish (prix hors kit, promo invalide, sujet
           // interdit, orthographe). A failed gate routes the post to validation —
@@ -2642,7 +2646,7 @@ export async function GET(request: NextRequest) {
                   }
                 }
               }
-              const sent = await sendPublishNotification(fullPostForNotify, supabase);
+              const sent = await sendPublishNotification(fullPostForNotify, supabase, motifBlocage);
               if (sent) {
                 await supabase.from('content_calendar').update({ status: 'pending_approval', updated_at: new Date().toISOString() }).eq('id', post.id);
                 notified++;
