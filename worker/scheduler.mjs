@@ -74,6 +74,7 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 8 * * 2',    path: '/api/cron/keiro-weekly-blog', label: 'Blog hebdo KeiroAI (Théo, mardi)' },
   { cron: '20 * * * *',   path: '/api/cron/ai-budget-watch', label: 'Surveillance budget IA (horaire)' },
   { cron: '5,35 * * * *', path: '/api/cron/dm-verify-queue', label: 'Vérification des comptes DM (avant clic)' },
+  { cron: '20,50 * * * *', path: '/api/cron/dm-rewrite-verified', label: 'Réécriture des DM avec le profil réel' },
   // 2026-06-03 — Daily refresh of winning content patterns by sector
   // (TikTok / Insta / LinkedIn / Google trends) for Lena to anchor her
   // post generation on what surperforme. Fires once daily 06:00 UTC.
