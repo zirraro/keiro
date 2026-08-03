@@ -1,4 +1,5 @@
 'use client';
+import DemoLive from '@/components/DemoLive';
 
 import { useState } from 'react';
 import AgentDemoVideo from "@/components/AgentDemoVideo";
@@ -581,6 +582,24 @@ function HomeKeiroInner() {
                 {t.home.freeTrialCta || (locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial')}
               </Link>
             </div>
+          </div>
+
+          {/* Démonstration jouée : un visiteur comprend en 20 secondes ce que
+              fait un agent, sans avoir à s'inscrire ni à lire une page de
+              fonctionnalités. On montre le TRAVAIL, pas l'interface — expliquer
+              où cliquer ne convainc personne d'acheter. */}
+          <div className="max-w-6xl mx-auto mb-10 sm:mb-14 px-1 sm:px-0">
+            <div className="text-center mb-5">
+              <h3 className="text-lg sm:text-2xl font-black text-neutral-900 mb-1 leading-tight">
+                {locale === 'fr' ? 'Concrètement, voilà ce qui se passe' : 'Concretely, here is what happens'}
+              </h3>
+              <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto px-2">
+                {locale === 'fr'
+                  ? 'Une semaine de travail de Léna, sur une vraie boulangerie. Tu ne fais rien.'
+                  : "A week of Léna's work on a real bakery. You do nothing."}
+              </p>
+            </div>
+            <DemoLive />
           </div>
 
           {/* CRÉATEUR AGENTS — detailed roster shown above the pricing grid
