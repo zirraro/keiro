@@ -300,15 +300,15 @@ function HomeKeiroInner() {
                 a 1-click image generator (that's AI-table-stakes); it's
                 that 7 agents AUTOMATE social media + prospecting end-to-end. */}
             <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">
-              {locale === 'fr' ? '🚀 Automatisation 24/7' : '🚀 24/7 automation'}
+              {locale === 'fr' ? '👋 Fais connaissance' : '👋 Meet the team'}
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-neutral-900 leading-tight mb-1">
-              {locale === 'fr' ? '10 agents IA qui font le travail à ta place' : '10 AI agents that do the work for you'}
+              {locale === 'fr' ? 'Voilà ton équipe' : 'Meet your team'}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto">
               {locale === 'fr'
-                ? 'Génèrent + publient sur tes réseaux, prospectent, répondent aux DMs et avis. Tu valides ou tu laisses tourner en pilote auto.'
-                : 'Generate + auto-publish on your socials, prospect, reply to DMs and reviews. Approve or let it fly on autopilot.'}
+                ? 'Dix agents, chacun son métier. Ils travaillent pendant que tu fais le tien.'
+                : 'Ten agents, each with their own job. They work while you do yours.'}
             </p>
           </div>
           {/* 4-col grid (compact on mobile, larger on desktop) */}
@@ -339,7 +339,7 @@ function HomeKeiroInner() {
           </div>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <a href="#tarifs" className="text-xs sm:text-sm text-purple-700 font-semibold hover:text-purple-900 underline-offset-4 hover:underline">
-              {locale === 'fr' ? 'Voir tout en détail ↓' : 'See everything ↓'}
+              {locale === 'fr' ? 'Voir ce que chacun fait ↓' : 'See what each one does ↓'}
             </a>
             <Link href="/essai?plan=createur" className="px-4 py-2 min-h-[40px] rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs sm:text-sm font-bold shadow hover:shadow-lg transition">
               {locale === 'fr' ? '⚡ Essai gratuit 7j' : '⚡ Start free trial'}
