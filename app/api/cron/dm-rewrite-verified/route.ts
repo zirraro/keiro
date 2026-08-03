@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     .eq('verified_exists', true)
     .limit(200);
 
-  const bilan = { examines: 0, reecrits: 0, sansDonnees: 0, dejaAJour: 0, echecs: 0 };
+  const bilan = { examines: 0, reecrits: 0, sansDonnees: 0, dejaAJour: 0, rejetes: 0, echecs: 0 };
   const exemples: any[] = [];
 
   for (const dm of candidats || []) {
@@ -116,6 +116,25 @@ export async function GET(req: NextRequest) {
       const nouveauTexte = j.dm_text || j.message || '';
       const nouveauDetail = j.personalization_detail || '';
       if (!nouveauTexte || nouveauTexte.length < 30) { bilan.echecs++; continue; }
+
+      // Contrôle d'exactitude AVANT enregistrement : un détail précis mais
+      // faux est pire qu'un générique, parce qu'il est vérifiable en trois
+      // secondes par le prospect. Si le modèle a cité un produit ou une personne
+      // qu'on ne retrouve pas dans les légendes relevées, on garde l'ancien
+      // message plutôt que d'envoyer une affirmation invérifiable.
+      const { factCheckDm } = await import('@/lib/agents/dm-fact-check');
+      const controle = factCheckDm({
+        message: nouveauTexte,
+        detail: nouveauDetail,
+        captions: posts.map((x: any) => String(x.caption || '')),
+        bio: profil.bio,
+        donneesConnues: [p?.company, p?.quartier, p?.type, p?.notes, p?.website],
+      });
+      if (!controle.ok) {
+        bilan.rejetes++;
+        console.warn('[dm-rewrite] @' + dm.handle + ' rejeté — termes introuvables : ' + controle.introuvables.join(', '));
+        continue;
+      }
 
       const persoMaj = {
         ...perso,
