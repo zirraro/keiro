@@ -56,11 +56,13 @@ export const COUT_CREDITS: Record<BlocagePublication, number> = {
   validation_demandee: 2,
 };
 
-const EXPLICATIONS: Record<BlocagePublication, { titre: string; texte: string; action?: string }> = {
+const EXPLICATIONS: Record<BlocagePublication, { titre: string; texte: string; action?: string | null }> = {
   connexion_expiree: {
     titre: 'Ta connexion a expiré — la publication automatique est en pause',
     texte: "Le réseau a invalidé notre accès à ton compte (ça arrive périodiquement, c'est une sécurité de leur côté). Tant qu'il n'est pas rétabli, on ne peut plus publier à ta place.",
-    action: 'Reconnecte ton compte : déconnecte-le puis reconnecte-le depuis tes réglages. La publication automatique reprend immédiatement après, sans rien reprogrammer.',
+    // Remplacé par un bouton : trois manipulations à trouver soi-même sur
+    // mobile, alors que la publication est déjà arrêtée, c'était trop demander.
+    action: null,
   },
   validation_demandee: {
     titre: 'Ton post est prêt, il attend ta validation',
@@ -125,6 +127,10 @@ export async function sendPublishNotification(
   <div style="background:${motif === 'connexion_expiree' ? '#fef2f2' : '#f0f9ff'};border-left:3px solid ${motif === 'connexion_expiree' ? '#dc2626' : '#0284c7'};padding:12px 16px;border-radius:6px;margin:16px 0;">
     <p style="margin:0;font-size:13px;color:#374151;">${explication.texte}</p>
     ${explication.action ? `<p style="margin:8px 0 0;font-size:13px;color:#111827;"><strong>${explication.action}</strong></p>` : ''}
+    ${motif === 'connexion_expiree' ? `<div style="margin:14px 0 2px;">
+      <a href="${siteUrl}/reconnecter?reseau=${post.platform}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 26px;border-radius:8px;font-weight:bold;font-size:14px;">Reconnecter ${platformLabel} en un clic</a>
+      <p style="margin:8px 0 0;font-size:12px;color:#6b7280;">On efface l'ancienne connexion et on t'emmène directement à l'écran d'autorisation. Rien d'autre à faire.</p>
+    </div>` : ''}
   </div>
 
   ${post.visual_url ? `<div style="text-align:center;margin:16px 0;">
