@@ -50,13 +50,17 @@ export async function GET(req: NextRequest) {
   // un compte pro appelant).
   const { data: compte } = await supabase
     .from('profiles')
-    .select('id, instagram_business_account_id, instagram_access_token')
+    // Même résolution que la publication (content/route) : instagram_igaa_token
+    // d'abord, jeton de page ensuite. La colonne instagram_access_token est un
+    // reliquat qui n'est plus alimenté — l'avoir lue ici a fait échouer tous
+    // les appels, donc condamner tous les comptes.
+    .select('id, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token')
     .not('instagram_business_account_id', 'is', null)
-    .not('instagram_access_token', 'is', null)
     .limit(1)
     .maybeSingle();
 
-  if (!compte?.instagram_business_account_id || !compte?.instagram_access_token) {
+  const jetonIg = compte?.instagram_igaa_token || compte?.facebook_page_access_token;
+  if (!compte?.instagram_business_account_id || !jetonIg) {
     return NextResponse.json({ ok: false, raison: 'aucun_compte_instagram_connecte' });
   }
 
@@ -69,7 +73,7 @@ export async function GET(req: NextRequest) {
     .limit(LOT);
 
   const liste = aVerifier || [];
-  const bilan = { verifies: 0, vivants: 0, morts: 0, aReecrire: 0, perdus: 0, erreurs: 0 };
+  const bilan: any = { verifies: 0, vivants: 0, morts: 0, aReecrire: 0, perdus: 0, erreurs: 0, interrompu: null };
 
   // Un prospect passé en perdu, mort ou opt-out ne doit plus être contacté —
   // règle établie, mais 30 DM en attente visaient encore des prospects perdus.
@@ -101,20 +105,61 @@ export async function GET(req: NextRequest) {
       const snap = await getInstagramProfileSnapshot(
         dm.handle || '',
         compte.instagram_business_account_id,
-        compte.instagram_access_token,
+        jetonIg,
       );
       bilan.verifies++;
 
       if (!snap.exists) {
-        // Compte introuvable : il ne doit plus jamais apparaître comme un lien
-        // cliquable. On le sort de la file plutôt que de le laisser piéger le
-        // client une fois de plus.
+        // ⚠️ getInstagramProfileSnapshot renvoie exists:false pour TOUT échec —
+        // compte inexistant, mais aussi jeton invalide, quota dépassé, panne
+        // réseau. Confondre les deux coûte cher : le 2026-08-03, le jeton
+        // Instagram était expiré, l'API répondait « Cannot parse access token »
+        // sur chaque appel (y compris pour @instagram ou @nike), et ce balayage
+        // a déclaré morts 397 comptes parfaitement valides avant qu'on ne
+        // restaure la file.
+        //
+        // On ne conclut donc à l'inexistence QUE sur un motif qui la prouve.
+        const motif = String(snap.rawError || '');
+        const panneApi = /access token|oauth|expired|rate limit|too many|rate_limit|\(#4\)|\(#17\)|\(#32\)|permission|unsupported get request|fetch|timeout|econn/i.test(motif);
+
+        if (panneApi) {
+          // Ce n'est pas le compte qui est en cause, c'est notre accès. On
+          // ARRÊTE tout : continuer condamnerait toute la file un par un.
+          console.error(`[dm-verify] accès Instagram en panne (${motif.slice(0, 120)}) — balayage interrompu, aucun compte marqué`);
+          bilan.interrompu = motif.slice(0, 200);
+
+          // Un jeton expiré arrête AUSSI la publication Instagram, et personne
+          // n'était prévenu : zéro alerte en 7 jours alors que le jeton est mort
+          // depuis le 2 août. Ce balayage interroge l'API toutes les 30 minutes,
+          // c'est donc le détecteur naturel. On émet l'événement que le mailer
+          // de reconnexion (cron process-ig-reauth) attend déjà.
+          if (/access token|oauth|expired/i.test(motif)) {
+            try {
+              const dejaSignale = await supabase.from('agent_logs').select('id')
+                .eq('action', 'ig_token_expired_auto_disconnect')
+                .gte('created_at', new Date(Date.now() - 12 * 3600_000).toISOString())
+                .limit(1);
+              if (!dejaSignale.data?.length) {
+                await supabase.from('agent_logs').insert({
+                  agent: 'content',
+                  action: 'ig_token_expired_auto_disconnect',
+                  status: 'error',
+                  data: { user_id: compte.id, motif: motif.slice(0, 200), detecte_par: 'dm-verify-queue' },
+                });
+                console.error('[dm-verify] jeton Instagram expiré — reconnexion demandée au client');
+              }
+            } catch { /* la détection ne doit pas faire échouer le balayage */ }
+          }
+          break;
+        }
+
+        // Motif qui prouve vraiment l'inexistence : on écarte.
         await supabase.from('dm_queue').update({
           status: 'skipped',
           verified_exists: false,
           verified_at: new Date().toISOString(),
           verification_attempts: (dm.verification_attempts || 0) + 1,
-          error_message: `compte introuvable (${snap.rawError || 'business_discovery'})`,
+          error_message: `compte introuvable (${motif || 'business_discovery'})`,
         }).eq('id', dm.id);
         bilan.morts++;
         continue;
@@ -164,6 +209,13 @@ export async function GET(req: NextRequest) {
         }).eq('id', dm.id);
       } catch { /* la trace de l'échec ne doit pas masquer l'échec lui-même */ }
     }
+  }
+
+  // Un lot où TOUT est mort et RIEN n'est vivant trahit presque toujours un
+  // problème d'accès, pas 60 comptes réellement supprimés le même jour.
+  if (bilan.morts >= 10 && bilan.vivants === 0 && !bilan.interrompu) {
+    console.warn(`[dm-verify] ${bilan.morts} morts et 0 vivant sur ce lot — vérifier l'accès Instagram avant de s'y fier`);
+    bilan.suspect = true;
   }
 
   const { count: restants } = await supabase
