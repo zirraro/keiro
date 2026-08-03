@@ -76,11 +76,14 @@ export async function GET(req: NextRequest) {
     .select('id, handle, prospect_id, personalization, verification_attempts')
     .eq('status', 'pending')
     .is('verified_exists', null)
+    // Un compte qu'on n'a pas su vérifier deux fois ne le sera pas à la
+    // troisième : on arrête d'y dépenser des appels d'API.
+    .lt('verification_attempts', 2)
     .order('created_at')
     .limit(LOT);
 
   const liste = aVerifier || [];
-  const bilan: any = { verifies: 0, vivants: 0, morts: 0, aReecrire: 0, perdus: 0, erreurs: 0, interrompu: null };
+  const bilan: any = { verifies: 0, vivants: 0, morts: 0, ambigus: 0, aReecrire: 0, perdus: 0, erreurs: 0, interrompu: null };
 
   // Un prospect passé en perdu, mort ou opt-out ne doit plus être contacté —
   // règle établie, mais 30 DM en attente visaient encore des prospects perdus.
@@ -160,7 +163,26 @@ export async function GET(req: NextRequest) {
           break;
         }
 
-        // Motif qui prouve vraiment l'inexistence : on écarte.
+        // ⚠️ « Invalid user id » ne prouve PAS que le compte est mort.
+        // business_discovery ne voit que les comptes PROFESSIONNELS : un compte
+        // personnel — parfaitement joignable en DM — renvoie exactement la même
+        // erreur qu'un compte supprimé. 1264 prospects avaient été écartés sur
+        // ce motif avant qu'on ne les restaure le 2026-08-03.
+        //
+        // On ne tranche donc pas : le DM reste en file, marqué non vérifiable.
+        // La liste affiche déjà les comptes confirmés vivants en premier, donc
+        // le client voit d'abord les liens sûrs sans qu'on ait à en jeter.
+        const ambigu = /invalid user id|does not exist|not found/i.test(motif);
+        if (ambigu) {
+          await supabase.from('dm_queue').update({
+            verification_attempts: (dm.verification_attempts || 0) + 1,
+            error_message: 'non vérifiable par l\'API (compte personnel plutôt que professionnel, ou supprimé — impossible de trancher)',
+          }).eq('id', dm.id);
+          bilan.ambigus++;
+          continue;
+        }
+
+        // Tout autre motif : là on peut conclure.
         await supabase.from('dm_queue').update({
           status: 'skipped',
           verified_exists: false,
@@ -238,7 +260,8 @@ export async function GET(req: NextRequest) {
     .from('dm_queue')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'pending')
-    .is('verified_exists', null);
+    .is('verified_exists', null)
+    .lt('verification_attempts', 2);
 
   try {
     await supabase.from('agent_logs').insert({
