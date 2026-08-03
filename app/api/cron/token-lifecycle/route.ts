@@ -8,14 +8,15 @@ export const maxDuration = 120;
  * GET /api/cron/token-lifecycle
  *
  * Daily proactive token-expiry watch. For each connected platform we
- * detect tokens that will REALLY expire within 24h AND can't be
+ * detect tokens that will REALLY expire within 72h AND can't be
  * auto-refreshed — only those clients get a reconnect email. Refresh-
  * recoverable tokens (TikTok with valid refresh_token, LinkedIn idem)
  * are left alone because the next API call rotates them transparently.
  *
  * Sources of truth :
  *   - TikTok   : profiles.tiktok_access_token + tiktok_refresh_token + tiktok_token_expiry
- *   - Instagram: profiles.instagram_igaa_token (long-lived, no refresh field;
+ *   - Instagram: profiles.instagram_igaa_token — renouvelable via
+ *                /refresh_access_token (60 jours, prolongeable indéfiniment) ;
  *                we treat the existing agent_logs ig_token_expired_auto_disconnect
  *                signal as the trigger — process-ig-reauth already sends the mail)
  *   - LinkedIn : profiles.linkedin_access_token + linkedin_token_expiry
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   const { data: clients } = await sb
     .from('profiles')
-    .select('id, email, first_name, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_connected_at, linkedin_username, linkedin_access_token, linkedin_token_expiry, instagram_username, instagram_access_token, instagram_token_expiry')
+    .select('id, email, first_name, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_connected_at, linkedin_username, linkedin_access_token, linkedin_token_expiry, instagram_username, instagram_access_token, instagram_igaa_token, instagram_token_expiry')
     .or('tiktok_access_token.not.is.null,linkedin_access_token.not.is.null,instagram_access_token.not.is.null');
 
   if (!clients || clients.length === 0) {
@@ -82,7 +83,8 @@ export async function GET(req: NextRequest) {
         refreshBroken = !!(fails && fails.length > 0);
       }
 
-      if (refreshBroken && hoursLeft <= 24 && hoursLeft > -48) {
+      // 72h = 3 rappels quotidiens avant la coupure (règle fondateur 03/08).
+      if (refreshBroken && hoursLeft <= 72 && hoursLeft > -48) {
         // Dedup: already emailed in last 24h?
         const { data: alreadyEmailed } = await sb
           .from('agent_logs')
@@ -115,7 +117,11 @@ export async function GET(req: NextRequest) {
     // /refresh_access_token before expiry. Strategy: when <7 days
     // remain, attempt refresh silently. Mail the client only if refresh
     // actually fails (token revoked or already expired).
-    if (c.instagram_access_token && c.instagram_token_expiry) {
+    // Le jeton vivant est instagram_igaa_token ; instagram_access_token est un
+    // reliquat qui contient une valeur périmée. Lire le mauvais faisait échouer
+    // le renouvellement à chaque passage, et partir un email pour rien.
+    const jetonIgVivant = (c.instagram_igaa_token || c.instagram_access_token) as string | null;
+    if (jetonIgVivant && c.instagram_token_expiry) {
       const expiry = new Date(c.instagram_token_expiry).getTime();
       const hoursLeft = (expiry - now) / 3600000;
 
@@ -123,7 +129,7 @@ export async function GET(req: NextRequest) {
         // Try silent refresh first (only works on IGAA tokens, which
         // start with 'IGAA'). Page tokens can't be refreshed — those
         // require user reconnect.
-        const tok = c.instagram_access_token as string;
+        const tok = jetonIgVivant;
         let refreshOk = false;
         if (tok && tok.startsWith('IGAA')) {
           try {
@@ -162,7 +168,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Refresh failed (or unsupported token type) AND expiry truly imminent → mail client.
-        if (!refreshOk && hoursLeft <= 48) {
+        if (!refreshOk && hoursLeft <= 72) {
           const { data: alreadyEmailed } = await sb
             .from('agent_logs')
             .select('id')
@@ -196,7 +202,7 @@ export async function GET(req: NextRequest) {
       const hoursLeft = (expiry - now) / 3600000;
       // LinkedIn doesn't expose refresh tokens by default — every
       // imminent expiry means the user must reconnect manually.
-      if (hoursLeft <= 24 && hoursLeft > -48) {
+      if (hoursLeft <= 72 && hoursLeft > -48) {
         const { data: alreadyEmailed } = await sb
           .from('agent_logs')
           .select('id')
