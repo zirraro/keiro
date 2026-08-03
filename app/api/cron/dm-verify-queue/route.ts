@@ -180,7 +180,16 @@ export async function GET(req: NextRequest) {
         permalink: p.permalink,
       }));
 
-      const perso: any = { ...((dm.personalization as any) || {}) };
+      // ⚠️ personalization est stocké tantôt comme OBJET, tantôt comme CHAÎNE
+      // JSON selon le code qui l'a écrit. Étaler une chaîne avec {...} produit un
+      // objet indexé caractère par caractère — que PostgREST refuse avec « Empty
+      // or invalid json ». L'écriture échouait donc en silence à chaque passage,
+      // et le balayage revérifiait indéfiniment les 60 mêmes comptes.
+      const persoBrut = dm.personalization;
+      const persoObjet = typeof persoBrut === 'string'
+        ? (() => { try { return JSON.parse(persoBrut); } catch { return {}; } })()
+        : (persoBrut || {});
+      const perso: any = { ...persoObjet };
       perso.profil_reel = {
         bio: (snap as any).biography || null,
         followers: (snap as any).followers_count ?? null,
@@ -193,7 +202,7 @@ export async function GET(req: NextRequest) {
       // que de laisser partir une invention.
       const detail = String(perso.detail || '');
       const pretendVoirUnPost = /dernier post|dernière photo|dernier reel|votre reel|vos stories|dernière collection|dernier contenu/i.test(detail);
-      const ecritSansDonnees = pretendVoirUnPost && !((dm.personalization as any)?.profil_reel);
+      const ecritSansDonnees = pretendVoirUnPost && !persoObjet?.profil_reel;
 
       await supabase.from('dm_queue').update({
         verified_exists: true,
