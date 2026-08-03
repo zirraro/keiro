@@ -290,64 +290,6 @@ function HomeKeiroInner() {
       {/* QUIZ INTERACTIF — hidden for cleaner UX */}
       {false && <QuizAndCalculator />}
 
-      {/* ═══ AGENTS PREVIEW — second thing visible after hero on mobile.
-          Tells the visitor in 5 seconds what they GET. Detailed
-          breakdown stays further down right above the pricing grid. ═══ */}
-      <section className="py-4 sm:py-6">
-        <div className="max-w-5xl mx-auto px-3 sm:px-6">
-          <div className="text-center mb-3 sm:mb-4">
-            {/* Automation-first headline — KeiroAI's real value isn't
-                a 1-click image generator (that's AI-table-stakes); it's
-                that 7 agents AUTOMATE social media + prospecting end-to-end. */}
-            <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">
-              {locale === 'fr' ? '👋 Fais connaissance' : '👋 Meet the team'}
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-neutral-900 leading-tight mb-1">
-              {locale === 'fr' ? 'Voilà ton équipe' : 'Meet your team'}
-            </h2>
-            <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto">
-              {locale === 'fr'
-                ? 'Dix agents, chacun son métier. Ils travaillent pendant que tu fais le tien.'
-                : 'Ten agents, each with their own job. They work while you do yours.'}
-            </p>
-          </div>
-          {/* 4-col grid (compact on mobile, larger on desktop) */}
-          <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
-            {[
-              { emoji: '🎨', label: 'Léna', role: locale === 'fr' ? 'Posts auto' : 'Auto posts', accent: 'from-purple-500 to-pink-500', avatar: '/avatars-3d/content.png' },
-              { emoji: '📧', label: 'Hugo', role: locale === 'fr' ? 'Emails' : 'Emails', accent: 'from-cyan-500 to-blue-500', avatar: '/avatars-3d/email.png' },
-              { emoji: '💬', label: 'Jade', role: locale === 'fr' ? 'DM, commentaires & comptes à suivre' : 'DMs, comments & follows', accent: 'from-pink-500 to-rose-500', avatar: '/avatars-3d/dm_instagram.png' },
-              { emoji: '🎯', label: 'Léo', role: locale === 'fr' ? 'Prospects' : 'Prospects', accent: 'from-emerald-500 to-teal-500', avatar: '/avatars-3d/commercial.png' },
-              { emoji: '⭐', label: 'Théo', role: locale === 'fr' ? 'Avis Google' : 'Reviews', accent: 'from-amber-500 to-orange-500', avatar: '/avatars-3d/gmaps.png' },
-              { emoji: '👋', label: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding', accent: 'from-violet-500 to-purple-600', avatar: '/avatars-3d/onboarding.png' },
-              { emoji: '📊', label: 'Ami', role: locale === 'fr' ? 'Analyse' : 'Analytics', accent: 'from-indigo-500 to-blue-600', avatar: '/avatars-3d/marketing.png' },
-              { emoji: '💚', label: 'Stella', role: locale === 'fr' ? 'WhatsApp' : 'WhatsApp', accent: 'from-green-500 to-emerald-600', avatar: '/avatars-3d/whatsapp.png' },
-              { emoji: '⚖️', label: 'Sara', role: locale === 'fr' ? 'RH & juridique' : 'HR & legal', accent: 'from-slate-500 to-slate-700', avatar: '/avatars-3d/rh.png' },
-              { emoji: '💰', label: 'Louis', role: locale === 'fr' ? 'Finance & documents' : 'Finance & documents', accent: 'from-cyan-700 to-teal-800', avatar: '/avatars-3d/comptable.png' },
-            ].map(a => (
-              <div key={a.label} className="rounded-xl bg-white border border-neutral-200 p-2 sm:p-3 text-center shadow-sm hover:shadow-md transition">
-                {/* Avatar with the activity emoji as a tiny corner badge —
-                    humanises the agent into a 'real employee' card. */}
-                <div className={`relative w-11 h-11 sm:w-14 sm:h-14 rounded-full mx-auto mb-1 bg-gradient-to-br ${a.accent} p-0.5`}>
-                  <img src={a.avatar} alt={a.label} className="w-full h-full rounded-full object-cover" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center text-[11px] border border-neutral-100">{a.emoji}</span>
-                </div>
-                <div className="text-[10px] sm:text-xs font-bold text-neutral-900 leading-tight mt-1">{a.label}</div>
-                <div className="text-[10px] sm:text-[10px] text-neutral-500 leading-tight">{a.role}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <a href="#tarifs" className="text-xs sm:text-sm text-purple-700 font-semibold hover:text-purple-900 underline-offset-4 hover:underline">
-              {locale === 'fr' ? 'Voir ce que chacun fait ↓' : 'See what each one does ↓'}
-            </a>
-            <Link href="/essai?plan=createur" className="px-4 py-2 min-h-[40px] rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs sm:text-sm font-bold shadow hover:shadow-lg transition">
-              {locale === 'fr' ? '⚡ Essai gratuit 7j' : '⚡ Start free trial'}
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* VIDÉO WORKFLOW - Compact version */}
       <section className="section-light section-divider">
         <div className="mx-auto max-w-6xl px-6 py-8">
@@ -620,11 +562,11 @@ function HomeKeiroInner() {
             <div className="text-center mb-4 sm:mb-5">
               <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
               <h3 className="text-lg sm:text-2xl font-black text-neutral-900 mb-1 leading-tight">
-                {locale === 'fr' ? '10 agents IA qui bossent pour toi 24/7' : '10 AI agents working for you 24/7'}
+                {locale === 'fr' ? 'Voilà ton équipe — et ce que chacun fait' : 'Meet your team — and what each one does'}
               </h3>
               <p className="text-xs sm:text-sm text-neutral-600 max-w-2xl mx-auto px-2">
                 {locale === 'fr'
-                  ? 'Tu ne touches à rien. Ils génèrent, publient, prospectent et répondent — pendant que tu fais ton métier.'
+                  ? 'Dix agents, chacun son métier. Ils génèrent, publient, prospectent et répondent pendant que tu fais le tien.'
                   : "You don't touch anything. They generate, publish, prospect and reply — while you focus on your craft."}
               </p>
             </div>
@@ -633,7 +575,9 @@ function HomeKeiroInner() {
               <div className="rounded-2xl border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50 p-4 shadow-md hover:shadow-lg transition relative overflow-hidden">
                 <span className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded uppercase tracking-wide">{locale === 'fr' ? '⭐ Star' : '⭐ Top'}</span>
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg">🎨</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/content.png" alt="Léna" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Léna</div>
                     <div className="text-[10px] text-purple-700 font-semibold">{locale === 'fr' ? 'Contenu social' : 'Social content'}</div>
@@ -657,7 +601,9 @@ function HomeKeiroInner() {
               {/* Hugo */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-lg">📧</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/email.png" alt="Hugo" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Hugo</div>
                     <div className="text-[10px] text-cyan-700 font-semibold">{locale === 'fr' ? 'Emails & boîte mail' : 'Emails & inbox'}</div>
@@ -681,7 +627,9 @@ function HomeKeiroInner() {
               {/* Jade */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-lg">💬</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/dm_instagram.png" alt="Jade" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Jade</div>
                     <div className="text-[10px] text-pink-700 font-semibold">{locale === 'fr' ? 'DM, commentaires & comptes à suivre' : 'DMs, comments & follows'}</div>
@@ -704,7 +652,9 @@ function HomeKeiroInner() {
               {/* Léo */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-lg">🎯</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/commercial.png" alt="Léo" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Léo</div>
                     <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting'}</div>
@@ -728,7 +678,9 @@ function HomeKeiroInner() {
               {/* Théo */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-lg">⭐</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/gmaps.png" alt="Théo" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Théo</div>
                     <div className="text-[10px] text-amber-700 font-semibold">{locale === 'fr' ? 'Avis, fiche Google & SEO' : 'Reviews, Google listing & SEO'}</div>
@@ -753,7 +705,9 @@ function HomeKeiroInner() {
               {/* Clara */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-lg">👋</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/onboarding.png" alt="Clara" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Clara</div>
                     <div className="text-[10px] text-violet-700 font-semibold">{locale === 'fr' ? 'Onboarding' : 'Onboarding'}</div>
@@ -775,7 +729,9 @@ function HomeKeiroInner() {
               {/* Ami */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-lg">📊</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/marketing.png" alt="Ami" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Ami</div>
                     <div className="text-[10px] text-indigo-700 font-semibold">{locale === 'fr' ? 'Stratégie & pilotage' : 'Strategy & steering'}</div>
@@ -797,7 +753,9 @@ function HomeKeiroInner() {
               {/* Stella */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-lg">💚</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/whatsapp.png" alt="Stella" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Stella</div>
                     <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'WhatsApp Business' : 'WhatsApp Business'}</div>
@@ -822,7 +780,9 @@ function HomeKeiroInner() {
               {/* Sara */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-lg">⚖️</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/rh.png" alt="Sara" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Sara</div>
                     <div className="text-[10px] text-slate-600 font-semibold">{locale === 'fr' ? 'RH & Juridique' : 'HR & Legal'}</div>
@@ -845,7 +805,9 @@ function HomeKeiroInner() {
               {/* Louis */}
               <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg">📈</div>
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-[2px] flex-shrink-0">
+                    <img src="/avatars-3d/comptable.png" alt="Louis" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
+                  </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Louis</div>
                     <div className="text-[10px] text-blue-700 font-semibold">{locale === 'fr' ? 'Finance & business plan' : 'Finance & business plan'}</div>
