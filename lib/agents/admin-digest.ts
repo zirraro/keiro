@@ -91,6 +91,32 @@ interface AgentDownSnapshot {
   suggested_fix: string;
 }
 
+/**
+ * Le fichier cité existe-t-il vraiment dans le dépôt ?
+ *
+ * Un modèle qui doit nommer un fichier en nomme toujours un — au besoin en
+ * l'inventant à partir d'une convention plausible. C'est le même travers que
+ * les faux témoignages clients : sommé d'être précis sans données, il fabrique.
+ * Ici la vérification est triviale et sans appel : le fichier est sur le disque
+ * ou il ne l'est pas.
+ */
+function fichierExiste(chemin: string): boolean {
+  try {
+    // Chemins relatifs à la racine du projet uniquement — on refuse toute
+    // sortie de l'arborescence.
+    const propre = String(chemin || '').trim().replace(/^\.?\//, '');
+    if (!propre || propre.includes('..') || propre.startsWith('/')) return false;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs');
+    const path = require('path');
+    return fs.existsSync(path.join(process.cwd(), propre));
+  } catch {
+    // En cas de doute on n'affiche pas : mieux vaut un rapport sans chemin
+    // qu'un rapport qui envoie sur une fausse piste.
+    return false;
+  }
+}
+
 export async function buildAdminDigest(
   supabase: SupabaseClient,
   periodHours: number = 24,
@@ -379,9 +405,9 @@ Tu dois produire un JSON STRICT de cette forme :
       "title": "titre court (max 8 mots) — root cause",
       "agents": ["agent_id", ...],
       "impact": "combien de clients/runs/erreurs touchés",
-      "explanation": "1 paragraphe clair sur POURQUOI ça casse — français simple",
+      "explanation": "1 paragraphe clair sur POURQUOI ça casse — français simple. COMMENCE par citer le message d'erreur EXACT observé, entre guillemets. Ensuite seulement, propose une cause : présente-la comme une hypothèse (« probablement », « à vérifier ») et non comme un fait, sauf si le message d'erreur la prouve directement. Un diagnostic affirmé à tort fait perdre des heures : le 2026-08-02, un « fetch failed » a été attribué au réseau alors que l'API répondait en 0,4 s.",
       "fix": "recommandation CODE précise et actionnable (fichier(s), fonction(s), changement à faire)",
-      "affected_files": ["app/api/agents/.../route.ts", "lib/agents/....ts"]
+      "affected_files": ["chemins EXACTS de fichiers dont tu es certain qu'ils existent — dans le doute, laisse le tableau vide plutôt que de deviner un nom plausible"]
     }
   ],
   "quick_wins": ["reco mineure 1", "reco mineure 2"]
@@ -424,7 +450,15 @@ Output : JSON seul, zéro markdown, zéro intro.`;
         impact: String(i.impact || '').substring(0, 200),
         explanation: String(i.explanation || '').substring(0, 1200),
         fix: String(i.fix || '').substring(0, 1500),
-        affected_files: Array.isArray(i.affected_files) ? i.affected_files.slice(0, 6).map(String) : undefined,
+        // Les chemins proposés par le modèle sont VÉRIFIÉS sur le disque avant
+        // d'être affichés. Le digest du 2026-08-03 renvoyait vers
+        // « lib/agents/content/tiktok-publisher.ts » et « lib/agents/ops/
+        // health_check.ts » — deux fichiers qui n'existent pas. Un rapport qui
+        // envoie chercher au mauvais endroit coûte plus de temps qu'il n'en
+        // fait gagner, et décrédibilise tout le reste du diagnostic.
+        affected_files: Array.isArray(i.affected_files)
+          ? i.affected_files.slice(0, 6).map(String).filter(fichierExiste)
+          : undefined,
       })) : [],
       quick_wins: Array.isArray(parsed.quick_wins) ? parsed.quick_wins.slice(0, 5).map((s: any) => String(s).substring(0, 300)) : [],
     };

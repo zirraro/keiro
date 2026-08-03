@@ -332,7 +332,8 @@ export async function uploadTikTokVideoBytes(
     method: 'PUT',
     headers: {
       'Content-Type': 'video/mp4',
-      'Content-Length': videoBuffer.length.toString(),
+      // Même raison qu'à l'envoi par morceaux : undici rejette un
+      // Content-Length explicite. Il est déduit du corps.
     },
     body: new Uint8Array(videoBuffer),
   });
@@ -1145,10 +1146,17 @@ export async function publishTikTokVideoViaFileUpload(
           method: 'PUT',
           headers: {
             'Content-Type': 'video/mp4',
-            'Content-Length': chunkActualSize.toString(),
+            // ⚠️ PAS de Content-Length posé à la main : undici le rejette avec
+            // « invalid content-length header » — 15 publications perdues en 24h.
+            // C'est un en-tête interdit par la spec fetch, calculé
+            // automatiquement à partir du corps. TikTok l'accepte parfaitement
+            // ainsi (vérifié : HTTP 201 sur un envoi réel).
             'Content-Range': `bytes ${firstByte}-${lastByte}/${videoSize}`,
           },
-          body: chunkBuffer,
+          // Copie explicite : Buffer.slice() renvoie une VUE sur la mémoire
+          // d'origine (byteOffset non nul sur les morceaux suivants), ce qui
+          // peut faire envoyer plus d'octets que prévu.
+          body: Buffer.from(chunkBuffer),
         });
         break;
       } catch (e: any) {
