@@ -38,6 +38,14 @@ export interface ReferenceCulturelle {
   ages: Array<'18-30' | '25-45' | '35-60' | '50+'>;
   /** Ce que la réplique permet de dire — l'angle, pas le thème. */
   usage: string;
+  /**
+   * Le type d'effet produit. Deux répliques peuvent servir la même idée avec
+   * un ton radicalement différent : « Jusqu'ici tout va bien » installe une
+   * tension ironique, « Tout le monde peut cuisiner » ouvre sur de
+   * l'inspirant. Le registre permet de coller à l'identité du commerce
+   * autant qu'à son réseau.
+   */
+  registre: 'absurde' | 'ironique' | 'tendre' | 'punchy' | 'inspirant' | 'epique';
   /** Métiers où l'analogie tombe juste. Vide = tous. */
   metiers?: string[];
   /**
@@ -53,100 +61,261 @@ export interface ReferenceCulturelle {
 }
 
 export const REFERENCES: ReferenceCulturelle[] = [
-  // ── Comédie française, très large reconnaissance ──
+  // ── COMÉDIE FRANÇAISE CULTE — reconnaissance très large, 35 ans et plus ──
   {
     replique: "C'est cela, oui.",
-    source: 'Le Père Noël est une ordure',
+    source: "Le Père Noël est une ordure",
     ages: ['35-60', '50+'],
+    registre: 'ironique',
     usage: "répondre avec ironie à une objection courante ou à une promesse trop belle",
     reseaux: ['instagram', 'tiktok'],
   },
   {
-    replique: "Il est où le patron ? Il est où ?!",
-    source: 'La Cité de la peur',
+    replique: "Jusqu'ici tout va bien.",
+    source: "La Haine",
     ages: ['25-45', '35-60'],
-    usage: "assumer l'absence du gérant, ou l'inverse : montrer qu'on est toujours là",
+    registre: 'ironique',
+    usage: "annoncer une situation qui dérape — parfait pour un avant/après ou une galère de métier",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "C'est une bonne situation, ça, scribe ?",
+    source: "Astérix : Mission Cléopâtre",
+    ages: ['25-45', '35-60'],
+    registre: 'absurde',
+    usage: "interroger avec humour le métier, la vocation, le choix d'un parcours",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "Pas de bras, pas de chocolat.",
+    source: "Intouchables",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'absurde',
+    usage: "assumer une contrainte avec autodérision — rupture de stock, service indisponible",
     reseaux: ['instagram', 'tiktok'],
   },
   {
+    replique: "Que trépasse si je faiblis.",
+    source: "Les Visiteurs",
+    ages: ['25-45', '35-60'],
+    registre: 'epique',
+    usage: "dramatiser une exigence ou un engagement de qualité, avec le sourire",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Quand un étranger vient dans le Nord, i braie deux fois.",
+    source: "Bienvenue chez les Ch'tis",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'tendre',
+    usage: "parler d'attachement à un lieu, d'accueil, de fidélité de la clientèle",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Il est où le bonheur, il est où ?",
+    source: "Christophe Maé (rengaine populaire)",
+    ages: ['25-45', '35-60'],
+    registre: 'tendre',
+    usage: "amener une réponse simple à une quête compliquée — le produit qui fait la journée",
+    reseaux: ['instagram', 'tiktok'],
+  },
+
+  // ── KAAMELOTT — humour de dialogue, très cité par les 25-45 ──
+  {
     replique: "C'est pas faux.",
-    source: 'Kaamelott',
+    source: "Kaamelott",
     ages: ['18-30', '25-45', '35-60'],
+    registre: 'ironique',
     usage: "concéder un point au client avec humour avant de le retourner",
     reseaux: ['instagram', 'tiktok', 'linkedin'],
   },
   {
     replique: "On en a gros.",
-    source: 'Kaamelott',
+    source: "Kaamelott",
     ages: ['18-30', '25-45'],
+    registre: 'tendre',
     usage: "exprimer la fatigue d'une galère de métier que la cible partage",
     reseaux: ['instagram', 'tiktok'],
   },
   {
-    replique: "Vous êtes bien urgents, vous.",
-    source: 'Kaamelott',
+    replique: "Faut pas prendre les gens pour des cons.",
+    source: "Kaamelott",
     ages: ['25-45', '35-60'],
-    usage: "parler des commandes de dernière minute avec le sourire",
+    registre: 'punchy',
+    usage: "dénoncer une pratique du secteur — fausse promo, faux artisanal, fausse promesse",
     reseaux: ['instagram', 'tiktok'],
-    metiers: ['restaurant', 'traiteur', 'fleuriste', 'boulangerie', 'artisan'],
   },
+
+  // ── CINÉMA AMÉRICAIN — reconnaissance universelle, tous âges ──
   {
     replique: "Je suis ton père.",
-    source: 'Star Wars',
+    source: "Star Wars",
     ages: ['18-30', '25-45', '35-60', '50+'],
-    usage: "révéler l'origine d'un produit, d'une recette ou d'un savoir-faire transmis",
+    registre: 'epique',
+    usage: "révéler l'origine d'un produit, d'une recette, d'un savoir-faire transmis",
     reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Que la Force soit avec toi.",
+    source: "Star Wars",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'tendre',
+    usage: "souhaiter bon courage — rentrée, examens, gros événement, coup de feu",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "Je vais lui faire une offre qu'il ne pourra pas refuser.",
+    source: "Le Parrain",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'punchy',
+    usage: "annoncer une offre, une promotion ou une nouveauté sans dire « promo »",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "La vie, c'est comme une boîte de chocolats.",
+    source: "Forrest Gump",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'tendre',
+    usage: "parler de surprise, de sélection, de découverte — assortiment, menu du jour",
+    reseaux: ['instagram', 'linkedin'],
+    metiers: ['restaurant', 'boulangerie', 'chocolat', 'epicerie', 'traiteur', 'caviste'],
+  },
+  {
+    replique: "Il va nous falloir un plus gros bateau.",
+    source: "Les Dents de la mer",
+    ages: ['25-45', '35-60'],
+    registre: 'ironique',
+    usage: "raconter un afflux de commandes, un succès qui dépasse les prévisions",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
   },
   {
     replique: "Un grand pouvoir implique de grandes responsabilités.",
-    source: 'Spider-Man',
+    source: "Spider-Man",
     ages: ['18-30', '25-45'],
+    registre: 'inspirant',
     usage: "assumer une exigence de qualité ou un engagement (origine, fraîcheur, garantie)",
     reseaux: ['instagram', 'tiktok', 'linkedin'],
   },
   {
-    replique: "Ce qui est fait est fait.",
-    source: 'Le Roi Lion',
+    replique: "Je reviendrai.",
+    source: "Terminator",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'punchy',
+    usage: "annoncer le retour d'un produit saisonnier ou d'une formule très demandée",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Je suis le roi du monde !",
+    source: "Titanic",
+    ages: ['25-45', '35-60'],
+    registre: 'epique',
+    usage: "célébrer une réussite, un record, un moment de fierté d'équipe",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Nous aurons toujours Paris.",
+    source: "Casablanca",
+    ages: ['35-60', '50+'],
+    registre: 'tendre',
+    usage: "évoquer un souvenir, une fidélité, une madeleine — anniversaire de commerce",
+    reseaux: ['instagram', 'linkedin'],
+  },
+  {
+    replique: "La pilule bleue ou la pilule rouge.",
+    source: "Matrix",
+    ages: ['18-30', '25-45'],
+    registre: 'punchy',
+    usage: "poser un choix net entre deux options — deux formules, deux façons de faire",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+
+  // ── ANIMATION — transgénérationnel, ton chaleureux ──
+  {
+    replique: "Hakuna Matata.",
+    source: "Le Roi Lion",
     ages: ['18-30', '25-45', '35-60'],
+    registre: 'tendre',
+    usage: "vendre la tranquillité d'esprit — un service qui gère tout à la place du client",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Ce qui est fait est fait.",
+    source: "Le Roi Lion",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'inspirant',
     usage: "dédramatiser un raté, une erreur de commande, un imprévu",
     reseaux: ['instagram', 'tiktok', 'linkedin'],
   },
   {
-    replique: "Hakuna Matata.",
-    source: 'Le Roi Lion',
+    replique: "Tout le monde peut cuisiner.",
+    source: "Ratatouille",
     ages: ['18-30', '25-45', '35-60'],
-    usage: "vendre la tranquillité d'esprit — service qui gère tout à la place du client",
-    reseaux: ['instagram', 'tiktok'],
+    registre: 'inspirant',
+    usage: "rendre un savoir-faire accessible, partager une astuce, démystifier le métier",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+    metiers: ['restaurant', 'boulangerie', 'traiteur', 'epicerie', 'boucherie', 'patisserie'],
+  },
+  {
+    replique: "Vers l'infini et au-delà !",
+    source: "Toy Story",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'epique',
+    usage: "annoncer un dépassement, une nouveauté ambitieuse, une expansion",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+
+  // ── RÉPLIQUES SÉRIEUSES — l'analogie qui pose un propos, LinkedIn compris ──
+  {
+    replique: "Les temps sont durs pour les rêveurs.",
+    source: "Le Fabuleux Destin d'Amélie Poulain",
+    ages: ['25-45', '35-60'],
+    registre: 'inspirant',
+    usage: "parler de persévérance, de projet mené malgré le contexte — récit d'entrepreneur",
+    reseaux: ['instagram', 'linkedin'],
   },
   {
     replique: "Y'a pas de problème, y'a que des solutions.",
-    source: 'expression popularisée au cinéma',
+    source: "formule popularisée au cinéma",
     ages: ['25-45', '35-60', '50+'],
+    registre: 'inspirant',
     usage: "montrer qu'on trouve toujours une réponse à une demande inhabituelle",
     reseaux: ['instagram', 'tiktok', 'linkedin'],
   },
   {
+    replique: "Faites ce que vous voulez, mais faites-le bien.",
+    source: "esprit de l'artisanat",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'inspirant',
+    usage: "revendiquer l'exigence du métier",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+    metiers: ['artisan', 'menuisier', 'plombier', 'garage', 'coiffeur', 'institut_beaute', 'pme', 'b2b'],
+  },
+  {
+    replique: "Alors, heureux ?",
+    source: "Le Grand Bleu",
+    ages: ['35-60', '50+'],
+    registre: 'tendre',
+    usage: "clore une transformation, un avant/après, une commande livrée",
+    reseaux: ['instagram', 'linkedin'],
+  },
+
+  // ── MÉTIERS DE BOUCHE — l'analogie tombe pile ──
+  {
     replique: "Sans la sauce, c'est rien.",
-    source: 'La Vérité si je mens',
+    source: "La Vérité si je mens",
     ages: ['25-45', '35-60'],
+    registre: 'punchy',
     usage: "mettre en avant le détail qui change tout dans un produit",
     reseaux: ['instagram', 'tiktok'],
     metiers: ['restaurant', 'boulangerie', 'traiteur', 'boucherie', 'epicerie'],
   },
   {
-    replique: "Alors, heureux ?",
-    source: 'Le Grand Bleu',
-    ages: ['35-60', '50+'],
-    usage: "clore une transformation, un avant/après, une commande livrée",
-    reseaux: ['instagram', 'linkedin'],
-  },
-  {
-    replique: "Faites ce que vous voulez, mais faites-le bien.",
-    source: "esprit de l'artisanat, formule de cinéma",
-    ages: ['25-45', '35-60', '50+'],
-    usage: "revendiquer l'exigence du métier",
-    reseaux: ['instagram', 'tiktok', 'linkedin'],
-    metiers: ['artisan', 'menuisier', 'plombier', 'garage', 'coiffeur', 'institut_beaute'],
+    replique: "Vous êtes bien urgents, vous.",
+    source: "Kaamelott",
+    ages: ['25-45', '35-60'],
+    registre: 'ironique',
+    usage: "parler des commandes de dernière minute avec le sourire",
+    reseaux: ['instagram', 'tiktok'],
+    metiers: ['restaurant', 'traiteur', 'fleuriste', 'boulangerie', 'artisan'],
   },
 ];
 
@@ -239,7 +408,7 @@ export function blocReferences(opts: {
     const dispo = referencesPour({ businessType: opts.businessType, ageCible: opts.ageCible, reseau: r });
     if (dispo.length === 0) continue;
     sections.push('  ' + r.toUpperCase() + ' — ' + TON[r]);
-    for (const x of dispo) sections.push('    • « ' + x.replique + ' » (' + x.source + ') → ' + x.usage);
+    for (const x of dispo) sections.push('    • [' + x.registre + '] « ' + x.replique + ' » (' + x.source + ') → ' + x.usage);
     sections.push('');
   }
   if (sections.length === 0) return '';
@@ -251,6 +420,11 @@ export function blocReferences(opts: {
     "La liste ci-dessous est déjà filtrée selon l'âge présumé de cette clientèle et son métier.",
     '',
     ...sections,
+    "REGISTRES — choisis celui qui colle à l'identité du commerce :",
+    '  absurde = décalé, fait rire · ironique = second degré, complice · tendre = chaleureux, humain',
+    '  punchy = accroche directe · inspirant = sérieux positif, valorise le métier · epique = dramatise pour marquer',
+    "Un artisan qui soigne son image ne parle pas comme un food-truck : le registre doit ressembler au commerce, pas à la mode du moment.",
+    '',
     'RÈGLES :',
     "- MAXIMUM 1 post sur 8 avec une référence. Au-delà ça devient un tic, et la surprise — qui fait tout l'intérêt — s'épuise.",
     "- Cite la réplique EXACTEMENT telle qu'écrite. Une réplique déformée saute aux yeux de ceux qui la connaissent, c'est-à-dire précisément le public qu'on visait.",
