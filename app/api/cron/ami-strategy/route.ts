@@ -137,26 +137,44 @@ async function traiterClient(supabase: any, client: any) {
     await Promise.all(['content', 'dm', 'email', 'commercial'].map(a => directiveBlockFor(supabase, userId, a)))
   ).filter(Boolean).join('\n');
 
-  const reponse = await callGemini({
-    system: getAmiStrategySystemPrompt(),
-    message: getAmiStrategyPrompt({
-      business,
-      relevé: resultatsEnTexte(resultats),
-      historique: await historiqueOrdres(supabase, userId),
-      verdicts: verdicts.length
-        ? verdicts.map(v => `- ${v.agent}/${v.type} sur ${v.metrique} : ${v.avant} → ${v.apres} — ${v.verdict}, ${v.action} (${v.commentaire})`).join('\n')
-        : '',
-      directivesClient,
-    }),
-    maxTokens: 3000,
-    thinking: true,
+  const messageAnalyse = getAmiStrategyPrompt({
+    business,
+    relevé: resultatsEnTexte(resultats),
+    historique: await historiqueOrdres(supabase, userId),
+    verdicts: verdicts.length
+      ? verdicts.map(v => `- ${v.agent}/${v.type} sur ${v.metrique} : ${v.avant} → ${v.apres} — ${v.verdict}, ${v.action} (${v.commentaire})`).join('\n')
+      : '',
+    directivesClient,
   });
 
-  const plan = parserJson(reponse);
+  // Le budget de sortie est PARTAGÉ avec le raisonnement : à 3000 tokens, la
+  // réflexion consommait la place et le JSON sortait tronqué en plein milieu.
+  // 8000 laissent de quoi raisonner ET conclure ; le cycle ne tourne au plus
+  // que deux fois par jour et par client, la dépense reste marginale.
+  let reponse = await callGemini({
+    system: getAmiStrategySystemPrompt(),
+    message: messageAnalyse,
+    maxTokens: 8000,
+    thinking: true,
+  });
+  let plan = parserJson(reponse);
+
+  // Rattrapage : sans raisonnement, tout le budget passe dans la réponse. On
+  // préfère une décision un peu moins fouillée à un cycle perdu.
+  if (!plan) {
+    reponse = await callGemini({
+      system: getAmiStrategySystemPrompt(),
+      message: messageAnalyse,
+      maxTokens: 8000,
+      thinking: false,
+    });
+    plan = parserJson(reponse);
+  }
+
   if (!plan) {
     await supabase.from('agent_logs').insert({
       agent: 'amit', action: 'ami_cycle', status: 'error', user_id: userId,
-      data: { erreur: 'réponse non parsable', extrait: reponse.slice(0, 400) },
+      data: { erreur: 'réponse non parsable même sans raisonnement', extrait: reponse.slice(-1200) },
       created_at: new Date().toISOString(),
     });
     return { userId, statut: 'reponse_illisible', ordres: 0, verdicts: verdicts.length };
