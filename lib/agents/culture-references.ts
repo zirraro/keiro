@@ -46,6 +46,15 @@ export interface ReferenceCulturelle {
    * autant qu'à son réseau.
    */
   registre: 'absurde' | 'ironique' | 'tendre' | 'punchy' | 'inspirant' | 'epique';
+  /**
+   * Métiers où la réplique tombe PARTICULIÈREMENT bien.
+   *
+   * À ne pas confondre avec `metiers`, qui restreint : ici on n'exclut
+   * personne, on signale seulement là où l'analogie est la plus évidente. Ces
+   * répliques remontent en tête de liste pour le métier concerné, ce qui
+   * oriente le choix du modèle sans jamais appauvrir l'éventail des autres.
+   */
+  metiersPlus?: string[];
   /** Métiers où l'analogie tombe juste. Vide = tous. */
   metiers?: string[];
   /**
@@ -64,6 +73,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   // ── COMÉDIE FRANÇAISE CULTE — reconnaissance très large, 35 ans et plus ──
   {
     replique: "C'est cela, oui.",
+    metiersPlus: ['garage', 'plombier', 'immobilier', 'artisan'],
     source: "Le Père Noël est une ordure",
     ages: ['35-60', '50+'],
     registre: 'ironique',
@@ -72,6 +82,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Jusqu'ici tout va bien.",
+    metiersPlus: ['restaurant', 'garage', 'plombier', 'coiffeur', 'artisan'],
     source: "La Haine",
     ages: ['25-45', '35-60'],
     registre: 'ironique',
@@ -80,6 +91,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "C'est une bonne situation, ça, scribe ?",
+    metiersPlus: ['pme', 'b2b', 'freelance', 'coach', 'immobilier'],
     source: "Astérix : Mission Cléopâtre",
     ages: ['25-45', '35-60'],
     registre: 'absurde',
@@ -88,6 +100,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Pas de bras, pas de chocolat.",
+    metiersPlus: ['boulangerie', 'restaurant', 'epicerie', 'chocolat'],
     source: "Intouchables",
     ages: ['18-30', '25-45', '35-60'],
     registre: 'absurde',
@@ -96,6 +109,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Que trépasse si je faiblis.",
+    metiersPlus: ['artisan', 'menuisier', 'boucherie', 'garage'],
     source: "Les Visiteurs",
     ages: ['25-45', '35-60'],
     registre: 'epique',
@@ -104,6 +118,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Quand un étranger vient dans le Nord, i braie deux fois.",
+    metiersPlus: ['restaurant', 'hotel', 'boulangerie', 'epicerie'],
     source: "Bienvenue chez les Ch'tis",
     ages: ['25-45', '35-60', '50+'],
     registre: 'tendre',
@@ -112,6 +127,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Il est où le bonheur, il est où ?",
+    metiersPlus: ['boulangerie', 'patisserie', 'restaurant', 'fleuriste'],
     source: "Christophe Maé (rengaine populaire)",
     ages: ['25-45', '35-60'],
     registre: 'tendre',
@@ -122,6 +138,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   // ── KAAMELOTT — humour de dialogue, très cité par les 25-45 ──
   {
     replique: "C'est pas faux.",
+    metiersPlus: ['garage', 'plombier', 'coiffeur', 'immobilier', 'b2b'],
     source: "Kaamelott",
     ages: ['18-30', '25-45', '35-60'],
     registre: 'ironique',
@@ -130,6 +147,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "On en a gros.",
+    metiersPlus: ['restaurant', 'boulangerie', 'coiffeur', 'artisan'],
     source: "Kaamelott",
     ages: ['18-30', '25-45'],
     registre: 'tendre',
@@ -138,6 +156,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Faut pas prendre les gens pour des cons.",
+    metiersPlus: ['boucherie', 'boulangerie', 'garage', 'immobilier', 'epicerie'],
     source: "Kaamelott",
     ages: ['25-45', '35-60'],
     registre: 'punchy',
@@ -148,6 +167,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   // ── CINÉMA AMÉRICAIN — reconnaissance universelle, tous âges ──
   {
     replique: "Je suis ton père.",
+    metiersPlus: ['boulangerie', 'boucherie', 'restaurant', 'artisan', 'fromagerie'],
     source: "Star Wars",
     ages: ['18-30', '25-45', '35-60', '50+'],
     registre: 'epique',
@@ -156,6 +176,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Que la Force soit avec toi.",
+    metiersPlus: ['coach', 'institut_beaute', 'coiffeur', 'freelance'],
     source: "Star Wars",
     ages: ['18-30', '25-45', '35-60'],
     registre: 'tendre',
@@ -164,6 +185,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Je vais lui faire une offre qu'il ne pourra pas refuser.",
+    metiersPlus: ['immobilier', 'garage', 'commerce', 'b2b'],
     source: "Le Parrain",
     ages: ['25-45', '35-60', '50+'],
     registre: 'punchy',
@@ -181,6 +203,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Il va nous falloir un plus gros bateau.",
+    metiersPlus: ['restaurant', 'traiteur', 'boulangerie', 'pme'],
     source: "Les Dents de la mer",
     ages: ['25-45', '35-60'],
     registre: 'ironique',
@@ -189,6 +212,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Un grand pouvoir implique de grandes responsabilités.",
+    metiersPlus: ['boucherie', 'restaurant', 'garage', 'plombier'],
     source: "Spider-Man",
     ages: ['18-30', '25-45'],
     registre: 'inspirant',
@@ -197,6 +221,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Je reviendrai.",
+    metiersPlus: ['boulangerie', 'patisserie', 'restaurant', 'caviste', 'fleuriste'],
     source: "Terminator",
     ages: ['25-45', '35-60', '50+'],
     registre: 'punchy',
@@ -205,6 +230,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Je suis le roi du monde !",
+    metiersPlus: ['coach', 'institut_beaute', 'coiffeur', 'pme'],
     source: "Titanic",
     ages: ['25-45', '35-60'],
     registre: 'epique',
@@ -213,6 +239,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Nous aurons toujours Paris.",
+    metiersPlus: ['hotel', 'restaurant', 'fleuriste', 'immobilier'],
     source: "Casablanca",
     ages: ['35-60', '50+'],
     registre: 'tendre',
@@ -221,6 +248,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "La pilule bleue ou la pilule rouge.",
+    metiersPlus: ['coach', 'freelance', 'b2b', 'pme'],
     source: "Matrix",
     ages: ['18-30', '25-45'],
     registre: 'punchy',
@@ -231,6 +259,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   // ── ANIMATION — transgénérationnel, ton chaleureux ──
   {
     replique: "Hakuna Matata.",
+    metiersPlus: ['hotel', 'institut_beaute', 'coach', 'traiteur'],
     source: "Le Roi Lion",
     ages: ['18-30', '25-45', '35-60'],
     registre: 'tendre',
@@ -239,6 +268,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Ce qui est fait est fait.",
+    metiersPlus: ['coiffeur', 'garage', 'plombier', 'institut_beaute'],
     source: "Le Roi Lion",
     ages: ['18-30', '25-45', '35-60'],
     registre: 'inspirant',
@@ -247,6 +277,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Tout le monde peut cuisiner.",
+    metiersPlus: ['restaurant', 'boulangerie', 'traiteur'],
     source: "Ratatouille",
     ages: ['18-30', '25-45', '35-60'],
     registre: 'inspirant',
@@ -256,6 +287,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Vers l'infini et au-delà !",
+    metiersPlus: ['coach', 'pme', 'b2b', 'freelance'],
     source: "Toy Story",
     ages: ['18-30', '25-45', '35-60'],
     registre: 'epique',
@@ -266,6 +298,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   // ── RÉPLIQUES SÉRIEUSES — l'analogie qui pose un propos, LinkedIn compris ──
   {
     replique: "Les temps sont durs pour les rêveurs.",
+    metiersPlus: ['artisan', 'freelance', 'fleuriste', 'menuisier'],
     source: "Le Fabuleux Destin d'Amélie Poulain",
     ages: ['25-45', '35-60'],
     registre: 'inspirant',
@@ -274,6 +307,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Y'a pas de problème, y'a que des solutions.",
+    metiersPlus: ['plombier', 'garage', 'traiteur', 'pme'],
     source: "formule popularisée au cinéma",
     ages: ['25-45', '35-60', '50+'],
     registre: 'inspirant',
@@ -282,6 +316,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Faites ce que vous voulez, mais faites-le bien.",
+    metiersPlus: ['menuisier', 'artisan', 'garage'],
     source: "esprit de l'artisanat",
     ages: ['25-45', '35-60', '50+'],
     registre: 'inspirant',
@@ -291,6 +326,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Alors, heureux ?",
+    metiersPlus: ['coiffeur', 'institut_beaute', 'garage', 'menuisier'],
     source: "Le Grand Bleu",
     ages: ['35-60', '50+'],
     registre: 'tendre',
@@ -301,6 +337,7 @@ export const REFERENCES: ReferenceCulturelle[] = [
   // ── MÉTIERS DE BOUCHE — l'analogie tombe pile ──
   {
     replique: "Sans la sauce, c'est rien.",
+    metiersPlus: ['restaurant', 'traiteur', 'boucherie'],
     source: "La Vérité si je mens",
     ages: ['25-45', '35-60'],
     registre: 'punchy',
@@ -310,12 +347,211 @@ export const REFERENCES: ReferenceCulturelle[] = [
   },
   {
     replique: "Vous êtes bien urgents, vous.",
+    metiersPlus: ['fleuriste', 'traiteur', 'boulangerie'],
     source: "Kaamelott",
     ages: ['25-45', '35-60'],
     registre: 'ironique',
     usage: "parler des commandes de dernière minute avec le sourire",
     reseaux: ['instagram', 'tiktok'],
     metiers: ['restaurant', 'traiteur', 'fleuriste', 'boulangerie', 'artisan'],
+  },
+
+  // ── LES INCONNUS / LES TROIS FRÈRES — sketch et cinéma populaire ──
+  {
+    replique: "T'as pas cent balles ?",
+    metiersPlus: ['epicerie', 'commerce', 'boulangerie', 'caviste'],
+    source: "Les Trois Frères",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'ironique',
+    usage: "parler d'argent, de petit budget ou d'une bonne affaire sans être lourd",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "C'est ton destin.",
+    metiersPlus: ['immobilier', 'coach', 'caviste', 'fleuriste'],
+    source: "Les Trois Frères",
+    ages: ['25-45', '35-60'],
+    registre: 'epique',
+    usage: "dramatiser un choix simple — le produit qu'on ne peut pas ne pas prendre",
+    reseaux: ['instagram', 'tiktok'],
+  },
+
+  // ── LE DÎNER DE CONS ──
+  {
+    replique: "Je m'appelle François Pignon.",
+    metiersPlus: ['pme', 'b2b', 'freelance', 'commerce'],
+    source: "Le Dîner de cons",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'absurde',
+    usage: "se présenter avec autodérision — post de présentation d'équipe ou de gérant",
+    reseaux: ['instagram', 'tiktok'],
+  },
+
+  // ── LA VÉRITÉ SI JE MENS ──
+  {
+    replique: "On est des professionnels ou on l'est pas ?",
+    metiersPlus: ['garage', 'plombier', 'menuisier', 'b2b', 'pme'],
+    source: "La Vérité si je mens",
+    ages: ['25-45', '35-60'],
+    registre: 'punchy',
+    usage: "revendiquer le sérieux du métier face aux amateurs du secteur",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+
+  // ── JAMES BOND & ARCHÉTYPES DE L'ESPION ──
+  {
+    replique: "Bond. James Bond.",
+    metiersPlus: ['immobilier', 'coiffeur', 'hotel', 'b2b'],
+    source: "James Bond",
+    ages: ['18-30', '25-45', '35-60', '50+'],
+    registre: 'punchy',
+    usage: "présenter un produit ou une personne avec assurance — post de présentation",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+
+  // ── SEIGNEUR DES ANNEAUX / FANTASY ──
+  {
+    replique: "Vous ne passerez pas !",
+    metiersPlus: ['restaurant', 'boulangerie', 'coiffeur', 'institut_beaute'],
+    source: "Le Seigneur des Anneaux",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'epique',
+    usage: "poser une limite avec humour — horaires, dernière commande, règle de la maison",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Mon précieux.",
+    metiersPlus: ['caviste', 'fromagerie', 'chocolat', 'boucherie', 'patisserie'],
+    source: "Le Seigneur des Anneaux",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'tendre',
+    usage: "parler d'un produit qu'on garde jalousement — édition limitée, recette secrète",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "L'hiver vient.",
+    metiersPlus: ['restaurant', 'caviste', 'boulangerie', 'commerce', 'hotel'],
+    source: "Game of Thrones",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'epique',
+    usage: "annoncer un changement de saison, une collection ou une carte d'hiver",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+
+  // ── CLASSIQUES AMÉRICAINS — l'analogie qui pose ou qui claque ──
+  {
+    replique: "Houston, on a un problème.",
+    metiersPlus: ['garage', 'plombier', 'pme', 'b2b'],
+    source: "Apollo 13",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'ironique',
+    usage: "annoncer un imprévu avec le sourire — panne, rupture, contretemps",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "Carpe diem.",
+    metiersPlus: ['restaurant', 'boulangerie', 'fleuriste', 'caviste', 'traiteur'],
+    source: "Le Cercle des poètes disparus",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'inspirant',
+    usage: "inviter à profiter maintenant — offre du jour, saison courte, dernier service",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "Adrian !",
+    metiersPlus: ['coach', 'pme', 'garage'],
+    source: "Rocky",
+    ages: ['35-60', '50+'],
+    registre: 'epique',
+    usage: "célébrer une victoire, un objectif atteint, une fierté d'équipe",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Je vois des gens morts.",
+    metiersPlus: ['restaurant', 'boulangerie', 'coiffeur', 'hotel'],
+    source: "Sixième Sens",
+    ages: ['25-45', '35-60'],
+    registre: 'absurde',
+    usage: "décrire l'état du lundi matin, d'une fin de service, d'un inventaire",
+    reseaux: ['instagram', 'tiktok'],
+  },
+  {
+    replique: "Élémentaire, mon cher Watson.",
+    metiersPlus: ['garage', 'plombier', 'immobilier', 'b2b', 'menuisier'],
+    source: "Sherlock Holmes",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'ironique',
+    usage: "expliquer une évidence du métier que les clients ignorent",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "Après tout, demain est un autre jour.",
+    metiersPlus: ['restaurant', 'commerce', 'coiffeur', 'hotel'],
+    source: "Autant en emporte le vent",
+    ages: ['35-60', '50+'],
+    registre: 'inspirant',
+    usage: "clore une journée difficile, relativiser un imprévu",
+    reseaux: ['instagram', 'linkedin'],
+  },
+  {
+    replique: "L'important n'est pas la chute, c'est l'atterrissage.",
+    metiersPlus: ['pme', 'freelance', 'coach', 'b2b'],
+    source: "La Haine",
+    ages: ['25-45', '35-60'],
+    registre: 'inspirant',
+    usage: "parler de rebond après un échec — récit d'entrepreneur, changement de cap",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+
+  // ── ANIMATION & FAMILLE — chaleureux, très transgénérationnel ──
+  {
+    replique: "Un pour tous, tous pour un.",
+    metiersPlus: ['pme', 'restaurant', 'commerce', 'b2b'],
+    source: "Les Trois Mousquetaires",
+    ages: ['18-30', '25-45', '35-60', '50+'],
+    registre: 'tendre',
+    usage: "parler d'équipe, d'entraide entre commerçants, de collectif",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+  {
+    replique: "La patience est la clé.",
+    metiersPlus: ['boulangerie', 'fromagerie', 'caviste', 'boucherie', 'artisan'],
+    source: "Kung Fu Panda",
+    ages: ['18-30', '25-45'],
+    registre: 'inspirant',
+    usage: "valoriser un temps long — maturation, levain, séchage, fait maison",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+    metiers: ['boulangerie', 'restaurant', 'boucherie', 'caviste', 'traiteur', 'artisan', 'fromagerie'],
+  },
+  {
+    replique: "Il n'y a pas de secret d'ingrédient.",
+    metiersPlus: ['boulangerie', 'restaurant', 'patisserie', 'traiteur'],
+    source: "Kung Fu Panda",
+    ages: ['18-30', '25-45', '35-60'],
+    registre: 'inspirant',
+    usage: "dire que la qualité tient au soin, pas à une recette magique",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+  },
+
+  // ── FORMULES DE MÉTIER — sérieuses, pour LinkedIn et les PME ──
+  {
+    replique: "Le diable est dans les détails.",
+    metiersPlus: ['menuisier', 'artisan', 'garage', 'plombier', 'immobilier', 'b2b'],
+    source: "expression consacrée",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'inspirant',
+    usage: "justifier une exigence invisible pour le client mais décisive",
+    reseaux: ['instagram', 'tiktok', 'linkedin'],
+    metiers: ['artisan', 'menuisier', 'plombier', 'garage', 'pme', 'b2b', 'immobilier', 'coiffeur'],
+  },
+  {
+    replique: "La confiance se gagne en gouttes et se perd en litres.",
+    metiersPlus: ['garage', 'plombier', 'immobilier', 'b2b', 'pme'],
+    source: "formule consacrée",
+    ages: ['25-45', '35-60', '50+'],
+    registre: 'inspirant',
+    usage: "parler de fidélité, de réputation, d'avis clients",
+    reseaux: ['instagram', 'linkedin'],
   },
 ];
 
@@ -359,13 +595,22 @@ export function referencesPour(opts: {
     || Object.entries(AGE_PAR_METIER).find(([k]) => metier.includes(k))?.[1]
     || '25-45';
 
-  return REFERENCES.filter(r => {
+  const retenues = REFERENCES.filter(r => {
     if (!r.ages.includes(age)) return false;
     if (opts.reseau && !r.reseaux.includes(opts.reseau)) return false;
     if (r.metiers && r.metiers.length > 0) {
       return r.metiers.some(m => metier.includes(m));
     }
     return true;
+  });
+
+  // Les répliques taillées pour ce métier passent devant : le modèle lit la
+  // liste dans l'ordre, autant lui présenter les analogies les plus évidentes
+  // en premier. On ne retire rien — les autres restent disponibles derrière.
+  return retenues.sort((x, y) => {
+    const xPlus = (x.metiersPlus || []).some(m => metier.includes(m)) ? 1 : 0;
+    const yPlus = (y.metiersPlus || []).some(m => metier.includes(m)) ? 1 : 0;
+    return yPlus - xPlus;
   });
 }
 
