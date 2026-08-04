@@ -325,6 +325,8 @@ export async function GET(req: NextRequest) {
   // JAMAIS publiés (published_at NULL). C'est le vrai signal "on n'a pas livré". ──
   type DeliveryIssue = { client_id: string; client_email: string; plan: string; network: string; detail: string };
   const deliveryIssues: DeliveryIssue[] = [];
+
+
   try {
     const todayD = new Date().toISOString().slice(0, 10);
     const since48hD = new Date(Date.now() - 48 * 3600 * 1000).toISOString().slice(0, 10);

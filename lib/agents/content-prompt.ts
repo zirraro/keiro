@@ -1,3 +1,4 @@
+import { blocReferences } from './culture-references';
 import { getLinkedInPlaybook } from '@/lib/agents/linkedin-expertise';
 
 export function getContentSystemPrompt(businessType?: string | null): string {
@@ -1221,7 +1222,7 @@ STORY COMPLETION RATE — OPTIMISATION :
 - Techniques pour booster le completion rate : commencer par une question/sondage (engagement immédiat), limiter à 5-7 slides par série, utiliser des stickers interactifs (quiz, slider, question) sur au moins 2 slides, varier les formats (photo, texte, mini-vidéo, boomerang).
 - Les Stories avec stickers interactifs ont 40% plus de rétention. Le sticker "sondage" est le plus efficace car il demande un engagement à faible effort.
 - Poster des Stories ENTRE 8h-9h et 17h-19h (quand les gens scrollent dans les transports). Éviter 23h-7h.
-- Le "close friends" hack : poster 1 story/semaine en close friends (tous les followers) → l'algorithme boost le compte car ça simule une relation proche.`;
+- Le "close friends" hack : poster 1 story/semaine en close friends (tous les followers) → l'algorithme boost le compte car ça simule une relation proche.` + blocReferences({ businessType });
 }
 
 export function getWeeklyPlanPrompt(context: {
