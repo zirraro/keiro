@@ -292,7 +292,6 @@ async function runStrategicAnalysis(orgId: string | null = null): Promise<NextRe
       agent: 'amit',
       action: 'strategic_analysis',
       status: 'ok',
-      target: 'all',
       data: {
         report,
         learnings_analyzed: allLearnings.length,
@@ -342,7 +341,6 @@ async function runStrategicAnalysis(orgId: string | null = null): Promise<NextRe
         agent: 'amit',
         action: 'strategic_analysis',
         status: 'error',
-        target: 'all',
         data: { error: error.message, stack: error.stack?.substring(0, 500) },
         created_at: new Date().toISOString(),
       });

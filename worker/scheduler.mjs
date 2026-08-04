@@ -172,6 +172,23 @@ const GLOBAL_SCHEDULE = [
   // revenu mensuel. Email admin avec breakdown si marge projetée < 70%
   // ou spike clients > 5× avg.
   { cron: '0 7 * * *',    path: '/api/cron/daily-cost-check', label: 'Daily Cost Projection Check (admin alerts)' },
+  // 2026-08-04 — Cycle de pilotage marketing d'Ami, 2×/jour, client par
+  // client. Ami relit les résultats réels de tous les canaux (contenu, DM,
+  // email, prospection, WhatsApp), juge ses ordres précédents, puis écrit des
+  // directives typées que les agents appliquent dès leur exécution suivante.
+  //
+  // Ami n'était planifiée NULLE PART : elle ne tournait que si un admin
+  // cliquait, donc quasiment jamais. C'est ce qui manquait pour que
+  // l'adaptation soit effectivement continue.
+  //
+  // 05:40 et 17:40 UTC : juste après les remontées de stats TikTok (05:30 et
+  // 17:30) et avant les batchs de génération — Ami décide sur des chiffres
+  // frais, et ses ordres sont lus dans la foulée.
+  { cron: '40 5,17 * * *', path: '/api/cron/ami-strategy', label: 'Ami — cycle de pilotage marketing (par client)' },
+  // 2026-08-04 — Le classement de performance du contenu existait mais
+  // n'était planifié nulle part : le scheduler de Léna lisait donc un
+  // ranking figé. 03:15 UTC, une fois les métriques de la veille remontées.
+  { cron: '15 3 * * *',   path: '/api/cron/content-performance', label: 'Classement performance contenu (biais Léna)' },
   // 2026-06-10 — Toutes les 6h. Vérifie que la clé Brevo est valide.
   // Founder ask: "pourquoi le client mrzirraro ne reçoit plus de mail
   // de noah". Diagnostic: clé Brevo révoquée, tous les emails échouent

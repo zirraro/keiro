@@ -60,7 +60,13 @@ export interface TypedDirective {
   confidence: number;     // 0–1
   expires_at?: string | null;
   agent_id: string;       // which agent this applies to
-  source: 'chat' | 'wizard' | 'inferred';
+  /**
+   * D'où vient l'ordre. `ami` désigne les directives écrites par la direction
+   * marketing automatique à partir des résultats mesurés — elles n'ont pas le
+   * même statut que celles du client : voir lib/agents/ami-orders.ts, où un
+   * ordre d'Ami ne remplace jamais un ordre humain.
+   */
+  source: 'chat' | 'wizard' | 'inferred' | 'ami';
 }
 
 /**

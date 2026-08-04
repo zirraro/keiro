@@ -255,7 +255,6 @@ export async function saveLearning(
     agent: learning.agent,
     action: 'learning',
     status: 'ok',
-    target: learning.category,
     data: {
       learning: learning.learning,
       evidence: learning.evidence,
@@ -680,7 +679,6 @@ export async function saveAgentFeedback(
     agent: feedback.to_agent,
     action: 'agent_feedback',
     status: 'ok',
-    target: feedback.from_agent,
     data: {
       from_agent: feedback.from_agent,
       feedback: feedback.feedback,
