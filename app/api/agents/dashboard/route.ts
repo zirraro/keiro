@@ -128,17 +128,39 @@ async function getMarketingData(
     .order('created_at', { ascending: false })
     .limit(5);
 
-  // Generate recommendation based on data
+  // ── Recommandation, adaptée à ce que le commerce fait RÉELLEMENT ──
+  //
+  // Les conseils étaient écrits comme si tout le monde prospectait. Un
+  // restaurant ou une boutique ne convertit pas « dans KeiroAI » : ses clients
+  // poussent la porte. Lui annoncer « vous avez des prospects mais aucune
+  // conversion » désigne un échec qui n'existe pas, sur un indicateur qu'on ne
+  // peut pas mesurer chez lui — et ça décrédibilise tout le reste du tableau.
+  //
+  // On lit donc l'axe choisi à l'onboarding, et on ne parle de prospection
+  // qu'à ceux qui l'ont demandée.
+  let veutProspecter = false;
+  try {
+    const { data: strat } = await supabase
+      .from('profiles').select('strategy_focuses').eq('id', userId).maybeSingle();
+    const axes: string[] = Array.isArray((strat as any)?.strategy_focuses)
+      ? (strat as any).strategy_focuses
+      : String((strat as any)?.strategy_focuses || '').split('+').filter(Boolean);
+    veutProspecter = axes.some(a => /prospection|croissance|acquisition/i.test(a));
+  } catch { /* dans le doute, on ne parle pas de prospection */ }
+
   let recommendation = 'Continuez sur votre lancée !';
-  if (prospectList.length === 0) {
-    recommendation =
-      'Aucun prospect détecté. Activez vos agents Commercial et DM Instagram pour générer des leads.';
-  } else if (clientCount === 0 && prospectList.length > 5) {
-    recommendation =
-      'Vous avez des prospects mais aucune conversion. Vérifiez vos séquences email et relancez les prospects chauds.';
-  } else if ((visibilityCount ?? 0) < 5) {
-    recommendation =
-      'Votre visibilité est faible. Publiez plus de contenu et activez les agents SEO et TikTok.';
+  if ((visibilityCount ?? 0) < 5) {
+    // Vrai pour tous : sans publication, il n'y a rien à analyser.
+    recommendation = veutProspecter
+      ? 'Peu de publications ces derniers jours. La régularité est ce qui nourrit à la fois votre visibilité et vos prises de contact.'
+      : 'Peu de publications ces derniers jours. La régularité compte plus que la quantité : mieux vaut trois posts par semaine tenus que dix un mois puis rien.';
+  } else if (veutProspecter && prospectList.length === 0) {
+    recommendation = 'Aucun prospect dans votre liste. Léo peut en identifier autour de vous — dites-lui simplement quelles zones vous intéressent.';
+  } else if (veutProspecter && clientCount === 0 && prospectList.length > 5) {
+    recommendation = "Des prospects, mais aucun rendez-vous encore. Les plus chauds méritent un appel : c'est ce qui débloque le plus vite.";
+  } else if (!veutProspecter) {
+    // Sans prospection, la question utile porte sur l'audience et l'engagement.
+    recommendation = "Vos publications tournent. Le prochain palier se joue sur l'engagement : répondez aux commentaires et aux messages, c'est ce qui fait revenir les gens.";
   }
 
   // Instagram stats — pulled from the shared `loadInstagramInsights` helper

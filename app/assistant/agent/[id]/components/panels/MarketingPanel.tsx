@@ -29,6 +29,14 @@ const AMI_NETWORKS: { key: AmiNetwork; label: string; icon: string; color: strin
 ];
 
 export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  // Certaines surfaces de ce panneau ne concernent que l'administration.
+  const [estAdmin, setEstAdmin] = useState(false);
+  useEffect(() => {
+    fetch('/api/me/profile', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setEstAdmin(!!(d?.profile?.is_admin ?? d?.is_admin)))
+      .catch(() => { /* dans le doute, on n'affiche pas */ });
+  }, []);
   const { t, locale } = useLanguage();
   const en = locale === 'en';
   const p = t.panels;
@@ -127,7 +135,12 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           />
         )}
 
-        {/* Audit log link \u2014 Meta App Review compliance evidence */}
+        {/* Preuve de conformit\u00e9 destin\u00e9e au reviewer Meta, pas au commer\u00e7ant.
+            Elle affichait \u00e0 un boulanger le nom technique d'une permission Graph
+            et un lien vers un journal d'audit : incompr\u00e9hensible pour lui, et
+            plut\u00f4t inqui\u00e9tant. R\u00e9serv\u00e9e \u00e0 l'administration, seule \u00e0 en avoir
+            l'usage. */}
+        {estAdmin && (
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mt-3 mb-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -148,6 +161,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             </a>
           </div>
         </div>
+        )}
 
         {/* SECTION : AMI t'interpr\u00e8te (lecture seule)
             AMI is a pure insights/strategy surface \u2014 no action buttons.
