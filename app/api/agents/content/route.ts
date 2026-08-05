@@ -2589,6 +2589,27 @@ async function GETInterne(request: NextRequest) {
           // du cap de cadence (ils ne consomment pas le quota, cf.
           // SUPPLEMENTARY_SOURCES dans plan-budget-guard). Plafonnés par
           // ailleurs (1/jour, 25 au total).
+          // Comptes internes : ne rien PUBLIER non plus.
+          //
+          // La règle du 29/07 ne bloquait que la génération. Le compte de revue
+          // Meta a donc continué à publier son stock d'avant la règle — 5 posts
+          // TikTok sur la seule dernière semaine, dont 2 aujourd'hui. Ils
+          // partaient sur un compte TikTok qui n'est pas le sien, consommaient
+          // le quota quotidien, et n'apparaissaient dans le brief d'aucun
+          // client puisqu'ils sont rattachés à un identifiant interne : le
+          // fondateur voyait « 0 publication TikTok » pendant que des posts
+          // sortaient réellement.
+          if (userId) {
+            const { isNoContentUserId } = await import('@/lib/agents/internal-accounts');
+            if (isNoContentUserId(userId)) {
+              console.log(`[Content] compte interne ${userId} — publication ignorée (post ${post.id})`);
+              await supabase.from('content_calendar')
+                .update({ status: 'skipped', qa_notes: 'compte interne : ni génération ni publication' })
+                .eq('id', post.id);
+              continue;
+            }
+          }
+
           const isSupplementary = ((post as any).source || '') === 'tt_to_ig_ab_test';
           if (!isSupplementary && await recentlyPublishedSamePlatform(postPlatform, userId, slotFormat)) {
             console.warn(`[Content] Spacing guard: skipping post ${post.id} on ${postPlatform} — already published within 4h.`);

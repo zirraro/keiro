@@ -1715,6 +1715,7 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       let reponsesRecues = 0;
       let aFaire = 0;
       let detailReseaux = '';
+      let detailAttente = '';
       try {
         const { data: postsJour } = await supabase
           .from('content_calendar')
@@ -1750,6 +1751,15 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
           .eq('status', 'pending_approval');
+
+        // Un nombre agrégé ne dit pas quoi faire : « 117 » se lit comme une
+        // dette, pas comme une action. On nomme donc ce qui attend, et on ne
+        // garde que ce qui se traite dans la journée — au-delà, on affiche le
+        // premier poste seulement, sinon le client renonce avant d'ouvrir.
+        const enAttente: string[] = [];
+        if ((aValider || 0) > 0) enAttente.push(`${aValider} post${(aValider || 0) > 1 ? 's' : ''} à valider`);
+        if ((doneCounts.follows_to_do || 0) > 0) enAttente.push(`${doneCounts.follows_to_do} compte${doneCounts.follows_to_do > 1 ? 's' : ''} à suivre`);
+        detailAttente = enAttente.join(' · ');
         aFaire = (doneCounts.follows_to_do || 0) + (aValider || 0);
       } catch { /* le brief part même si un compteur manque */ }
 
@@ -1764,10 +1774,11 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
   <tr>
     ${tile(vues24h !== null ? vues24h.toLocaleString('fr-FR') : '—', '👁 Vues', '#f0f9ff', '#0369a1')}
     ${tile(reponsesRecues, '💬 Réponses reçues', '#fdf4ff', '#a855f7')}
-    ${tile(aFaire, aFaire > 0 ? '⏳ En attente de toi' : '✅ Rien en attente', aFaire > 0 ? '#fef3c7' : '#f0fdf4', aFaire > 0 ? '#d97706' : '#16a34a')}
+    ${tile(hotCount || 0, '🔥 Prospects chauds', hotCount > 0 ? '#fef3c7' : '#f9fafb', hotCount > 0 ? '#d97706' : '#6b7280')}
   </tr>
 </table>
-${detailReseaux ? `<p style="margin:-4px 0 12px;font-size:11px;color:#6b7280;">Publications du jour : ${detailReseaux}.</p>` : ''}`;
+${detailReseaux ? `<p style="margin:-4px 0 4px;font-size:11px;color:#6b7280;">Publications du jour : ${detailReseaux}.</p>` : ''}
+${detailAttente ? `<p style="margin:0 0 12px;font-size:12px;color:#92400e;background:#fffbeb;padding:7px 10px;border-radius:6px;">⏳ <b>Ça t'attend :</b> ${detailAttente}.</p>` : ''}`;
 
       // Per-agent breakdown — only agents that did something show up
       const agentLines: string[] = [];
