@@ -22,20 +22,30 @@ export const maxDuration = 300;
  *   3. décider — ou constater qu'il n'y a pas de quoi décider
  *   4. écrire les ordres, que les agents liront dès leur prochaine exécution
  *
- * ── Sur le rythme ──
+ * ── Sur le rythme : deux cadences, pas une ──
  *
- * Le fondateur demande « une adaptation à rythme soutenu ». Soutenu ne veut pas
- * dire permanent : un cycle qui repasse sur des données inchangées ne peut rien
- * apprendre de neuf, il ne fait que consommer des crédits et produire du
- * changement pour le changement. On tourne donc deux fois par jour, mais on
- * saute tout client dont rien n'a bougé depuis le dernier cycle. Le rythme est
- * dicté par l'arrivée des résultats, pas par l'horloge.
+ * Cadence décidée par le fondateur (2026-08-05) : « on analyse chaque semaine
+ * et on ajuste chaque mois — ça fait pluri-analyses et facteurs pour optimiser
+ * la pertinence sur les horaires par exemple, mais aussi le contenu ».
+ *
+ * C'est la bonne séparation, et pour une raison statistique : une semaine de
+ * publication d'un commerce local, c'est une dizaine de posts. Décider sur dix
+ * observations revient à suivre le bruit — un post qui perce un mardi ferait
+ * basculer toute la stratégie. Quatre relevés hebdomadaires donnent en
+ * revanche une base solide, et permettent de distinguer une tendance d'un
+ * accident.
+ *
+ *   RELEVÉ (hebdomadaire) — on mesure et on archive. Aucun appel modèle, donc
+ *   gratuit. C'est la matière première.
+ *
+ *   AJUSTEMENT (mensuel) — Ami lit les quatre relevés, décide, et donne ses
+ *   ordres. Un seul appel modèle par client et par mois.
  *
  * ── Sur le coût ──
  *
- * Un appel modèle par client et par cycle utile, jamais plus. Le saut sur
- * données inchangées est ce qui rend la fréquence tenable ; sans lui, la
- * facture doublerait pour zéro information supplémentaire.
+ * Cette séparation divise la dépense par rapport à une décision fréquente :
+ * les mesures ne coûtent rien, seule la décision est payante. Et un client
+ * dont rien n'a bougé est sauté même le jour de l'ajustement.
  */
 
 function sb() {
@@ -46,8 +56,11 @@ function sb() {
   );
 }
 
-/** Fenêtre d'observation. Assez large pour lisser, assez courte pour réagir. */
-const FENETRE_JOURS = 14;
+/** Fenêtre du relevé hebdomadaire : la semaine écoulée, comparée à la précédente. */
+const FENETRE_RELEVE_JOURS = 7;
+
+/** Fenêtre de l'ajustement mensuel : le mois écoulé, comparé au précédent. */
+const FENETRE_AJUSTEMENT_JOURS = 30;
 
 /** En deçà, on ne relance pas de cycle : rien de neuf à juger. */
 const MIN_NOUVEAUTES = 3;
@@ -101,11 +114,71 @@ function parserJson(brut: string): any | null {
   try { return JSON.parse(m[0]); } catch { return null; }
 }
 
+/**
+ * RELEVÉ hebdomadaire — on mesure, on archive, on ne décide pas.
+ *
+ * Aucun appel modèle : c'est ce qui rend la fréquence hebdomadaire gratuite, et
+ * donc tenable. Les quatre relevés du mois nourriront l'ajustement.
+ */
+async function releverClient(supabase: any, client: any) {
+  const userId = client.id;
+  const resultats = await collecterResultats(supabase, userId, FENETRE_RELEVE_JOURS);
+
+  await supabase.from('agent_logs').insert({
+    agent: 'amit', action: 'ami_releve', status: 'ok', user_id: userId,
+    data: { resultats, fenetre_jours: FENETRE_RELEVE_JOURS },
+    created_at: new Date().toISOString(),
+  });
+
+  const observations = resultats.canaux.reduce(
+    (s, c) => s + Math.max(0, ...Object.values(c.metriques).map(m => m.echantillon)), 0,
+  );
+  return { userId, statut: 'releve', observations, canaux_actifs: resultats.canaux.filter(c => c.actif).length };
+}
+
+/**
+ * Les relevés hebdomadaires du mois, en texte.
+ *
+ * C'est ce qui donne à Ami la profondeur que demande le fondateur : elle ne
+ * voit pas un instantané mais une trajectoire sur quatre semaines, ce qui lui
+ * permet de distinguer une progression réelle d'un bon jour isolé.
+ */
+async function relevesDuMois(supabase: any, userId: string): Promise<string> {
+  const { data } = await supabase
+    .from('agent_logs')
+    .select('data, created_at')
+    .eq('agent', 'amit')
+    .eq('action', 'ami_releve')
+    .eq('user_id', userId)
+    .gte('created_at', new Date(Date.now() - 35 * 86400000).toISOString())
+    .order('created_at', { ascending: true })
+    .limit(10);
+
+  if (!data?.length) return 'Aucun relevé hebdomadaire disponible : décide sur la seule fenêtre mensuelle.';
+
+  return (data as any[]).map((r) => {
+    const semaine = new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const lignes: string[] = [];
+    for (const c of r.data?.resultats?.canaux || []) {
+      if (!c.actif) continue;
+      const chiffres = Object.entries(c.metriques)
+        .filter(([, m]: any) => m.valeur !== null)
+        .map(([nom, m]: any) => `${nom}=${m.valeur}(n=${m.echantillon})`)
+        .join(' ');
+      if (chiffres) lignes.push(`    ${c.canal} : ${chiffres}`);
+    }
+    return `  Semaine du ${semaine}\n${lignes.join('\n') || '    aucune activité'}`;
+  }).join('\n');
+}
+
+/**
+ * AJUSTEMENT mensuel — Ami lit les relevés, décide, ordonne.
+ */
 async function traiterClient(supabase: any, client: any) {
   const userId = client.id;
 
   // ── 1. Juger le passé avant de décider du futur ──────────────────────────
-  const resultats = await collecterResultats(supabase, userId, FENETRE_JOURS);
+  const resultats = await collecterResultats(supabase, userId, FENETRE_AJUSTEMENT_JOURS);
   const verdicts = await evaluerOrdresPasses(supabase, userId, resultats);
 
   // ── 2. Y a-t-il de quoi décider ? ────────────────────────────────────────
@@ -139,7 +212,12 @@ async function traiterClient(supabase: any, client: any) {
 
   const messageAnalyse = getAmiStrategyPrompt({
     business,
-    relevé: resultatsEnTexte(resultats),
+    relevé: [
+      resultatsEnTexte(resultats),
+      '',
+      'TRAJECTOIRE — relevés hebdomadaires du mois écoulé',
+      await relevesDuMois(supabase, userId),
+    ].join('\n'),
     historique: await historiqueOrdres(supabase, userId),
     verdicts: verdicts.length
       ? verdicts.map(v => `- ${v.agent}/${v.type} sur ${v.metrique} : ${v.avant} → ${v.apres} — ${v.verdict}, ${v.action} (${v.commentaire})`).join('\n')
@@ -203,7 +281,7 @@ async function traiterClient(supabase: any, client: any) {
       ordres_appliques: appliques,
       ordres_refuses: refuses,
       verdicts,
-      fenetre_jours: FENETRE_JOURS,
+      fenetre_jours: FENETRE_AJUSTEMENT_JOURS,
     },
     created_at: new Date().toISOString(),
   });
@@ -228,6 +306,10 @@ export async function GET(req: NextRequest) {
   const cible = req.nextUrl.searchParams.get('user_id');
   const forcer = req.nextUrl.searchParams.get('force') === '1';
 
+  // `mode=releve` mesure et archive (hebdomadaire, gratuit) ;
+  // `mode=ajustement` décide et ordonne (mensuel, un appel modèle par client).
+  const mode = req.nextUrl.searchParams.get('mode') === 'ajustement' ? 'ajustement' : 'releve';
+
   let requete = supabase
     .from('profiles')
     .select('id, email, company_name, first_name, business_type, city, subscription_plan, is_admin')
@@ -243,6 +325,10 @@ export async function GET(req: NextRequest) {
   for (const client of clients || []) {
     if (client.is_admin && !cible) continue;
     try {
+      // Le relevé est gratuit : on le prend systématiquement, même si peu de
+      // choses ont bougé — une semaine calme est elle-même une information.
+      if (mode === 'releve') { resultats.push(await releverClient(supabase, client)); continue; }
+
       if (!forcer) {
         const { oui, raison } = await matiereANouveauCycle(supabase, client.id);
         if (!oui) { resultats.push({ userId: client.id, statut: 'saute', raison }); continue; }
@@ -256,8 +342,10 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    mode,
     clients_examines: resultats.length,
-    cycles_joues: resultats.filter(r => r.statut === 'ok').length,
+    releves: resultats.filter(r => r.statut === 'releve').length,
+    ajustements: resultats.filter(r => r.statut === 'ok').length,
     sautes: resultats.filter(r => r.statut === 'saute').length,
     ordres_donnes: resultats.reduce((s, r) => s + (r.ordres || 0), 0),
     resultats,

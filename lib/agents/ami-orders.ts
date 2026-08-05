@@ -62,9 +62,17 @@ export const LEVIERS_AMI: Record<string, DirectiveType[]> = {
   commercial: ['prospection_zones', 'prospection_excluded_types'],
 };
 
-/** Durée de vie d'un ordre et délai avant de juger son effet. */
-const DUREE_ORDRE_JOURS = 21;
-const FENETRE_EVALUATION_JOURS = 10;
+/**
+ * Durée de vie d'un ordre et délai avant de juger son effet.
+ *
+ * Calés sur la cadence décidée par le fondateur (2026-08-05) : on analyse
+ * chaque semaine, on ajuste chaque mois. Un ordre vit donc deux mois — le temps
+ * de deux ajustements — et se juge à un mois, sur quatre relevés hebdomadaires
+ * plutôt qu'un seul. Juger plus tôt reviendrait à confondre l'effet de l'ordre
+ * avec la variation normale d'une semaine.
+ */
+const DUREE_ORDRE_JOURS = 60;
+const FENETRE_EVALUATION_JOURS = 30;
 
 /**
  * Sous ce nombre d'observations, on ne décide pas.

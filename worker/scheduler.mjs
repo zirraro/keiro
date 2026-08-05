@@ -184,7 +184,12 @@ const GLOBAL_SCHEDULE = [
   // 05:40 et 17:40 UTC : juste après les remontées de stats TikTok (05:30 et
   // 17:30) et avant les batchs de génération — Ami décide sur des chiffres
   // frais, et ses ordres sont lus dans la foulée.
-  { cron: '40 5,17 * * *', path: '/api/cron/ami-strategy', label: 'Ami — cycle de pilotage marketing (par client)' },
+  // Deux cadences (fondateur 2026-08-05) : « on analyse chaque semaine et on
+  // ajuste chaque mois ». Le relevé hebdomadaire est une pure mesure, sans
+  // appel modèle — c'est lui qui donne à la décision mensuelle quatre points
+  // de comparaison au lieu d'un instantané.
+  { cron: '40 5 * * 1',   path: '/api/cron/ami-strategy?mode=releve', label: 'Ami — relevé hebdomadaire (lundi, sans coût)' },
+  { cron: '40 6 1 * *',   path: '/api/cron/ami-strategy?mode=ajustement', label: 'Ami — ajustement mensuel (le 1er, ordres aux agents)' },
   // 2026-08-04 — Le classement de performance du contenu existait mais
   // n'était planifié nulle part : le scheduler de Léna lisait donc un
   // ranking figé. 03:15 UTC, une fois les métriques de la veille remontées.

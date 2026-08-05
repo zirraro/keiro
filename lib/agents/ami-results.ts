@@ -118,6 +118,47 @@ function engagementDe(e: any): number | null {
   return l + c + s + p;
 }
 
+const JOURS_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
+/**
+ * Performance par heure de publication, en heure de Paris.
+ *
+ * C'est la donnée qui manquait pour décider des horaires : sans elle, un ordre
+ * « publie à 18h » ne reposerait sur rien. On regroupe par tranche de 2 heures
+ * — à l'heure près, chaque case ne contiendrait qu'un ou deux posts et le
+ * classement ne refléterait que du bruit.
+ */
+function parHeure(rows: any[]): Record<string, { moyenne: number | null; n: number }> {
+  const g: Record<string, number[]> = {};
+  for (const r of rows) {
+    const v = vuesDe(r.engagement_data);
+    if (v === null || !r.published_at) continue;
+    const h = Number(new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Europe/Paris', hour: '2-digit', hour12: false,
+    }).format(new Date(r.published_at)));
+    if (!Number.isFinite(h)) continue;
+    const debut = Math.floor(h / 2) * 2;
+    const cle = `${String(debut).padStart(2, '0')}h-${String(debut + 2).padStart(2, '0')}h`;
+    (g[cle] ||= []).push(v);
+  }
+  const out: Record<string, { moyenne: number | null; n: number }> = {};
+  for (const k of Object.keys(g).sort()) out[k] = { moyenne: moyenne(g[k]), n: g[k].length };
+  return out;
+}
+
+/** Même logique par jour de semaine : le meilleur créneau dépend du jour. */
+function parJour(rows: any[]): Record<string, { moyenne: number | null; n: number }> {
+  const g: Record<string, number[]> = {};
+  for (const r of rows) {
+    const v = vuesDe(r.engagement_data);
+    if (v === null || !r.published_at) continue;
+    (g[JOURS_FR[new Date(r.published_at).getDay()]] ||= []).push(v);
+  }
+  const out: Record<string, { moyenne: number | null; n: number }> = {};
+  for (const k of Object.keys(g)) out[k] = { moyenne: moyenne(g[k]), n: g[k].length };
+  return out;
+}
+
 async function resultatsContenu(
   supabase: SupabaseClient, userId: string, jours: number,
 ): Promise<ResultatsCanal> {
@@ -183,6 +224,8 @@ async function resultatsContenu(
     detail: {
       par_plateforme: parCle(courant, 'platform'),
       par_format: parCle(courant, 'format'),
+      par_heure: parHeure(courant),
+      par_jour: parJour(courant),
       posts_sans_metrique: courant.length - vuesC.length,
     },
   };

@@ -6266,6 +6266,38 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     }
   }
 
+  // ── Ordres d'Ami et consignes client : contrainte sur le CHOIX ──
+  //
+  // Les directives typées étaient injectées dans le prompt uniquement. Or le
+  // format vient d'être arrêté ici, dans le code : le modèle recevait « publie
+  // moins de carrousels » alors que le carrousel lui était déjà imposé. L'ordre
+  // était donc sans effet, et Ami en concluait ensuite que le levier ne marchait
+  // pas — alors qu'il n'avait jamais été appliqué.
+  //
+  // On applique après le classement de performance : entre une préférence
+  // statistique et un ordre explicite, l'ordre tranche.
+  try {
+    const { chargerContraintes, appliquerContrainteFormat } = await import('@/lib/agents/directive-execution');
+    const contraintes = await chargerContraintes(supabase, userId, 'content');
+    if (contraintes.appliquees.length) {
+      const autorisesIci = platform === 'tiktok'
+        ? ['reel', 'video', 'photo']
+        : slotType === 'morning'
+          ? ['post', 'carrousel']
+          : slotType === 'midday'
+            ? ['reel', 'carrousel']
+            : ['post', 'story', 'reel'];
+      const { format: retenu, motif } = appliquerContrainteFormat(format, contraintes, autorisesIci);
+      if (motif) {
+        console.log(`[Content] directive appliquée à l'exécution — ${motif} (${contraintes.appliquees.join(' · ')})`);
+        format = retenu;
+      }
+    }
+  } catch (e: any) {
+    // Jamais bloquant : mieux vaut publier au format prévu que sauter le créneau.
+    console.warn('[Content] contraintes de directives non appliquées:', e?.message);
+  }
+
   // Get recent posts for visual coherence + strategy context
   const { data: recentGrid } = await supabase
     .from('content_calendar')
