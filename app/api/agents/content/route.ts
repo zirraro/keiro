@@ -2623,11 +2623,29 @@ export async function GET(request: NextRequest) {
               const verdict = await runPublishGate(supabase, { orgId: userId, agent: 'content', channel: postPlatform as any, text: gateText, lang: 'fr' });
               await logGateVerdict(supabase, userId, { agent: 'content', channel: postPlatform as any }, verdict, post.id);
               if (!verdict.pass) {
-                postPublishMode = 'notify';
-                await supabase.from('content_calendar')
-                  .update({ qa_notes: 'QA gate: ' + verdict.violations.map(v => v.rule).join(', ') })
-                  .eq('id', post.id);
-                console.log(`[Content] QA gate FAIL post ${post.id}: ${verdict.violations.map(v => v.rule).join(',')} → validation`);
+                // On ne sollicite plus le client pour un contrôle que NOUS
+                // avons recalé (fondateur 05/08 : « on vérifie nous-mêmes le
+                // contrôle qualité et on régénère au besoin »). Un email de ce
+                // type lui transfère notre problème : il a acheté un compte qui
+                // publie du bon contenu, pas un poste de relecteur.
+                const { reparerPost, ecarterSansNotifier } = await import('@/lib/agents/auto-repair-post');
+                const { data: pfull } = await supabase.from('content_calendar')
+                  .select('id, caption, hook, visual_url, platform, format').eq('id', post.id).single();
+                const reparation = await reparerPost(
+                  supabase, pfull as any, 'kit_marque',
+                  verdict.violations.map(v => v.rule).join(', '),
+                );
+                if (reparation.repare) {
+                  console.log(`[Content] QA gate FAIL post ${post.id} → réparé automatiquement (${reparation.detail})`);
+                } else {
+                  // Irréparable : on écarte sans publier et sans écrire au
+                  // client. Publier contredirait l'exigence de qualité,
+                  // notifier contredirait la consigne. L'incident part en
+                  // supervision admin.
+                  await ecarterSansNotifier(supabase, post.id, userId, 'kit_marque', reparation.detail);
+                  console.log(`[Content] QA gate FAIL post ${post.id} → écarté, non notifié (${reparation.detail})`);
+                  continue;
+                }
               }
             } catch { /* non-blocking */ }
           }
@@ -2651,9 +2669,14 @@ export async function GET(request: NextRequest) {
                 });
                 const norm = String(check || '').toLowerCase().replace(/\s/g, '');
                 if (norm.includes('"ok":false') || norm.includes("'ok':false")) {
-                  postPublishMode = 'notify';
-                  await supabase.from('content_calendar').update({ qa_notes: 'Date QA: événement périmé (+3j) ou temps de verbe incorrect — à revoir avant publication.' }).eq('id', post.id);
-                  console.log(`[Content] Date-relevance gate FAIL post ${post.id} → validation`);
+                  // Un contenu daté ne se répare pas par réécriture : l'événement
+                  // est passé. On l'écarte sans déranger le client — le créneau
+                  // se remplit par le recyclage bibliothèque.
+                  const { ecarterSansNotifier } = await import('@/lib/agents/auto-repair-post');
+                  await ecarterSansNotifier(supabase, post.id, userId, 'date_perimee',
+                    'événement périmé (+3j) ou temps de verbe incorrect');
+                  console.log(`[Content] Date-relevance FAIL post ${post.id} → écarté, non notifié`);
+                  continue;
                 }
               }
             } catch { /* non-blocking */ }

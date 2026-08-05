@@ -194,6 +194,12 @@ const GLOBAL_SCHEDULE = [
   // ajuste chaque mois ». Le relevé hebdomadaire est une pure mesure, sans
   // appel modèle — c'est lui qui donne à la décision mensuelle quatre points
   // de comparaison au lieu d'un instantané.
+  // 2026-08-05 — Rattrapage du retard de publication. Ne publie rien : il
+  // reprogramme les posts coincés dans le passé sur des jours à venir, plafonné
+  // à ×3 la cadence du plan et étalé sur les meilleures heures du client. Le
+  // retard s'accumulait sans alerte (aucune erreur, aucun essai), jusqu'à 60
+  // posts dont le plus ancien datait de 3 mois.
+  { cron: '20 4 * * *',   path: '/api/cron/backlog-catchup', label: 'Rattrapage backlog (×3 max, heures optimisées)' },
   { cron: '40 5 * * 1',   path: '/api/cron/ami-strategy?mode=releve', label: 'Ami — relevé hebdomadaire (lundi, sans coût)' },
   { cron: '40 6 1 * *',   path: '/api/cron/ami-strategy?mode=ajustement', label: 'Ami — ajustement mensuel (le 1er, ordres aux agents)' },
   // 2026-08-04 — Le classement de performance du contenu existait mais
