@@ -51,6 +51,20 @@ function sb() {
 /** Le plafond de rattrapage : jamais plus du triple de la cadence normale. */
 const FACTEUR_RATTRAPAGE = 3;
 
+/**
+ * Horizon de reprogrammation.
+ *
+ * Premier passage réel : un client avait 413 posts en retard, que le plafond
+ * ×3 étalait jusqu'en janvier 2027. Ce n'est plus un rattrapage, c'est un
+ * enterrement — un post écrit en avril et publié six mois plus tard est
+ * périmé, et il occupe un créneau qu'un contenu frais aurait mieux rempli.
+ *
+ * Au-delà de cette limite, on arrête de programmer : le reste est renvoyé en
+ * bibliothèque, où il reste disponible pour le recyclage sans encombrer le
+ * calendrier ni faire croire à une livraison à venir.
+ */
+const HORIZON_JOURS = 45;
+
 /** Créneaux de repli quand le client n'a pas encore d'historique exploitable. */
 const HEURES_DEFAUT = ['09:15', '12:30', '18:45'];
 
@@ -133,6 +147,7 @@ async function rattraperClient(supabase: any, client: any) {
   }
 
   const reprogrammes: Array<{ id: string; vers: string; heure: string }> = [];
+  const renvoyesEnBibliotheque: string[] = [];
   let curseurJour = 0;
   let position = 0;
 
@@ -140,9 +155,10 @@ async function rattraperClient(supabase: any, client: any) {
     const plafond = plafondJour(post.platform);
     if (plafond <= 0) continue;
 
-    // On avance de jour en jour jusqu'à trouver de la place sous le plafond.
+    // On avance de jour en jour jusqu'à trouver de la place sous le plafond,
+    // sans jamais dépasser l'horizon.
     let place: string | null = null;
-    for (let j = curseurJour; j < curseurJour + 120; j++) {
+    for (let j = curseurJour; j < HORIZON_JOURS; j++) {
       const jour = new Date(Date.now() + j * 86400000).toISOString().slice(0, 10);
       const cle = `${jour}|${post.platform}`;
       if ((occupation.get(cle) || 0) < plafond) {
@@ -152,7 +168,7 @@ async function rattraperClient(supabase: any, client: any) {
         break;
       }
     }
-    if (!place) break; // calendrier saturé sur 4 mois : on s'arrête là
+    if (!place) { renvoyesEnBibliotheque.push(post.id); continue; }
 
     const heure = heures[position % heures.length];
     position++;
@@ -168,12 +184,27 @@ async function rattraperClient(supabase: any, client: any) {
     if (!error) reprogrammes.push({ id: post.id, vers: place, heure });
   }
 
-  if (reprogrammes.length) {
+  // Le surplus sort du calendrier sans être perdu : il redevient du stock
+  // recyclable. Le laisser en « approved » sur une date passée le ferait
+  // ressortir en retard à chaque passage, indéfiniment.
+  if (renvoyesEnBibliotheque.length) {
+    await supabase.from('content_calendar')
+      .update({
+        status: 'needs_review',
+        publish_diagnostic: `retard au-delà de ${HORIZON_JOURS} j — renvoyé en bibliothèque, disponible au recyclage`,
+        updated_at: new Date().toISOString(),
+      })
+      .in('id', renvoyesEnBibliotheque);
+  }
+
+  if (reprogrammes.length || renvoyesEnBibliotheque.length) {
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'backlog_catchup', status: 'ok', user_id: userId,
       data: {
         en_retard: enRetard.length,
         reprogrammes: reprogrammes.length,
+        renvoyes_en_bibliotheque: renvoyesEnBibliotheque.length,
+        horizon_jours: HORIZON_JOURS,
         plan, facteur: FACTEUR_RATTRAPAGE,
         plafonds: { instagram: plafondJour('instagram'), tiktok: plafondJour('tiktok'), linkedin: plafondJour('linkedin') },
         heures_retenues: heures,
@@ -187,6 +218,7 @@ async function rattraperClient(supabase: any, client: any) {
     userId, statut: 'rattrape',
     en_retard: enRetard.length,
     reprogrammes: reprogrammes.length,
+    renvoyes_en_bibliotheque: renvoyesEnBibliotheque.length,
     heures,
     etale_jusqu_au: reprogrammes[reprogrammes.length - 1]?.vers ?? null,
   };

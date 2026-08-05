@@ -133,9 +133,15 @@ function parHeure(rows: any[]): Record<string, { moyenne: number | null; n: numb
   for (const r of rows) {
     const v = vuesDe(r.engagement_data);
     if (v === null || !r.published_at) continue;
-    const h = Number(new Intl.DateTimeFormat('fr-FR', {
-      timeZone: 'Europe/Paris', hour: '2-digit', hour12: false,
-    }).format(new Date(r.published_at)));
+    // `format()` rend « 18 h » en français : Number() en fait NaN et toute
+    // l'analyse horaire ressortait vide, sans la moindre erreur. On lit la
+    // partie « hour » directement, ce qui ne dépend ni de la locale ni de la
+    // version d'ICU.
+    const h = Number(
+      new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false })
+        .formatToParts(new Date(r.published_at))
+        .find(p => p.type === 'hour')?.value,
+    );
     if (!Number.isFinite(h)) continue;
     const debut = Math.floor(h / 2) * 2;
     const cle = `${String(debut).padStart(2, '0')}h-${String(debut + 2).padStart(2, '0')}h`;
