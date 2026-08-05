@@ -50,6 +50,23 @@ export async function GET(req: NextRequest) {
 
   const supabase = sb();
 
+  // Réécriture ciblée : les DM déjà réécrits l'ont été AVANT que l'on dispose
+  // des données Instagram vérifiées (abonnés, publications, ancienneté du
+  // dernier post). Les reprendre TOUS coûterait un appel par message pour une
+  // majorité qui n'aurait rien de plus ; on ne reprend donc que ceux dont le
+  // prospect a été enrichi depuis.
+  const cibleEnrichis = req.nextUrl.searchParams.get('enrichis') === '1';
+  const enrichisRecents = new Set<string>();
+  if (cibleEnrichis) {
+    const { data: rows } = await supabase
+      .from('crm_prospects')
+      .select('id')
+      .eq('ig_status', 'professional')
+      .not('ig_enriched_at', 'is', null)
+      .limit(1000);
+    for (const r of rows || []) enrichisRecents.add((r as any).id);
+  }
+
   const { data: candidats } = await supabase
     .from('dm_queue')
     .select('id, handle, prospect_id, personalization, message, channel')
@@ -71,12 +88,16 @@ export async function GET(req: NextRequest) {
     // Sans publication réelle, on ne réécrit pas : le modèle n'aurait rien de
     // plus qu'avant et réinventerait un détail.
     if (!profil || posts.length === 0) { bilan.sansDonnees++; continue; }
-    // Déjà réécrit lors d'un passage précédent.
-    if (perso.reecrit_le) { bilan.dejaAJour++; continue; }
+    // Déjà réécrit lors d'un passage précédent — sauf si le prospect a depuis
+    // été enrichi : le message avait alors été rédigé sans savoir combien
+    // d'abonnés avait le compte ni depuis quand il dormait.
+    const aRedigerMalgreTout = cibleEnrichis && enrichisRecents.has(dm.prospect_id);
+    if (perso.reecrit_le && !aRedigerMalgreTout) { bilan.dejaAJour++; continue; }
+    if (cibleEnrichis && !enrichisRecents.has(dm.prospect_id)) { bilan.dejaAJour++; continue; }
 
     const { data: p } = await supabase
       .from('crm_prospects')
-      .select('company, type, quartier, note_google, google_rating, google_reviews, website, notes, instagram')
+      .select('company, type, quartier, note_google, google_rating, google_reviews, website, notes, instagram, ig_status, ig_followers, ig_media_count, ig_days_since_post')
       .eq('id', dm.prospect_id).maybeSingle();
 
     // Ce qu'on a réellement observé, formulé pour le modèle.
