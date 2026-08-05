@@ -102,9 +102,14 @@ export async function reparerPost(
 /**
  * Met le post de côté sans écrire au client, et laisse une trace exploitable.
  *
- * Le statut `needs_review` le sort du flux de publication tout en le gardant
+ * Le statut `skipped` le sort du flux de publication tout en le gardant
  * visible dans le planning : le client qui va voir son planning le trouve et
  * peut en décider, mais on ne l'a pas dérangé pour ça.
+ *
+ * `skipped` et pas un statut dédié : la contrainte de la table n'accepte que
+ * draft / approved / published / skipped / publish_failed / video_generating.
+ * Un statut inventé est rejeté en bloc par PostgREST — donc silencieusement,
+ * l'appel ne vérifiant pas l'erreur — et le post repart en publication.
  */
 export async function ecarterSansNotifier(
   supabase: SupabaseClient,
@@ -114,7 +119,7 @@ export async function ecarterSansNotifier(
   detail: string,
 ): Promise<void> {
   await supabase.from('content_calendar')
-    .update({ status: 'needs_review', qa_notes: `écarté sans notification (${motif}) : ${detail}` })
+    .update({ status: 'skipped', qa_notes: `écarté sans notification (${motif}) : ${detail}` })
     .eq('id', postId);
 
   await supabase.from('agent_logs').insert({

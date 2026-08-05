@@ -190,7 +190,7 @@ async function rattraperClient(supabase: any, client: any) {
   if (renvoyesEnBibliotheque.length) {
     await supabase.from('content_calendar')
       .update({
-        status: 'needs_review',
+        status: 'skipped',
         publish_diagnostic: `retard au-delà de ${HORIZON_JOURS} j — renvoyé en bibliothèque, disponible au recyclage`,
         updated_at: new Date().toISOString(),
       })

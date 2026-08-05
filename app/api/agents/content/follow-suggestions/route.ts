@@ -44,7 +44,17 @@ async function accountExists(platform: string, handle: string): Promise<boolean>
   if (cached !== undefined) return cached;
   let ok = false;
   try {
-    const url = platform === 'instagram' ? `https://www.instagram.com/${handle}/` : `https://www.tiktok.com/@${handle}`;
+    // LinkedIn tombait dans la branche TikTok : on vérifiait l'existence d'un
+    // compte LinkedIn en interrogeant tiktok.com/@handle. Le verdict était donc
+    // sans rapport avec la réalité, et le client se retrouvait avec des
+    // suggestions LinkedIn mortes — le travers qu'on a corrigé sur les DM.
+    const url = platform === 'instagram'
+      ? `https://www.instagram.com/${handle}/`
+      : platform === 'linkedin'
+        // Une page entreprise et un profil personnel n'ont pas la même racine ;
+        // on tente l'entreprise, la plus fréquente pour un compte à suivre.
+        ? `https://www.linkedin.com/company/${handle}/`
+        : `https://www.tiktok.com/@${handle}`;
     const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'fr-FR,fr;q=0.9' }, signal: AbortSignal.timeout(6000), redirect: 'follow' });
     if (r.status === 200) {
       const html = (await r.text()).slice(0, 400_000);
@@ -62,6 +72,14 @@ async function accountExists(platform: string, handle: string): Promise<boolean>
         const hasUnique = new RegExp(`"uniqueId"\\s*:\\s*"${esc}"`, 'i').test(html);
         const hasCanonical = new RegExp(`tiktok\\.com/@${esc}["'/]`, 'i').test(html);
         ok = !notFound && hasUnique && hasCanonical;
+      } else if (platform === 'linkedin') {
+        // LinkedIn sert une page d'authentification à presque tout visiteur non
+        // connecté. On ne peut donc quasiment jamais CONFIRMER l'existence d'un
+        // compte — et affirmer l'inverse reviendrait à proposer des liens morts.
+        // On ne retient que le signal positif explicite ; dans le doute, non.
+        const notFound = /Page not found|this page doesn|n'est pas disponible/i.test(html);
+        const hasCanonical = new RegExp(`linkedin\\.com/(company|in)/${esc}`, 'i').test(html);
+        ok = !notFound && hasCanonical;
       } else {
         const notFound = /Page Not Found|Sorry, this page isn|isn['’]t available|user not found/i.test(html);
         // Signal POSITIF FORT : le canonical / og:url pointe EXACTEMENT sur ce handle
