@@ -6738,6 +6738,22 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     } catch (e: any) {
       console.warn('[Content] typed directives load failed:', e?.message);
     }
+
+    // Ce que le client a précisé récemment, où qu'il l'ait dit — à Clara ou à
+    // un autre agent. Sans ce passage, une consigne donnée dans un chat reste
+    // dans ce chat : le commerçant dit à Clara « on ne livre plus » et Léna
+    // continue d'en parler. De son point de vue, l'équipe ne se parle pas.
+    //
+    // Le second bloc est l'inverse : ce qu'on ne sait PAS encore, dit
+    // explicitement pour que le modèle ne comble pas le vide en inventant.
+    try {
+      const { nouveautesPourAgent, lacunesPourAgent } = await import('@/lib/agents/clara-hub');
+      const nouveautes = await nouveautesPourAgent(supabase, userId, 'content');
+      const { blocPrompt: lacunes } = await lacunesPourAgent(supabase, userId, 'content');
+      typedDirectivesBlock += nouveautes + lacunes;
+    } catch (e: any) {
+      console.warn('[Content] contexte Clara indisponible:', e?.message);
+    }
   }
 
   // 2026-06-23 — Personal branding : si activé dans le brand kit (stocké dans
