@@ -4,6 +4,16 @@ import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/i18n/context';
 
+/**
+ * Nombre d'aperçus affichés par réseau.
+ *
+ * Identique sur les trois : une grille qui montre 12 vignettes d'un côté et 6
+ * de l'autre donne l'impression que le second réseau est moins actif, alors
+ * que c'est seulement l'affichage qui diffère.
+ */
+const APERCUS_RESEAU = 15;
+
+
 interface TikTokWidgetProps {
   onConnect?: () => void;
   onPreparePost?: () => void;
@@ -162,7 +172,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(6);
+          .limit(APERCUS_RESEAU);
 
         console.log('[TikTokWidget] TikTok posts:', tiktokPosts, 'Error:', postsError);
 

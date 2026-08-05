@@ -6,6 +6,16 @@ import Link from 'next/link';
 import PlatformChoiceModal from './PlatformChoiceModal';
 import { useLanguage } from '@/lib/i18n/context';
 
+/**
+ * Nombre d'aperçus affichés par réseau.
+ *
+ * Identique sur les trois : une grille qui montre 12 vignettes d'un côté et 6
+ * de l'autre donne l'impression que le second réseau est moins actif, alors
+ * que c'est seulement l'affichage qui diffère.
+ */
+const APERCUS_RESEAU = 15;
+
+
 // Images de démo pour le mode visiteur
 const DEMO_POSTS = [
   { id: '1', media_url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=400&fit=crop', permalink: '#' },
@@ -113,7 +123,7 @@ export default function InstagramWidget({
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(12);
+          .limit(APERCUS_RESEAU);
 
         if (!error && instagramPosts) {
           const transformedPosts = instagramPosts.map((post: any) => ({

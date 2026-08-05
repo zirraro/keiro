@@ -5,6 +5,16 @@ import { LinkedInIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/i18n/context';
 
+/**
+ * Nombre d'aperçus affichés par réseau.
+ *
+ * Identique sur les trois : une grille qui montre 12 vignettes d'un côté et 6
+ * de l'autre donne l'impression que le second réseau est moins actif, alors
+ * que c'est seulement l'affichage qui diffère.
+ */
+const APERCUS_RESEAU = 15;
+
+
 interface LinkedInWidgetProps {
   isGuest?: boolean;
   onPreparePost?: () => void;
@@ -94,7 +104,7 @@ export default function LinkedInWidget({
       if (res.ok) {
         const data = await res.json();
         const allDrafts = data.posts || [];
-        setPublishedDrafts(allDrafts.slice(0, 6));
+        setPublishedDrafts(allDrafts.slice(0, APERCUS_RESEAU));
       }
     } catch (error) {
       console.error('[LinkedInWidget] Sync error:', error);
