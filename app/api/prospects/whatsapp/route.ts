@@ -4,6 +4,17 @@ import { getAuthUser } from '@/lib/auth-server';
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from '@/lib/whatsapp';
 import { peutGenererApercu, messageApercu } from '@/lib/prospects/apercu';
 import { normaliserNumero } from '@/lib/prospects/telephone';
+import { valider, champs, z } from '@/lib/security/validation';
+
+/**
+ * Le message est borné : sans limite, un corps de plusieurs méga-octets part
+ * tel quel vers l'API Meta et vers nos journaux.
+ */
+const SchemaEnvoi = z.object({
+  prospect_id: champs.uuid,
+  numero: z.string().trim().max(32).optional(),
+  message: z.string().trim().max(4096).optional(),
+});
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -90,10 +101,11 @@ export async function POST(req: NextRequest) {
   const { user } = await getAuthUser();
   if (!user) return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const prospectId = String(body?.prospect_id || '');
-  const numeroSaisi = String(body?.numero || '');
-  if (!prospectId) return NextResponse.json({ ok: false, error: 'prospect_id requis' }, { status: 400 });
+  const v = await valider(req, SchemaEnvoi);
+  if (!v.ok) return v.reponse;
+  const body = v.donnees;
+  const prospectId = body.prospect_id;
+  const numeroSaisi = body.numero || '';
 
   const supabase = sb();
   const { data: p } = await supabase

@@ -5,6 +5,25 @@ import { besoinsPour } from '@/lib/agents/onboarding-needs';
 import { enregistrerInfo, prochaineQuestion, clesRenseignees } from '@/lib/agents/clara-hub';
 import { loadBusinessDossier } from '@/lib/agents/client-context';
 import { getVisibleAgents } from '@/lib/agents/client-context';
+import { valider, champs, z } from '@/lib/security/validation';
+
+/**
+ * Une information de dossier est bornée à un paragraphe : au-delà ce n'est
+ * plus une réponse de commerçant, et elle partirait telle quelle dans le
+ * contexte de chaque agent concerné.
+ */
+const SchemaInfo = z.object({
+  cle: z.string().trim().min(1).max(64).regex(/^[a-z0-9_]+$/i, 'clé invalide'),
+  valeur: z.string().max(5000),
+  brut: z.string().max(2000).optional(),
+});
+const SchemaDepot = z.object({
+  source: z.string().trim().max(64).optional(),
+  infos: z.array(SchemaInfo).max(40).optional(),
+  cle: SchemaInfo.shape.cle.optional(),
+  valeur: SchemaInfo.shape.valeur.optional(),
+  brut: SchemaInfo.shape.brut,
+});
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -79,9 +98,11 @@ export async function POST(req: NextRequest) {
   const userId = await utilisateur(req);
   if (!userId) return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const infos = Array.isArray(body?.infos) ? body.infos : [body];
-  const source = String(body?.source || 'clara');
+  const v = await valider(req, SchemaDepot);
+  if (!v.ok) return v.reponse;
+  const body = v.donnees;
+  const infos = body.infos?.length ? body.infos : [body];
+  const source = body.source || 'clara';
 
   const supabase = sb();
   const resultats = [];

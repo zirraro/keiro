@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { peutGenererApercu, briefApercu, messageApercu } from '@/lib/prospects/apercu';
 import crypto from 'crypto';
+import { valider, champs, z } from '@/lib/security/validation';
+
+const SchemaApercu = z.object({
+  prospect_id: champs.uuid,
+  regenerer: z.boolean().optional(),
+});
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -46,9 +52,10 @@ export async function POST(req: NextRequest) {
   const { user } = await getAuthUser();
   if (!user) return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const prospectId = String(body?.prospect_id || '');
-  if (!prospectId) return NextResponse.json({ ok: false, error: 'prospect_id requis' }, { status: 400 });
+  const v = await valider(req, SchemaApercu);
+  if (!v.ok) return v.reponse;
+  const body = v.donnees;
+  const prospectId = body.prospect_id;
 
   const supabase = sb();
   const { data: p } = await supabase

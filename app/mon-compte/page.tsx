@@ -278,6 +278,42 @@ function MonComptePage() {
     }
   };
 
+  /**
+   * Déconnexion d'un réseau.
+   *
+   * TikTok et LinkedIn n'affichaient qu'un badge « Actif » sans aucun moyen de
+   * se déconnecter : le client restait lié sans porte de sortie, alors qu'il
+   * pouvait le faire pour Instagram. C'est un manquement à la réversibilité
+   * qu'on annonce partout — et Google comme Meta l'exigent pour leurs revues.
+   *
+   * On efface aussi les jetons de rafraîchissement, sans quoi la connexion
+   * repartirait toute seule au prochain cycle de renouvellement.
+   */
+  const CHAMPS_RESEAU: Record<string, string[]> = {
+    tiktok: [
+      'tiktok_user_id', 'tiktok_username', 'tiktok_display_name', 'tiktok_avatar_url',
+      'tiktok_access_token', 'tiktok_refresh_token', 'tiktok_token_expiry',
+      'tiktok_refresh_token_expiry', 'tiktok_connected_at', 'tiktok_last_sync_at',
+    ],
+    linkedin: [
+      'linkedin_user_id', 'linkedin_username', 'linkedin_access_token',
+      'linkedin_token_expiry', 'linkedin_connected_at',
+    ],
+  };
+
+  const deconnecterReseau = async (reseau: 'tiktok' | 'linkedin', nom: string) => {
+    if (!confirm(`Déconnecter ${nom} ? Les publications automatiques sur ce réseau s'arrêteront.`)) return;
+    try {
+      const remise = Object.fromEntries((CHAMPS_RESEAU[reseau] || []).map(c => [c, null]));
+      const { error } = await supabase.from('profiles').update(remise).eq('id', user.id);
+      if (error) throw error;
+      window.location.reload();
+    } catch (e) {
+      console.error(`[MonCompte] déconnexion ${reseau} :`, e);
+      alert(`La déconnexion de ${nom} a échoué. Réessaie dans un instant.`);
+    }
+  };
+
   const disconnectInstagram = async () => {
     if (!confirm('Êtes-vous sûr de vouloir déconnecter Instagram ?')) return;
 
@@ -859,7 +895,9 @@ function MonComptePage() {
                   </div>
                 </div>
                 {profile?.tiktok_username ? (
-                  <span className="px-3 py-1.5 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg">Actif</span>
+                  <button onClick={() => deconnecterReseau('tiktok', 'TikTok')} className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
+                    Déconnecter
+                  </button>
                 ) : (
                   <a href="/api/auth/tiktok-oauth" className="px-4 py-2 text-xs font-medium bg-black text-white rounded-lg hover:shadow-lg transition-all">
                     Connecter
@@ -890,7 +928,9 @@ function MonComptePage() {
                   </div>
                 </div>
                 {profile?.linkedin_username ? (
-                  <span className="px-3 py-1.5 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg">Actif</span>
+                  <button onClick={() => deconnecterReseau('linkedin', 'LinkedIn')} className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors">
+                    Déconnecter
+                  </button>
                 ) : (
                   <a href="/api/auth/linkedin-oauth" className="px-4 py-2 text-xs font-medium bg-[#0077B5] text-white rounded-lg hover:shadow-lg transition-all">
                     Connecter
