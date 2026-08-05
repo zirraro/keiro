@@ -161,6 +161,14 @@ async function generateAIEmails(
       const { loadTypedDirectives, directivesPromptBlock } = await import('@/lib/agents/typed-directives');
       const typed = await loadTypedDirectives(supabaseClient, ownerUserId, 'email');
       directivesBlock = directivesPromptBlock(typed);
+    // Ce que le client a précisé récemment, où qu'il l'ait dit — à Clara ou à
+    // un autre agent — et ce qu'on ne sait pas encore, dit explicitement pour
+    // ne pas combler le vide en inventant.
+    try {
+      const { nouveautesPourAgent, lacunesPourAgent } = await import('@/lib/agents/clara-hub');
+      directivesBlock += await nouveautesPourAgent(supabaseClient, ownerUserId, 'email');
+      directivesBlock += (await lacunesPourAgent(supabaseClient, ownerUserId, 'email')).blocPrompt;
+    } catch { /* jamais bloquant : l'agent tourne sans ce contexte */ }
     } catch (e: any) {
       console.warn('[EmailDaily] typed directives load failed:', e?.message);
     }

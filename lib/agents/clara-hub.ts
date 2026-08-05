@@ -94,11 +94,17 @@ export async function enregistrerInfo(
     return { cle: info.cle, enregistre: false, agentsAvertis: [], raison: 'valeur inchangée' };
   }
 
-  const maj: Partial<BusinessDossier> = CHAMPS_DOSSIER.has(info.cle)
-    ? ({ [info.cle]: valeur } as any)
-    : { custom_fields: { ...(dossier?.custom_fields || {}), [info.cle]: valeur } };
-
-  await upsertBusinessDossier(supabase, userId, maj);
+  // On passe TOUJOURS la clé telle quelle, jamais enveloppée dans
+  // `custom_fields` : `upsertBusinessDossier` ignore explicitement cette clé
+  // (elle est dans sa liste de champs sautés) et construit lui-même les champs
+  // libres à partir des clés inconnues qu'on lui donne.
+  //
+  // L'envelopper faisait donc disparaître silencieusement toute information
+  // hors colonnes — c'est-à-dire l'essentiel de ce que l'onboarding métier
+  // collecte : carte, spécialité, zones d'intervention, horaires, prestations.
+  // Le symptôme aurait été insidieux : la question reposée à chaque passage,
+  // sans qu'aucune erreur n'apparaisse nulle part.
+  await upsertBusinessDossier(supabase, userId, { [info.cle]: valeur });
 
   // Une clé inconnue du catalogue reste utile : le client a jugé bon de nous
   // la donner. On la conserve et on prévient largement plutôt que de la perdre.

@@ -233,6 +233,14 @@ async function enrichProspect(prospect: {
     try {
       const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
       directivesBlock = await directiveBlockFor(supabaseClient, ownerUserId, 'commercial');
+    // Ce que le client a précisé récemment, où qu'il l'ait dit — à Clara ou à
+    // un autre agent — et ce qu'on ne sait pas encore, dit explicitement pour
+    // ne pas combler le vide en inventant.
+    try {
+      const { nouveautesPourAgent, lacunesPourAgent } = await import('@/lib/agents/clara-hub');
+      directivesBlock += await nouveautesPourAgent(supabaseClient, ownerUserId, 'commercial');
+      directivesBlock += (await lacunesPourAgent(supabaseClient, ownerUserId, 'commercial')).blocPrompt;
+    } catch { /* jamais bloquant : l'agent tourne sans ce contexte */ }
     } catch { /* best-effort */ }
   }
 

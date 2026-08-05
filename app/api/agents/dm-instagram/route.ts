@@ -229,6 +229,14 @@ async function generateDM(
       const { loadTypedDirectives, directivesPromptBlock } = await import('@/lib/agents/typed-directives');
       const typed = await loadTypedDirectives(supabaseClient, ownerUserId, 'dm_instagram');
       directivesBlock = directivesPromptBlock(typed);
+    // Ce que le client a précisé récemment, où qu'il l'ait dit — à Clara ou à
+    // un autre agent — et ce qu'on ne sait pas encore, dit explicitement pour
+    // ne pas combler le vide en inventant.
+    try {
+      const { nouveautesPourAgent, lacunesPourAgent } = await import('@/lib/agents/clara-hub');
+      directivesBlock += await nouveautesPourAgent(supabaseClient, ownerUserId, 'dm');
+      directivesBlock += (await lacunesPourAgent(supabaseClient, ownerUserId, 'dm')).blocPrompt;
+    } catch { /* jamais bloquant : l'agent tourne sans ce contexte */ }
     } catch (e: any) {
       console.warn('[DMAgent] typed directives load failed:', e?.message);
     }

@@ -146,7 +146,7 @@ const SOCLE: BesoinAgent[] = [
     options: ['chaleureux et proche', 'professionnel et rassurant', 'drôle et décalé', 'expert et pédagogue', 'haut de gamme et sobre'],
   },
   {
-    cle: 'avoid_topics', agents: ['content', 'email', 'dm', 'chatbot', 'whatsapp'],
+    cle: 'avoid_topics', agents: ['content', 'email', 'dm', 'chatbot', 'whatsapp', 'commercial', 'seo'],
     question: "Ce qu'on ne doit jamais dire ou montrer",
     aQuoiCaSert: "On l'appliquera partout, sans exception. C'est le garde-fou le plus utile que tu puisses nous donner.",
     priorite: 'important', type: 'texte_long',
