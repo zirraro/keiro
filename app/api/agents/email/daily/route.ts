@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { promises as dns } from 'dns';
@@ -1417,7 +1418,7 @@ async function sendEmail(
 /**
  * GET /api/agents/email/daily
  */
-export async function GET(request: NextRequest) {
+async function GETInterne(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   let isAuthorized = false;
@@ -2302,7 +2303,7 @@ export async function GET(request: NextRequest) {
  * POST /api/agents/email/daily
  * Actions: reset_dead_prospects
  */
-export async function POST(request: NextRequest) {
+async function POSTInterne(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   let isAuthorized = false;
@@ -2411,3 +2412,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
   }
 }
+
+
+// La dépense d'API déclenchée par cette route est imputée au client visé :
+// sans ce contexte, 100 % du coût ressortait en « sans client » et aucune
+// marge par commerce ne pouvait être calculée.
+export const GET = avecContexteRoute('email', GETInterne);
+export const POST = avecContexteRoute('email', POSTInterne);

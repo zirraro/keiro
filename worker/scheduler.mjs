@@ -204,6 +204,13 @@ const GLOBAL_SCHEDULE = [
   // parce que business_discovery est plafonné et que le lot peut être long ;
   // idempotent, donc une relance ne redépense rien.
   { cron: '30 2 * * *',   path: '/api/cron/prospect-scoring?limit=300', label: 'Scoring terrain prospects (Léo, tous clients)' },
+  // Enrichissement progressif du stock : réseaux sociaux depuis le site et
+  // photos RÉELLES du lieu via Places. Plusieurs passages par jour, chacun
+  // plafonné, pour rattraper le stock sans jamais franchir le budget du jour.
+  { cron: '10 1,7,13,19 * * *', path: '/api/cron/prospect-enrich', label: 'Enrichissement progressif prospects (photos + réseaux)' },
+  // Rapport quotidien de pilotage des coûts — envoyé tous les jours, même
+  // quand tout va bien : une alerte ne se déclenche qu'une fois trop tard.
+  { cron: '0 6 * * *',    path: '/api/cron/admin-daily-cost-report', label: 'Rapport quotidien des coûts (admin)' },
   { cron: '40 5 * * 1',   path: '/api/cron/ami-strategy?mode=releve', label: 'Ami — relevé hebdomadaire (lundi, sans coût)' },
   { cron: '40 6 1 * *',   path: '/api/cron/ami-strategy?mode=ajustement', label: 'Ami — ajustement mensuel (le 1er, ordres aux agents)' },
   // 2026-08-04 — Le classement de performance du contenu existait mais

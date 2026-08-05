@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -321,7 +322,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON
  * - Cron (CRON_SECRET): run enrichment pipeline
  * - Admin: return last enrichment report
  */
-export async function GET(request: NextRequest) {
+async function GETInterne(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -364,7 +365,7 @@ export async function GET(request: NextRequest) {
  * - prospect_external: Phase 2 only (Google Search for social data)
  * - full (default): Both phases
  */
-export async function POST(request: NextRequest) {
+async function POSTInterne(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
@@ -1430,3 +1431,10 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
     );
   }
 }
+
+
+// La dépense d'API déclenchée par cette route est imputée au client visé :
+// sans ce contexte, 100 % du coût ressortait en « sans client » et aucune
+// marge par commerce ne pouvait être calculée.
+export const GET = avecContexteRoute('commercial', GETInterne);
+export const POST = avecContexteRoute('commercial', POSTInterne);

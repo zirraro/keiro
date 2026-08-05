@@ -33,6 +33,7 @@
  */
 
 import { logApiCost } from './api-cost-logger';
+import { contexteCoutActuel } from './contexte-cout';
 
 let installe = false;
 
@@ -160,14 +161,20 @@ export function installerCompteurIA(): void {
               + usage.cacheLecture * (t.cacheLecture ?? t.entree * 0.1)) / 1e6;
 
           const { agent, source } = attribuer(pile);
+          // Le contexte d'exécution prime sur la pile d'appels : il porte le
+          // CLIENT, que les noms de fichiers ne peuvent pas contenir, et un nom
+          // d'agent posé explicitement plutôt que deviné.
+          const ctx = contexteCoutActuel();
           await logApiCost({
+            user_id: ctx.userId ?? null,
             provider: fournisseur,
             kind: modele || fournisseur,
             units: usage.entree + usage.sortie,
             cost_eur: Math.round(coutUsd * USD_VERS_EUR * 1e6) / 1e6,
-            agent,
+            agent: ctx.agent || agent,
             metadata: {
-              source,
+              source: ctx.agent ? 'contexte' : source,
+              origine: ctx.origine ?? null,
               modele,
               tokens_entree: usage.entree,
               tokens_sortie: usage.sortie,
