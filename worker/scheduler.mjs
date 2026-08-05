@@ -200,6 +200,10 @@ const GLOBAL_SCHEDULE = [
   // retard s'accumulait sans alerte (aucune erreur, aucun essai), jusqu'à 60
   // posts dont le plus ancien datait de 3 mois.
   { cron: '20 4 * * *',   path: '/api/cron/backlog-catchup', label: 'Rattrapage backlog (×3 max, heures optimisées)' },
+  // 2026-08-05 — Scoring terrain des prospects, pour tous les clients. La nuit,
+  // parce que business_discovery est plafonné et que le lot peut être long ;
+  // idempotent, donc une relance ne redépense rien.
+  { cron: '30 2 * * *',   path: '/api/cron/prospect-scoring?limit=300', label: 'Scoring terrain prospects (Léo, tous clients)' },
   { cron: '40 5 * * 1',   path: '/api/cron/ami-strategy?mode=releve', label: 'Ami — relevé hebdomadaire (lundi, sans coût)' },
   { cron: '40 6 1 * *',   path: '/api/cron/ami-strategy?mode=ajustement', label: 'Ami — ajustement mensuel (le 1er, ordres aux agents)' },
   // 2026-08-04 — Le classement de performance du contenu existait mais

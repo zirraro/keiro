@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { angleDApproche } from '@/lib/prospects/fiche';
 import { getAuthUser } from '@/lib/auth-server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
 
     let q = supabase
       .from('crm_prospects')
-      .select('id, first_name, last_name, company, phone, email, instagram, website, ville, type, status, temperature, score, notes, business_notes, last_contacted_at, created_at')
+      .select('id, first_name, last_name, company, phone, email, instagram, website, ville, address, type, status, temperature, score, notes, business_notes, last_contacted_at, created_at, score_terrain, classe_terrain, score_details, ig_status, ig_followers, ig_media_count, ig_days_since_post, google_rating, google_reviews, last_review_date, statut_prospection')
       .limit(500);
     // Scope multi-tenant : admin → pool complet (aucun filtre propriétaire) ;
     // membre d'org → org OU ses fiches ; sinon user_id seul.
@@ -104,18 +105,48 @@ export async function GET(req: NextRequest) {
 
     const rows = (data || []).map((p: any) => {
       const cfg = CALLABLE_STATUS[p.status] || { action: 'Appeler', priority: 1 };
-      const rank = cfg.priority * 10 + (TEMP_WEIGHT[p.temperature] ?? 1) * 3 + Math.min(9, Math.round((p.score || 0) / 11));
+      // La classe terrain pèse plus lourd que la température : elle repose sur
+      // des faits mesurés (activité du compte, vitalité du commerce) là où la
+      // température vient d'un score générique. Un prospect classé A qu'on
+      // n'aurait jamais contacté doit passer devant un « warm » tiède.
+      const POIDS_CLASSE: Record<string, number> = { A: 25, B: 10, C: 0 };
+      const rank = cfg.priority * 10
+        + (TEMP_WEIGHT[p.temperature] ?? 1) * 3
+        + Math.min(9, Math.round((p.score || 0) / 11))
+        + (POIDS_CLASSE[p.classe_terrain] ?? 0);
       const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.company || 'Prospect';
       return {
         id: p.id, name, company: p.company || null, phone: p.phone,
         city: p.ville || null, business_type: p.type || null,
         status: p.status, temperature: p.temperature || 'cold', score: p.score || 0,
         recommended_action: cfg.action,
+        // Classe et angle remontent au premier niveau : c'est ce qu'on regarde
+        // avant de composer le numéro, pas au fond d'une sous-fiche.
+        classe: p.classe_terrain || null,
+        score_terrain: p.score_terrain ?? null,
+        angle: angleDApproche({
+          igStatut: p.ig_status, igFollowers: p.ig_followers,
+          igMediaCount: p.ig_media_count, igJoursDepuisPost: p.ig_days_since_post,
+          note: p.google_rating, avis: p.google_reviews, site: p.website,
+        }),
         fiche: {
           email: p.email || null, instagram: p.instagram || null, website: p.website || null,
+          adresse: p.address || null,
           notes: toText(p.notes).slice(0, 400) || null,
           summary: toText(p.business_notes).slice(0, 400) || null,
           last_contact: p.last_contacted_at || null,
+          // Les faits chiffrés qui permettent d'ouvrir la conversation sur du
+          // concret plutôt que sur une formule creuse.
+          reputation: (typeof p.google_rating === 'number' && typeof p.google_reviews === 'number')
+            ? `${p.google_rating}/5 sur ${p.google_reviews} avis` : null,
+          instagram_etat: p.ig_status === 'professional'
+            ? [`${p.ig_followers ?? '?'} abonnés`, `${p.ig_media_count ?? '?'} publications`,
+               typeof p.ig_days_since_post === 'number' ? `dernier post il y a ${p.ig_days_since_post} j` : null]
+              .filter(Boolean).join(' · ')
+            : p.ig_status === 'not_found' ? 'aucun compte professionnel trouvé'
+            : p.ig_status === 'private_or_personal' ? 'compte personnel ou privé — contenu non lisible'
+            : 'non vérifié',
+          signaux: (p.score_details?.regles || []).map((r: any) => r.cle),
         },
         _rank: rank,
       };

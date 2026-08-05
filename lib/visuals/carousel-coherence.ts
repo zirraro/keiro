@@ -123,7 +123,7 @@ export function verifierDiapo(briefVisuel: string, businessType?: string | null)
  * ligne décrit le moment où le travail devient visible pour un client, parce
  * que c'est ce moment-là qui convainc.
  */
-const PREUVE_PAR_METIER: Record<string, string> = {
+export const PREUVE_PAR_METIER_PUBLIC: Record<string, string> = {
   // ── Bouche ──
   restaurant: "une assiette dressée à l'instant, vue de près, vapeur et brillance visibles",
   boulangerie: "une baguette rompue en deux, mie alvéolée bien visible, farine sur le plan de travail",
@@ -233,7 +233,7 @@ export function repliNarratif(
 
   const preuve =
     (sceneClient && sceneClient.trim().length > 12 ? sceneClient.trim() : null)
-    ?? PREUVE_PAR_METIER[[...familles].find(f => PREUVE_PAR_METIER[f]) || '']
+    ?? PREUVE_PAR_METIER_PUBLIC[[...familles].find(f => PREUVE_PAR_METIER_PUBLIC[f]) || '']
     // Métier inconnu et aucune description : on reste délibérément abstrait.
     // Un repli vague donne un visuel tiède ; un repli emprunté à un autre
     // métier donne un visuel absurde, et c'est bien pire.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getDMSystemPrompt } from '@/lib/agents/dm-prompt';
+import { angleDApproche } from '@/lib/prospects/fiche';
 import { callGemini } from '@/lib/agents/gemini';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyCRMCoherence } from '@/lib/agents/business-timing';
@@ -186,9 +187,19 @@ async function generateDM(
     google_reviews: prospect.google_reviews,
     instagram_handle: !isTikTok ? (prospect.instagram || null) : null,
     tiktok_handle: isTikTok ? (prospect.tiktok_handle || null) : null,
-    instagram_followers: prospect.instagram_followers || null,
-    instagram_posts: prospect.instagram_posts || null,
-    last_post_date: prospect.last_instagram_post || null,
+    // Ces champs lisaient `prospect.instagram_followers` / `instagram_posts`,
+    // qui n'existent pas sur crm_prospects : ils étaient donc TOUJOURS nuls, et
+    // Jade écrivait sans jamais savoir combien d'abonnés avait le compte ni
+    // depuis quand il dormait. Les colonnes réelles, remplies par
+    // business_discovery, s'appellent ig_followers / ig_media_count.
+    instagram_followers: prospect.ig_followers ?? prospect.abonnes ?? null,
+    instagram_posts: prospect.ig_media_count ?? null,
+    last_post_date: prospect.ig_last_post_at ?? null,
+    jours_depuis_dernier_post: prospect.ig_days_since_post ?? null,
+    // Statut VÉRIFIÉ du compte. « non vérifié » n'est pas « pas de compte » :
+    // la nuance évite d'affirmer une absence qu'on n'a pas constatée.
+    instagram_statut: prospect.ig_status || 'non verifie',
+    classe_terrain: prospect.classe_terrain || null,
     bio: prospect.instagram_bio || prospect.bio || null,
     has_website: !!prospect.website,
     website: prospect.website || null,
@@ -210,6 +221,13 @@ async function generateDM(
     score: prospect.score || 0,
     previous_interactions: prospect.dm_followup_count || 0,
     platform,
+    // Angle déduit des faits, sans appel modèle : un compte abandonné depuis
+    // quatre mois ne s'aborde pas comme un commerce sans aucune présence.
+    angle_recommande: angleDApproche({
+      igStatut: prospect.ig_status, igFollowers: prospect.ig_followers,
+      igMediaCount: prospect.ig_media_count, igJoursDepuisPost: prospect.ig_days_since_post,
+      note: prospect.google_rating, avis: prospect.google_reviews, site: prospect.website,
+    }),
   });
 
   // Live snapshot injection: when we have fresh business_discovery data,

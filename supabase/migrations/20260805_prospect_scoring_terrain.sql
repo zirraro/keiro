@@ -123,3 +123,11 @@ create index if not exists idx_outcome_events_bench
 -- colonne est inconnue. Le pipeline ne voyait donc aucun prospect, sans
 -- qu'aucune erreur ne remonte — le lot ressortait simplement vide.
 alter table crm_prospects add column if not exists ig_followers integer;
+
+-- @@ étape 8 — aperçu personnalisé du prospect
+-- Le visuel de démonstration envoyé en prospection : on stocke son URL pour ne
+-- pas le régénérer à chaque ouverture de fiche, et parce que le lien déjà
+-- envoyé à un prospect doit continuer d'afficher la même image.
+alter table crm_prospects
+  add column if not exists apercu_url       text,
+  add column if not exists apercu_genere_le timestamptz;
