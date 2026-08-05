@@ -1469,6 +1469,23 @@ async function handleClientBrief(
         }
       }
 
+      // ── L'axe stratégique choisi à l'onboarding décide de ce qu'on propose ──
+      //
+      // Proposer « appelle tes prospects » à un commerçant qui a choisi la
+      // PRÉSENCE, c'est lui réclamer un travail qu'il n'a pas demandé et le
+      // culpabiliser chaque matin de ne pas le faire. Seuls ceux qui ont choisi
+      // la croissance reçoivent des actions de prospection ; les autres
+      // reçoivent des recommandations sur leur visibilité.
+      let veutProspecter = false;
+      try {
+        const { data: strat } = await supabase
+          .from('profiles').select('strategy_focuses').eq('id', client.id).maybeSingle();
+        const axes: string[] = Array.isArray((strat as any)?.strategy_focuses)
+          ? (strat as any).strategy_focuses
+          : String((strat as any)?.strategy_focuses || '').split('+').filter(Boolean);
+        veutProspecter = axes.some(a => /prospection|croissance|acquisition/i.test(a));
+      } catch { /* dans le doute, on ne réclame rien */ }
+
       const openRatePreview = doneCounts.emails_sent > 0
         ? Math.round((doneCounts.emails_opened / doneCounts.emails_sent) * 100)
         : 0;
@@ -1494,8 +1511,8 @@ FORMAT OBLIGATOIRE — HTML brut, tutoiement, zero jargon, 3 blocs SEULEMENT (le
 <h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '💡 Mes recos pour booster ton business (à faire demain)' : '💡 Mes recos pour booster ton business'}</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
   — 1 à 3 actions HUMAINES concrètes que TOI seul peux faire, déduites des vrais chiffres du jour ci-dessous, et qui font GAGNER des clients :
-    • Prospects CHAUDS (${hotCount || 0}) → "Appelle/relance tes ${hotCount || 'X'} prospects chauds — ils sont prêts à convertir" (PRIORITÉ).
-    • Emails ouverts sans réponse → "X prospects ont ouvert ton email : un message perso peut les débloquer."
+${veutProspecter ? `    • Prospects CHAUDS (${hotCount || 0}) → "Appelle/relance tes ${hotCount || 'X'} prospects chauds — ils sont prêts à convertir" (PRIORITÉ).
+    • Emails ouverts sans réponse → "X prospects ont ouvert ton email : un message perso peut les débloquer."` : `    • Ce client a choisi la PRÉSENCE, pas la prospection : ne lui propose AUCUNE action de démarchage (appels, relances, DM à envoyer). Concentre-toi sur sa visibilité — répondre à ses commentaires, valider ses posts, soigner sa fiche Google.`}
     • Comptes à suivre manuellement → "Suis les X comptes proposés, ça relance ta visibilité."
     • Posts en attente de validation → "Valide les X posts pour garder la cadence."
   — Toujours : verbe d'action + objet + POURQUOI (bénéfice business). Pas de tâche cosmétique. Priorise prospects chauds et agents en MANUEL.
@@ -1687,6 +1704,55 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       // petite carré et pas ligne pas ligen c'ets long a descendre".
       const tile = (val: any, label: string, bg: string, color: string) =>
         `<td width="33%" align="center" valign="top" style="padding:4px;"><table cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td align="center" style="background:${bg};border-radius:8px;padding:8px 4px;"><div style="font-size:18px;font-weight:bold;color:${color};line-height:1;">${val}</div><div style="font-size:10px;color:#6b7280;margin-top:3px;">${label}</div></td></tr></table></td>`;
+      // ── Chiffres réellement parlants pour un commerçant ──
+      //
+      // « DMs », « Prospects » et « Chauds » ne disaient rien à personne : ce
+      // sont nos mots de CRM, pas les siens. On les remplace par le résultat
+      // (combien de gens ont VU), le signe de vie (combien ont RÉPONDU) et ce
+      // qui l'attend LUI — les trois seules choses sur lesquelles il peut
+      // décider quelque chose le matin.
+      let vues24h: number | null = null;
+      let reponsesRecues = 0;
+      let aFaire = 0;
+      let detailReseaux = '';
+      try {
+        const { data: postsJour } = await supabase
+          .from('content_calendar')
+          .select('platform, engagement_data')
+          .eq('user_id', client.id)
+          .not('published_at', 'is', null)
+          .gte('published_at', sinceIso);
+
+        const vues = (e: any) => {
+          if (!e || typeof e !== 'object') return null;
+          const c = [e.views, e.reach, e.impressions, e.video_views, e.play_count].filter((v: any) => typeof v === 'number');
+          return c.length ? Math.max(...c) : null;
+        };
+        const mesurees = (postsJour || []).map((r: any) => vues(r.engagement_data)).filter((v: any) => v !== null) as number[];
+        vues24h = mesurees.length ? mesurees.reduce((a, b) => a + b, 0) : null;
+
+        // Répartition par réseau, pour que « 0 sur TikTok » soit expliqué au
+        // lieu d'être un zéro anxiogène.
+        const parReseau: Record<string, number> = {};
+        for (const r of postsJour || []) parReseau[(r as any).platform] = (parReseau[(r as any).platform] || 0) + 1;
+        const morceaux = Object.entries(parReseau).map(([k, v]) => `${v} sur ${k === 'instagram' ? 'Instagram' : k === 'tiktok' ? 'TikTok' : k}`);
+        if (morceaux.length) detailReseaux = morceaux.join(' · ');
+
+        reponsesRecues = (doneCounts.dms_incoming_24h || 0)
+          + (doneCounts.comments_incoming_24h || 0)
+          + (doneCounts.emails_auto_replies_sent || 0);
+
+        // Ce qui attend une action du client, et rien d'autre : un chiffre
+        // « en attente » qui compte des choses dont il n'est pas responsable
+        // le culpabiliserait sans qu'il puisse agir.
+        const { count: aValider } = await supabase
+          .from('content_calendar')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('status', 'pending_approval');
+        aFaire = (doneCounts.follows_to_do || 0) + (aValider || 0);
+      } catch { /* le brief part même si un compteur manque */ }
+
       const statsStripHtml = `
 <h4 style="margin:14px 0 6px;color:#374151;font-size:12px;">📊 Tes chiffres du jour</h4>
 <table cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 10px;">
@@ -1696,11 +1762,12 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
     ${tile(`${doneCounts.emails_opened}${openRate > 0 ? ` <span style="font-size:11px;color:#6b7280;">(${openRate}%)</span>` : ''}`, '👀 Ouverts', '#ecfeff', '#0891b2')}
   </tr>
   <tr>
-    ${tile(doneCounts.dms_sent, '💬 DMs', '#fdf4ff', '#a855f7')}
-    ${tile(doneCounts.prospects_added, '📥 Prospects', '#f5f3ff', '#7c3aed')}
-    ${tile(hotCount || 0, '🔥 Chauds', hotCount > 0 ? '#fef3c7' : '#f9fafb', hotCount > 0 ? '#d97706' : '#6b7280')}
+    ${tile(vues24h !== null ? vues24h.toLocaleString('fr-FR') : '—', '👁 Vues', '#f0f9ff', '#0369a1')}
+    ${tile(reponsesRecues, '💬 Réponses reçues', '#fdf4ff', '#a855f7')}
+    ${tile(aFaire, aFaire > 0 ? '⏳ En attente de toi' : '✅ Rien en attente', aFaire > 0 ? '#fef3c7' : '#f0fdf4', aFaire > 0 ? '#d97706' : '#16a34a')}
   </tr>
-</table>`;
+</table>
+${detailReseaux ? `<p style="margin:-4px 0 12px;font-size:11px;color:#6b7280;">Publications du jour : ${detailReseaux}.</p>` : ''}`;
 
       // Per-agent breakdown — only agents that did something show up
       const agentLines: string[] = [];
