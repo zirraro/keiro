@@ -26,7 +26,7 @@
  */
 const FAMILLES_METIERS: Record<string, string[]> = {
   // ── Métiers de bouche ──
-  restaurant: ['restaurant', 'resto', 'bistrot', 'bistro', 'brasserie', 'pizzeria', 'pizza', 'creperie', 'trattoria', 'gastronom', 'table', 'auberge', 'snack', 'kebab', 'burger', 'sushi', 'food truck', 'foodtruck', 'cantine', 'bouchon', 'cuisine du monde'],
+  restaurant: ['restaurant', 'resto', 'bistrot', 'bistro', 'brasserie', 'pizzeria', 'pizza', 'creperie', 'trattoria', 'gastronom', 'auberge', 'snack', 'kebab', 'burger', 'sushi', 'food truck', 'foodtruck', 'cantine', 'bouchon', 'cuisine du monde', 'table d hote'],
   boulangerie: ['boulanger', 'viennoiserie', 'pain'],
   patisserie: ['patisserie', 'patissier', 'gateau', 'cake', 'biscuiterie'],
   chocolat: ['chocolat', 'confiserie', 'bonbon'],
@@ -36,7 +36,7 @@ const FAMILLES_METIERS: Record<string, string[]> = {
   fromagerie: ['fromag', 'cremerie'],
   caviste: ['caviste', 'cave a vin', 'vin', 'oenolog', 'spiritueux', 'biere', 'brasseur', 'microbrasserie', 'whisky'],
   epicerie: ['epicerie', 'epicier', 'superette', 'alimentation', 'vrac', 'supermarche'],
-  glacier: ['glacier', 'glace', 'creme glacee'],
+  glacier: ['glacier', 'creme glacee', 'glace italienne', 'sorbet'],
   cafe: ['cafe', 'coffee', 'torrefact', 'salon de the', 'brunch', 'coffee shop'],
   bar: ['bar ', 'pub', 'cocktail', 'taverne', 'bar a'],
   traiteur: ['traiteur', 'catering'],

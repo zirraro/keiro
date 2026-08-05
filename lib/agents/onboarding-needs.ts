@@ -139,6 +139,25 @@ const SOCLE: BesoinAgent[] = [
     },
   },
   {
+    cle: 'scene_signature', agents: ['content', 'dm', 'email', 'seo'],
+    question: "Ce qu'on voit quand ton travail est réussi",
+    aQuoiCaSert: "C'est la scène qu'on reproduira dans tes visuels. Sans elle, on ne peut que deviner à partir de ton métier — et pour une activité qui sort des cases habituelles, deviner produit des images qui n'ont rien à voir avec toi.",
+    priorite: 'essentiel', type: 'texte_long',
+    exemple: "Une pièce terminée, cadrée de près, avec le détail qui montre le soin apporté",
+    exemplesParMetier: {
+      boulangerie: "Une baguette rompue en deux, mie alvéolée bien visible, farine sur le plan de travail",
+      restaurant: "Une assiette dressée à l'instant, vapeur et brillance visibles",
+      coiffeur: "Le résultat fini sur un client visiblement satisfait, lumière du salon",
+      plombier: "Une installation neuve terminée, soudures nettes, chantier laissé propre",
+      menuisier: "Le détail d'un assemblage, veine du bois et précision de la coupe",
+      agence: "Un tableau de résultats commenté devant le client, courbe en hausse",
+      immobilier: "La remise des clés devant le bien, sourires",
+      fleuriste: "Une composition terminée vue de près, fraîcheur et couleurs",
+      hotel: "Une chambre prête, lit impeccable, lumière de fin d'après-midi",
+      veterinaire: "Un animal apaisé après le soin, avec son maître",
+    },
+  },
+  {
     cle: 'brand_tone', agents: ['content', 'email', 'dm', 'chatbot', 'whatsapp'],
     question: 'Comment tu parles à tes clients',
     aQuoiCaSert: "Le tutoiement, l'humour, le niveau de familiarité. C'est ce qui fait qu'un post te ressemble au lieu de ressembler à une marque anonyme.",
@@ -428,6 +447,19 @@ function avecExempleAdapte(b: BesoinAgent, familles: Set<string>): BesoinAgent {
   return cible ? { ...b, exemple: b.exemplesParMetier[cible] } : b;
 }
 
+/**
+ * Le métier sort-il de nos familles connues ?
+ *
+ * Un client qui choisit « autre », ou dont l'activité ne ressemble à aucune de
+ * nos 66 familles, ne peut bénéficier d'aucun repli métier : ni exemple
+ * adapté, ni scène de preuve, ni contrôle de cohérence visuelle. Sa
+ * description devient alors la SEULE source fiable, et elle cesse d'être un
+ * confort pour devenir la condition d'un rendu correct.
+ */
+export function metierHorsTaxonomie(businessType?: string | null): boolean {
+  return famillesDe(businessType).size === 0;
+}
+
 export function besoinsPour(opts: {
   businessType?: string | null;
   agentsActifs?: string[];
@@ -444,6 +476,14 @@ export function besoinsPour(opts: {
     .filter(b => !b.metiers?.length || b.metiers.some(m => familles.has(m)))
     .filter(b => !actifs || b.agents.some(a => actifs.has(a)))
     .sort((a, b) => {
+      // Métier hors taxonomie : ce qui décrit l'activité et ce qu'on doit
+      // montrer passe avant tout le reste. C'est ce qui remplace les replis
+      // métier dont ce client ne bénéficiera pas.
+      if (!familles.size) {
+        const SOCLE_DESCRIPTIF = ['business_type', 'scene_signature', 'unique_selling_points', 'company_description'];
+        const ai = SOCLE_DESCRIPTIF.indexOf(a.cle), bi = SOCLE_DESCRIPTIF.indexOf(b.cle);
+        if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      }
       const p = ORDRE[a.priorite] - ORDRE[b.priorite];
       if (p !== 0) return p;
       // À priorité égale, ce qui est taillé pour le métier passe devant.

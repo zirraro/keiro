@@ -1118,6 +1118,26 @@ async function publishToInstagram(
       const storyResult = await publishStoryToInstagram(igUserId, pageAccessToken, post.visual_url!);
       result = { id: storyResult.id };
     } else if (format === 'carrousel') {
+    // Le métier du client, indispensable pour que chaque diapositive reste
+    // dans son univers. Sans lui, un carrousel de salon de coiffure pouvait
+    // recevoir une image de cuisine — c'est exactement ce qui s'est produit.
+    let businessTypeForVisuals: string | null = null;
+    let sceneSignature: string | null = null;
+    try {
+      const proprietaire = effectivePostOwnerId;
+      if (proprietaire) {
+        const { data: profilVisuel } = await supabase
+          .from('profiles').select('business_type, company_description').eq('id', proprietaire).maybeSingle();
+        businessTypeForVisuals = profilVisuel?.business_type || profilVisuel?.company_description || null;
+        // La scène que le client a décrite lui-même prime sur nos replis : elle
+        // est plus juste, et c'est la seule option quand son activité ne
+        // ressemble à aucune famille connue.
+        const { data: dossierVisuel } = await supabase
+          .from('business_dossiers').select('custom_fields').eq('user_id', proprietaire).maybeSingle();
+        sceneSignature = (dossierVisuel?.custom_fields || {}).scene_signature || null;
+      }
+    } catch { /* métier inconnu : le contrôle laisse passer plutôt que de bloquer */ }
+
       // Real carousel: use per-slide visual descriptions when the LLM
       // provided them (post.slides[]). Otherwise fall back to narrative-
       // aware variations of the base description.
@@ -1136,9 +1156,18 @@ async function publishToInstagram(
       const slidesToUse = slides.slice(1, 10);
       if (slidesToUse.length > 0) {
         console.log(`[Content] Carousel: using ${slidesToUse.length} per-slide visual_description from LLM`);
+        const { verifierDiapo } = await import('@/lib/visuals/carousel-coherence');
         for (const s of slidesToUse) {
           const slideDesc = s.visual?.trim();
           if (!slideDesc) continue;
+          // Contrôle déterministe AVANT génération : une diapositive hors-sujet
+          // rejetée ici ne coûte rien, alors que la générer puis la publier
+          // coûte une image et la crédibilité du compte.
+          const verdict = verifierDiapo(slideDesc, businessTypeForVisuals);
+          if (!verdict.coherent) {
+            console.warn(`[Content] Diapositive écartée — ${verdict.motif} · brief: "${slideDesc.slice(0, 90)}"`);
+            continue;
+          }
           try {
             const varUrl = await generateVisual(slideDesc, 'carrousel');
             if (varUrl) carouselUrls.push(varUrl);
@@ -1151,10 +1180,12 @@ async function publishToInstagram(
       // arc (before vs after, problem vs solution, wide vs detail) so the
       // carousel feels like a story even without explicit slide briefs.
       if (carouselUrls.length === 1) {
-        const narrativeVariations = [
-          `${baseDesc}. NARRATIVE SLIDE 2 — visually opposed to slide 1: if slide 1 is empty/cold/quiet, this slide is alive/warm/full of motion. If slide 1 is a wide establishing shot, this is a close-up of a specific human gesture or tangible result. Different time of day, different framing, different energy. Editorial photography aesthetic, real skin texture, natural light, no AI tells.`,
-          `${baseDesc}. NARRATIVE SLIDE 3 — proof/result moment: a single concrete tangible element that demonstrates the outcome (busy reservation book, smile of a real customer mid-bite, hand counting tip, full dining room from owner's POV). Documentary photography intimacy, shallow depth of field, golden-hour or window-light, NO repeated subject from slides 1 or 2.`,
-        ];
+        // Le repli était écrit EN DUR pour un restaurant (« carnet de
+        // réservations, client en pleine bouchée, salle à manger ») et
+        // s'appliquait à tous les métiers : c'est lui qui a glissé une image
+        // de cuisine dans le carrousel d'un salon de coiffure.
+        const { repliNarratif } = await import('@/lib/visuals/carousel-coherence');
+        const narrativeVariations = repliNarratif(baseDesc, businessTypeForVisuals, sceneSignature);
         for (const variation of narrativeVariations) {
           try {
             const varUrl = await generateVisual(variation, 'carrousel');
