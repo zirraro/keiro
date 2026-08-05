@@ -140,6 +140,12 @@ const GLOBAL_SCHEDULE = [
   { cron: '45 4 * * *',   path: '/api/cron/detect-error-patterns', label: 'Detect Cross-Client Error Patterns (knowledge mutualisation)' },
   { cron: '10 5 * * *',   path: '/api/cron/auto-remediate', label: 'Safe Auto-Remediation (invalid-email cleanup, low-risk data hygiene)' },
   { cron: '30 5,17 * * *', path: '/api/cron/tiktok-stats', label: 'TikTok real stats → engagement_data + outcome_events (moat)' },
+  // 2026-08-05 — La remontée d'engagement Instagram existait et se documentait
+  // elle-même comme quotidienne, mais n'était appelée NULLE PART. Seul TikTok
+  // remontait ses chiffres : côté Instagram, les posts restaient à zéro pour
+  // toujours, et Ami décidait donc sur la moitié des données. Route POST, d'où
+  // l'ajout du support de méthode ci-dessus.
+  { cron: '45 5,17 * * *', method: 'POST', path: '/api/agents/content/sync-engagement', label: 'Instagram engagement → engagement_data' },
   { cron: '0 10 * * *',   path: '/api/cron/trial-nurture', label: 'Trial Nurture J1/J3/J5 (essai→payant conversion)' },
   // Packs = rampe d'acquisition (Fable 5 §3.1). Acheteurs de pack en plan
   // gratuit : pitch "crédits vs autopilote" quand ils s'épuisent + relance
@@ -397,7 +403,9 @@ async function tick() {
     for (const entry of globalToRun) {
       const path = entry.path || `/api/cron/scheduler?slot=${entry.slot}`;
       log('normal', `▶ ${entry.label}`);
-      const result = await callEndpoint(path);
+      // Les jobs globaux étaient toujours appelés en GET : une route qui
+      // n'expose que POST ne pouvait donc pas être planifiée du tout.
+      const result = await callEndpoint(path, entry.method || 'GET', entry.body || null);
       log('normal', result.ok ? `  ✓ Done in ${result.duration}s` : `  ✗ FAILED: ${result.error || `HTTP ${result.status}`}`);
       if (globalToRun.indexOf(entry) < globalToRun.length - 1) {
         await new Promise(r => setTimeout(r, 3000));
