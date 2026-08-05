@@ -1,8 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore — pg ships no bundled types and @types/pg is not installed
-import { Client } from 'pg';
+import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
 /**
@@ -16,8 +15,16 @@ import crypto from 'crypto';
  * free gen, { allowed: false, gate: 'signup' } once exhausted. Fails OPEN on
  * any error so a tracking glitch never blocks a legitimate first generation.
  *
- * Storage: public.anon_gen_log on the Postgres pointed to by POSTGRES_URL.
- * Privacy: the IP is stored HASHED (sha256 + salt), never in clear.
+ * Stockage : public.anon_gen_log sur Supabase, via la fonction atomique
+ * anon_gen_touch(). Cette table vivait sur une base Neon héritée de Vercel,
+ * dernier vestige d'une infrastructure abandonnée : une dépendance de plus à
+ * maintenir, à payer et à surveiller pour une seule route.
+ *
+ * L'incrément passe par une fonction SQL et non par un lire-puis-écrire :
+ * deux requêtes simultanées de la même IP liraient sinon la même valeur, et la
+ * limite se contournerait en rafale.
+ *
+ * Confidentialité : l'IP est stockée HACHÉE (sha256 + sel), jamais en clair.
  */
 
 const FREE_PER_IP = 2; // 2 visuels gratuits par IP pour appâter le lead (founder 03/07)
@@ -34,24 +41,20 @@ function hashIp(ip: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const connectionString = process.env.POSTGRES_URL;
-  if (!connectionString) {
-    return NextResponse.json({ ok: true, allowed: true, failOpen: true });
-  }
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } });
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const cle = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Échec OUVERT : un incident de comptage ne doit jamais empêcher une
+  // première génération légitime — on préfère offrir un visuel de trop que
+  // bloquer un prospect.
+  if (!url || !cle) return NextResponse.json({ ok: true, allowed: true, failOpen: true });
+
   try {
+    const supabase = createClient(url, cle, { auth: { persistSession: false } });
     const ipHash = hashIp(getIp(req));
-    await client.connect();
-    // Atomic: insert count=1, or increment on conflict; return the new count.
-    const res = await client.query(
-      `insert into public.anon_gen_log (ip_hash, count, last_at)
-       values ($1, 1, now())
-       on conflict (ip_hash) do update
-         set count = public.anon_gen_log.count + 1, last_at = now()
-       returning count;`,
-      [ipHash],
-    );
-    const used: number = res.rows?.[0]?.count ?? 1;
+    const { data, error } = await supabase.rpc('anon_gen_touch', { p_ip_hash: ipHash });
+    if (error) throw error;
+
+    const used: number = typeof data === 'number' ? data : 1;
     const allowed = used <= FREE_PER_IP;
     return NextResponse.json({
       ok: true,
@@ -61,10 +64,7 @@ export async function POST(req: NextRequest) {
       ...(allowed ? {} : { gate: 'signup' }),
     });
   } catch (e: any) {
-    // Fail OPEN — never block a real first generation on a tracking error.
-    console.error('[anon-gen/check] error (failing open):', e?.message);
+    console.warn('[anon-gen] comptage indisponible, on laisse passer:', e?.message);
     return NextResponse.json({ ok: true, allowed: true, failOpen: true });
-  } finally {
-    try { await client.end(); } catch { /* ignore */ }
   }
 }

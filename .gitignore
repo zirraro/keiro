@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sauvegardes d'environnement. Le motif `.env*.local` ne les couvrait pas :
+# il exige que le nom SE TERMINE par `.local`, or une sauvegarde s'appelle
+# `.env.local.bak.<quelque-chose>`. Un fichier de ce type a été committé le
+# 2026-08-05 et bloqué par la protection GitHub — elle a fait son travail,
+# mais le filet doit être ici, pas chez GitHub.
+.env*.bak*
+.env.local.*
