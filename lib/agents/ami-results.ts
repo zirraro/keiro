@@ -291,6 +291,22 @@ async function resultatsEmail(
   const tauxSuivi = (rows: any[], compteur: string, horodatage: string, filtre: (r: any[]) => any[]) =>
     suivi(rows, compteur, horodatage) ? taux(filtre(rows).length, rows.length) : null;
 
+  /**
+   * Un clic suppose une ouverture. Un taux de clic supérieur au taux
+   * d'ouverture est donc arithmétiquement impossible : cela signale que le
+   * pixel d'ouverture est bloqué (Apple Mail Privacy, filtres d'entreprise),
+   * pas que les destinataires n'ouvrent pas.
+   *
+   * Le contrôle est déterministe et non négociable : lors du premier cycle,
+   * Ami a lu « 0 % d'ouverture, 33 % de clics » et a ordonné de réécrire les
+   * objets d'emails que les gens ouvraient en réalité. On neutralise donc la
+   * métrique à la source plutôt que d'espérer que le modèle repère la
+   * contradiction.
+   */
+  const ouvertureBrute = tauxSuivi(courant, 'email_opens_count', 'last_email_opened_at', ouverts);
+  const clicBrut = tauxSuivi(courant, 'email_clicks_count', 'last_email_clicked_at', cliques);
+  const pixelFiable = !(ouvertureBrute !== null && clicBrut !== null && clicBrut > ouvertureBrute);
+
   return {
     canal: 'email',
     agent: 'email',
@@ -298,11 +314,11 @@ async function resultatsEmail(
     metriques: {
       emails_envoyes: metrique(courant.length, courant.length, precedent.length),
       taux_ouverture: metrique(
-        tauxSuivi(courant, 'email_opens_count', 'last_email_opened_at', ouverts), courant.length,
-        tauxSuivi(precedent, 'email_opens_count', 'last_email_opened_at', ouverts),
+        pixelFiable ? ouvertureBrute : null, courant.length,
+        pixelFiable ? tauxSuivi(precedent, 'email_opens_count', 'last_email_opened_at', ouverts) : null,
       ),
       taux_clic: metrique(
-        tauxSuivi(courant, 'email_clicks_count', 'last_email_clicked_at', cliques), courant.length,
+        clicBrut, courant.length,
         tauxSuivi(precedent, 'email_clicks_count', 'last_email_clicked_at', cliques),
       ),
       taux_reponse: metrique(
@@ -316,6 +332,9 @@ async function resultatsEmail(
         const k = `étape ${r.email_sequence_step ?? '?'}`;
         a[k] = (a[k] || 0) + 1; return a;
       }, {}),
+      ...(pixelFiable ? {} : {
+        avertissement: `suivi d'ouverture non fiable (${clicBrut}% de clics pour ${ouvertureBrute}% d'ouvertures — impossible) : le taux d'ouverture est neutralisé, ne conclus rien sur les objets d'emails`,
+      }),
     },
   };
 }

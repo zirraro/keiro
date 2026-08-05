@@ -54,7 +54,11 @@ import { collecterResultats, type ResultatsClient } from './ami-results';
 export const LEVIERS_AMI: Record<string, DirectiveType[]> = {
   content: ['posting_hours', 'format_preference', 'platform_priority', 'frequency', 'focus_topic'],
   dm: ['dm_tone', 'dm_target_niches'],
-  email: ['email_cadence_days', 'email_subject_style'],
+  // `email_cadence_days` est volontairement absent : le type existe dans
+  // DirectiveType mais `directivesPromptBlock` ne le rend pas. Un ordre de ce
+  // type serait écrit en base sans qu'aucun agent ne le lise — un ordre
+  // fantôme, qu'Ami croirait appliqué et dont elle jugerait ensuite l'effet.
+  email: ['email_subject_style'],
   commercial: ['prospection_zones', 'prospection_excluded_types'],
 };
 
