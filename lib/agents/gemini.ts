@@ -200,12 +200,23 @@ async function callGeminiWithRetry(
       output_tokens: usage.candidatesTokenCount || 0,
       grounding_queries: data.candidates?.[0]?.groundingMetadata ? 1 : 0,
     }, model as any);
+    // À QUI imputer cet appel.
+    //
+    // Ce point de journalisation ne portait ni agent ni client : à lui seul il
+    // représentait 409 appels et 2,85 € sur une journée, tous rangés en
+    // « non attribué ». C'était donc l'essentiel de la dépense Gemini, et
+    // c'est pour ça que la ventilation par client restait vide malgré le
+    // contexte posé sur les routes.
+    const { contexteCoutActuel } = await import('./../admin/contexte-cout');
+    const ctx = contexteCoutActuel();
     logApiCost({
       provider: 'gemini',
       kind: `${model}_${data.candidates?.[0]?.groundingMetadata ? 'grounded' : 'normal'}`,
       units: (usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0),
       cost_eur: costEur,
-      metadata: { model: modelStr, usage },
+      user_id: ctx.userId ?? null,
+      agent: ctx.agent ?? null,
+      metadata: { model: modelStr, usage, origine: ctx.origine ?? null, source: ctx.agent ? 'contexte' : 'sans_contexte' },
     }).catch(() => {});
   } catch { /* silent */ }
   return text;

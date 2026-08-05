@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { callGemini } from '@/lib/agents/gemini';
@@ -42,7 +43,7 @@ function lirePerso(v: any): any {
   return v || {};
 }
 
-export async function GET(req: NextRequest) {
+async function GETInterne(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -193,3 +194,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ ok: true, ...bilan, exemples });
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const GET = avecContexteRoute('dm_instagram', GETInterne);

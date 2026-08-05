@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -56,7 +57,7 @@ async function verifyAuth(request: NextRequest): Promise<{ authorized: boolean; 
  * - If called from CRON (CRON_SECRET header): GENERATE a new daily brief
  * - If called from admin UI: return the most recent brief
  */
-export async function GET(request: NextRequest) {
+async function GETInterne(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
  * - action=brief: Manually trigger a new daily brief
  * - action=chat: Direct conversation with the CEO agent (admin only)
  */
-export async function POST(request: NextRequest) {
+async function POSTInterne(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -1152,3 +1153,9 @@ async function extractAndWriteDirectives(
     return 0;
   }
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const GET = avecContexteRoute('ceo', GETInterne);
+export const POST = avecContexteRoute('ceo', POSTInterne);

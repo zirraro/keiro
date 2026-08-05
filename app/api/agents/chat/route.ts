@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -456,7 +457,7 @@ async function autoLearnChat(
  * Direct conversation with any agent.
  * Body: { agent: string, message: string, history: Array<{role, content}> }
  */
-export async function POST(request: NextRequest) {
+async function POSTInterne(request: NextRequest) {
   // Auth check — open to all authenticated users (not admin-only)
   const { user, error: authError } = await getAuthUser();
   if (authError || !user) {
@@ -1044,7 +1045,7 @@ Retourne UNIQUEMENT du JSON valide.`,
  * GET /api/agents/chat?agent=<name>&history=true
  * Load chat history for a specific agent.
  */
-export async function GET(request: NextRequest) {
+async function GETInterne(request: NextRequest) {
   try {
     const { user, error } = await getAuthUser();
     if (error || !user) {
@@ -1076,3 +1077,9 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ ok: true, messages });
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const GET = avecContexteRoute('chat', GETInterne);
+export const POST = avecContexteRoute('chat', POSTInterne);

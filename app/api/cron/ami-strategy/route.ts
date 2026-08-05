@@ -1,3 +1,4 @@
+import { avecContexteRoute, avecContexteCout } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { callGemini } from '@/lib/agents/gemini';
@@ -105,13 +106,35 @@ async function matiereANouveauCycle(supabase: any, userId: string): Promise<{ ou
     : { oui: false, raison: `seulement ${total} éléments nouveaux — rien à réanalyser` };
 }
 
-/** Extrait le JSON d'une réponse modèle, tolérant aux backticks. */
-function parserJson(brut: string): any | null {
+/**
+ * Extrait le JSON d'une réponse modèle.
+ *
+ * Le seul échec observé en production (04/08) n'était PAS un problème de
+ * backticks ni de texte explicatif autour du JSON — le parseur les gère déjà.
+ * La réponse était TRONQUÉE en plein tableau : le raisonnement avait consommé
+ * le budget de sortie. Conclure « JSON invalide » là où le vrai défaut est
+ * « réponse coupée » envoie sur une fausse piste, et c'est exactement ce que le
+ * digest admin a diagnostiqué.
+ *
+ * On distingue donc les deux cas, pour que le message d'erreur nomme la vraie
+ * cause dès la première lecture.
+ */
+type EchecParsing = 'tronquee' | 'invalide';
+
+function parserJson(brut: string): { plan: any } | { echec: EchecParsing } {
   const nettoye = brut.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-  try { return JSON.parse(nettoye); } catch { /* on tente le sauvetage */ }
+  try { return { plan: JSON.parse(nettoye) }; } catch { /* on tente le sauvetage */ }
+
   const m = nettoye.match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  try { return JSON.parse(m[0]); } catch { return null; }
+  if (m) {
+    try { return { plan: JSON.parse(m[0]) }; } catch { /* toujours pas */ }
+  }
+
+  // Une réponse tronquée commence par une accolade et n'a jamais assez de
+  // fermantes : le compte des accolades tranche sans ambiguïté.
+  const ouvrantes = (nettoye.match(/\{/g) || []).length;
+  const fermantes = (nettoye.match(/\}/g) || []).length;
+  return { echec: nettoye.startsWith('{') && ouvrantes > fermantes ? 'tronquee' : 'invalide' };
 }
 
 /**
@@ -235,7 +258,8 @@ async function traiterClient(supabase: any, client: any) {
     maxTokens: 8000,
     thinking: true,
   });
-  let plan = parserJson(reponse);
+  let sortie = parserJson(reponse);
+  let plan: any = 'plan' in sortie ? sortie.plan : null;
 
   // Rattrapage : sans raisonnement, tout le budget passe dans la réponse. On
   // préfère une décision un peu moins fouillée à un cycle perdu.
@@ -246,13 +270,20 @@ async function traiterClient(supabase: any, client: any) {
       maxTokens: 8000,
       thinking: false,
     });
-    plan = parserJson(reponse);
+    sortie = parserJson(reponse);
+    plan = 'plan' in sortie ? sortie.plan : null;
   }
 
   if (!plan) {
     await supabase.from('agent_logs').insert({
       agent: 'amit', action: 'ami_cycle', status: 'error', user_id: userId,
-      data: { erreur: 'réponse non parsable même sans raisonnement', extrait: reponse.slice(-1200) },
+      data: {
+        erreur: !('plan' in sortie) && sortie.echec === 'tronquee'
+          ? "réponse TRONQUÉE : le budget de sortie s'est épuisé avant la fin du JSON — ce n'est PAS un problème de format ni de backticks"
+          : 'réponse au format invalide',
+        type_echec: 'plan' in sortie ? null : sortie.echec,
+        extrait: reponse.slice(-1200),
+      },
       created_at: new Date().toISOString(),
     });
     return { userId, statut: 'reponse_illisible', ordres: 0, verdicts: verdicts.length };
@@ -293,7 +324,7 @@ async function traiterClient(supabase: any, client: any) {
   };
 }
 
-export async function GET(req: NextRequest) {
+async function GETInterne(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -333,7 +364,13 @@ export async function GET(req: NextRequest) {
         const { oui, raison } = await matiereANouveauCycle(supabase, client.id);
         if (!oui) { resultats.push({ userId: client.id, statut: 'saute', raison }); continue; }
       }
-      resultats.push(await traiterClient(supabase, client));
+      // Imputation par client : la route est appelée sans user_id quand elle
+      // balaie tout le parc, donc c'est ici — et seulement ici — qu'on sait à
+      // qui appartient la dépense du cycle.
+      resultats.push(await avecContexteCout(
+        { userId: client.id, agent: 'amit', origine: 'cron' },
+        () => traiterClient(supabase, client),
+      ));
     } catch (e: any) {
       // Un client qui échoue ne doit jamais interrompre la tournée des autres.
       resultats.push({ userId: client.id, statut: 'erreur', erreur: String(e?.message || e).slice(0, 200) });
@@ -351,3 +388,8 @@ export async function GET(req: NextRequest) {
     resultats,
   });
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const GET = avecContexteRoute('amit', GETInterne);

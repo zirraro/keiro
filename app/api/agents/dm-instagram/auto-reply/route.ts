@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -12,7 +13,7 @@ export const maxDuration = 120;
  * Called by scheduler every 3 min or manually.
  * Auth: CRON_SECRET or authenticated user.
  */
-export async function POST(req: NextRequest) {
+async function POSTInterne(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get('authorization');
   let userId: string | null = null;
@@ -657,3 +658,8 @@ ${ragContext}`;
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
   }
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const POST = avecContexteRoute('dm_instagram', POSTInterne);

@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -49,7 +50,7 @@ async function verifyAuth(request: NextRequest): Promise<{ authorized: boolean; 
  * Run marketing analysis — cross-channel performance review + strategic recommendations.
  * Also extracts learnings and stores them for the client-facing marketing assistant.
  */
-export async function GET(request: NextRequest) {
+async function GETInterne(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -403,7 +404,7 @@ async function autoLearnMarketing(supabase: any, orgId?: string | null) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function POSTInterne(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
@@ -1514,3 +1515,9 @@ ${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const GET = avecContexteRoute('marketing', GETInterne);
+export const POST = avecContexteRoute('marketing', POSTInterne);

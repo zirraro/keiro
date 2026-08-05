@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
@@ -32,7 +33,7 @@ function getSupabaseAdmin() {
  * Body: { agent_id: string, message: string }
  * Response: { reply: string, agent_name: string }
  */
-export async function POST(request: NextRequest) {
+async function POSTInterne(request: NextRequest) {
   try {
     // 1. Authenticate user
     const { user, error: authError } = await getAuthUser();
@@ -934,7 +935,7 @@ détail vit dans le Planning.`;
  * Load conversation history for a specific agent.
  * Response: { messages: [{role, content, timestamp}], agent: {name, avatar_url} }
  */
-export async function GET(request: NextRequest) {
+async function GETInterne(request: NextRequest) {
   try {
     // Authenticate user
     const { user, error: authError } = await getAuthUser();
@@ -989,3 +990,9 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const GET = avecContexteRoute('chatbot', GETInterne);
+export const POST = avecContexteRoute('chatbot', POSTInterne);

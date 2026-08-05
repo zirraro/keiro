@@ -1,3 +1,4 @@
+import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -34,7 +35,7 @@ async function verifyAuth(request: NextRequest) {
 
 // ─── GET: Daily financial summary (cron or manual) ─────────────
 
-export async function GET(request: NextRequest) {
+async function GETInterne(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth.authorized) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -177,7 +178,7 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Manual actions (stats, forecast, invoice review) ────
 
-export async function POST(request: NextRequest) {
+async function POSTInterne(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth.authorized) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -228,3 +229,9 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
+
+
+// Imputation de la dépense : sans ce contexte, chaque appel de cette route
+// retombe en « non attribué » et la marge du client reste incalculable.
+export const GET = avecContexteRoute('comptable', GETInterne);
+export const POST = avecContexteRoute('comptable', POSTInterne);
