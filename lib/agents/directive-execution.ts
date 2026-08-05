@@ -151,13 +151,23 @@ export function appliquerContrainteFormat(
 }
 
 /**
- * Arbitre la plateforme.
+ * Arbitre la plateforme, uniquement entre celles que l'ordre nomme.
  *
- * La priorité oriente sans exclure : un compte qui cesserait totalement de
- * publier sur Instagram parce que TikTok performe mieux perdrait l'audience
- * qu'il y a déjà construite, et le jour où TikTok bride le compte il ne
- * resterait rien. On ne bascule donc que les créneaux dont la plateforme n'est
- * pas explicitement citée dans l'ordre.
+ * Deux garde-fous, tirés d'un cas de test qui a mal tourné.
+ *
+ * 1. Une plateforme que l'ordre ne cite pas est laissée telle quelle. Un ordre
+ *    « priorité TikTok, Instagram en second » est né d'une comparaison entre
+ *    ces deux réseaux : il ne dit RIEN de LinkedIn, dont l'audience est
+ *    professionnelle et les métriques incomparables. Sans cette règle, le test
+ *    basculait les créneaux LinkedIn vers TikTok — le client aurait purement
+ *    disparu d'un réseau sur la foi d'un chiffre qui ne le concernait pas.
+ *
+ * 2. Une plateforme citée en secondaire garde ses créneaux. « Priorité à X »
+ *    ne veut pas dire « abandonne Y » : un compte qui cesse de publier là où
+ *    il a bâti son audience la perd, et le jour où la plateforme reine bride
+ *    le compte, il ne reste rien.
+ *
+ * En pratique la priorité sert donc à départager, pas à évincer.
  */
 export function appliquerContraintePlateforme(
   plateformeChoisie: string,
@@ -170,8 +180,8 @@ export function appliquerContraintePlateforme(
   if (!plateformesDisponibles.map(p => p.toLowerCase()).includes(prioritaire)) {
     return { plateforme: courante, motif: null };
   }
-  // Une plateforme citée en secondaire garde ses créneaux : l'ordre dit
-  // « priorité à X », pas « abandonne Y ».
+  const citees = [prioritaire, ...contraintes.plateformesSecondaires];
+  if (!citees.includes(courante)) return { plateforme: courante, motif: null };
   if (contraintes.plateformesSecondaires.includes(courante)) return { plateforme: courante, motif: null };
   return { plateforme: prioritaire, motif: `${courante} → ${prioritaire} (priorité)` };
 }
