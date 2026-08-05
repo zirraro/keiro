@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from '@/lib/whatsapp';
 import { peutGenererApercu, messageApercu } from '@/lib/prospects/apercu';
+import { normaliserNumero } from '@/lib/prospects/telephone';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,23 +36,6 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
-/**
- * Normalise un numéro français vers le format attendu par Meta.
- *
- * L'API veut l'international sans « + » ni séparateur. Un numéro mal formé part
- * en erreur silencieuse côté Meta : le message n'arrive jamais et rien ne le
- * signale, d'où la normalisation stricte ici plutôt qu'un espoir côté saisie.
- */
-export function normaliserNumero(brut: string): string | null {
-  const n = String(brut || '').replace(/[^\d+]/g, '');
-  if (!n) return null;
-  if (n.startsWith('+')) return n.slice(1);
-  if (n.startsWith('00')) return n.slice(2);
-  // 0X XX XX XX XX → 33X XX XX XX XX
-  if (n.startsWith('0') && n.length === 10) return '33' + n.slice(1);
-  if (n.length >= 11) return n;
-  return null;
-}
 
 /**
  * L'expéditeur est-il en état d'écrire à un inconnu ?
