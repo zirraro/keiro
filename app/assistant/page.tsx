@@ -1085,7 +1085,7 @@ export default function AssistantPage() {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <h2 className="text-white font-bold text-base mb-1">
-                  {'\uD83D\uDC4B'} Mode decouverte — Explorez votre future equipe IA
+                  {'\uD83D\uDC4B'} Mode decouverte — Explorez votre future equipe
                 </h2>
                 <p className="text-white/50 text-xs">
                   Decouvrez les agents qui automatisent votre business. Connectez-vous pour activer votre espace personnalise.
@@ -1725,7 +1725,7 @@ export default function AssistantPage() {
               </div>
               <h3 className="text-white font-bold text-base">Soyez prevenu du lancement</h3>
               <p className="text-white/50 text-xs mt-1">
-                Recevez un email des que votre equipe IA sera disponible.
+                Recevez un email des que votre equipe sera disponible.
               </p>
             </div>
 

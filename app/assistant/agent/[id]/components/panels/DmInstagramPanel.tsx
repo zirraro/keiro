@@ -1379,7 +1379,7 @@ function DmConversationsLive() {
             <div className="border-t border-white/5 px-3 pt-2 pb-1 bg-white/[0.02] flex items-center justify-between gap-2">
               <span className="text-[10px] text-white/40 truncate">
                 {selectedOutside24h
-                  ? (en ? '\uD83E\uDDD1 >24h \u2014 human reply only (AI never auto-replies here)' : "\uD83E\uDDD1 >24h \u2014 r\u00E9ponse humaine seule (l'IA n'auto-r\u00E9pond jamais ici)")
+                  ? (en ? '\uD83E\uDDD1 >24h \u2014 human reply only (Jade never auto-replies here)' : "\uD83E\uDDD1 >24h \u2014 r\u00E9ponse humaine seule (Jade n'auto-r\u00E9pond jamais ici)")
                   : (aiActive && !userTyping ? `\u{1F916} ${p.dmConvsBadgeAi}` : `\u270D\uFE0F ${p.dmConvsBadgeYou}`)}
               </span>
               {/* The toggle is the GLOBAL auto-reply switch (auto_mode). It is

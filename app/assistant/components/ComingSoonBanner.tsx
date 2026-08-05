@@ -56,7 +56,7 @@ export default function ComingSoonBanner() {
         </div>
 
         <h2 className="text-white font-bold text-lg mb-1">
-          Ton équipe IA est disponible sous peu
+          Ton équipe est disponible sous peu
         </h2>
         <p className="text-white/60 text-sm mb-5 max-w-md mx-auto">
           Des agents IA spécialisés pour ton business : contenu, DMs, prospection, SEO, et plus.
