@@ -89,9 +89,16 @@ function reglesActives(f: FaitsProspect): string[] {
     else if (j < 7) actives.push('post_moins_7j');
 
     if ((f.igMediaCount ?? 0) > 10 && j > 30) actives.push('a_essaye_puis_abandonne');
-  } else if (!aCompte) {
-    // Compte non résolu : personnel, privé ou inexistant. Dans tous les cas on
-    // ne peut pas le travailler, ce qui est en soi le manque qu'on vend.
+  } else if (f.igStatut === 'not_found' || f.igStatut === 'private_or_personal') {
+    // On a CHERCHÉ et on n'a rien trouvé d'exploitable : c'est un fait, et le
+    // manque qu'on vend.
+    //
+    // Un statut absent, en revanche, ne veut pas dire « pas de compte » : il
+    // veut dire « pas vérifié » — faute de site, de handle ou de jeton pour
+    // interroger l'API. Le premier lot l'a montré crûment : 154 prospects sur
+    // 180 récompensés pour une absence de compte qui n'avait jamais été
+    // constatée. Confondre « inconnu » et « nul » est exactement l'erreur qui
+    // a déjà coûté 1264 prospects jetés à tort.
     actives.push('aucun_compte');
   }
 

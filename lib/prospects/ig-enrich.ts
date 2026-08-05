@@ -153,19 +153,33 @@ export async function comptePourInterroger(
     };
   }
 
-  const { data: admin } = await supabase
-    .from('profiles')
-    .select('instagram_business_account_id, facebook_page_access_token')
-    .eq('is_admin', true)
-    .not('instagram_business_account_id', 'is', null)
-    .not('facebook_page_access_token', 'is', null)
-    .limit(1)
-    .maybeSingle();
-
-  if (!(admin as any)?.instagram_business_account_id) return null;
-  return {
-    igId: (admin as any).instagram_business_account_id,
-    token: (admin as any).facebook_page_access_token,
-    emprunte: true,
-  };
+  // Repli : d'abord un compte administrateur, sinon n'importe quel compte
+  // connecté de la plateforme.
+  //
+  // Le premier lot réel a montré la limite du repli « admin uniquement » :
+  // le compte fondateur n'a pas d'identifiant business, donc DEUX clients sur
+  // trois n'ont eu aucun enrichissement — et leurs prospects ont été scorés
+  // comme s'ils n'avaient pas de compte Instagram, ce qui est faux.
+  //
+  // `business_discovery` ne lit que des données publiques et n'expose rien du
+  // compte qui interroge ; l'emprunt ne coûte qu'un peu de quota, et il est
+  // tracé (`emprunte`) pour rester visible en supervision.
+  for (const filtre of [true, false]) {
+    let q = supabase
+      .from('profiles')
+      .select('instagram_business_account_id, facebook_page_access_token')
+      .not('instagram_business_account_id', 'is', null)
+      .not('facebook_page_access_token', 'is', null)
+      .limit(1);
+    if (filtre) q = q.eq('is_admin', true);
+    const { data } = await q.maybeSingle();
+    if ((data as any)?.instagram_business_account_id) {
+      return {
+        igId: (data as any).instagram_business_account_id,
+        token: (data as any).facebook_page_access_token,
+        emprunte: true,
+      };
+    }
+  }
+  return null;
 }

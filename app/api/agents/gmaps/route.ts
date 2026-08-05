@@ -255,7 +255,7 @@ async function getPlaceDetails(placeId: string) {
   // cost. This is what gives Hugo/Jade material for personalised
   // outreach ("vu vos avis sur la terrasse…") and what the founder
   // calls "notes google" in the CRM.
-  const fields = 'name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,reviews,opening_hours,business_status,url,types';
+  const fields = 'name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,reviews,opening_hours,business_status,url,types,geometry';
   const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&language=fr&key=${apiKey}`;
 
   try {
@@ -676,6 +676,19 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             : null;
           const openingHours = ((details as any).opening_hours?.weekday_text || []) as string[];
 
+          // Date du dernier avis, déduite des avis DÉJÀ récupérés — donc sans
+          // le moindre appel supplémentaire. Elle manquait totalement en base,
+          // ce qui rendait muets deux signaux du scoring terrain : « commerce
+          // vivant » (avis de moins de 30 jours) et l'éliminatoire « dormant »
+          // (aucun avis depuis six mois). Sur le premier lot réel, la colonne
+          // était nulle sur 180 prospects sur 180.
+          const horodatagesAvis = (Array.isArray((details as any).reviews) ? (details as any).reviews : [])
+            .map((r: any) => Number(r?.time))
+            .filter((t: number) => Number.isFinite(t) && t > 0);
+          const dernierAvisLe = horodatagesAvis.length
+            ? new Date(Math.max(...horodatagesAvis) * 1000).toISOString()
+            : null;
+
           // Insert into crm_prospects with status 'identifie' (ready for enrichment)
           const { data: insertedProspect, error: insertError } = await supabase.from('crm_prospects').insert({
             company: details.name,
@@ -692,6 +705,11 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             google_maps_url: details.url || null,
             google_rating: details.rating || null,
             google_reviews: details.user_ratings_total || null,
+            last_review_date: dernierAvisLe,
+            business_status: (details as any).business_status || null,
+            place_types: Array.isArray((details as any).types) ? (details as any).types.slice(0, 10) : null,
+            lat: (details as any).geometry?.location?.lat ?? null,
+            lng: (details as any).geometry?.location?.lng ?? null,
             // 2026-06-08 — Founder ask: missing notes Google. Drop the
             // review excerpts into the `notes` column so they show in
             // the CRM card and into business_notes (jsonb) for Hugo to

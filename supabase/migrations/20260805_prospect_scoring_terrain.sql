@@ -116,3 +116,10 @@ create unique index if not exists idx_outcome_events_idem
 
 create index if not exists idx_outcome_events_bench
   on outcome_events (sector, event_type, created_at desc);
+
+-- @@ étape 7 — colonne oubliée au premier passage
+-- `ig_followers` figurait dans la spec mais pas dans l'ALTER : la requête de
+-- sélection la demandait, et PostgREST rejette la requête ENTIÈRE dès qu'une
+-- colonne est inconnue. Le pipeline ne voyait donc aucun prospect, sans
+-- qu'aucune erreur ne remonte — le lot ressortait simplement vide.
+alter table crm_prospects add column if not exists ig_followers integer;
