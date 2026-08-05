@@ -50,6 +50,16 @@ export interface BesoinAgent {
   priorite: Priorite;
   type: TypeChamp;
   exemple?: string;
+  /**
+   * Exemples par famille de métier.
+   *
+   * Un exemple parle bien plus qu'une consigne — mais montrer « levain naturel
+   * maison, farine bio » à une agence de communication produit l'effet inverse :
+   * le client comprend que la question n'a pas été pensée pour lui, et il la
+   * remplit au minimum ou la saute. La famille reconnue l'emporte sur
+   * `exemple`, qui reste le repli neutre.
+   */
+  exemplesParMetier?: Record<string, string>;
   /** Familles concernées. Vide = tous les métiers. */
   metiers?: string[];
   /** Familles où ce besoin est nettement plus important qu'ailleurs. */
@@ -86,14 +96,47 @@ const SOCLE: BesoinAgent[] = [
     question: "Ce qui te distingue vraiment des autres, chez toi",
     aQuoiCaSert: "C'est l'argument qu'on répète partout. Sans lui, les agents écrivent des banalités vraies pour n'importe quel concurrent.",
     priorite: 'essentiel', type: 'texte_long',
-    exemple: 'Levain naturel maison, farine bio d\'un moulin à 30 km, pas de surgelé',
+    exemple: "Ce que tu fais autrement, et que tes clients citent quand ils parlent de toi",
+    exemplesParMetier: {
+      boulangerie: "Levain naturel maison, farine bio d'un moulin à 30 km, aucun surgelé",
+      restaurant: "Carte qui change chaque semaine, tout fait maison, poisson de criée",
+      coiffeur: "Diagnostic capillaire offert, colorations végétales uniquement",
+      institut_beaute: "Protocoles sur-mesure, marques bio, jamais de vente forcée",
+      plombier: "Devis en 24 h, intervention sous 48 h, chantier laissé propre",
+      menuisier: "Bois massif français, tout sur-mesure, pose comprise",
+      garage: "Devis avant toute intervention, pièces d'origine, véhicule de prêt",
+      agence: "Un seul interlocuteur, résultats mesurés chaque mois, sans engagement",
+      comptable: "Réponse sous 24 h, un bilan expliqué en français, honoraires fixes",
+      immobilier: "Estimation argumentée gratuite, photos pro, visites accompagnées",
+      hotel: "Petit-déjeuner de producteurs locaux, accueil tardif, parking privé",
+      mode: "Créateurs français, retouches offertes, pièces en série limitée",
+      sante: "Prise en charge le jour même, bilan complet, suivi personnalisé",
+      salle_sport: "Un coach à chaque créneau, salle jamais bondée, sans engagement",
+      veterinaire: "Urgences acceptées, devis avant chaque acte, suivi post-opératoire",
+      boucherie: "Bêtes entières de fermes voisines, maturation maison, découpe à la demande",
+      fleuriste: "Fleurs de producteurs de la région, compositions uniques, livraison le jour même",
+    },
   },
   {
     cle: 'target_audience', agents: ['content', 'dm', 'email', 'commercial'],
     question: 'Qui sont tes clients, concrètement',
     aQuoiCaSert: "Elle règle le ton, l'heure de publication et jusqu'aux références culturelles employées — une blague qui marche à 25 ans tombe à plat à 60.",
     priorite: 'essentiel', type: 'texte_long',
-    exemple: 'Familles du quartier + bureaux le midi, 30-55 ans',
+    exemple: "Qui pousse ta porte, leur âge, ce qu'ils viennent chercher",
+    exemplesParMetier: {
+      boulangerie: "Familles du quartier le week-end, bureaux le midi, 30-55 ans",
+      restaurant: "Cadres le midi, couples et familles le soir, 30-60 ans",
+      coiffeur: "Femmes actives 25-50 ans du quartier, beaucoup de fidèles",
+      plombier: "Propriétaires de maisons individuelles, 35-65 ans, dans un rayon de 25 km",
+      agence: "Dirigeants de PME de 10 à 50 salariés, secteur industriel",
+      comptable: "Artisans et commerçants indépendants qui viennent de se lancer",
+      immobilier: "Primo-accédants 28-40 ans et vendeurs de maisons familiales",
+      hotel: "Clientèle affaires en semaine, couples et familles le week-end",
+      mode: "Femmes 25-45 ans qui cherchent des pièces qu'on ne voit pas partout",
+      salle_sport: "Actifs 25-45 ans qui viennent avant ou après le travail",
+      sante: "Patients du quartier, beaucoup de seniors et de sportifs",
+      veterinaire: "Propriétaires de chiens et chats du quartier, tous âges",
+    },
   },
   {
     cle: 'brand_tone', agents: ['content', 'email', 'dm', 'chatbot', 'whatsapp'],
@@ -372,6 +415,19 @@ const ORDRE: Record<Priorite, number> = { essentiel: 0, important: 1, optionnel:
  * signature d'email alors qu'il n'a pas l'agent email, c'est du formulaire pour
  * rien — et c'est ce qui fait abandonner un onboarding).
  */
+/**
+ * Choisit l'exemple qui parle à CE métier.
+ *
+ * Renvoie un besoin dont `exemple` est déjà résolu : les appelants n'ont pas à
+ * connaître l'existence de `exemplesParMetier`, et aucun ne peut oublier de
+ * l'utiliser.
+ */
+function avecExempleAdapte(b: BesoinAgent, familles: Set<string>): BesoinAgent {
+  if (!b.exemplesParMetier) return b;
+  const cible = Object.keys(b.exemplesParMetier).find(m => familles.has(m));
+  return cible ? { ...b, exemple: b.exemplesParMetier[cible] } : b;
+}
+
 export function besoinsPour(opts: {
   businessType?: string | null;
   agentsActifs?: string[];
@@ -383,6 +439,7 @@ export function besoinsPour(opts: {
   const connu = new Set(opts.dejaRenseigne || []);
 
   return BESOINS
+    .map(b => avecExempleAdapte(b, familles))
     .filter(b => !connu.has(b.cle))
     .filter(b => !b.metiers?.length || b.metiers.some(m => familles.has(m)))
     .filter(b => !actifs || b.agents.some(a => actifs.has(a)))
