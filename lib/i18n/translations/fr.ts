@@ -559,7 +559,7 @@ export const fr: Translations = {
     faq1Q: 'Puis-je changer de plan à tout moment ?',
     faq1A: 'Oui, vous pouvez passer à un plan supérieur ou inférieur à tout moment. Le changement prend effet immédiatement.',
     faq2Q: 'Comment fonctionnent les crédits ?',
-    faq2A: 'Chaque action consomme des crédits : 5 pour une image, 25-40 pour une vidéo, 1 pour un texte. Les crédits non utilisés sont reportés 1 mois.',
+    faq2A: 'Chaque action consomme des crédits : 4 à 5 pour une image, 40 à 140 pour une vidéo selon sa durée (40 pour 5 s, 140 pour 30 s), 1 pour un texte. Les crédits non utilisés sont reportés 1 mois.',
     faq3Q: 'Puis-je annuler à tout moment ?',
     faq3A: 'Oui, sans engagement. Annulation en 1 clic depuis votre compte. Vous gardez l\'accès jusqu\'à la fin de la période payée.',
     faq4Q: 'Les visuels m\'appartiennent ?',

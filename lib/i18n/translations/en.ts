@@ -561,7 +561,7 @@ export const en: Translations = {
     faq1Q: 'Can I change plans at any time?',
     faq1A: 'Yes, you can upgrade or downgrade at any time. The change takes effect immediately.',
     faq2Q: 'How do credits work?',
-    faq2A: 'Each action uses credits: 5 for an image, 25-40 for a video, 1 for a text. Unused credits roll over for 1 month.',
+    faq2A: 'Each action uses credits: 4 to 5 for an image, 40 to 140 for a video depending on length (40 for 5s, 140 for 30s), 1 for a text. Unused credits roll over for 1 month.',
     faq3Q: 'Can I cancel at any time?',
     faq3A: 'Yes, no commitment. Cancel in 1 click from your account. You keep access until the end of your paid period.',
     faq4Q: 'Do I own the visuals?',

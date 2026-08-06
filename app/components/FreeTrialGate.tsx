@@ -174,10 +174,10 @@ export default function FreeTrialGate() {
             <div className="text-[10px] sm:text-xs text-purple-600">{en ? 'Then €49/mo · Cancel in 1 click' : 'Puis 49€/mois · Annulation 1 clic'}</div>
           </div>
           <ul className="text-[11px] sm:text-xs text-neutral-700 space-y-1 mb-4">
-            <li>✓ <strong>{en ? '5 AI agents' : '5 agents IA'}</strong> {en ? 'including Léna (auto-publishing)' : 'incluant Léna (auto-publication réseaux)'}</li>
-            <li>✓ <strong>{en ? '400 credits' : '400 crédits'}</strong>{en ? '/mo (≈ 100 visuals)' : '/mois (≈ 100 visuels)'}</li>
-            <li>✓ <strong>{en ? '~60 qualified leads' : '~60 prospects qualifiés'}</strong>{en ? '/mo from Google Maps' : '/mois sur Google Maps'}</li>
-            <li>✓ <strong>{en ? 'CRM + emails + auto DMs' : 'CRM + emails + DMs auto'}</strong></li>
+            <li>✓ <strong>{en ? "5 AI agents" : "5 agents IA"}</strong>{en ? " including Léna (auto-publishing)" : " incluant Léna (auto-publication réseaux)"}</li>
+            <li>✓ <strong>{en ? "1,000 credits" : "1 000 crédits"}</strong>{en ? "/mo (≈ 60 visuals + 12 videos)" : "/mois (≈ 60 visuels + 12 vidéos)"}</li>
+            <li>✓ <strong>{en ? "~18 posts/week" : "~18 publications/semaine"}</strong>{en ? " on Instagram + TikTok, at peak hours" : " sur Instagram et TikTok, aux meilleures heures"}</li>
+            <li>✓ <strong>{en ? "Auto DMs + Google review replies" : "DMs auto + réponses aux avis Google"}</strong></li>
           </ul>
           <a
             href="/checkout/upsell?plan=createur"
