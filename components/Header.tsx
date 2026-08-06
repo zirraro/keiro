@@ -19,17 +19,24 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === 'light';
 
+  const [user, setUser] = useState<any>(null);
+
+  // « Agents » menait à /assistant, l'application : un visiteur non connecté
+  // qui cliquait pour découvrir l'équipe tombait sur la connexion. C'est le
+  // lien le plus tentant de la barre pour quelqu'un qui hésite encore, et il
+  // le renvoyait exactement là où il ne veut pas aller.
+  //
+  // Déconnecté, il va vers la vitrine publique /agents ; connecté, il retrouve
+  // son espace. Défini après `user` pour que l'arbitrage soit possible.
   const navItems = [
     { href: "/", label: t.nav.home },
     { href: "/generate", label: t.nav.generate },
     { href: "/studio", label: t.nav.studio },
     { href: "/library", label: t.nav.gallery },
-    { href: "/assistant", label: t.nav.assistant },
+    { href: user ? "/assistant" : "/agents", label: t.nav.assistant },
     { href: "/blog", label: "Blog" },
     { href: "/pricing", label: t.nav.pricing, highlight: true },
   ];
-
-  const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [loading, setLoading] = useState(true);
