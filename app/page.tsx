@@ -14,6 +14,7 @@ import { KeiroLockup } from '@/components/ui/keiro-logo';
 import { KeiroIcon } from '@/components/ui/KeiroIcon';
 import { useLanguage } from '@/lib/i18n/context';
 import { useTheme } from '@/lib/theme/context';
+import SemaineRestaurant from './components/SemaineRestaurant';
 
 function HomeKeiroInner() {
   const { t, locale, setLocale } = useLanguage();
@@ -347,6 +348,10 @@ function HomeKeiroInner() {
         </div>
       </section>
 
+
+      {/* Le métier démarché en priorité mérite qu'on lui parle de son
+          métier, pas du produit. */}
+      <SemaineRestaurant />
 
       {/* PROGRAMME PILOTE — honnête early-stage (remplace les anciens témoignages
           fictifs : pas de faux clients, pas de métriques non sourcées). Les vrais
