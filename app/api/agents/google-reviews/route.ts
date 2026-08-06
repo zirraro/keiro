@@ -75,23 +75,41 @@ export async function GET(req: NextRequest) {
   // après la connexion), on la re-récupère en LIVE et on la sauvegarde. Évite le
   // faux "aucun établissement" alors que le compte EST bien connecté.
   let locationId = profile.google_business_location_id;
+  // Le diagnostic est remonté dans la réponse : sans lui, « aucun
+  // établissement » est indiscernable de « l'API a refusé l'appel », et on
+  // envoie le client créer une fiche qu'il possède déjà.
+  const diagnostic: { comptes?: number; erreur?: string; details?: string[] } = {};
+
   if (!locationId) {
     try {
       const { listAccounts, listLocations } = await import('@/lib/google-business-oauth');
       const accounts = await listAccounts(accessToken);
+      diagnostic.comptes = accounts.length;
+      diagnostic.details = [];
+
       for (const acc of accounts) {
-        const locations = await listLocations(accessToken, acc.name);
-        if (locations.length > 0) {
-          locationId = locations[0].name;
-          await supabase.from('profiles').update({
-            google_business_account_id: acc.name,
-            google_business_location_id: locationId,
-            google_business_location_name: locations[0].title || locations[0].storefrontAddress?.locality || '',
-          }).eq('id', user.id);
-          break;
+        try {
+          const locations = await listLocations(accessToken, acc.name);
+          diagnostic.details.push(`${acc.name} → ${locations.length} établissement(s)`);
+          if (locations.length > 0) {
+            locationId = locations[0].name;
+            await supabase.from('profiles').update({
+              google_business_account_id: acc.name,
+              google_business_location_id: locationId,
+              google_business_location_name: locations[0].title || locations[0].storefrontAddress?.locality || '',
+            }).eq('id', user.id);
+            break;
+          }
+        } catch (e: any) {
+          // Un compte qui refuse ne doit pas empêcher d'essayer les suivants :
+          // un utilisateur peut être membre de plusieurs organisations Google.
+          diagnostic.details.push(`${acc.name} → refus : ${String(e?.message || e).slice(0, 200)}`);
         }
       }
-    } catch (e: any) { console.warn('[GoogleReviews] location recovery failed:', e?.message); }
+    } catch (e: any) {
+      diagnostic.erreur = String(e?.message || e).slice(0, 300);
+      console.warn('[GoogleReviews] récupération établissement échouée:', e?.message);
+    }
   }
 
   if (!locationId) {
@@ -100,7 +118,12 @@ export async function GET(req: NextRequest) {
       connected: true,
       reviews: [],
       needsLocation: true,
-      message: 'Google Business connecté, mais aucun établissement trouvé sur ce compte. Crée/réclame ta fiche sur business.google.com, puis recharge — Théo la détectera automatiquement.',
+      diagnostic,
+      message: diagnostic.erreur
+        ? `Google a refusé la lecture de tes établissements : ${diagnostic.erreur}`
+        : (diagnostic.comptes === 0
+          ? "Aucun compte Google Business n'est rattaché à l'adresse Google que tu as connectée. Vérifie que tu t'es connecté avec le compte qui gère la fiche."
+          : 'Google Business connecté, mais aucun établissement trouvé sur ce compte. Crée/réclame ta fiche sur business.google.com, puis recharge — Théo la détectera automatiquement.'),
     });
   }
 
