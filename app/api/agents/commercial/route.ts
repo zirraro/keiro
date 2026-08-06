@@ -238,9 +238,13 @@ async function enrichProspect(prospect: {
     // un autre agent — et ce qu'on ne sait pas encore, dit explicitement pour
     // ne pas combler le vide en inventant.
     try {
+      const { blocSynergies } = await import('@/lib/agents/synergies');
+      // Ce que les autres agents ont observé, et ce que celui-ci a déjà appris :
+      // deux pools qui existaient et que personne ne relisait.
       const { nouveautesPourAgent, lacunesPourAgent } = await import('@/lib/agents/clara-hub');
       directivesBlock += await nouveautesPourAgent(supabaseClient, ownerUserId, 'commercial');
       directivesBlock += (await lacunesPourAgent(supabaseClient, ownerUserId, 'commercial')).blocPrompt;
+      directivesBlock += await blocSynergies(supabaseClient, 'commercial', ownerUserId);
     } catch { /* jamais bloquant : l'agent tourne sans ce contexte */ }
     } catch { /* best-effort */ }
   }

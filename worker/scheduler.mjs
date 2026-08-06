@@ -204,6 +204,10 @@ const GLOBAL_SCHEDULE = [
   // parce que business_discovery est plafonné et que le lot peut être long ;
   // idempotent, donc une relance ne redépense rien.
   { cron: '30 2 * * *',   path: '/api/cron/prospect-scoring?limit=300', label: 'Scoring terrain prospects (Léo, tous clients)' },
+  // 2026-08-06 — Alimente le socle de résultats depuis TOUS les canaux, et
+  // fait circuler ce que chaque agent observe vers ceux que ça concerne.
+  // La nuit : le résultat d'un post n'est connu que le lendemain.
+  { cron: '45 3 * * *',   path: '/api/cron/collecte-outcomes', label: 'Collecte résultats + synergies inter-agents' },
   // Enrichissement progressif du stock : réseaux sociaux depuis le site et
   // photos RÉELLES du lieu via Places. Plusieurs passages par jour, chacun
   // plafonné, pour rattraper le stock sans jamais franchir le budget du jour.

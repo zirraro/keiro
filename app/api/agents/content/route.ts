@@ -6800,10 +6800,14 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     // Le second bloc est l'inverse : ce qu'on ne sait PAS encore, dit
     // explicitement pour que le modèle ne comble pas le vide en inventant.
     try {
+      const { blocSynergies } = await import('@/lib/agents/synergies');
+      // Ce que les autres agents ont observé, et ce que celui-ci a déjà appris :
+      // deux pools qui existaient et que personne ne relisait.
       const { nouveautesPourAgent, lacunesPourAgent } = await import('@/lib/agents/clara-hub');
       const nouveautes = await nouveautesPourAgent(supabase, userId, 'content');
       const { blocPrompt: lacunes } = await lacunesPourAgent(supabase, userId, 'content');
       typedDirectivesBlock += nouveautes + lacunes;
+      typedDirectivesBlock += await blocSynergies(supabase, 'content', userId);
     } catch (e: any) {
       console.warn('[Content] contexte Clara indisponible:', e?.message);
     }
