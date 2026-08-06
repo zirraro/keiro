@@ -1856,7 +1856,7 @@ ${detailAttente ? `<p style="margin:0 0 12px;font-size:12px;color:#92400e;backgr
       if (!skipEmail && prefs?.inapp_enabled !== false) {
         await supabase.from('client_notifications').insert({
           user_id: client.id,
-          agent: 'ceo',
+          agent: 'marketing',
           type: 'brief',
           title: isEvening ? 'Ton débrief du soir — Keiro' : 'Ton brief du matin — Keiro',
           message: briefHtml.replace(/<[^>]*>/g, '').substring(0, 300),

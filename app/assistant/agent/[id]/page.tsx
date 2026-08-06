@@ -1504,7 +1504,19 @@ export default function AgentWorkspacePage() {
   }, []);
 
   // ─── Init agent ────────────────────────────────────────
-  useEffect(() => { const f = CLIENT_AGENTS.find(a => a.id === agentId); if (f) setAgent(f); }, [agentId]);
+  useEffect(() => {
+    const f = CLIENT_AGENTS.find(a => a.id === agentId);
+    // Un agent « background » orchestre en coulisses et n'a aucune page à
+    // montrer : Noah n'apparaît nulle part dans le roster, mais son URL restait
+    // atteignable — une notification mal attribuée y menait, et le client
+    // tombait sur un agent dont il n'a jamais entendu parler. Tout ce qui le
+    // concerne est regroupé sous Ami.
+    if (f && (f as any).visibility === 'background') {
+      router.replace('/assistant/agent/marketing');
+      return;
+    }
+    if (f) setAgent(f);
+  }, [agentId, router]);
 
   // ─── Check if visitor + credits ────────────────────────
   useEffect(() => {
