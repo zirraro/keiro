@@ -344,7 +344,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                   <button onClick={() => setEditMode(true)} className="text-xs text-blue-500 hover:underline">Modifier</button>
                 ) : (
                   <div className="flex gap-2">
-                    <button onClick={saveEdit} disabled={saving} className="text-xs bg-blue-500 text-white px-3 py-1 rounded-lg">{saving ? '...' : 'Sauver'}</button>
+                    <button onClick={saveEdit} disabled={saving} className="min-h-[44px] inline-flex items-center justify-center text-xs bg-blue-500 text-white px-3 py-1 rounded-lg">{saving ? '...' : 'Sauver'}</button>
                     <button onClick={() => setEditMode(false)} className="text-xs text-neutral-400">Annuler</button>
                   </div>
                 )}
@@ -461,7 +461,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                       className="text-xs border rounded-lg px-2 py-1.5 flex-1">
                       {RESULT_OPTIONS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
                     </select>
-                    <button onClick={saveActivity} disabled={saving} className="bg-blue-500 text-white text-xs px-4 py-1.5 rounded-lg hover:bg-blue-600">
+                    <button onClick={saveActivity} disabled={saving} className="min-h-[44px] inline-flex items-center justify-center bg-blue-500 text-white text-xs px-4 py-1.5 rounded-lg hover:bg-blue-600">
                       {saving ? '...' : 'Ajouter'}
                     </button>
                     <button onClick={() => setAddingActivity(false)} className="text-xs text-neutral-400">✕</button>

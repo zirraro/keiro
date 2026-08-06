@@ -320,7 +320,7 @@ export default function StrategyOnboarding() {
                       <div className="flex gap-2 mt-2">
                         <a
                           href="/pricing"
-                          className="flex-1 px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-semibold rounded-lg text-center transition"
+                          className="min-h-[44px] inline-flex items-center justify-center flex-1 px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-semibold rounded-lg text-center transition"
                         >
                           {p.stratOverBudgetCtaUpgrade}
                         </a>

@@ -246,7 +246,7 @@ export default function ClaraHelper() {
                 <button onClick={startWizard} className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[40px] mb-1.5">
                   {'\u26A1'} Activer dans l&apos;ordre recommande
                 </button>
-                <button onClick={dismissAndCooldown} className="w-full py-1.5 text-white/30 text-[10px] hover:text-white/50 transition">
+                <button onClick={dismissAndCooldown} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/30 text-[10px] hover:text-white/50 transition">
                   Plus tard
                 </button>
               </>
@@ -288,14 +288,14 @@ export default function ClaraHelper() {
                       {'\u{1F517}'} {currentAgent.connectLabel}
                     </a>
                     <button onClick={() => activateAgent(currentAgent)} className="w-full py-1.5 text-white/40 text-[10px] hover:text-white/60 transition">Deja connecte ? Activer directement</button>
-                    <button onClick={skipAgent} className="w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
+                    <button onClick={skipAgent} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <button onClick={() => activateAgent(currentAgent)} className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition min-h-[40px]">
                       {'\u26A1'} Activer {currentAgent.name}
                     </button>
-                    <button onClick={skipAgent} className="w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
+                    <button onClick={skipAgent} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
                   </div>
                 )}
               </>

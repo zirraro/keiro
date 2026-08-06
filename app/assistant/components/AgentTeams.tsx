@@ -80,7 +80,7 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
               ) : (
                 <a
                   href="/pricing"
-                  className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
+                  className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
                 >
                   Débloquer
                 </a>
