@@ -231,7 +231,28 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             panel (dm_queue + agent_logs + crm_prospects) so the
             numbers always match across both pages. Founder ask
             2026-05-24: Ami doit \u00eatre coherente avec Jade. */}
-        {(gs as any).jade && (
+        {/* Dire pourquoi un chiffre manque vaut mieux que le laisser
+            manquer : sans cette ligne, l'absence de compteurs de messages
+            sous TikTok se lit comme une panne. */}
+        {network !== 'instagram' && (
+          <p className="text-white/40 text-[12px] leading-relaxed mb-4">
+            {network === 'tiktok'
+              ? (en
+                  ? 'TikTok offers no messaging API — Ami tracks reach, views and engagement here, not conversations.'
+                  : "TikTok n'ouvre pas d'API de messagerie — ici Ami suit la portée, les vues et l'engagement, pas les conversations.")
+              : (en
+                  ? 'LinkedIn offers no messaging API for pages — Ami tracks post performance here, not conversations.'
+                  : "LinkedIn n'ouvre pas d'API de messagerie pour les pages — ici Ami suit la performance des publications, pas les conversations.")}
+          </p>
+        )}
+
+        {/* Jade ne travaille que sur Instagram : ni TikTok ni LinkedIn
+            n'exposent d'API de messagerie, et le follow automatique est
+            bloqué par Meta ailleurs. Afficher ces compteurs sous l'onglet
+            TikTok laissait croire à un suivi qui n'existe pas — le fondateur
+            l'a relevé le 2026-08-06 : « que je sois dans insta ou tiktok j'ai
+            le même panel alors que tiktok on peut pas suivre les DM ». */}
+        {network === 'instagram' && (gs as any).jade && (
           ((gs as any).jade.dms_sent_7d > 0 || (gs as any).jade.comments_replied_7d > 0 || (gs as any).jade.follows_pending > 0) && (
             <>
               <SectionTitle>{en ? 'Jade \u2014 last 7 days' : 'Jade \u2014 7 derniers jours'}</SectionTitle>
