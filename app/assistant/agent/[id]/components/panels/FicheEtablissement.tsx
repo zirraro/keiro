@@ -108,7 +108,7 @@ export function CarteFiche({
     <div className={`rounded-2xl border p-4 mb-4 ${
       exemple ? 'border-amber-400/25 bg-amber-500/[0.04]' : 'border-white/10 bg-white/[0.03]'
     }`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-white font-bold text-lg leading-tight">{f.nom}</h3>
@@ -121,11 +121,11 @@ export function CarteFiche({
           {f.categorie && <p className="text-white/50 text-xs mt-0.5">{f.categorie}</p>}
         </div>
         {typeof f.note === 'number' && (
-          <div className="text-right flex-shrink-0">
+          <div className="text-left sm:text-right flex-shrink-0 flex sm:block items-baseline gap-2">
             <div className="text-white font-bold text-lg leading-none">{f.note.toFixed(1)}</div>
             <Etoiles note={f.note} taille="text-xs" />
             {typeof f.nombreAvis === 'number' && (
-              <div className="text-white/40 text-[11px] mt-0.5">{f.nombreAvis} avis</div>
+              <div className="text-white/40 text-[11px] sm:mt-0.5">{f.nombreAvis} avis</div>
             )}
           </div>
         )}
@@ -184,13 +184,13 @@ export function FiltresAvis({
             {sansReponse} avis sans réponse
           </span>
         ) : <span />}
-        <div className="flex gap-1 ml-auto">
+        <div className="flex gap-1.5 w-full sm:w-auto sm:ml-auto">
           {([['tous', 'Tout'], ['7j', '7 j'], ['30j', '30 j'], ['90j', '90 j']] as [Periode, string][]).map(([cle, libelle]) => (
             <button
               key={cle}
               onClick={() => setPeriode(cle)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                periode === cle ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70'
+              className={`flex-1 sm:flex-none min-h-[44px] px-3 rounded-lg text-xs font-semibold transition-colors ${
+                periode === cle ? 'bg-white/15 text-white' : 'text-white/45 hover:text-white/70 active:bg-white/10'
               }`}
             >
               {libelle}
@@ -203,7 +203,7 @@ export function FiltresAvis({
         value={recherche}
         onChange={e => setRecherche(e.target.value)}
         placeholder="Rechercher dans les avis — un mot, un nom…"
-        className="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/25"
+        className="w-full min-h-[44px] bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-base sm:text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/25"
       />
     </div>
   );

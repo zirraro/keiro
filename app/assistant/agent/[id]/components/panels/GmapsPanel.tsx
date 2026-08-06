@@ -228,7 +228,12 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 
   // Les avis affichés : réels si le quota Google le permet, exemples sinon —
   // un panneau vide ne montre pas comment Théo travaille.
-  const avisSource = googleConnected && googleReviews.length ? googleReviews : DEMO_REVIEWS;
+  // Un compte connecté qui n'a réellement aucun avis ne doit PAS voir des
+  // exemples présentés comme les siens : le titre afficherait « N avis » sur
+  // des données inventées. Zéro mesuré et absence de données sont deux choses
+  // différentes — les exemples ne servent qu'au second cas.
+  const enExemple = !googleConnected;
+  const avisSource = enExemple ? DEMO_REVIEWS : googleReviews;
   const { periode, setPeriode, recherche, setRecherche, avisFiltres } = useFiltresAvis<any>(avisSource);
   const sansReponse = avisSource.filter((a: any) => !a.replied && !a.replyText && !a.reply).length;
 
@@ -318,12 +323,14 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 
       {/* Google reviews: real data or demo */}
       <div data-tour="google-reviews">
-      <SectionTitle>{googleConnected ? p.gmapsSectionAvisConnected.replace('{n}', String(googleReviews.length)) : p.gmapsSectionAvisPreview}</SectionTitle>
+      <SectionTitle>{googleConnected ? p.gmapsSectionAvisConnected.replace('{n}', String(avisFiltres.length)) : p.gmapsSectionAvisPreview}</SectionTitle>
       <FiltresAvis periode={periode} setPeriode={setPeriode} recherche={recherche} setRecherche={setRecherche} sansReponse={sansReponse} />
       <div className={`flex flex-col gap-2 ${!googleConnected ? 'opacity-90' : ''}`}>
         {avisFiltres.length === 0 && (
           <p className="text-white/40 text-sm py-6 text-center">
-            Aucun avis ne correspond à cette recherche.
+            {avisSource.length === 0
+              ? "Ta fiche n'a encore aucun avis. Théo répondra dès le premier."
+              : 'Aucun avis ne correspond à cette recherche.'}
           </p>
         )}
         {avisFiltres.slice(0, 20).map((review: any, i: number) => (
@@ -450,7 +457,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         }
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-gradient-to-r hover:opacity-90 transition-opacity"
+        className="mt-4 w-full inline-flex items-center justify-center gap-2 min-h-[48px] px-4 py-3 rounded-xl text-white text-sm font-semibold bg-gradient-to-r hover:opacity-90 active:opacity-80 transition-opacity"
         style={{ backgroundImage: `linear-gradient(to right, ${gradientFrom}, ${gradientTo})` }}
       >
         {fiche?.nom ? 'Voir ma fiche sur Google' : 'Gérer ma fiche sur Google Business'} {'↗'}
