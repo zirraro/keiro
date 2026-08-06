@@ -223,7 +223,7 @@ function HomeKeiroInner() {
                 })()}
               </div>
 
-              <a href="/assistant" className="block p-3 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-t border-white/10 text-center hover:from-purple-600/30 hover:to-blue-600/30 transition-all">
+              <a href="/agents" className="block p-3 min-h-[48px] flex items-center justify-center bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-t border-white/10 text-center hover:from-purple-600/30 hover:to-blue-600/30 transition-all">
                 <span className="text-xs text-purple-300 font-semibold">
                   {locale === 'fr' ? 'Voir ton équipe en action →' : 'See your team in action →'}
                 </span>
