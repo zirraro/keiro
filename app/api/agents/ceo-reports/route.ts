@@ -431,13 +431,42 @@ async function handleClientBrief(
       if (freq === 'biweekly' && (dayOfWeek !== preferredDay || Math.floor(dayOfYear / 7) % 2 !== 0)) continue;
       if (freq === 'monthly' && dayOfMonth !== 1) continue;
 
-      // Daily frequency is a paid upgrade — billed per extra brief. The
-      // debit is handled at the `/api/billing/debit-credit` endpoint so
-      // we only send when the client has enough credits. For now, daily
-      // clients go through unconditionally — wire credit debit before
-      // marketing "daily CEO brief" as an upsell.
-      if (freq === 'daily') {
-        // TODO(credits): debit 1 credit here or skip if client has 0.
+      // ── Facturation des cadences rapprochées ──
+      //
+      // Un crédit par brief réellement envoyé, et seulement sur les cadences
+      // rapprochées : hebdomadaire, bimensuel et mensuel restent gratuits.
+      // Un client quotidien consomme donc une trentaine de crédits par mois,
+      // soit 3 % du forfait Créateur — assez pour couvrir le coût, assez peu
+      // pour ne pas peser sur ce qu'il vient chercher.
+      //
+      // Le débit vient AVANT la génération : facturer un brief que le modèle
+      // n'a pas réussi à produire serait indéfendable.
+      //
+      // ── Ce qui se passe quand il n'a plus de crédits ──
+      //
+      // On ne coupe pas le service en silence. Le client bascule sur la
+      // cadence hebdomadaire, gratuite : il continue de recevoir ses points,
+      // simplement moins souvent. Disparaître sans rien dire est le
+      // comportement qui nous a déjà coûté le plus cher.
+      if (freq === 'daily' || freq === 'every_2_days') {
+        const { deductCredits, getCreditsBalance } = await import('@/lib/credits/server');
+        const solde = await getCreditsBalance(client.id);
+        if (solde < 1) {
+          if (dayOfWeek !== preferredDay) continue;
+        } else {
+          const debit = await deductCredits(
+            client.id,
+            'brief_client',
+            `Point ${timeOfDay === 'evening' ? 'du soir' : 'du matin'} — cadence ${freq}`,
+            undefined,
+            1,
+          );
+          // Un débit qui échoue pour une raison technique ne doit pas priver
+          // le client : on trace et on envoie quand même.
+          if (!debit.success) {
+            console.warn('[CeoReports] débit refusé pour', client.id, '— brief envoyé quand même');
+          }
+        }
       }
 
       // Get client's agent activity — lookback matches frequency

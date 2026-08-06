@@ -18,17 +18,22 @@ import { useEffect, useState, useCallback } from 'react';
  * réglages qu'il ne pouvait pas voir. Les seuls contrôles existants vivaient
  * dans le panneau de Noah, devenu inaccessible.
  *
- * ── Ce qu'on n'affiche pas ──
+ * ── Le coût, annoncé parce qu'il est prélevé ──
  *
- * Aucune mention de coût en crédits. Le débit du brief quotidien est resté un
- * TODO jamais câblé dans /api/agents/ceo-reports : annoncer un prix qu'on ne
- * prélève pas serait un mensonge d'interface, et le jour où on le câblerait,
- * le client découvrirait un débit qu'il croyait déjà payé.
+ * Les cadences rapprochées coûtent 1 crédit par point ; hebdomadaire et
+ * mensuel restent gratuits. Le prix n'a été affiché qu'une fois le débit
+ * réellement câblé dans /api/agents/ceo-reports (2026-08-06) : tant qu'il
+ * n'était qu'un TODO, l'annoncer aurait été un mensonge d'interface, et le
+ * taire après coup aurait fait découvrir un débit au client.
+ *
+ * À court de crédits, le client ne perd pas le service : il repasse sur la
+ * cadence hebdomadaire gratuite. Disparaître sans rien dire est le
+ * comportement qui nous a déjà coûté le plus cher.
  */
 
-const FREQUENCES: Array<{ valeur: string; libelle: string; detail: string }> = [
-  { valeur: 'daily', libelle: 'Chaque jour', detail: 'Le matin ce qui est prévu, le soir ce qui a tourné.' },
-  { valeur: 'every_2_days', libelle: 'Tous les 2 jours', detail: 'Le bon rythme si tu regardes sans y penser tous les jours.' },
+const FREQUENCES: Array<{ valeur: string; libelle: string; detail: string; cout?: string }> = [
+  { valeur: 'daily', libelle: 'Chaque jour', detail: 'Le matin ce qui est prévu, le soir ce qui a tourné.', cout: '1 crédit par point' },
+  { valeur: 'every_2_days', libelle: 'Tous les 2 jours', detail: 'Le bon rythme si tu regardes sans y penser tous les jours.', cout: '1 crédit par point' },
   { valeur: 'weekly', libelle: 'Chaque semaine', detail: 'Un seul point, le jour où ton audience est la plus active.' },
   { valeur: 'monthly', libelle: 'Chaque mois', detail: "Le strict nécessaire : ce qui a changé, et ce qu'Ami ajuste." },
 ];
@@ -145,6 +150,9 @@ export default function ReglagesDebriefs({ en = false }: { en?: boolean }) {
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${prefs.frequency === f.valeur ? 'bg-emerald-400' : 'bg-white/20'}`} />
                     <span className="text-white text-[13px] font-semibold">{f.libelle}</span>
+                    {f.cout && (
+                      <span className="ml-auto text-white/35 text-[11px] font-medium">{f.cout}</span>
+                    )}
                   </div>
                   <p className="text-white/45 text-[12px] leading-snug mt-0.5 pl-4">{f.detail}</p>
                 </button>
