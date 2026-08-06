@@ -2,7 +2,8 @@
  * Google Business Profile API helpers.
  * Handles OAuth token exchange, refresh, and review management.
  *
- * API: Google Business Profile API (v1)
+ * API : Business Information + Account Management (v1) pour la fiche,
+ *        GBP API v4.9 pour les avis — les avis n'ont pas d'équivalent v1.
  * Scope: https://www.googleapis.com/auth/business.manage
  * Docs: https://developers.google.com/my-business/reference/rest
  */
@@ -12,7 +13,28 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 // ne gère que les COMPTES, la seconde les ÉTABLISSEMENTS (et exige un readMask).
 const GBP_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
 const GBP_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const GBP_REVIEWS_BASE = 'https://mybusinessreviews.googleapis.com/v1'; // Reviews API is separate
+// Les avis n'ont JAMAIS migré vers une API v1. mybusinessreviews.googleapis.com
+// n'existe pas — l'hôte ne répond même pas à la découverte, ce qui produisait
+// une erreur réseau indiscernable d'un problème de quota. Ils vivent dans la
+// GBP API v4.9, la seule que Google autorise encore pour les avis, et celle
+// que nous avons demandée dans le dossier d'accès 5-7160000041228.
+const GBP_V4_BASE = 'https://mybusiness.googleapis.com/v4';
+
+/**
+ * Construit le chemin v4 « accounts/X/locations/Y ».
+ *
+ * Le v4 exige le chemin complet là où la Business Information API ne renvoie
+ * que « locations/Y ». On recompose donc à partir du compte stocké, tout en
+ * acceptant une valeur déjà complète — selon l'endroit où elle a été écrite,
+ * les deux formes existent en base.
+ */
+export function cheminV4(accountStored: string | null | undefined, locationStored: string): string {
+  const loc = String(locationStored || '');
+  if (loc.includes('accounts/')) return loc.replace(/^\/+/, '');
+  const location = (loc.match(/locations\/[^/]+/) || [loc])[0];
+  const compte = String(accountStored || '').match(/accounts\/[^/]+/)?.[0];
+  return compte ? `${compte}/${location}` : location;
+}
 
 export interface GoogleTokens {
   access_token: string;
@@ -170,8 +192,18 @@ export async function listLocations(accessToken: string, accountName: string): P
 /**
  * Fetch reviews for a location.
  */
-export async function getReviews(accessToken: string, locationName: string, pageSize = 20): Promise<GoogleReview[]> {
-  const res = await fetch(`${GBP_REVIEWS_BASE}/${locationName}/reviews?pageSize=${pageSize}`, {
+export async function getReviews(
+  accessToken: string,
+  locationName: string,
+  pageSize = 20,
+  accountName?: string | null,
+): Promise<GoogleReview[]> {
+  const chemin = cheminV4(accountName, locationName);
+  if (!chemin.includes('accounts/')) {
+    // Sans le compte, le v4 renvoie un 404 opaque. Mieux vaut le dire.
+    throw new Error('Compte Google Business inconnu — impossible de lire les avis (chemin v4 incomplet)');
+  }
+  const res = await fetch(`${GBP_V4_BASE}/${chemin}/reviews?pageSize=${pageSize}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) {
@@ -195,7 +227,9 @@ export async function getReviews(accessToken: string, locationName: string, page
  * Reply to a review.
  */
 export async function replyToReview(accessToken: string, reviewName: string, replyText: string): Promise<boolean> {
-  const res = await fetch(`${GBP_REVIEWS_BASE}/${reviewName}/reply`, {
+  // Le v4 renvoie déjà « accounts/X/locations/Y/reviews/Z » dans review.name :
+  // on le réutilise tel quel, sans recomposer.
+  const res = await fetch(`${GBP_V4_BASE}/${String(reviewName).replace(/^\/+/, '')}/reply`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -212,7 +246,6 @@ export async function replyToReview(accessToken: string, reviewName: string, rep
 }
 
 // ── Optimisation de la fiche (SEO local) — scope business.manage ──
-const GBP_V4_BASE = 'https://mybusiness.googleapis.com/v4';
 
 /** Normalise "accounts/X/locations/Y" → "locations/Y" (Business Information API). */
 function toLocationName(stored: string): string {

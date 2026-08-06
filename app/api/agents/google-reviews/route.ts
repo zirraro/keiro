@@ -74,7 +74,11 @@ export async function GET(req: NextRequest) {
   // Get user's Google Business location
   const { data: profile } = await supabase
     .from('profiles')
-    .select('google_business_location_id, google_business_location_name, google_business_refresh_token, email')
+    // google_business_account_id est indispensable au chemin v4
+    // « accounts/X/locations/Y ». Colonne vérifiée présente avant ajout : une
+    // colonne inconnue ici ferait rejeter la requête ENTIÈRE, pas seulement
+    // le champ — Théo tomberait en silence.
+    .select('google_business_account_id, google_business_location_id, google_business_location_name, google_business_refresh_token, email')
     .eq('id', user.id)
     .single();
 
@@ -131,6 +135,25 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Un client connecté AVANT que le compte soit stocké a bien sa localisation
+  // mais pas son accountId. Le chemin v4 serait incomplet et Théo lèverait une
+  // erreur alors que tout est en place — on le retrouve et on le persiste.
+  let accountId = profile.google_business_account_id;
+  if (locationId && !accountId) {
+    try {
+      const { listAccounts } = await import('@/lib/google-business-oauth');
+      const comptes = await listAccounts(accessToken);
+      if (comptes.length > 0) {
+        accountId = comptes[0].name;
+        await supabase.from('profiles')
+          .update({ google_business_account_id: accountId })
+          .eq('id', user.id);
+      }
+    } catch (e: any) {
+      console.warn('[GoogleReviews] compte introuvable pour chemin v4:', String(e?.message || e).slice(0, 160));
+    }
+  }
+
   if (!locationId) {
     return NextResponse.json({
       ok: true,
@@ -147,7 +170,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const reviews = await getReviews(accessToken, locationId, 20);
+    // Le v4 exige « accounts/X/locations/Y » : on lui passe le compte stocké,
+    // sans quoi il répond 404 sans dire pourquoi.
+    const reviews = await getReviews(accessToken, locationId, 20, accountId);
 
     // Théo auto-reply flow: when the cron wakes us up with CRON_SECRET and
     // the client has google_reviews_auto_reply=true, we iterate every
