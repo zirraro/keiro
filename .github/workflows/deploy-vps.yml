@@ -38,7 +38,25 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      # ── Pourquoi une nouvelle tentative ──
+      #
+      # Incident 2026-08-06 : après une quinzaine de déploiements dans la
+      # journée, la poignée de main SSH a été coupée par le VPS
+      # (« connection reset by peer ») — fail2ban ou l'étranglement des
+      # connexions simultanées de sshd. Rien n'était cassé dans le code, et
+      # relancer à l'identique a suffi.
+      #
+      # On a d'abord envisagé de mettre les plages GitHub en liste blanche
+      # côté fail2ban. Mauvaise idée : elles comptent plus de 5 000 entrées,
+      # et surtout n'importe qui peut louer cette infrastructure — on aurait
+      # troqué un déploiement fragile contre un VPS ouvert.
+      #
+      # On rend donc le déploiement patient plutôt que le serveur permissif.
+      # Le script est idempotent : une seconde tentative ne peut pas laisser
+      # un état à moitié déployé.
       - name: Déployer sur le VPS
+        id: deploiement
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 51.68.226.25
@@ -50,6 +68,20 @@ jobs:
           # rechargement pm2, puis contrôle que l'URL publique sert bien le
           # commit attendu. Il échoue AVANT le rechargement si quelque chose
           # cloche, ce qui laisse l'ancienne version en ligne.
+          script: |
+            set -e
+            cd /opt/keiro
+            bash scripts/deploy.sh
+
+      - name: Nouvelle tentative après un refus de connexion
+        if: steps.deploiement.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 51.68.226.25
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 18m
           script: |
             set -e
             cd /opt/keiro
