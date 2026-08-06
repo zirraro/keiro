@@ -47,9 +47,33 @@ if [ "$missing" -gt 0 ]; then
 fi
 echo "  ✓ manifestes complets"
 
-echo "▶ pm2 reload"
-pm2 reload keiro-app --update-env
-pm2 reload keiro-worker --update-env || true
+# pm2 : recharger si le processus existe, le DÉMARRER sinon.
+#
+# `pm2 reload` échoue quand le processus n'est pas dans la liste — ce qui arrive
+# après un redémarrage de la machine, pm2 repartant vide. Le `|| true` sur le
+# worker masquait alors l'échec : le déploiement s'annonçait réussi, le site
+# revenait, et le worker restait éteint. Aucun cron ne tournait plus, sans la
+# moindre alerte, puisque c'est précisément le worker qui les déclenche.
+#
+# C'est arrivé le 6 août : 57 minutes sans le moindre agent, découvertes par
+# hasard en regardant les journaux.
+echo "▶ pm2"
+pm2 reload keiro-app --update-env 2>/dev/null || pm2 start npm --name keiro-app -- start
+pm2 reload keiro-worker --update-env 2>/dev/null || pm2 start worker/ecosystem.config.cjs
+
+# Persiste la liste : sans ça, un redémarrage de la machine repart sur une pm2
+# vide et plus rien ne se relance tout seul.
+pm2 save --force >/dev/null 2>&1 || true
+
+# Contrôle explicite : les deux processus DOIVENT être en ligne. Un déploiement
+# qui laisse le worker éteint n'est pas un déploiement réussi.
+enligne=$(pm2 jlist 2>/dev/null | grep -o '"status":"online"' | wc -l)
+if [ "$enligne" -lt 2 ]; then
+  echo "✗ pm2 : $enligne processus en ligne sur 2 attendus"
+  pm2 list
+  exit 1
+fi
+echo "  ✓ keiro-app et keiro-worker en ligne"
 
 # Give the app a moment to come up, then verify from the PUBLIC URL (apex + www).
 sleep 4
