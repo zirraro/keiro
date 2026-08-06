@@ -8,7 +8,10 @@
  */
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+// Deux API distinctes, et les confondre est l'erreur classique : la première
+// ne gère que les COMPTES, la seconde les ÉTABLISSEMENTS (et exige un readMask).
 const GBP_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
+const GBP_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const GBP_REVIEWS_BASE = 'https://mybusinessreviews.googleapis.com/v1'; // Reviews API is separate
 
 export interface GoogleTokens {
@@ -134,12 +137,31 @@ export async function listAccounts(accessToken: string): Promise<any[]> {
  * List locations for a Google Business account.
  */
 export async function listLocations(accessToken: string, accountName: string): Promise<any[]> {
-  const res = await fetch(`${GBP_BASE}/${accountName}/locations`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  // Les établissements ne vivent PAS dans l'API Account Management, qui ne gère
+  // que les comptes : ils sont dans l'API Business Information, et celle-ci
+  // exige un `readMask` — sans lui elle répond 400.
+  //
+  // L'appel partait donc sur la mauvaise API et sans masque, échouait
+  // systématiquement, et l'erreur était avalée par le try/catch appelant. Tout
+  // client voyait « Google Business connecté, mais aucun établissement », y
+  // compris avec une fiche parfaitement existante.
+  //
+  // `metadata` est demandé volontairement : c'est lui qui porte l'état de
+  // validation. Une fiche en cours de vérification par Google est bien
+  // rattachée au compte et doit apparaître — sinon un commerçant qui vient de
+  // créer sa fiche croit que la connexion a échoué.
+  const readMask = [
+    'name', 'title', 'storefrontAddress', 'websiteUri', 'phoneNumbers',
+    'categories', 'regularHours', 'metadata', 'profile',
+  ].join(',');
+
+  const url = `${GBP_INFO_BASE}/${accountName}/locations`
+    + `?readMask=${encodeURIComponent(readMask)}&pageSize=100`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`List locations failed: ${err}`);
+    throw new Error(`List locations failed (${res.status}): ${err.slice(0, 300)}`);
   }
   const data = await res.json();
   return data.locations || [];
@@ -190,7 +212,6 @@ export async function replyToReview(accessToken: string, reviewName: string, rep
 }
 
 // ── Optimisation de la fiche (SEO local) — scope business.manage ──
-const GBP_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const GBP_V4_BASE = 'https://mybusiness.googleapis.com/v4';
 
 /** Normalise "accounts/X/locations/Y" → "locations/Y" (Business Information API). */

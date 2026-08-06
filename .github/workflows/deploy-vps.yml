@@ -1,63 +1,56 @@
-name: Deploy to VPS
+name: Déploiement VPS
 
-# Manual trigger only. Auto-deploy on push was failing because the
-# VPS_SSH_KEY / Supabase env secrets have never been added to the repo,
-# flooding the user with "deploy failed" emails. Deploy is done manually
-# via SSH for now — re-enable the push trigger once the secrets are set.
+# ── Pourquoi ce workflow existe ──
+#
+# Le déploiement se faisait en SSH depuis le poste du fondateur. Le 6 août, sur
+# le réseau d'entreprise, tout SSH sortant s'est retrouvé bloqué : le pare-feu
+# laisse la connexion TCP s'ouvrir puis tue la poignée de main — y compris vers
+# GitHub, ce qui a permis de l'identifier. Plus aucun déploiement possible.
+#
+# Les runners GitHub ne sont pas derrière ce pare-feu. Le déploiement part donc
+# de chez eux, et se déclenche par un simple appel HTTPS que tous les réseaux
+# laissent passer.
+#
+# ── Pourquoi on ne construit PAS sur le runner ──
+#
+# La version précédente compilait sur GitHub, ce qui exigeait d'y recopier
+# toutes les variables publiques du projet. Une variable oubliée produit une
+# application compilée sans elle : pas d'erreur au build, une panne en
+# production. On garde donc la compilation sur le VPS, où le fichier
+# d'environnement réel fait autorité, et le runner ne sert qu'à porter la
+# commande.
+#
+# Un seul secret est nécessaire : VPS_SSH_KEY, la clé privée d'accès au VPS.
+
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  # Deux déploiements simultanés se marcheraient dessus pendant le `git pull`.
+  group: deploiement-vps
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  deployer:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-        env:
-          # Build-time env vars (public only — secrets stay on the server)
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_APP_URL: https://keiroai.com
-          NEXT_PUBLIC_BASE_URL: https://keiroai.com
-
-      # Build succeeded → deploy to VPS
-      - name: Deploy to VPS
+      - name: Déployer sur le VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 51.68.226.25
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
-          command_timeout: 10m
+          command_timeout: 18m
+          # `deploy.sh` fait tout : build propre, vérification des manifestes,
+          # rechargement pm2, puis contrôle que l'URL publique sert bien le
+          # commit attendu. Il échoue AVANT le rechargement si quelque chose
+          # cloche, ce qui laisse l'ancienne version en ligne.
           script: |
+            set -e
             cd /opt/keiro
-            echo "📥 Pulling latest..."
-            git pull origin main
-
-            echo "📦 Installing dependencies..."
-            npm ci --production=false 2>&1 | tail -3
-
-            echo "🔨 Building..."
-            npm run build 2>&1 | tail -10
-
-            echo "🔄 Restarting app + worker..."
-            pm2 restart keiro-app || pm2 start npm --name keiro-app -- start
-            pm2 restart keiro-worker || pm2 start worker/ecosystem.config.cjs
-            pm2 save
-
-            echo "✅ Deploy complete"
-            pm2 list
+            bash scripts/deploy.sh
