@@ -751,7 +751,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
             <button
               disabled={pushBusy}
               onClick={disablePush}
-              className="px-3 py-1 text-[11px] text-white/50 hover:text-white/80 border border-white/10 rounded-md transition disabled:opacity-50"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-[11px] text-white/50 hover:text-white/80 border border-white/10 rounded-md transition disabled:opacity-50"
               title={en ? 'Disable morning reminders' : 'Désactiver les rappels du matin'}
             >
               {'\u{1F514}'} {en ? 'Reminders on' : 'Rappels activés'}
@@ -761,7 +761,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
             <button
               disabled={pushBusy}
               onClick={enablePush}
-              className="px-3 py-1 text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 rounded-md transition disabled:opacity-50"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 rounded-md transition disabled:opacity-50"
               title={en ? 'Enable morning push reminders' : 'Activer les rappels push chaque matin'}
             >
               {'\u{1F514}'} {en ? 'Enable morning reminders' : 'Activer les rappels matin'}
@@ -775,7 +775,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
           <button
             disabled={batchBusy}
             onClick={handleMarkAllDone}
-            className="px-3 py-1 text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
+            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
           >
             {batchBusy
               ? (en ? 'Marking…' : 'En cours…')
@@ -1992,7 +1992,7 @@ function LenaCommentsSection() {
           <button
             onClick={replySelected}
             disabled={replyingBatch}
-            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg disabled:opacity-50"
+            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg disabled:opacity-50"
           >
             {replyingBatch ? '...' : (en ? `AI replies to ${selected.size}` : `IA répond aux ${selected.size}`)}
           </button>

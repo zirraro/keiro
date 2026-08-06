@@ -106,7 +106,7 @@ export default function GmailNativeInbox() {
       </p>
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <button type="button" onClick={runTriage} disabled={triaging}
-          className="text-[11px] px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 font-semibold hover:bg-indigo-500/30 disabled:opacity-50">
+          className="min-h-[44px] inline-flex items-center justify-center text-[11px] px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 font-semibold hover:bg-indigo-500/30 disabled:opacity-50">
           {triaging ? (en ? 'Hugo is sorting…' : 'Hugo trie…') : (en ? '🧹 Sort & tidy my inbox' : '🧹 Trier & ranger ma boîte')}
         </button>
         {triageMsg && <span className="text-[10px] text-emerald-300">{triageMsg}</span>}

@@ -144,7 +144,7 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
               <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Explore & follow' : 'À explorer & suivre'}</div>
               <div className="space-y-1.5">
                 {data.categories.map((c: any, i: number) => (
-                  <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 hover:border-emerald-500/40">
+                  <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="min-h-[44px] flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 hover:border-emerald-500/40">
                     <div className="text-[11px] font-medium text-white/80">{c.label} ↗</div>
                     <div className="text-[10px] text-white/40">{c.why}</div>
                   </a>

@@ -150,7 +150,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
               href="https://business.google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 text-[10px] font-medium bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 ml-auto"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 text-[10px] font-medium bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 ml-auto"
             >
               Google Business {'\u2197'}
             </a>
@@ -306,7 +306,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
               <p className="text-white/60 text-xs mb-2 leading-relaxed">{p.gmapsNeedsLocationDesc}</p>
               <a
                 href="/api/auth/google-oauth"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
+                className="min-h-[44px] inline-flex items-center justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
               >
                 {p.gmapsNeedsLocationBtn}
               </a>

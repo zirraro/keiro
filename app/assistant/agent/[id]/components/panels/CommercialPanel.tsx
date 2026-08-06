@@ -277,7 +277,7 @@ function PhoneProspection() {
                 </div>
                 <div className="text-[11px] text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>
               </div>
-              <a href={`tel:${p.phone}`} className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 text-sm font-semibold whitespace-nowrap active:scale-95">📞 {p.phone}</a>
+              <a href={`tel:${p.phone}`} className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 text-sm font-semibold whitespace-nowrap active:scale-95">📞 {p.phone}</a>
             </div>
             <div className="mt-2 text-[11px] text-orange-200 bg-orange-500/10 border border-orange-500/15 rounded-lg px-2 py-1.5">
               <strong>{isEn ? 'Action:' : 'Action :'}</strong> {p.recommended_action}

@@ -160,7 +160,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
               href="/meta-audit?lang=en"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-semibold transition flex-shrink-0"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-semibold transition flex-shrink-0"
             >
               {en ? 'View audit \u2197' : <>Voir l&apos;audit \u2197</>}
             </a>
@@ -430,7 +430,7 @@ function NetworkInsightSection({
         {usingSample && (
           <a
             href={connectUrl}
-            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold flex-shrink-0 transition"
+            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold flex-shrink-0 transition"
           >
             {en ? 'Connect →' : 'Connecter →'}
           </a>

@@ -387,7 +387,7 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
             ? <>Need help? <a href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Book a 30-min call</a> and we set it up together.</>
             : <>Besoin d&apos;aide ? <a href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Prends un RDV 30 min</a> et on le fait ensemble.</>}
         </p>
-        <button type="submit" disabled={busy} className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold rounded-lg transition disabled:opacity-50">
+        <button type="submit" disabled={busy} className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold rounded-lg transition disabled:opacity-50">
           {busy ? (en ? 'Testing…' : 'Test en cours…') : (en ? 'Test & save' : 'Tester & sauvegarder')}
         </button>
       </div>

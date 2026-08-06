@@ -56,7 +56,7 @@ function SiteAnalysisCard() {
           {res.locked ? (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3">
               <p className="text-[11px] text-amber-200 font-semibold">{res.upsell}</p>
-              <a href="/checkout/upsell" className="inline-block mt-2 px-3 py-1.5 text-[11px] font-bold rounded-md bg-amber-500 text-black hover:opacity-90">{en ? 'Upgrade to Pro' : 'Passer au pack Pro'}</a>
+              <a href="/checkout/upsell" className="min-h-[44px] inline-flex items-center justify-center mt-2 px-3 py-1.5 text-[11px] font-bold rounded-md bg-amber-500 text-black hover:opacity-90">{en ? 'Upgrade to Pro' : 'Passer au pack Pro'}</a>
             </div>
           ) : (
             <>

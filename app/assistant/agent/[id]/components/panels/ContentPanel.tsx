@@ -476,7 +476,7 @@ function PerNetworkStats({ stats }: { stats: any }) {
           {usingSample && (
             <a
               href={cur.connectUrl}
-              className="ml-auto px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold transition"
+              className="min-h-[44px] inline-flex items-center justify-center ml-auto px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold transition"
             >
               {en ? 'Connect →' : 'Connecter →'}
             </a>
@@ -1618,7 +1618,7 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
                 {brief.notes && <div className="text-white/60 text-[10px]">{brief.notes}</div>}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={removeBrief} disabled={busy} className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Remove</button>
+                <button onClick={removeBrief} disabled={busy} className="min-h-[44px] inline-flex items-center justify-center text-[10px] text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Remove</button>
                 <button onClick={() => { setBrief(null); setHandle(''); }} className="text-[10px] text-white/50 hover:text-white px-2 py-1">Change</button>
               </div>
             </div>

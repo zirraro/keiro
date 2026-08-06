@@ -97,7 +97,7 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
         <div className="bg-white/5 rounded-lg border border-white/10 p-3">
           <div className="flex items-center gap-2 text-[11px]"><span>✋</span><span className="text-white/80 font-semibold">{p.tiktokSvcFollowTitle}</span></div>
           <p className="text-white/45 text-[10px] mt-1">{p.tiktokSvcFollowDesc}</p>
-          <a href="/assistant/crm" className="inline-block mt-2 px-3 py-1.5 bg-white/10 text-white/70 text-[10px] rounded-lg hover:bg-white/15 transition-all">{p.tiktokSvcFollowCta}</a>
+          <a href="/assistant/crm" className="min-h-[44px] inline-flex items-center justify-center mt-2 px-3 py-1.5 bg-white/10 text-white/70 text-[10px] rounded-lg hover:bg-white/15 transition-all">{p.tiktokSvcFollowCta}</a>
         </div>
       </div>
 
