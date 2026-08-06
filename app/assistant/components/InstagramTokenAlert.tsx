@@ -3,95 +3,99 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Checks Instagram token validity on mount.
- * Shows a popup/banner if token is expired, missing, or expiring soon.
+ * Signale un jeton Instagram expiré. Sans jamais bloquer la navigation.
+ *
+ * Demande du fondateur (2026-08-07) : « quand Insta est déconnecté on a un
+ * pop-up qui sort sur la page agent, c'est pas la peine. On veut pouvoir
+ * naviguer tranquillement dans les agents et voir ensuite sur la page Léna
+ * qu'on n'est pas connecté. »
+ *
+ * ── Ce qui a changé ──
+ *
+ * C'était un écran plein cadre, fond noirci, qui s'ouvrait à chaque entrée
+ * dans l'espace de travail dès qu'Instagram n'était pas connecté. Il fallait
+ * le fermer avant de pouvoir faire quoi que ce soit — y compris pour un
+ * client qui n'a simplement pas encore branché Instagram, ce qui est l'état
+ * normal des premières minutes.
+ *
+ * Deux situations distinctes, traitées différemment :
+ *
+ * • **Pas connecté** — rien du tout ici. Ce n'est pas un incident, c'est un
+ *   état. Le panneau de Léna porte déjà sa bannière de connexion, à l'endroit
+ *   où le client se pose la question.
+ *
+ * • **Jeton expiré ou sur le point de l'être** — là, quelque chose qui
+ *   marchait s'est arrêté, et le client ne peut pas le deviner : ses
+ *   publications cessent en silence. On le dit, mais dans un bandeau discret
+ *   en bas d'écran, qui n'empêche rien et se ferme d'un geste.
  */
 export default function InstagramTokenAlert() {
   const [status, setStatus] = useState<any>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [ferme, setFerme] = useState(false);
 
   useEffect(() => {
-    // Don't check if already dismissed this session
-    const dismissed = sessionStorage.getItem('ig_token_alert_dismissed');
-    if (dismissed) return;
+    if (sessionStorage.getItem('ig_token_alert_dismissed')) return;
 
-    async function check() {
+    (async () => {
       try {
         const res = await fetch('/api/instagram/check-token', { credentials: 'include' });
         if (!res.ok) return;
         const data = await res.json();
-        if (!data.valid || data.expires_soon) {
-          setStatus(data);
-        }
-      } catch { /* silent */ }
-    }
-    check();
+        // « Jamais connecté » n'est pas une alerte : on ne remonte que ce qui
+        // s'est cassé après avoir fonctionné.
+        if (data.reason === 'not_connected') return;
+        if (!data.valid || data.expires_soon) setStatus(data);
+      } catch { /* silencieux : une alerte ne doit pas gêner si elle échoue */ }
+    })();
   }, []);
 
-  if (!status || dismissed) return null;
+  if (!status || ferme) return null;
 
-  const isExpired = status.reason === 'token_invalid' || status.reason === 'ig_access_failed';
-  const isNotConnected = status.reason === 'not_connected';
-  const isExpiringSoon = status.expires_soon;
+  const expire = status.reason === 'token_invalid' || status.reason === 'ig_access_failed';
+
+  const fermer = () => {
+    setFerme(true);
+    sessionStorage.setItem('ig_token_alert_dismissed', '1');
+  };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
-        {/* Icon */}
-        <div className="text-center mb-4">
-          <div className="text-5xl mb-2">{isExpired ? '⚠️' : isNotConnected ? '📸' : '⏳'}</div>
-          <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-            {isExpired ? 'Token Instagram expire' :
-             isNotConnected ? 'Instagram non connecte' :
-             'Token Instagram expire bientot'}
-          </h3>
-        </div>
-
-        {/* Message */}
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 text-center mb-4 break-words">
-          {status.message}
-        </p>
-
-        {/* Impact */}
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4">
-          <p className="text-xs text-red-700 dark:text-red-300 font-medium">
-            {isNotConnected ? 'Sans connexion Instagram :' : 'Avec un token expire :'}
+    <div
+      role="status"
+      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-40 rounded-2xl border border-amber-400/30 bg-neutral-900/95 backdrop-blur shadow-2xl p-4"
+    >
+      <div className="flex items-start gap-3">
+        <span className="text-xl leading-none flex-shrink-0" aria-hidden>⚠️</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-white text-sm font-semibold">
+            {expire ? 'Ta connexion Instagram a expiré' : 'Ta connexion Instagram expire bientôt'}
           </p>
-          <ul className="text-xs text-red-600 dark:text-red-400 mt-1 space-y-0.5">
-            <li>• Aucune publication automatique sur Instagram</li>
-            <li>• Agent Content bloque</li>
-            <li>• Agent Community inactif</li>
-            <li>• Pas de DMs automatiques</li>
-          </ul>
+          <p className="text-white/55 text-[13px] leading-relaxed mt-0.5">
+            {expire
+              ? 'Léna ne peut plus publier ni répondre à tes messages tant que ce n’est pas rétabli.'
+              : 'Reconnecte quand tu veux — ça évite une coupure de publication.'}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <a
+              href="/api/auth/instagram-oauth"
+              className="min-h-[44px] inline-flex items-center justify-center px-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[13px] font-semibold hover:opacity-90 transition-opacity"
+            >
+              Reconnecter
+            </a>
+            <button
+              onClick={fermer}
+              className="min-h-[44px] inline-flex items-center justify-center px-4 rounded-xl text-white/45 hover:text-white/75 text-[13px] font-medium transition-colors"
+            >
+              Plus tard
+            </button>
+          </div>
         </div>
-
-        {/* CTA — direct Instagram OAuth connection */}
-        <a
-          href="/api/auth/instagram-oauth"
-          className="block w-full py-3 text-center rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-sm hover:opacity-90 transition"
+        <button
+          onClick={fermer}
+          aria-label="Fermer"
+          className="min-h-[44px] min-w-[44px] -mt-2 -mr-2 inline-flex items-center justify-center text-white/30 hover:text-white/70 text-lg transition-colors"
         >
-          {isNotConnected ? 'Connecter Instagram' : 'Reconnecter Instagram'}
-        </a>
-
-        {/* Dismiss */}
-        {isExpiringSoon && !isExpired && (
-          <button
-            onClick={() => { setDismissed(true); sessionStorage.setItem('ig_token_alert_dismissed', '1'); }}
-            className="block w-full mt-2 py-2 text-center text-sm text-neutral-400 hover:text-neutral-600 transition"
-          >
-            Me rappeler plus tard
-          </button>
-        )}
-
-        {/* Close for expired (forced reconnect) */}
-        {(isExpired || isNotConnected) && (
-          <button
-            onClick={() => { setDismissed(true); sessionStorage.setItem('ig_token_alert_dismissed', '1'); }}
-            className="block w-full mt-2 py-2 text-center text-xs text-neutral-400 hover:text-neutral-500"
-          >
-            Ignorer pour le moment
-          </button>
-        )}
+          ×
+        </button>
       </div>
     </div>
   );

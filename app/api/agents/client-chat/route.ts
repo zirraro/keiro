@@ -567,15 +567,21 @@ détail vit dans le Planning.`;
             }
           }
         } else if (actionType === 'scan_dms') {
-          const res = await fetch(`${baseUrl}/api/agents/dm-instagram/auto-reply`, {
+          // Sans user_id, cette route se rabattait sur le compte admin : le
+          // client voyait un décompte de DM qui n'était pas le sien.
+          const res = await fetch(`${baseUrl}/api/agents/dm-instagram/auto-reply?user_id=${user.id}`, {
             method: 'POST', headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
           });
           const data = await res.json();
           actionResult = `${data.replied || 0} DMs répondus, ${data.total_conversations || 0} conversations scannées`;
         } else if (actionType === 'reply_comments') {
+          // Cette route lit user_id dans le CORPS. Sans lui, elle se rabat
+          // sur le premier profil is_admin : un client demandait à Jade de
+          // répondre à ses commentaires, et c'est le compte du fondateur qui
+          // était traité.
           const res = await fetch(`${baseUrl}/api/agents/instagram-comments`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            body: JSON.stringify({ action: 'auto_reply_all' }),
+            body: JSON.stringify({ action: 'auto_reply_all', user_id: user.id }),
           });
           const data = await res.json();
           actionResult = `${data.replied || data.comments_replied || 0} commentaires répondus`;
@@ -587,9 +593,11 @@ détail vit dans le Planning.`;
           const data = await res.json();
           actionResult = `${data.stats?.success || 0} emails envoyés`;
         } else if (actionType === 'prospect') {
-          const res = await fetch(`${baseUrl}/api/agents/gmaps`, {
+          // Même piège : sans user_id dans l'URL, les prospects trouvés
+          // atterrissaient dans le CRM de l'admin, pas dans celui du client.
+          const res = await fetch(`${baseUrl}/api/agents/gmaps?user_id=${user.id}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            body: JSON.stringify({ query: actionJson.query }),
+            body: JSON.stringify({ query: actionJson.query, user_id: user.id }),
           });
           const data = await res.json();
           actionResult = `${data.imported || 0} prospects trouvés sur Google Maps`;
