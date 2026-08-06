@@ -23,9 +23,12 @@
  * période de facturation, et comparer un abonnement mensuel à une dépense d'un
  * jour serait malhonnête même si c'est flatteur.
  *
- * Et chacune reste sous-estimée plutôt que sur-estimée. Un gérant qui trouve
- * l'exemple exagéré doute de tout le reste ; un exemple prudent qu'il révise à
- * la hausse dans sa tête travaille pour nous.
+ * Et chacune vise le MINIMUM crédible, pas une marge de sécurité. La première
+ * version demandait « deux nuitées » là où une seule couvre largement 49 € : à
+ * force de vouloir ne pas exagérer, l'argument s'affaiblissait et laissait
+ * croire que c'était plus cher que ça ne l'est. Le bon dosage est le plus petit
+ * chiffre encore incontestable — celui qui fait dire « ah oui, c'est vite
+ * réglé » plutôt que « il en faut quand même quelques-uns ».
  */
 import { famillesDe } from '../business-families';
 
@@ -44,114 +47,114 @@ export interface Equivalent {
  */
 const PAR_METIER: Record<string, Equivalent[]> = {
   restaurant: [
-    { depense: 'un extra', phrase: "Moins qu'un extra sur deux services du samedi." },
-    { depense: 'les couverts', phrase: 'Deux menus du midi par semaine, et c\'est payé.' },
-    { depense: 'une plateforme de livraison', phrase: 'Moins que la commission sur une trentaine de commandes livrées.' },
+    { depense: "un extra", phrase: "Moins qu’un seul service d’extra le samedi soir." },
+    { depense: "les couverts", phrase: "Trois menus du midi dans le mois, et c’est payé." },
+    { depense: "une commission", phrase: "Moins que la commission sur dix commandes livrées." },
   ],
   boulangerie: [
-    { depense: 'la vente du matin', phrase: 'Trente baguettes par semaine couvrent le mois.' },
-    { depense: 'un extra du week-end', phrase: "Moins qu'une matinée de renfort le dimanche." },
-    { depense: 'la vitrine', phrase: 'Le prix de deux plateaux de viennoiseries invendus.' },
+    { depense: "une matinée", phrase: "Une demi-journée de vente, et c’est largement payé." },
+    { depense: "les invendus", phrase: "Moins que deux plateaux de viennoiseries invendus." },
+    { depense: "un extra", phrase: "Moins qu’une matinée de renfort le dimanche." },
   ],
   patisserie: [
-    { depense: 'une commande', phrase: 'Trois gâteaux de fête par mois, et le compte y est.' },
-    { depense: 'les pertes', phrase: "Moins que ce qu'on jette une semaine de pluie." },
-    { depense: 'un extra', phrase: "Moins qu'une journée d'aide en laboratoire." },
+    { depense: "une commande", phrase: "Un seul gâteau de fête dans le mois." },
+    { depense: "les pertes", phrase: "Moins que ce qu’on jette une semaine de pluie." },
+    { depense: "un extra", phrase: "Moins qu’une demi-journée d’aide en laboratoire." },
   ],
   coiffeur: [
-    { depense: 'les rendez-vous', phrase: 'Deux couleurs par mois, et c\'est réglé.' },
-    { depense: 'une place vide', phrase: 'Moins que trois créneaux non remplis dans le mois.' },
-    { depense: 'un apprenti', phrase: "Une fraction du coût d'une journée d'apprenti." },
+    { depense: "une couleur", phrase: "Une seule couleur dans le mois, et c’est payé." },
+    { depense: "deux coupes", phrase: "Deux coupes homme, et le compte y est." },
+    { depense: "un créneau vide", phrase: "Moins que deux créneaux non remplis dans le mois." },
   ],
   institut_beaute: [
-    { depense: 'les soins', phrase: 'Deux soins visage par mois suffisent à le couvrir.' },
-    { depense: 'une cabine vide', phrase: 'Moins que quatre créneaux perdus dans le mois.' },
-    { depense: 'les produits', phrase: 'Le prix d\'une commande de produits de milieu de gamme.' },
+    { depense: "un soin", phrase: "Un seul soin visage dans le mois." },
+    { depense: "une cabine vide", phrase: "Moins que deux créneaux perdus." },
+    { depense: "les produits", phrase: "Moins qu’une commande de produits." },
   ],
   bar: [
-    { depense: 'le service', phrase: "Moins qu'une soirée d'extra derrière le comptoir." },
-    { depense: 'les consommations', phrase: 'Une quinzaine de tournées dans le mois.' },
-    { depense: 'la casse', phrase: 'Moins que la casse de verres sur un trimestre.' },
+    { depense: "un service", phrase: "Moins qu’une soirée d’extra derrière le comptoir." },
+    { depense: "les consommations", phrase: "Une dizaine de tournées dans le mois." },
+    { depense: "la casse", phrase: "Moins que la casse de verres sur un semestre." },
   ],
   cafe: [
-    { depense: 'les cafés', phrase: 'Une trentaine de cafés par mois, et c\'est payé.' },
-    { depense: 'un extra', phrase: "Moins qu'une matinée de renfort le samedi." },
-    { depense: 'la terrasse', phrase: 'Le prix de deux services de terrasse sous la pluie.' },
+    { depense: "les cafés", phrase: "Un café par jour ouvré, et c’est réglé." },
+    { depense: "un extra", phrase: "Moins qu’une matinée de renfort le samedi." },
+    { depense: "la terrasse", phrase: "Moins qu’un service de terrasse sous la pluie." },
   ],
   boucherie: [
-    { depense: 'les commandes', phrase: 'Deux commandes de fête par mois le couvrent.' },
-    { depense: 'les invendus', phrase: "Moins que ce qu'on démarque une semaine creuse." },
-    { depense: 'un extra', phrase: "Moins qu'une journée de renfort le samedi." },
+    { depense: "une commande", phrase: "Une seule commande de fête dans le mois." },
+    { depense: "les invendus", phrase: "Moins que ce qu’on démarque une semaine creuse." },
+    { depense: "un extra", phrase: "Moins qu’une demi-journée de renfort le samedi." },
   ],
   fleuriste: [
-    { depense: 'les compositions', phrase: 'Trois bouquets de cérémonie par mois.' },
-    { depense: 'les pertes', phrase: 'Moins que les fleurs jetées en fin de semaine.' },
-    { depense: 'une livraison', phrase: 'Le prix de quelques livraisons en ville.' },
+    { depense: "une composition", phrase: "Un seul bouquet de cérémonie dans le mois." },
+    { depense: "les pertes", phrase: "Moins que les fleurs jetées en fin de semaine." },
+    { depense: "une livraison", phrase: "Le prix de deux livraisons en ville." },
   ],
   garage: [
-    { depense: 'les révisions', phrase: 'Une révision complète par mois, et c\'est réglé.' },
-    { depense: 'un pont vide', phrase: 'Moins que deux heures de pont inoccupé.' },
-    { depense: 'les pièces', phrase: 'Le prix d\'un jeu de plaquettes et de disques.' },
+    { depense: "une révision", phrase: "Moins qu’une seule révision complète." },
+    { depense: "un pont vide", phrase: "Moins qu’une heure de pont inoccupé." },
+    { depense: "les pièces", phrase: "Moins qu’un jeu de plaquettes." },
   ],
   plombier: [
-    { depense: 'une intervention', phrase: 'Une seule intervention dans le mois le couvre.' },
-    { depense: 'un déplacement à vide', phrase: 'Moins que deux déplacements pour rien.' },
-    { depense: 'un devis perdu', phrase: 'Moins que le temps passé sur un devis non signé.' },
+    { depense: "une intervention", phrase: "Une seule intervention dans le mois le couvre." },
+    { depense: "un déplacement à vide", phrase: "Moins qu’un déplacement pour rien." },
+    { depense: "un devis perdu", phrase: "Moins que le temps passé sur un devis non signé." },
   ],
   electricien: [
-    { depense: 'une intervention', phrase: 'Une mise aux normes de tableau dans le mois.' },
-    { depense: 'un déplacement', phrase: 'Moins que deux déplacements sans suite.' },
-    { depense: 'le matériel', phrase: 'Le prix d\'une commande de petit appareillage.' },
+    { depense: "une intervention", phrase: "Une seule intervention dans le mois." },
+    { depense: "un déplacement", phrase: "Moins qu’un déplacement sans suite." },
+    { depense: "le matériel", phrase: "Moins qu’une commande de petit appareillage." },
   ],
   menuisier: [
-    { depense: 'un devis', phrase: 'Une fraction d\'un aménagement sur mesure.' },
-    { depense: 'les chutes', phrase: 'Moins que les chutes de bois d\'un chantier.' },
-    { depense: 'une journée d\'atelier', phrase: "Moins qu'une journée d'atelier facturée." },
+    { depense: "un devis", phrase: "Une fraction d’un seul aménagement sur mesure." },
+    { depense: "les chutes", phrase: "Moins que les chutes de bois d’un chantier." },
+    { depense: "une demi-journée", phrase: "Moins qu’une demi-journée d’atelier facturée." },
   ],
   hotel: [
-    { depense: 'les nuitées', phrase: 'Deux nuitées par mois, et c\'est amorti.' },
-    { depense: 'une chambre vide', phrase: 'Moins qu\'une chambre inoccupée deux nuits.' },
-    { depense: 'la commission', phrase: 'Moins que la commission sur trois réservations en ligne.' },
+    { depense: "une nuitée", phrase: "Une seule nuitée dans le mois, et c’est amorti." },
+    { depense: "une chambre vide", phrase: "Moins qu’une chambre inoccupée une nuit." },
+    { depense: "la commission", phrase: "Moins que la commission sur deux réservations en ligne." },
   ],
   salle_sport: [
-    { depense: 'les abonnements', phrase: 'Deux abonnements mensuels le couvrent.' },
-    { depense: 'un départ', phrase: 'Moins qu\'un adhérent qui ne revient pas.' },
-    { depense: 'un coach', phrase: 'Une fraction d\'une journée de coach.' },
+    { depense: "un abonnement", phrase: "Un abonnement mensuel et demi, et c’est payé." },
+    { depense: "un départ", phrase: "Moins qu’un adhérent qui ne revient pas." },
+    { depense: "un coach", phrase: "Moins qu’une demi-journée de coach." },
   ],
   sante: [
-    { depense: 'les consultations', phrase: 'Deux consultations par mois suffisent.' },
-    { depense: 'un créneau vide', phrase: 'Moins que trois rendez-vous non honorés.' },
-    { depense: 'le secrétariat', phrase: 'Bien moins qu\'une demi-journée de secrétariat.' },
+    { depense: "une consultation", phrase: "Une à deux consultations dans le mois." },
+    { depense: "un rendez-vous manqué", phrase: "Moins que deux rendez-vous non honorés." },
+    { depense: "le secrétariat", phrase: "Moins qu’une demi-journée de secrétariat." },
   ],
   veterinaire: [
-    { depense: 'les consultations', phrase: 'Deux consultations dans le mois.' },
-    { depense: 'un rendez-vous manqué', phrase: 'Moins que trois rendez-vous non honorés.' },
-    { depense: 'le secrétariat', phrase: "Moins qu'une matinée de secrétariat." },
+    { depense: "une consultation", phrase: "Une seule consultation dans le mois." },
+    { depense: "un rendez-vous manqué", phrase: "Moins que deux rendez-vous non honorés." },
+    { depense: "le secrétariat", phrase: "Moins qu’une matinée de secrétariat." },
   ],
   immobilier: [
-    { depense: 'une commission', phrase: 'Une fraction infime d\'une seule commission.' },
-    { depense: 'les annonces', phrase: 'Moins qu\'un mois de diffusion sur un portail.' },
-    { depense: 'les visites', phrase: 'Moins que le temps perdu en visites sans suite.' },
+    { depense: "une commission", phrase: "Une fraction infime d’une seule commission." },
+    { depense: "les annonces", phrase: "Moins qu’une semaine de diffusion sur un portail." },
+    { depense: "les visites", phrase: "Moins que le temps perdu en visites sans suite." },
   ],
   mode: [
-    { depense: 'les ventes', phrase: 'Deux pièces vendues par mois le couvrent.' },
-    { depense: 'les soldes', phrase: 'Moins que la démarque sur un portant.' },
-    { depense: 'une vitrine', phrase: 'Le prix d\'un changement de vitrine.' },
+    { depense: "une vente", phrase: "Une seule pièce vendue dans le mois." },
+    { depense: "les soldes", phrase: "Moins que la démarque sur quelques articles." },
+    { depense: "une vitrine", phrase: "Moins qu’un changement de vitrine." },
   ],
   comptable: [
-    { depense: 'un dossier', phrase: 'Une fraction d\'un dossier annuel.' },
-    { depense: 'une heure facturée', phrase: 'Moins de deux heures facturées dans le mois.' },
-    { depense: 'la prospection', phrase: 'Moins qu\'un salon professionnel sur l\'année.' },
+    { depense: "une heure facturée", phrase: "Moins d’une heure facturée dans le mois." },
+    { depense: "un dossier", phrase: "Une fraction d’un seul dossier annuel." },
+    { depense: "la prospection", phrase: "Moins qu’une journée de salon professionnel." },
   ],
   agence: [
-    { depense: 'une journée', phrase: 'Moins d\'une demi-journée facturée.' },
-    { depense: 'un freelance', phrase: 'Une fraction du coût d\'un rédacteur externe.' },
-    { depense: 'la publicité', phrase: 'Moins qu\'une semaine de budget publicitaire.' },
+    { depense: "une demi-journée", phrase: "Moins d’une demi-journée facturée." },
+    { depense: "un freelance", phrase: "Une fraction du coût d’un rédacteur externe." },
+    { depense: "la publicité", phrase: "Moins que deux jours de budget publicitaire." },
   ],
   photographe: [
-    { depense: 'une séance', phrase: 'Une séance par mois, et c\'est payé.' },
-    { depense: 'le matériel', phrase: 'Moins qu\'une location d\'objectif pour un week-end.' },
-    { depense: 'un déplacement', phrase: 'Moins que deux déplacements sans commande.' },
+    { depense: "une séance", phrase: "Une seule séance dans le mois, et c’est payé." },
+    { depense: "le matériel", phrase: "Moins qu’une location d’objectif pour un week-end." },
+    { depense: "un déplacement", phrase: "Moins qu’un déplacement sans commande." },
   ],
 };
 
