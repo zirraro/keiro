@@ -118,7 +118,11 @@ export async function GET(req: NextRequest) {
   // SELF-HEAL : si la location manque (fetch du callback a raté, ou fiche ajoutée
   // après la connexion), on la re-récupère en LIVE et on la sauvegarde. Évite le
   // faux "aucun établissement" alors que le compte EST bien connecté.
-  let locationId = profile.google_business_location_id;
+  const forcer = req.nextUrl.searchParams.get('refresh') === '1';
+  // Rafraîchir redétecte l'établissement, pas seulement les avis : un client
+  // qui vient de créer sa fiche, ou dont l'accès API vient d'être accordé,
+  // resterait sinon bloqué sur « aucun établissement » jusqu'à déconnexion.
+  let locationId = forcer ? null : profile.google_business_location_id;
   // Le diagnostic est remonté dans la réponse : sans lui, « aucun
   // établissement » est indiscernable de « l'API a refusé l'appel », et on
   // envoie le client créer une fiche qu'il possède déjà.
@@ -402,7 +406,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, auto_reply: !!body.enabled });
   }
 
-  const { review_name, reply } = body;
+  const { review_name, reply, author, rating } = body;
   if (!review_name || !reply?.trim()) {
     return NextResponse.json({ error: 'review_name et reply requis' }, { status: 400 });
   }
@@ -423,7 +427,16 @@ export async function POST(req: NextRequest) {
           action: 'review_reply_sent',
           user_id: user.id,
           status: 'ok',
-          data: { review_name, reply: reply.substring(0, 200) },
+          // L'auteur et la note viennent de l'interface : sans eux,
+          // l'historique afficherait « réponse envoyée » sans dire à qui,
+          // ce qui ne permet à personne de vérifier le travail.
+          data: {
+            review_name,
+            reply: reply.substring(0, 500),
+            author: author || null,
+            rating: typeof rating === 'number' ? rating : null,
+            auto: false,
+          },
           created_at: new Date().toISOString(),
         });
       } catch { /* non-fatal */ }

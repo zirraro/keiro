@@ -5,7 +5,7 @@
  * Extracted from AgentDashboard.tsx so Theo-specific UI lives with Theo.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import PreviewBanner from '../PreviewBanner';
 import { DEMO_REVIEWS } from '../AgentPreviewData';
 import {
@@ -17,6 +17,7 @@ import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 import { CarteFiche, FiltresAvis, useFiltresAvis } from './FicheEtablissement';
 import { exemplesSeoPour } from '@/lib/marketing/seo-local-exemples';
+import HistoriqueTheo from './HistoriqueTheo';
 
 // Review card with AI reply generation + direct Google reply for Google reviews
 function ReviewCard({ review, gradientFrom }: { review: { name?: string; author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
@@ -128,7 +129,12 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       credentials: 'include',
-                      body: JSON.stringify({ review_name: review.name, reply: replyText }),
+                      // L'auteur et la note partent avec la réponse : c'est
+                      // ce qui rend l'historique lisible ensuite.
+                      body: JSON.stringify({
+                        review_name: review.name, reply: replyText,
+                        author: review.author, rating: review.rating,
+                      }),
                     });
                     const d = await res.json();
                     if (d.sent) { setSent(true); setTimeout(() => { setSent(false); setShowReply(false); }, 2000); }
@@ -177,6 +183,10 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   const [messageGoogle, setMessageGoogle] = useState<string | null>(null);
   const [refusApi, setRefusApi] = useState(false);
   const [typeBusiness, setTypeBusiness] = useState<string | null>(null);
+  const [deconnexion, setDeconnexion] = useState(false);
+  // Le rafraîchissement vit dans le useEffect ; cette référence le rend
+  // appelable depuis un bouton sans dupliquer la logique de récupération.
+  const rafraichirRef = useRef<null | (() => void)>(null);
   const [loadingReviews, setLoadingReviews] = useState(false);
   // Théo v2 — collecte d'avis (lien officiel + QR).
   const [collectLink, setCollectLink] = useState<{ reviewUrl: string | null; qrUrl: string | null; source?: string } | null>(null);
@@ -194,9 +204,9 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 
   useEffect(() => {
     let cancelled = false;
-    const fetchReviews = () => {
+    const fetchReviews = (forcer = false) => {
       setLoadingReviews(true);
-      fetch('/api/agents/google-reviews', { credentials: 'include' })
+      fetch(`/api/agents/google-reviews${forcer ? '?refresh=1' : ''}`, { credentials: 'include' })
         .then(r => r.json())
         .then(d => {
           if (cancelled) return;
@@ -230,7 +240,17 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
     // param watcher in the parent page didn't force a re-mount.
     const onFocus = () => fetchReviews();
     window.addEventListener('focus', onFocus);
-    return () => { cancelled = true; window.removeEventListener('focus', onFocus); };
+    // Rester à jour sans que le client ait à y penser : une relecture toutes
+    // les dix minutes tant que l'onglet est ouvert. Assez rare pour ne pas
+    // peser sur le quota Google, assez fréquent pour qu'un avis du matin ne
+    // dorme pas jusqu'au lendemain.
+    const minuterie = window.setInterval(() => fetchReviews(), 10 * 60 * 1000);
+    rafraichirRef.current = () => fetchReviews(true);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+      window.clearInterval(minuterie);
+    };
   }, []);
 
   // Les avis affichés : réels si le quota Google le permet, exemples sinon —
@@ -257,6 +277,43 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         connecte={googleConnected}
         messageBlocage={messageGoogle}
       />
+
+      {/* Rafraîchir et déconnecter : rien ne permettait de faire l'un ou
+          l'autre. Un client dont la fiche venait d'être créée, ou dont
+          l'accès API venait d'être accordé, n'avait aucun moyen de forcer la
+          relecture — il fallait attendre. Et se déconnecter de Google était
+          simplement impossible, alors qu'on peut le faire pour Instagram,
+          TikTok et LinkedIn. */}
+      {googleConnected && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => rafraichirRef.current?.()}
+            disabled={loadingReviews}
+            className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 text-white/80 text-[13px] font-semibold transition-colors disabled:opacity-50"
+          >
+            {loadingReviews ? 'Mise à jour…' : '↻ Rafraîchir'}
+          </button>
+          <button
+            onClick={async () => {
+              if (!window.confirm('Déconnecter ta fiche Google ? Théo cessera de répondre à tes avis. Tu pourras la reconnecter quand tu veux.')) return;
+              setDeconnexion(true);
+              try {
+                await fetch('/api/agents/disconnect-network', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ network: 'google' }),
+                });
+                window.location.reload();
+              } finally { setDeconnexion(false); }
+            }}
+            disabled={deconnexion}
+            className="min-h-[44px] inline-flex items-center justify-center px-4 rounded-xl border border-white/15 text-white/50 hover:text-white/80 hover:border-white/25 text-[13px] font-medium transition-colors disabled:opacity-50"
+          >
+            {deconnexion ? 'Déconnexion…' : 'Déconnecter Google'}
+          </button>
+        </div>
+      )}
 
       {/* Réponses automatiques — la seule décision qu'il prend ici. */}
       <AutoModeToggle agentId="gmaps" autoLabel={p.gmapsToggleAutoLabel} manualLabel={p.gmapsToggleManualLabel} autoDesc={p.gmapsToggleAutoDesc} manualDesc={p.gmapsToggleManualDesc} />
@@ -446,6 +503,8 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           </div>
         );
       })()}
+
+      <HistoriqueTheo />
 
       {/* « Générer » menait au générateur d'images et « Voir le CRM » aux
           prospects : deux boutons sans rapport avec les avis Google, dans le

@@ -32,8 +32,17 @@ export async function POST(req: NextRequest) {
       updates.linkedin_access_token = null;
       break;
     case 'google':
+      // On vidait deux colonnes sur huit. Le jeton d'ACCÈS restait valide
+      // jusqu'à son expiration — donc « déconnecté » à l'écran mais toujours
+      // capable de lire la fiche — et le nom de l'établissement survivait,
+      // si bien qu'une reconnexion sur un autre compte affichait l'ancien.
+      updates.google_business_access_token = null;
       updates.google_business_refresh_token = null;
+      updates.google_business_token_expiry = null;
+      updates.google_business_account_id = null;
       updates.google_business_location_id = null;
+      updates.google_business_location_name = null;
+      updates.google_business_connected_at = null;
       break;
     default:
       return NextResponse.json({ error: 'Network inconnu' }, { status: 400 });
