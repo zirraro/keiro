@@ -1,7 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
-import { getValidToken, getReviews, replyToReview, starRatingToNumber } from '@/lib/google-business-oauth';
+import { getValidToken, getReviews, replyToReview, starRatingToNumber, getLocationDetails } from '@/lib/google-business-oauth';
+
+/** Les horaires Google, rendus lisibles : « Lun–Ven : 12h–14h30 ». */
+function formaterHoraires(periods: any[]): string[] | null {
+  const JOURS: Record<string, string> = {
+    MONDAY: 'Lun', TUESDAY: 'Mar', WEDNESDAY: 'Mer', THURSDAY: 'Jeu',
+    FRIDAY: 'Ven', SATURDAY: 'Sam', SUNDAY: 'Dim',
+  };
+  const h = (t: any) => t == null ? null
+    : `${t.hours ?? 0}h${t.minutes ? String(t.minutes).padStart(2, '0') : ''}`;
+  const parJour = new Map<string, string[]>();
+  for (const p of periods) {
+    const jour = JOURS[p.openDay];
+    if (!jour) continue;
+    const creneau = [h(p.openTime), h(p.closeTime)].filter(Boolean).join('–');
+    if (creneau) parJour.set(jour, [...(parJour.get(jour) || []), creneau]);
+  }
+  const lignes = [...parJour.entries()].map(([j, c]) => `${j} : ${c.join(', ')}`);
+  return lignes.length ? lignes : null;
+}
 import { generateReviewReply } from '@/lib/agents/theo-review-reply';
 
 export const runtime = 'nodejs';
@@ -260,10 +279,38 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // La fiche elle-même, pour que le panneau montre au client ce que Google
+    // affiche de lui. Best-effort et isolé : tant que le quota GBP est à 0,
+    // cet appel renvoie 429 — il ne doit jamais faire tomber les avis, qui
+    // eux ont déjà été récupérés au-dessus.
+    let fiche: any = null;
+    try {
+      const d = await getLocationDetails(accessToken, locationId);
+      const adresse = d?.storefrontAddress;
+      fiche = {
+        nom: d?.title || profile.google_business_location_name || null,
+        adresse: adresse
+          ? [adresse.addressLines?.join(' '), adresse.postalCode, adresse.locality]
+              .filter(Boolean).join(', ')
+          : null,
+        categorie: d?.categories?.primaryCategory?.displayName || null,
+        telephone: d?.phoneNumbers?.primaryPhone || null,
+        site: d?.websiteUri || null,
+        horaires: (d?.regularHours?.periods?.length ? formaterHoraires(d.regularHours.periods) : null),
+        note: reviews.length
+          ? Number((reviews.reduce((s, r) => s + starRatingToNumber(r.starRating), 0) / reviews.length).toFixed(1))
+          : null,
+        nombreAvis: reviews.length || null,
+      };
+    } catch (e: any) {
+      console.warn('[GoogleReviews] fiche indisponible:', String(e?.message || e).slice(0, 160));
+    }
+
     return NextResponse.json({
       ok: true,
       connected: true,
       location: profile.google_business_location_name,
+      fiche,
       reviews: reviews.map(r => ({
         name: r.name,
         author: r.reviewer.displayName,

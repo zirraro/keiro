@@ -15,6 +15,7 @@ import {
 import { AutoModeToggle } from './AutoModeToggle';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
+import { CarteFiche, FiltresAvis, useFiltresAvis } from './FicheEtablissement';
 
 // Review card with AI reply generation + direct Google reply for Google reviews
 function ReviewCard({ review, gradientFrom }: { review: { name?: string; author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
@@ -170,6 +171,9 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   const [googleReviews, setGoogleReviews] = useState<any[]>([]);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleNeedsLocation, setGoogleNeedsLocation] = useState(false);
+  // La fiche telle que Google la publie — null tant qu'elle n'est pas lisible.
+  const [fiche, setFiche] = useState<any>(null);
+  const [messageGoogle, setMessageGoogle] = useState<string | null>(null);
   const [loadingReviews, setLoadingReviews] = useState(false);
   // Théo v2 — collecte d'avis (lien officiel + QR).
   const [collectLink, setCollectLink] = useState<{ reviewUrl: string | null; qrUrl: string | null; source?: string } | null>(null);
@@ -201,6 +205,8 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
             setGoogleReviews(d.reviews || []);
             setGoogleConnected(true);
             setGoogleNeedsLocation(!!d.needsLocation);
+            setFiche(d.fiche || null);
+            setMessageGoogle(d.message || null);
           } else {
             setGoogleConnected(false);
             setGoogleNeedsLocation(false);
@@ -219,6 +225,12 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
     window.addEventListener('focus', onFocus);
     return () => { cancelled = true; window.removeEventListener('focus', onFocus); };
   }, []);
+
+  // Les avis affichés : réels si le quota Google le permet, exemples sinon —
+  // un panneau vide ne montre pas comment Théo travaille.
+  const avisSource = googleConnected && googleReviews.length ? googleReviews : DEMO_REVIEWS;
+  const { periode, setPeriode, recherche, setRecherche, avisFiltres } = useFiltresAvis<any>(avisSource);
+  const sansReponse = avisSource.filter((a: any) => !a.replied && !a.replyText && !a.reply).length;
 
   // Star rating visual
   const fullStars = Math.floor(stats.googleRating);
@@ -298,14 +310,23 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         </div>
       )}
 
+      {/* La fiche établissement — ce que Google affiche du commerce. */}
+      <CarteFiche fiche={fiche} messageBlocage={!googleConnected || googleNeedsLocation ? messageGoogle : null} />
+
       {/* Auto-reply toggle — always visible (demo or real) */}
       <AutoModeToggle agentId="gmaps" autoLabel={p.gmapsToggleAutoLabel} manualLabel={p.gmapsToggleManualLabel} autoDesc={p.gmapsToggleAutoDesc} manualDesc={p.gmapsToggleManualDesc} />
 
       {/* Google reviews: real data or demo */}
       <div data-tour="google-reviews">
       <SectionTitle>{googleConnected ? p.gmapsSectionAvisConnected.replace('{n}', String(googleReviews.length)) : p.gmapsSectionAvisPreview}</SectionTitle>
+      <FiltresAvis periode={periode} setPeriode={setPeriode} recherche={recherche} setRecherche={setRecherche} sansReponse={sansReponse} />
       <div className={`flex flex-col gap-2 ${!googleConnected ? 'opacity-90' : ''}`}>
-        {(googleConnected ? googleReviews : DEMO_REVIEWS).slice(0, 10).map((review: any, i: number) => (
+        {avisFiltres.length === 0 && (
+          <p className="text-white/40 text-sm py-6 text-center">
+            Aucun avis ne correspond à cette recherche.
+          </p>
+        )}
+        {avisFiltres.slice(0, 20).map((review: any, i: number) => (
           <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
         ))}
       </div>
@@ -417,7 +438,23 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         </a>
       </div>
 
-      <ActionButton label={p.gmapsBtnViewPage} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      {/* Ce bouton n'avait aucune action : il affichait un libellé et ne
+          menait nulle part. Il pointe maintenant vers la vraie fiche — sur
+          la recherche Google quand on connaît le nom de l'établissement,
+          sinon sur le tableau de bord Google Business. */}
+      <a
+        href={
+          fiche?.nom
+            ? `https://www.google.com/search?q=${encodeURIComponent(fiche.nom + (fiche.adresse ? ' ' + fiche.adresse : ''))}`
+            : 'https://business.google.com/locations'
+        }
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-gradient-to-r hover:opacity-90 transition-opacity"
+        style={{ backgroundImage: `linear-gradient(to right, ${gradientFrom}, ${gradientTo})` }}
+      >
+        {fiche?.nom ? 'Voir ma fiche sur Google' : 'Gérer ma fiche sur Google Business'} {'↗'}
+      </a>
     </>
   );
 }

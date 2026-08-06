@@ -56,10 +56,13 @@ export const DEMO_CONTENT_POSTS = [
 
 // ─── Google Reviews (Theo) ─────────────────────────────────────────
 export const DEMO_REVIEWS = [
-  { name: 'demo_1', author: 'Sophie M.', rating: 5, text: 'Excellent service ! L\'equipe est tres accueillante et le resultat est top. Je recommande vivement.', date: new Date(Date.now() - 2 * 86400000).toISOString(), replied: false },
-  { name: 'demo_2', author: 'Thomas L.', rating: 4, text: 'Tres bien dans l\'ensemble, bon rapport qualite prix. Un peu d\'attente a l\'entree mais ca vaut le coup.', date: new Date(Date.now() - 5 * 86400000).toISOString(), replied: true },
-  { name: 'demo_3', author: 'Julie R.', rating: 3, text: 'Correct mais peut mieux faire. Le service etait un peu lent ce jour-la.', date: new Date(Date.now() - 10 * 86400000).toISOString(), replied: false },
-  { name: 'demo_4', author: 'Pierre D.', rating: 5, text: 'Le meilleur de la ville ! On y retourne chaque semaine. Bravo a toute l\'equipe.', date: new Date(Date.now() - 15 * 86400000).toISOString(), replied: true },
+  { name: "demo_1", author: "Sophie M.", rating: 5, text: "Excellent service ! L'équipe est très accueillante et le résultat est au top. Je recommande vivement.", date: new Date(Date.now() - 2 * 86400000).toISOString(), replied: true, replyText: "Merci Sophie, ça fait vraiment plaisir à lire ! À très bientôt." },
+  { name: "demo_2", author: "Thomas L.", rating: 4, text: "Très bien dans l'ensemble, bon rapport qualité-prix. Un peu d'attente à l'entrée mais ça vaut le coup.", date: new Date(Date.now() - 5 * 86400000).toISOString(), replied: true, replyText: "Merci Thomas ! On a ajouté un créneau le samedi pour réduire l'attente — n'hésitez pas à réserver." },
+  { name: "demo_3", author: "Julie R.", rating: 3, text: "Correct mais peut mieux faire. Le service était un peu lent ce jour-là.", date: new Date(Date.now() - 10 * 86400000).toISOString(), replied: false, replyText: null },
+  { name: "demo_4", author: "Pierre D.", rating: 5, text: "Le meilleur de la ville ! On y retourne chaque semaine. Bravo à toute l'équipe.", date: new Date(Date.now() - 15 * 86400000).toISOString(), replied: true, replyText: "Merci Pierre, vous faites partie des habitués qu'on est content de voir arriver !" },
+  { name: "demo_5", author: "Nadia K.", rating: 5, text: "Accueil chaleureux et prestation impeccable. Je reviendrai avec des amis.", date: new Date(Date.now() - 34 * 86400000).toISOString(), replied: true, replyText: "Merci Nadia ! On vous attend avec plaisir, amis compris." },
+  { name: "demo_6", author: "Marc T.", rating: 2, text: "Déçu cette fois-ci, ça ne correspondait pas à ce qui était annoncé.", date: new Date(Date.now() - 47 * 86400000).toISOString(), replied: true, replyText: "Merci Marc pour votre franchise, et désolé pour cette fois. Contactez-nous directement, on aimerait rattraper ça." },
+  { name: "demo_7", author: "Camille B.", rating: 5, text: "Rien à redire, c'est propre, rapide et le résultat est parfait.", date: new Date(Date.now() - 72 * 86400000).toISOString(), replied: false, replyText: null },
 ];
 
 // ─── Commercial (Leo) ──────────────────────────────────────────────
