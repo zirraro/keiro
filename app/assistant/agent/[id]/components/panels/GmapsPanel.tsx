@@ -16,6 +16,7 @@ import { AutoModeToggle } from './AutoModeToggle';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 import { CarteFiche, FiltresAvis, useFiltresAvis } from './FicheEtablissement';
+import { exemplesSeoPour } from '@/lib/marketing/seo-local-exemples';
 
 // Review card with AI reply generation + direct Google reply for Google reviews
 function ReviewCard({ review, gradientFrom }: { review: { name?: string; author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
@@ -174,6 +175,8 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   // La fiche telle que Google la publie — null tant qu'elle n'est pas lisible.
   const [fiche, setFiche] = useState<any>(null);
   const [messageGoogle, setMessageGoogle] = useState<string | null>(null);
+  const [refusApi, setRefusApi] = useState(false);
+  const [typeBusiness, setTypeBusiness] = useState<string | null>(null);
   const [loadingReviews, setLoadingReviews] = useState(false);
   // Théo v2 — collecte d'avis (lien officiel + QR).
   const [collectLink, setCollectLink] = useState<{ reviewUrl: string | null; qrUrl: string | null; source?: string } | null>(null);
@@ -207,6 +210,10 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
             setGoogleNeedsLocation(!!d.needsLocation);
             setFiche(d.fiche || null);
             setMessageGoogle(d.message || null);
+            // Google a refusé l'appel : ce n'est PAS « aucun établissement ».
+            // Confondre les deux envoie le client créer une fiche qu'il a déjà.
+            setRefusApi(!!d.diagnostic?.erreur);
+            setTypeBusiness(d.businessType || null);
           } else {
             setGoogleConnected(false);
             setGoogleNeedsLocation(false);
@@ -244,6 +251,16 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 
   return (
     <>
+      {/* La fiche établissement — première chose qu'un commerçant vient vérifier. */}
+      <CarteFiche
+        fiche={fiche}
+        connecte={googleConnected}
+        messageBlocage={messageGoogle}
+      />
+
+      {/* Réponses automatiques — la seule décision qu'il prend ici. */}
+      <AutoModeToggle agentId="gmaps" autoLabel={p.gmapsToggleAutoLabel} manualLabel={p.gmapsToggleManualLabel} autoDesc={p.gmapsToggleAutoDesc} manualDesc={p.gmapsToggleManualDesc} />
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label={p.gmapsKpiAnswered} value={fmt(stats.reviewsAnswered)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard
@@ -255,7 +272,9 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         <KpiCard label={p.gmapsKpiClicks} value={fmt(stats.gmbClicks)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      {/* Star rating visual */}
+      {/* Bloc étoiles : seulement s'il y a des avis. Vide, il répétait le KPI
+          « 0/5 » juste au-dessus et allongeait la page pour rien. */}
+      {stats.totalReviews > 0 && <>
       <SectionTitle>{p.gmapsSectionAvg.replace('{n}', fmt(stats.totalReviews))}</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center justify-center gap-1">
         {Array.from({ length: fullStars }).map((_, i) => (
@@ -283,6 +302,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           {(stats.googleRating || 0).toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { maximumFractionDigits: 1 })}
         </span>
       </div>
+      </>}
 
       {/* Single preview banner if not connected */}
       {!googleConnected && !loadingReviews && (
@@ -297,7 +317,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       )}
 
       {/* Connected but no Google Business location found — guide user */}
-      {googleConnected && googleNeedsLocation && (
+      {googleConnected && googleNeedsLocation && !refusApi && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-4">
           <div className="flex items-start gap-3">
             <span className="text-xl">{'\u26A0\uFE0F'}</span>
@@ -306,7 +326,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
               <p className="text-white/60 text-xs mb-2 leading-relaxed">{p.gmapsNeedsLocationDesc}</p>
               <a
                 href="/api/auth/google-oauth"
-                className="min-h-[44px] inline-flex items-center justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
+                className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
               >
                 {p.gmapsNeedsLocationBtn}
               </a>
@@ -314,12 +334,6 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           </div>
         </div>
       )}
-
-      {/* La fiche établissement — ce que Google affiche du commerce. */}
-      <CarteFiche fiche={fiche} messageBlocage={!googleConnected || googleNeedsLocation ? messageGoogle : null} />
-
-      {/* Auto-reply toggle — always visible (demo or real) */}
-      <AutoModeToggle agentId="gmaps" autoLabel={p.gmapsToggleAutoLabel} manualLabel={p.gmapsToggleManualLabel} autoDesc={p.gmapsToggleAutoDesc} manualDesc={p.gmapsToggleManualDesc} />
 
       {/* Google reviews: real data or demo */}
       <div data-tour="google-reviews">
@@ -400,27 +414,25 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* SEO local \u2014 ce que Th\u00e9o optimise (avec exemples ; r\u00e9el si location trouv\u00e9e) */}
       {(() => {
         const locationFound = googleConnected && !googleNeedsLocation;
-        const seoItems = [
-          { icon: '\ud83d\udcdd', title: isEn ? 'Keyword-optimised description' : 'Description optimis\u00e9e mots-cl\u00e9s', desc: isEn ? 'Rewrites your Google profile with the terms clients search for.' : 'R\u00e9\u00e9crit ta fiche Google avec les termes que cherchent tes clients.', ex: isEn ? '"Hair salon in Lyon 2 \u2014 balayage, color, curly specialist"' : '\u00ab Salon de coiffure Lyon 2 \u2014 balayage, couleur, sp\u00e9cialiste boucl\u00e9s \u00bb' },
-          { icon: '\ud83d\udcee', title: isEn ? 'Regular Google Posts' : 'Google Posts r\u00e9guliers', desc: isEn ? 'Publishes offers/news on your profile \u2014 a strong local ranking signal.' : 'Publie offres/actus sur ta fiche \u2014 fort signal de classement local.', ex: isEn ? '"This week: -20% on your first color \ud83c\udfa8"' : '\u00ab Cette semaine : -20% sur ta premi\u00e8re couleur \ud83c\udfa8 \u00bb' },
-          { icon: '\ud83c\udff7\ufe0f', title: isEn ? 'Categories & attributes' : 'Cat\u00e9gories & attributs', desc: isEn ? 'Picks the right primary/secondary categories and attributes.' : 'Choisit les bonnes cat\u00e9gories principale/secondaires et attributs.', ex: isEn ? 'Primary: Hair salon \u00b7 +Wheelchair accessible, By appointment' : 'Principale : Salon de coiffure \u00b7 +Acc\u00e8s PMR, Sur RDV' },
-          { icon: '\ud83d\udcc8', title: isEn ? 'Local rank tracking' : 'Suivi de position locale', desc: isEn ? 'Tracks where you rank for your key searches over time.' : 'Suit ta position sur tes recherches cl\u00e9s dans le temps.', ex: isEn ? '"coiffeur Lyon 2": #7 \u2192 #3 in 4 weeks' : '\u00ab coiffeur Lyon 2 \u00bb : #7 \u2192 #3 en 4 semaines' },
-          { icon: '\ud83d\udcf8', title: isEn ? 'Photos & Q&A' : 'Photos & Questions/R\u00e9ponses', desc: isEn ? 'Keeps photos fresh and answers the FAQ on your profile.' : 'Garde les photos fra\u00eeches et r\u00e9pond aux questions sur ta fiche.', ex: isEn ? 'Q: "Do you do highlights?" \u2192 auto-answered' : 'Q : \u00ab Vous faites les m\u00e8ches ? \u00bb \u2192 r\u00e9pondu automatiquement' },
-        ];
+        // Les exemples parlent le métier du client. Ils étaient tous écrits
+        // pour un salon de coiffure : un restaurateur y lisait « balayage,
+        // spécialiste bouclés » et se demandait si on s'était trompé de compte.
+        const seoItems = exemplesSeoPour(typeBusiness);
         return (
           <div data-tour="theo-seo" className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 sm:p-4">
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-sm font-semibold text-white/90">{isEn ? '\ud83d\udd0d Local Google SEO \u2014 what Th\u00e9o optimises' : '\ud83d\udd0d SEO local Google \u2014 ce que Th\u00e9o optimise'}</span>
+              <span className="text-sm font-semibold text-white/90">{isEn ? 'Getting found on Google' : 'Être trouvé sur Google'}</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full ${locationFound ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50'}`}>
                 {locationFound ? (isEn ? 'Active on your profile' : 'Actif sur ta fiche') : (isEn ? 'Preview \u2014 examples' : 'Aper\u00e7u \u2014 exemples')}
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {seoItems.map((s, i) => (
-                <div key={i} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
-                  <div className="text-[12px] font-semibold text-white/85 mb-0.5">{s.icon} {s.title}</div>
-                  <div className="text-[10px] text-white/45 leading-relaxed mb-1.5">{s.desc}</div>
-                  <div className="text-[10px] italic text-amber-300/80 leading-relaxed border-l-2 border-amber-500/30 pl-2">{s.ex}</div>
+              {/* 10 px était illisible sur un téléphone tenu à bout de bras. */}
+              {seoItems.map((item, i) => (
+                <div key={i} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="text-[13px] font-semibold text-white/90 mb-1">{item.titre}</div>
+                  <div className="text-[12px] text-white/50 leading-relaxed mb-2">{item.pourquoi}</div>
+                  <div className="text-[12px] text-amber-300/80 leading-relaxed border-l-2 border-amber-500/30 pl-2.5">{item.exemple}</div>
                 </div>
               ))}
             </div>
@@ -435,15 +447,11 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         );
       })()}
 
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-2 mt-3">
-        <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} {p.generate}
-        </a>
-        <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} {p.viewCrm}
-        </a>
-      </div>
+      {/* « Générer » menait au générateur d'images et « Voir le CRM » aux
+          prospects : deux boutons sans rapport avec les avis Google, dans le
+          panneau où l'on vient gérer ses avis. Le fondateur a demandé ce que
+          « Générer » générait — la meilleure preuve qu'ils n'avaient rien à
+          faire ici. Retirés : la page raccourcit d'autant. */}
 
       {/* Ce bouton n'avait aucune action : il affichait un libellé et ne
           menait nulle part. Il pointe maintenant vers la vraie fiche — sur

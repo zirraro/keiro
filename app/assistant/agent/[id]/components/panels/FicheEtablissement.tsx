@@ -27,6 +27,8 @@ import { useState, useMemo } from 'react';
 
 export interface Fiche {
   nom: string;
+  /** Vrai quand on ne connaît que le nom : Google n'a pas ouvert la lecture. */
+  partielle?: boolean;
   adresse?: string | null;
   categorie?: string | null;
   note?: number | null;
@@ -95,13 +97,30 @@ function Etoiles({ note, taille = 'text-sm' }: { note: number; taille?: string }
 
 /** La carte de la fiche : ce que Google affiche, et ce que Théo y entretient. */
 export function CarteFiche({
-  fiche, messageBlocage,
+  fiche, messageBlocage, connecte = false,
 }: {
   fiche?: Fiche | null;
-  /** Ce que Google a répondu quand la fiche n'a pas pu être lue. */
+  /** Explication traduite, jamais l'erreur brute de Google. */
   messageBlocage?: string | null;
+  /** Un compte connecté ne doit JAMAIS voir l'exemple. */
+  connecte?: boolean;
 }) {
-  const exemple = !fiche?.nom;
+  // Le 6 août, un client connecté voyait « La Table du Marché, 12 rue des
+  // Halles, Lyon » à la place de son commerce. L'exemple est là pour montrer
+  // le produit à quelqu'un qui n'a rien branché — le montrer à quelqu'un de
+  // connecté lui fait croire qu'on a lu la mauvaise fiche.
+  const exemple = !connecte && !fiche?.nom;
+  if (connecte && !fiche?.nom) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4">
+        <h3 className="text-white font-bold text-base mb-1">Ta fiche est connectée</h3>
+        <p className="text-white/55 text-[13px] leading-relaxed">
+          {messageBlocage
+            || "Google n'a pas encore ouvert l'accès à tes données. Théo affichera ta fiche et tes avis dès que ce sera fait, sans rien te demander."}
+        </p>
+      </div>
+    );
+  }
   const f = exemple ? FICHE_EXEMPLE : (fiche as Fiche);
 
   return (
@@ -155,6 +174,12 @@ export function CarteFiche({
           <li>· Te signale un horaire ou une info qui ne correspond plus</li>
         </ul>
       </div>
+
+      {f.partielle && messageBlocage && (
+        <p className="mt-3 pt-3 border-t border-white/10 text-white/50 text-[12px] leading-relaxed">
+          {messageBlocage}
+        </p>
+      )}
 
       {exemple && (
         <p className="mt-3 pt-3 border-t border-white/10 text-amber-100/70 text-[12px] leading-relaxed">

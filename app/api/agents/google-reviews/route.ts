@@ -3,6 +3,27 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getValidToken, getReviews, replyToReview, starRatingToNumber, getLocationDetails } from '@/lib/google-business-oauth';
 
+/**
+ * Traduit une erreur d'API en phrase compréhensible par un commerçant.
+ *
+ * Le brut part dans `diagnostic`, que nous seuls lisons. Ici on ne dit que
+ * ce que le client peut comprendre, et surtout ce qu'il doit faire — le plus
+ * souvent : rien.
+ */
+function messageClient(brut: string): string {
+  const e = brut.toLowerCase();
+  if (e.includes('429') || e.includes('quota') || e.includes('resource_exhausted')) {
+    return "Ta fiche est bien connectée. Google n'a pas encore ouvert l'accès à ses données pour KeiroAI — la demande est déposée de notre côté. Théo affichera tes avis dès que ce sera accordé, sans rien te demander.";
+  }
+  if (e.includes('403') || e.includes('permission') || e.includes('has not been used')) {
+    return "Ta fiche est connectée, mais Google refuse encore la lecture de tes données. On s'en occupe — tu n'as rien à faire de ton côté.";
+  }
+  if (e.includes('401') || e.includes('invalid_grant') || e.includes('unauthorized')) {
+    return "Ta connexion Google a expiré. Reconnecte ton compte pour que Théo reprenne la main sur tes avis.";
+  }
+  return "Google n'a pas répondu comme prévu. On regarde de notre côté — tes avis réapparaîtront dès que la lecture sera rétablie.";
+}
+
 /** Les horaires Google, rendus lisibles : « Lun–Ven : 12h–14h30 ». */
 function formaterHoraires(periods: any[]): string[] | null {
   const JOURS: Record<string, string> = {
@@ -78,7 +99,7 @@ export async function GET(req: NextRequest) {
     // « accounts/X/locations/Y ». Colonne vérifiée présente avant ajout : une
     // colonne inconnue ici ferait rejeter la requête ENTIÈRE, pas seulement
     // le champ — Théo tomberait en silence.
-    .select('google_business_account_id, google_business_location_id, google_business_location_name, google_business_refresh_token, email')
+    .select('business_type, google_business_account_id, google_business_location_id, google_business_location_name, google_business_refresh_token, email')
     .eq('id', user.id)
     .single();
 
@@ -160,9 +181,16 @@ export async function GET(req: NextRequest) {
       connected: true,
       reviews: [],
       needsLocation: true,
+      businessType: profile.business_type || null,
       diagnostic,
+      // Le diagnostic brut reste pour NOUS (champ diagnostic), jamais dans le
+      // message montré au client : le 6 août, un client connecté lisait
+      // « List accounts failed: { "code": 429, "message": "Quota exceeded for
+      // quota metric 'Requests'... } » en plein milieu de son tableau de bord.
+      // On traduit les causes connues en une phrase qui lui dit quoi faire —
+      // ou, quand il n'a rien à faire, qu'il n'a rien à faire.
       message: diagnostic.erreur
-        ? `Google a refusé la lecture de tes établissements : ${diagnostic.erreur}`
+        ? messageClient(diagnostic.erreur)
         : (diagnostic.comptes === 0
           ? "Aucun compte Google Business n'est rattaché à l'adresse Google que tu as connectée. Vérifie que tu t'es connecté avec le compte qui gère la fiche."
           : 'Google Business connecté, mais aucun établissement trouvé sur ce compte. Crée/réclame ta fiche sur business.google.com, puis recharge — Théo la détectera automatiquement.'),
@@ -329,12 +357,19 @@ export async function GET(req: NextRequest) {
       };
     } catch (e: any) {
       console.warn('[GoogleReviews] fiche indisponible:', String(e?.message || e).slice(0, 160));
+      // On connaît au moins le nom de l'établissement, enregistré à la
+      // connexion. Le montrer vaut infiniment mieux qu'un exemple : le client
+      // reconnaît SON commerce et comprend que la connexion a bien marché.
+      if (profile.google_business_location_name) {
+        fiche = { nom: profile.google_business_location_name, partielle: true };
+      }
     }
 
     return NextResponse.json({
       ok: true,
       connected: true,
       location: profile.google_business_location_name,
+      businessType: profile.business_type || null,
       fiche,
       reviews: reviews.map(r => ({
         name: r.name,
