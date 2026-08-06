@@ -14,6 +14,12 @@
  * pas notre produit : chaque ligne est un moment qu'il reconnaît, et l'agent
  * n'apparaît qu'en second.
  *
+ * Sept jours pleins, dimanche compris. Une première version montrait le
+ * dimanche « fermé, rien à faire » : le fondateur l'a corrigé le 2026-08-06.
+ * Beaucoup de restaurants font le brunch ce jour-là, et surtout nos agents ne
+ * prennent pas de jour de repos — laisser une case vide vendait l'inverse de
+ * ce qu'on livre.
+ *
  * ── Défilement horizontal ──
  *
  * Le fondateur a demandé que ça défile plutôt que d'empiler un mur de texte.
@@ -61,10 +67,10 @@ const SEMAINE: Moment[] = [
     action: "Te le dit dimanche : le reel de mardi a fait le double de vues. Elle en reprogramme trois.",
   },
   {
-    jour: 'Dimanche', heure: 'fermé',
-    situation: "Ton jour off. Tu ne veux pas penser au restaurant.",
-    agent: 'Personne',
-    action: "Rien ne t'attend lundi : la semaine est déjà programmée.",
+    jour: 'Dimanche', heure: '11 h',
+    situation: 'Brunch. La salle se remplit sans que tu aies rien annoncé cette semaine.',
+    agent: 'Léna',
+    action: "A publié la formule samedi soir, à l'heure où on cherche où bruncher le lendemain.",
   },
 ];
 
@@ -80,7 +86,7 @@ export default function SemaineRestaurant() {
         </h2>
         <p className="mt-3 text-neutral-500 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
           Pas une liste de fonctionnalités. Ce qui se passe vraiment pendant que tu
-          es en salle.
+          es en salle — sept jours sur sept, brunch du dimanche compris.
         </p>
       </div>
 
