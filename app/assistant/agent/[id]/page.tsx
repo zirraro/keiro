@@ -1353,7 +1353,10 @@ export default function AgentWorkspacePage() {
   const params = useParams();
   const router = useRouter();
   const isMobile = useIsMobile();
-  const agentId = params.id as string;
+  // « NOAH ne doit plus être dans le système, c'est AMI qui gère »
+  // (fondateur, 2026-08-06). L'agent existe encore côté serveur — il alimente
+  // les analyses d'Ami — mais son URL ne doit plus ouvrir de page cliente.
+  const agentId = (params.id as string) === 'ceo' ? 'marketing' : (params.id as string);
 
   // Core
   const [agent, setAgent] = useState<ClientAgent | null>(null);

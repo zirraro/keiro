@@ -19,6 +19,7 @@ import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 import { sampleFor } from '@/lib/meta/sample-insights';
+import ReglagesDebriefs from './ReglagesDebriefs';
 
 type AmiNetwork = 'instagram' | 'tiktok' | 'linkedin';
 
@@ -91,6 +92,10 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         </div>
 
         {/* Selected network insight section */}
+        {/* Les briefs et débriefs sont pilotés ici, chez Ami : Noah n'est plus
+            accessible et l'API existait déjà sans aucune interface branchée. */}
+        <ReglagesDebriefs en={en} />
+
         {network === 'instagram' && (
           <NetworkInsightSection
             network="instagram"

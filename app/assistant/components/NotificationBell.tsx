@@ -149,7 +149,9 @@ export default function NotificationBell() {
                       if (!notif.read) markRead(notif.id);
                       setOpen(false);
                       // Navigate to agent page — show dashboard directly (not chat)
-                      const agentId = notif.agent;
+                      // Noah n'existe plus côté client : tout ce qu'il produit
+                      // s'affiche chez Ami, qui pilote la stratégie.
+                      const agentId = notif.agent === 'ceo' ? 'marketing' : notif.agent;
                       if (agentId && agentId !== 'system') {
                         // Determine best tab based on notification type
                         const notifType = notif.type || '';
