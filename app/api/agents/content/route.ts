@@ -3497,6 +3497,32 @@ async function POSTInterne(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const orgId = body?.org_id || null;
 
+    // ── Le bug du 6 août : « ok je publie » puis rien sur Instagram ──
+    //
+    // userId n'était lu QUE dans la query string. Le chat client, lui, envoie
+    // user_id dans le CORPS — et s'authentifie avec CRON_SECRET, donc
+    // getAuthUser() ne renvoie rien non plus. Résultat : userId null, aucun
+    // jeton Instagram trouvé, publication refusée, et le post inséré SANS
+    // propriétaire — invisible dans la galerie comme dans les brouillons.
+    //
+    // Ça durait depuis mai : les dix dernières demandes de publication depuis
+    // un chat ont toutes fini en « (en brouillon) », aucune n'a été publiée.
+    if (!userId && body?.user_id) {
+      userId = String(body.user_id);
+      // Les réglages du commerce ont été chargés plus haut, avant que le corps
+      // soit lu — donc avec userId à null. Sans ce rechargement, Léna
+      // générerait sans le métier, le ton ni les contraintes du client.
+      try {
+        const { data: cfg } = await supabase
+          .from('org_agent_configs')
+          .select('config')
+          .eq('user_id', userId)
+          .eq('agent_id', 'content')
+          .maybeSingle();
+        if (cfg?.config) clientSettings = cfg.config;
+      } catch { /* réglages absents : on génère avec les valeurs par défaut */ }
+    }
+
     switch (body.action) {
       case 'set_publish_mode': {
         const mode = body.publish_mode === 'notify' ? 'notify' : 'auto';

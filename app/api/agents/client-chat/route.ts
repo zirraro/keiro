@@ -547,7 +547,25 @@ détail vit dans le Planning.`;
             body: JSON.stringify({ action: 'generate_post', platform: actionJson.platform || 'instagram', format: actionJson.format || 'post', pillar: actionJson.pillar || 'tips', draftOnly: actionJson.draft || false, user_id: user.id }),
           });
           const data = await res.json();
-          actionResult = data.ok ? `Post ${data.post?.platform || 'instagram'} créé${data.instagram_permalink ? ` et publié: ${data.instagram_permalink}` : ' (en brouillon)'}` : `Erreur: ${data.error || 'échec'}`;
+          // « (en brouillon) » était faux : les posts finissaient en
+          // publish_failed, pas en brouillon, et le client n'avait aucune
+          // idée que la publication avait échoué ni pourquoi. La route
+          // renvoie publication_error depuis toujours — on ne le lisait pas.
+          if (!data.ok) {
+            actionResult = `Erreur: ${data.error || 'échec'}`;
+          } else {
+            const plateforme = data.post?.platform || 'instagram';
+            const lien = data.instagram_permalink || (data.tiktok_publish_id ? 'TikTok' : null);
+            if (lien) {
+              actionResult = `Post ${plateforme} publié${data.instagram_permalink ? ` : ${data.instagram_permalink}` : ' sur TikTok'}`;
+            } else if (actionJson.draft) {
+              actionResult = `Post ${plateforme} préparé, il t'attend en brouillon.`;
+            } else if (data.publication_error) {
+              actionResult = `Post ${plateforme} créé mais NON publié — ${String(data.publication_error).slice(0, 180)}. Il est gardé, je peux réessayer.`;
+            } else {
+              actionResult = `Post ${plateforme} créé mais non publié. Vérifie que ton compte ${plateforme} est bien connecté — je peux réessayer ensuite.`;
+            }
+          }
         } else if (actionType === 'scan_dms') {
           const res = await fetch(`${baseUrl}/api/agents/dm-instagram/auto-reply`, {
             method: 'POST', headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
