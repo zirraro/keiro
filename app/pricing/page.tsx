@@ -1,5 +1,7 @@
 'use client';
 
+import EquivalentsCout from '@/components/EquivalentsCout';
+
 import Link from 'next/link';
 import { useState } from 'react';
 import FeedbackPopup from '@/components/FeedbackPopup';
@@ -758,10 +760,13 @@ function PricingPageInner() {
               </div>
             </div>
 
-            {/* Barre économie */}
-            <div className="bg-green-500/15 backdrop-blur-sm rounded-xl border border-green-400/20 p-4 text-center">
-              <p className="text-green-400 font-bold text-lg">{locale === 'fr' ? 'Économie moyenne constatée : ' : 'Average observed savings: '}<strong>-95%</strong>{locale === 'fr' ? ' soit ' : ' = '}<strong>{locale === 'fr' ? '2 350\u20AC à 4 850\u20AC économisés' : '\u20AC2,350\u20134,850 saved'}</strong>{locale === 'fr' ? ' chaque mois' : ' every month'}</p>
-            </div>
+            {/* Ce que ça représente, métier par métier.
+                Remplace « −95 %, 2 350 € à 4 850 € économisés » : un patron de
+                restaurant n'a jamais envisagé de payer 3 000 € par mois un
+                community manager, donc ce chiffre ne lui parlait pas d'économie
+                — il lui signalait qu'on s'adressait à quelqu'un d'autre. Une
+                économie ne se comprend que face à une dépense qu'on fait déjà. */}
+            <EquivalentsCout locale={locale} />
           </div>
         </div>
 
