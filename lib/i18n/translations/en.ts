@@ -359,7 +359,7 @@ export const en: Translations = {
     calcCta: 'Save',
     socialProofTitle: 'What our users say',
     socialQuote1: 'We post 3x more consistently — DMs are on the rise.',
-    socialQuote1Author: 'Le Bistrot du Port',
+    socialQuote1Author: 'Le Bistrot du Port — pilot since April',
     socialQuote2: 'Finally a tool that understands trends and our offering.',
     socialQuote2Author: 'Move&Fit',
     faqTitle: 'FAQ',
