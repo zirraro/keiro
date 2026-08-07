@@ -6920,6 +6920,15 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     registerBlock = reg === 'vous'
       ? `\n━━━ REGISTRE DE LA MARQUE ━━━\nVOUVOIEMENT (vous / votre) — ce secteur attend un ton professionnel, posé et rassurant. La marque s'adresse à son audience avec respect et sérieux, chaleureux mais jamais familier. N'utilise jamais "tu/ton/ta" dans les légendes.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
       : `\n━━━ REGISTRE DE LA MARQUE ━━━\nTUTOIEMENT (tu / ton / ta) — proximité et complicité, ton direct comme un commerce de quartier qui parle à ses habitués. JAMAIS "vous/votre" ni formules guindées ("nous vous proposons", "cher client").\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    // Le registre dit COMMENT s'adresser au lecteur ; les règles d'écriture
+    // disent COMMENT ÉCRIRE. Les deux sont distincts et se cumulent — sans les
+    // secondes, les légendes gardaient les tics qui les trahissent : « n'hésitez
+    // pas à », « découvrez », un emoji par ligne, un appel à l'action à chaque
+    // publication, et des superlatifs que personne ne peut vérifier.
+    try {
+      const { blocCopywriting } = await import('@/lib/agents/copywriting');
+      registerBlock = blocCopywriting({ vouvoiement: reg === 'vous' }) + registerBlock;
+    } catch (e: any) { console.warn('[Content] bloc copywriting non chargé:', e?.message); }
   } catch (e: any) { console.warn('[Content] tone-register load failed:', e?.message); }
 
   // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG
