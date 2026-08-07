@@ -645,184 +645,210 @@ détail vit dans le Planning.`;
 
         // Execute the action
         const actionType = actionJson.type;
+
+        /**
+         * Lance une action longue en fond et rend un accusé immédiat.
+         *
+         * Cette route coupe à 60 s. Toutes ces actions — scanner des DM,
+         * répondre aux commentaires ou aux avis, envoyer une campagne,
+         * prospecter — dépassent régulièrement ce délai. Attendues, elles
+         * faisaient tomber la requête, le catch retirait le tag, et il ne
+         * restait que l'annonce de l'agent : un faux succès, jamais démenti.
+         *
+         * On lance, on accuse réception, et la notification de fin porte le
+         * résultat RÉEL — y compris quand c'est un échec.
+         */
+        const enFond = async (
+          agent: string,
+          action: string,
+          libelle: string,
+          travail: () => Promise<{ ok: boolean; resume: string }>,
+        ): Promise<string> => {
+          const { startTaskRun, finishTaskRun } = await import('@/lib/agents/task-runs');
+          const runId = await startTaskRun(supabase, { userId: user.id, agent, action, label: libelle });
+          travail()
+            .then(r => finishTaskRun(supabase, runId, { userId: user.id, agent, action, ok: r.ok, summary: r.resume }))
+            .catch(e => finishTaskRun(supabase, runId, {
+              userId: user.id, agent, action, ok: false,
+              summary: 'échec technique : ' + String(e?.message || e).slice(0, 140),
+            }));
+          return libelle.charAt(0).toUpperCase() + libelle.slice(1) + " — LANCÉ. Je te préviens dès que c'est terminé, avec le résultat.";
+        };
+
+        /** Lit une réponse d'API en distinguant l'échec du zéro mesuré. */
+        const lire = async (res: Response): Promise<any> => {
+          const d = await res.json().catch(() => null);
+          if (!res.ok || !d || d.error) {
+            throw new Error(String(d?.error || 'erreur ' + res.status).slice(0, 140));
+          }
+          return d;
+        };
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
         let actionResult = '';
 
         if (actionType === 'generate_post') {
-          // ── Un post demandé par le client DOIT aboutir ──
+          // ── Pourquoi ce n'est PAS attendu ici ──
           //
-          // Consigne du fondateur (07/08) : « il faut améliorer et passer le
-          // contrôle qualité et publier absolument si le client a demandé un
-          // post. » Jusqu'ici, un rejet qualité laissait le post en brouillon
-          // et le client repartait les mains vides — sans même savoir pourquoi.
+          // Cette route coupe à 60 s (maxDuration). Une génération d'image en
+          // prend plusieurs, et ma boucle de trois essais garantissait le
+          // dépassement : la requête tombait, le catch plus bas retirait le
+          // tag sans rien ajouter, et il ne restait que « je publie » suivi de
+          // RIEN. Le fondateur a vécu la conversation entière du 07/08 à 16h08
+          // comme ça — Léna annonçant, s'excusant, réannonçant, sans qu'une
+          // seule action ne parte.
           //
-          // On réessaie donc, en transmettant à chaque tour ce qui a bloqué,
-          // pour que la tentative suivante corrige au lieu de rejouer. Trois
-          // essais : au-delà, l'échec n'est plus un aléa de génération et
-          // insister ne ferait que brûler des crédits.
-          //
-          // Le contrôle qualité n'est jamais contourné : c'est lui qui décide
-          // si ça part. On lui donne juste de meilleures chances.
+          // On lance donc en fond et on notifie à la fin, exactement comme le
+          // tri de boîte mail. C'est aussi ce qu'impose la règle anti-mensonge :
+          // on annonce ce qu'on LANCE, jamais un résultat qu'on n'a pas.
           const demandeBrouillon = !!actionJson.draft;
           const sujetDemande = actionJson.sujet || actionJson.topic || message;
-          const MAX_ESSAIS = demandeBrouillon ? 1 : 3;
+          const plateformeDemandee = actionJson.platform || 'instagram';
+          const { startTaskRun, finishTaskRun } = await import('@/lib/agents/task-runs');
+          const runId = await startTaskRun(supabase, {
+            userId: user.id, agent: 'content', action: 'publication',
+            label: demandeBrouillon ? "préparation d'un post" : `publication ${plateformeDemandee}`,
+          });
 
-          let data: any = null;
-          let dernierBlocage = '';
-          let essais = 0;
-
-          for (let essai = 1; essai <= MAX_ESSAIS; essai++) {
-            essais = essai;
-            const res = await fetch(`${baseUrl}/api/agents/content`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-              body: JSON.stringify({
-                action: 'generate_post',
-                platform: actionJson.platform || 'instagram',
-                format: actionJson.format || 'post',
-                // Un sujet imposé impose aussi son pilier : laisser 'tips'
-                // mettait le prompt en tension avec le sujet obligatoire.
-                pillar: actionJson.pillar || (actionJson.sujet || actionJson.topic ? 'trends' : 'tips'),
-                draftOnly: demandeBrouillon,
-                user_id: user.id,
-                sujet: dernierBlocage
-                  ? `${sujetDemande}
+          const lancer = async () => {
+            const MAX_ESSAIS = demandeBrouillon ? 1 : 3;
+            let data: any = null;
+            let dernierBlocage = '';
+            let essais = 0;
+            for (let essai = 1; essai <= MAX_ESSAIS; essai++) {
+              essais = essai;
+              const res = await fetch(`${baseUrl}/api/agents/content`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+                body: JSON.stringify({
+                  action: 'generate_post',
+                  platform: plateformeDemandee,
+                  format: actionJson.format || 'post',
+                  pillar: actionJson.pillar || (actionJson.sujet || actionJson.topic ? 'trends' : 'tips'),
+                  draftOnly: demandeBrouillon,
+                  user_id: user.id,
+                  sujet: dernierBlocage
+                    ? `${sujetDemande}
 
 [Tentative ${essai}. La précédente a été retenue par le contrôle qualité : ${dernierBlocage.slice(0, 200)}. Corrige précisément ce point — ne rejoue pas la même proposition.]`
-                  : sujetDemande,
-              }),
-            });
-            data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
-
-            // Publié, ou brouillon demandé : dans les deux cas on s'arrête.
-            if (!data?.ok) break;
-            if (data.instagram_permalink || data.tiktok_publish_id || demandeBrouillon) break;
-
-            dernierBlocage = String(data.publication_error || 'qualité insuffisante').slice(0, 300);
-            console.log(`[ClientChat] post retenu (essai ${essai}/${MAX_ESSAIS}) : ${dernierBlocage.slice(0, 100)}`);
-          }
-
-          if (!data?.ok) {
-            actionResult = `Erreur: ${data?.error || 'échec'}`;
-          } else {
-            const plateforme = data.post?.platform || 'instagram';
-            const lien = data.instagram_permalink || (data.tiktok_publish_id ? 'TikTok' : null);
-            if (lien) {
-              actionResult = `Post ${plateforme} publié${data.instagram_permalink ? ` : ${data.instagram_permalink}` : ' sur TikTok'}${essais > 1 ? ` (repris ${essais} fois pour passer le contrôle qualité)` : ''}`;
-            } else if (demandeBrouillon) {
-              actionResult = `Post ${plateforme} préparé, il t'attend en brouillon.`;
-            } else {
-              // Après trois tentatives, on dit la vérité plutôt que d'insister
-              // ou de publier quelque chose qui ne tient pas la route.
-              actionResult = `Je n'ai pas réussi à produire un post qui tienne la route sur ce sujet, après ${essais} tentatives — dernier blocage : ${dernierBlocage.slice(0, 140)}. Le brouillon est gardé. Donne-moi un angle plus précis et je le reprends.`;
+                    : sujetDemande,
+                }),
+                signal: AbortSignal.timeout(9 * 60 * 1000),
+              });
+              data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+              if (!data?.ok) break;
+              if (data.instagram_permalink || data.tiktok_publish_id || demandeBrouillon) break;
+              dernierBlocage = String(data.publication_error || 'qualité insuffisante').slice(0, 300);
             }
-          }
+            const lien = data?.instagram_permalink || (data?.tiktok_publish_id ? 'publié sur TikTok' : null);
+            return {
+              ok: !!data?.ok && (!!lien || demandeBrouillon),
+              resume: !data?.ok
+                ? `échec : ${String(data?.error || 'inconnu').slice(0, 140)}`
+                : lien
+                  ? `en ligne — ${data.instagram_permalink || 'TikTok'}${essais > 1 ? ` (repris ${essais} fois pour passer le contrôle qualité)` : ''}`
+                  : demandeBrouillon
+                    ? "préparé, il t'attend en brouillon"
+                    : `pas publié après ${essais} tentatives — ${dernierBlocage.slice(0, 140)}`,
+            };
+          };
+
+          lancer()
+            .then(r => finishTaskRun(supabase, runId, {
+              userId: user.id, agent: 'content', action: 'publication', ok: r.ok, summary: r.resume,
+            }))
+            .catch(e => finishTaskRun(supabase, runId, {
+              userId: user.id, agent: 'content', action: 'publication', ok: false,
+              summary: `échec technique : ${String(e?.message || e).slice(0, 140)}`,
+            }));
+
+          actionResult = demandeBrouillon
+            ? "Post LANCÉ — je te prépare le brouillon et je te préviens dès qu'il est prêt."
+            : `Post ${plateformeDemandee} LANCÉ — génération, contrôle qualité puis publication. Je te préviens dès qu'il est en ligne, avec le lien. Compte deux à trois minutes.`;
 
         } else if (actionType === 'scan_dms') {
-          // Sans user_id, cette route se rabattait sur le compte admin : le
-          // client voyait un décompte de DM qui n'était pas le sien.
-          const res = await fetch(`${baseUrl}/api/agents/dm-instagram/auto-reply?user_id=${user.id}`, {
-            method: 'POST', headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          actionResult = await enFond('dm_instagram', 'dm', 'scan de tes messages privés', async () => {
+            const d = await lire(await fetch(`${baseUrl}/api/agents/dm-instagram/auto-reply?user_id=${user.id}`, {
+              method: 'POST', headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+              signal: AbortSignal.timeout(9 * 60 * 1000),
+            }));
+            return { ok: true, resume: `${d.replied || 0} DM répondu(s) sur ${d.total_conversations || 0} conversation(s)` };
           });
-          const data = await res.json();
-          actionResult = (res.ok && !data?.error)
-            ? `${data.replied || 0} DM${(data.replied || 0) > 1 ? 's' : ''} répondu${(data.replied || 0) > 1 ? 's' : ''} sur ${data.total_conversations || 0} conversation${(data.total_conversations || 0) > 1 ? 's' : ''}`
-            : `Je n'ai pas pu accéder à tes DM — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'reply_comments') {
-          // Cette route lit user_id dans le CORPS. Sans lui, elle se rabat
-          // sur le premier profil is_admin : un client demandait à Jade de
-          // répondre à ses commentaires, et c'est le compte du fondateur qui
-          // était traité.
-          const res = await fetch(`${baseUrl}/api/agents/instagram-comments`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            body: JSON.stringify({ action: 'auto_reply_all', user_id: user.id }),
+          actionResult = await enFond('dm_instagram', 'commentaires', 'réponse à tes commentaires', async () => {
+            const d = await lire(await fetch(`${baseUrl}/api/agents/instagram-comments`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+              body: JSON.stringify({ action: 'auto_reply_all', user_id: user.id }),
+              signal: AbortSignal.timeout(9 * 60 * 1000),
+            }));
+            return { ok: true, resume: `${d.replied || d.comments_replied || 0} commentaire(s) répondu(s)` };
           });
-          const data = await res.json();
-          actionResult = (res.ok && !data?.error)
-            ? `${data.replied || data.comments_replied || 0} commentaire(s) répondu(s)`
-            : `Je n'ai pas pu traiter tes commentaires — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'repondre_avis') {
-          // Théo n'avait aucune action exécutable : à « réponds à mes avis »,
-          // il décrivait ce qu'il ferait. La route existe depuis toujours.
-          const res = await fetch(`${baseUrl}/api/agents/google-reviews?user_id=${user.id}`, {
-            headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          actionResult = await enFond('gmaps', 'avis', 'réponse à tes avis Google', async () => {
+            const d = await lire(await fetch(`${baseUrl}/api/agents/google-reviews?user_id=${user.id}`, {
+              headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+              signal: AbortSignal.timeout(9 * 60 * 1000),
+            }));
+            if (d.connected === false) {
+              return { ok: false, resume: "ta fiche Google n'est pas connectée — branche-la depuis l'espace de Théo" };
+            }
+            const r = d.auto_reply_report;
+            return {
+              ok: true,
+              resume: r
+                ? `${r.replied || 0} avis répondu(s)${r.escalated ? `, ${r.escalated} signalé(s) pour toi` : ''}`
+                : `${(d.reviews || []).filter((x: any) => !x.replied).length} avis en attente — ils sont dans l'espace de Théo`,
+            };
           });
-          const data = await res.json().catch(() => ({} as any));
-          if (data?.connected === false) {
-            actionResult = "Ta fiche Google n'est pas connectée — branche-la depuis l'espace de Théo et je m'en occupe.";
-          } else {
-            const r = data?.auto_reply_report;
-            actionResult = r
-              ? `${r.replied || 0} avis répondus${r.escalated ? `, ${r.escalated} signalé(s) pour toi` : ''}.`
-              : `${(data?.reviews || []).filter((x: any) => !x.replied).length} avis en attente de réponse — ils sont dans l'espace de Théo.`;
-          }
         } else if (actionType === 'redige_document') {
-          // Sara et Louis produisaient du texte dans le fil sans jamais créer
-          // de document : le mécanisme [DOCUMENT_READY] n'existe QUE dans le
-          // chat admin. Côté client, rien n'était enregistré ni téléchargeable.
-          //
-          // On suit exactement le chemin de /api/agents/documents : le corps
-          // part dans le stockage, la ligne ne porte que l'URL. La table n'a
-          // PAS de colonne content — l'y mettre ferait rejeter tout l'insert,
-          // pas seulement le champ.
-          const titre = String(actionJson.titre || 'Document').slice(0, 120);
-          const brief = String(actionJson.brief || message).slice(0, 2000);
-          const { callGemini } = await import('@/lib/agents/gemini');
-          const corps = await callGemini({
-            system: "Tu rédiges des documents professionnels français, prêts à être utilisés tels quels.",
-            message: `Titre : ${titre}
-Demande : ${brief}
+          // Quatre mille tokens de rédaction peuvent dépasser les 60 s de
+          // cette route. Même traitement que le reste : on lance, on notifie.
+          const titreDoc = String(actionJson.titre || 'Document').slice(0, 120);
+          const briefDoc = String(actionJson.brief || message).slice(0, 2000);
+          actionResult = await enFond('rh', 'document', `rédaction de « ${titreDoc} »`, async () => {
+            const { callGemini } = await import('@/lib/agents/gemini');
+            const corps = await callGemini({
+              system: "Tu rédiges des documents professionnels français, prêts à être utilisés tels quels.",
+              message: `Titre : ${titreDoc}
+Demande : ${briefDoc}
 
 Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laisse des champs entre crochets pour ce que tu ne peux pas connaître.`,
-            maxTokens: 4000,
-          }).catch(() => null);
-
-          if (!corps) {
-            actionResult = "Je n'ai pas réussi à produire le document — réessaie dans un instant.";
-          } else {
-            const chemin = `${user.id}/${agent_id}/${Date.now()}_${titre.replace(/[^w-]+/g, '_')}.md`;
+              maxTokens: 4000,
+            });
+            if (!corps) return { ok: false, resume: "je n'ai pas réussi à produire le document" };
+            const chemin = `${user.id}/${agent_id}/${Date.now()}_${titreDoc.replace(/[^w-]+/g, '_')}.md`;
             const tampon = Buffer.from(corps, 'utf-8');
-            const { error: errUpload } = await supabase.storage
+            const { error: errUp } = await supabase.storage
               .from('business-assets')
               .upload(chemin, tampon, { contentType: 'text/markdown', upsert: false });
+            if (errUp) return { ok: false, resume: `document rédigé mais pas enregistré : ${errUp.message.slice(0, 90)}` };
             const { data: urlData } = supabase.storage.from('business-assets').getPublicUrl(chemin);
-            const { error: errInsert } = errUpload ? { error: errUpload } as any : await supabase
-              .from('agent_documents')
-              .insert({
-                user_id: user.id,
-                agent_id,
-                name: titre,
-                type: 'document',
-                folder: '',
-                file_url: urlData?.publicUrl || '',
-                file_size: tampon.length,
-                mime_type: 'text/markdown',
-                source: 'agent_chat',
-              });
-            actionResult = errInsert
-              ? `Document rédigé mais pas enregistré (${String((errInsert as any).message || errInsert).slice(0, 80)}) — dis-moi et je réessaie.`
-              : `« ${titre} » est prêt, dans l'onglet Documents de cet agent.`;
-          }
+            const { error: errIns } = await supabase.from('agent_documents').insert({
+              user_id: user.id, agent_id, name: titreDoc, type: 'document', folder: '',
+              file_url: urlData?.publicUrl || '', file_size: tampon.length,
+              mime_type: 'text/markdown', source: 'agent_chat',
+            });
+            if (errIns) return { ok: false, resume: `document rédigé mais pas enregistré : ${errIns.message.slice(0, 90)}` };
+            return { ok: true, resume: `« ${titreDoc} » est prêt, dans l'onglet Documents de cet agent` };
+          });
         } else if (actionType === 'send_emails') {
-          // Cross-agent: any agent can trigger emails
-          const res = await fetch(`${baseUrl}/api/agents/email/daily?slot=morning&force=true&user_id=${user.id}`, {
-            headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          actionResult = await enFond('email', 'campagne', 'envoi de tes emails', async () => {
+            const d = await lire(await fetch(`${baseUrl}/api/agents/email/daily?slot=morning&force=true&user_id=${user.id}`, {
+              headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+              signal: AbortSignal.timeout(9 * 60 * 1000),
+            }));
+            const ok = d.stats?.success || 0;
+            const ko = d.stats?.failed || 0;
+            return { ok: ok > 0 || ko === 0, resume: `${ok} email(s) envoyé(s)${ko ? `, ${ko} en échec` : ''}` };
           });
-          const data = await res.json();
-          actionResult = (res.ok && !data?.error)
-            ? `${data.stats?.success || 0} email(s) envoyé(s)${data.stats?.failed ? `, ${data.stats.failed} en échec` : ''}`
-            : `Les emails ne sont pas partis — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'prospect') {
-          // Même piège : sans user_id dans l'URL, les prospects trouvés
-          // atterrissaient dans le CRM de l'admin, pas dans celui du client.
-          const res = await fetch(`${baseUrl}/api/agents/gmaps?user_id=${user.id}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            body: JSON.stringify({ query: actionJson.query, user_id: user.id }),
+          actionResult = await enFond('commercial', 'prospection', 'recherche de prospects', async () => {
+            const d = await lire(await fetch(`${baseUrl}/api/agents/gmaps?user_id=${user.id}`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+              body: JSON.stringify({ query: actionJson.query, user_id: user.id }),
+              signal: AbortSignal.timeout(9 * 60 * 1000),
+            }));
+            return { ok: true, resume: `${d.imported || 0} prospect(s) ajouté(s) à ton CRM` };
           });
-          const data = await res.json();
-          actionResult = (res.ok && !data?.error)
-            ? `${data.imported || 0} prospect(s) ajouté(s) à ton CRM`
-            : `La recherche n'a pas abouti — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'whatsapp_send') {
           // Cross-agent : n'importe quel agent peut demander à Stella d'écrire un WhatsApp.
           try {
@@ -943,8 +969,19 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
           created_at: new Date().toISOString(),
         });
       } catch (e: any) {
+        // Le tag était retiré et RIEN n'était ajouté : il ne restait que
+        // l'annonce de l'agent, jamais démentie. C'est ce silence qui a permis
+        // à Léna d'affirmer six fois de suite qu'elle publiait, de s'excuser,
+        // puis de recommencer — sans qu'une seule action ne parte. Un échec
+        // doit être DIT au client.
         console.warn('[ClientChat] Action execution error:', e.message);
         reply = reply.replace(/\[ACTION:\{.*?\}\]/, '').trim();
+        actionRan = false;
+        reply += [
+          '',
+          '',
+          "⚠️ **Ça n'est pas parti.** " + String(e?.message || e).slice(0, 160) + " — redemande-moi et je réessaie.",
+        ].join(String.fromCharCode(10));
       }
     }
 

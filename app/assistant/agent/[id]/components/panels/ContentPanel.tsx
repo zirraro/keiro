@@ -1268,7 +1268,9 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
           ⚡ Connect {meta.label}
         </a>
       ) : (
-        <div className="flex items-center gap-2">
+        // flex-wrap : sur un écran étroit, l'interrupteur et la croix passent
+        // à la ligne au lieu de se chevaucher avec le nom du compte.
+        <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
           {autoLoaded && (
             <button
               type="button"
@@ -1280,12 +1282,31 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
               title={autoMode
                 ? `${meta.label} : Léna publie seule, sans validation`
                 : `${meta.label} : tu valides chaque publication`}
-              className="flex items-center gap-2 min-h-[44px] px-2 rounded-lg transition-colors hover:bg-white/[0.06] disabled:opacity-50"
+              className={`inline-flex items-center gap-2 shrink-0 min-h-[44px] pl-2 pr-3 rounded-full border whitespace-nowrap transition-colors disabled:opacity-50 ${
+                autoMode
+                  ? 'border-white/25 bg-white/[0.10] hover:bg-white/[0.14]'
+                  : 'border-white/15 bg-white/[0.04] hover:bg-white/[0.08]'
+              }`}
             >
-              <span className={`relative w-9 h-5 rounded-full flex-shrink-0 transition-colors ${autoMode ? 'bg-emerald-500' : 'bg-white/20'}`}>
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              {/* L'interrupteur : inline-flex et non span nu, sinon la largeur
+                  ne s'applique pas dans certains conteneurs et le curseur,
+                  positionné en absolu, débordait SUR le texte — le « P » de
+                  « Publie seule » disparaissait dessous (capture du 07/08).
+                  Le curseur est centré par inset-y-0 plutôt que par un décalage
+                  fixe, qui dépendait de la hauteur exacte de la piste. */}
+              <span
+                aria-hidden
+                className={`relative inline-flex shrink-0 w-9 h-5 rounded-full transition-colors ${
+                  autoMode ? 'bg-emerald-400' : 'bg-white/25'
+                }`}
+              >
+                <span className={`absolute inset-y-0 my-auto w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                  autoMode ? 'translate-x-[18px]' : 'translate-x-[2px]'
+                }`} />
               </span>
-              <span className={`text-[11px] font-semibold whitespace-nowrap ${autoMode ? 'text-emerald-300' : 'text-white/50'}`}>
+              {/* Le libellé reste blanc : teinté en vert sur une carte violette,
+                  il devenait illisible. La couleur vit dans l'interrupteur. */}
+              <span className="text-[12px] font-semibold text-white/90">
                 {autoMode ? 'Publie seule' : 'Tu valides'}
               </span>
             </button>
