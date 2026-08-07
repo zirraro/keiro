@@ -347,6 +347,8 @@ Pour exécuter une action, INCLUS le tag DANS ta réponse:
 - Changer l'usage autorisé des fichiers du client: [ACTION:{"type":"set_asset_policy","mode":"raw|light|free","allow_mix":true,"allow_add_elements":false}]
 - Trier / nettoyer la boîte mail (Hugo): [ACTION:{"type":"mailbox_triage"}]
 - Changer un RÉGLAGE durable de l'agent: [ACTION:{"type":"set_settings","agent":"content","settings":{"posts_per_day_ig":3}}]
+- Répondre aux avis Google (Théo): [ACTION:{"type":"repondre_avis"}]
+- Rédiger un document — contrat, courrier, business plan, prévisionnel (Sara, Louis): [ACTION:{"type":"redige_document","titre":"Contrat d'extra","brief":"CDD 1 jour, service du samedi soir, 8h"}]
 
 TRIER LA BOÎTE MAIL (Hugo) — tu le FAIS, tu ne l'expliques pas :
 « nettoie mes mails », « nettoie mes emails des pubs », « vire les newsletters »,
@@ -380,9 +382,15 @@ plateforme demandée (défaut instagram si non précisée) et draft:false (= pub
 immédiate, pas brouillon). Ne demande PAS de confirmation superflue : le client a
 demandé, tu exécutes et tu confirmes que c'est publié.
 
-COMMENT UTILISER: Explique ce que tu fais PUIS mets le tag.
-Ex: "Je te génère un post Instagram tout de suite ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\",\\"draft\\":false}]"
-Le système exécute l'action et ajoute "Résultat: ..." automatiquement.
+COMMENT UTILISER — SOIS BREF (règle fondateur 07/08) : la fenêtre de chat est
+petite. Tu REFORMULES la demande en une phrase courte, tu dis que tu t'y mets,
+et tu mets le tag. Tu ne décris JAMAIS la tâche en détail, tu ne listes pas les
+étapes, tu n'expliques pas ta méthode : le client veut le résultat, pas le
+programme.
+Ex: "Post Instagram, c'est parti. [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\",\\"draft\\":false}]"
+Ex: "Contrat d'extra samedi soir — je le rédige. [ACTION:{\\"type\\":\\"redige_document\\",...}]"
+Deux lignes maximum avant le tag. Le système exécute et ajoute le résultat
+automatiquement : c'est lui qui annonce que c'est terminé, pas toi.
 N'utilise les actions QUE quand le client DEMANDE explicitement.
 
 ROUTAGE CROSS-AGENT (RÈGLE founder) : les agents sont TOUS reliés. Si le client te
@@ -585,6 +593,68 @@ détail vit dans le Planning.`;
           });
           const data = await res.json();
           actionResult = `${data.replied || data.comments_replied || 0} commentaires répondus`;
+        } else if (actionType === 'repondre_avis') {
+          // Théo n'avait aucune action exécutable : à « réponds à mes avis »,
+          // il décrivait ce qu'il ferait. La route existe depuis toujours.
+          const res = await fetch(`${baseUrl}/api/agents/google-reviews?user_id=${user.id}`, {
+            headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          });
+          const data = await res.json().catch(() => ({} as any));
+          if (data?.connected === false) {
+            actionResult = "Ta fiche Google n'est pas connectée — branche-la depuis l'espace de Théo et je m'en occupe.";
+          } else {
+            const r = data?.auto_reply_report;
+            actionResult = r
+              ? `${r.replied || 0} avis répondus${r.escalated ? `, ${r.escalated} signalé(s) pour toi` : ''}.`
+              : `${(data?.reviews || []).filter((x: any) => !x.replied).length} avis en attente de réponse — ils sont dans l'espace de Théo.`;
+          }
+        } else if (actionType === 'redige_document') {
+          // Sara et Louis produisaient du texte dans le fil sans jamais créer
+          // de document : le mécanisme [DOCUMENT_READY] n'existe QUE dans le
+          // chat admin. Côté client, rien n'était enregistré ni téléchargeable.
+          //
+          // On suit exactement le chemin de /api/agents/documents : le corps
+          // part dans le stockage, la ligne ne porte que l'URL. La table n'a
+          // PAS de colonne content — l'y mettre ferait rejeter tout l'insert,
+          // pas seulement le champ.
+          const titre = String(actionJson.titre || 'Document').slice(0, 120);
+          const brief = String(actionJson.brief || message).slice(0, 2000);
+          const { callGemini } = await import('@/lib/agents/gemini');
+          const corps = await callGemini({
+            system: "Tu rédiges des documents professionnels français, prêts à être utilisés tels quels.",
+            message: `Titre : ${titre}
+Demande : ${brief}
+
+Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laisse des champs entre crochets pour ce que tu ne peux pas connaître.`,
+            maxTokens: 4000,
+          }).catch(() => null);
+
+          if (!corps) {
+            actionResult = "Je n'ai pas réussi à produire le document — réessaie dans un instant.";
+          } else {
+            const chemin = `${user.id}/${agent_id}/${Date.now()}_${titre.replace(/[^w-]+/g, '_')}.md`;
+            const tampon = Buffer.from(corps, 'utf-8');
+            const { error: errUpload } = await supabase.storage
+              .from('business-assets')
+              .upload(chemin, tampon, { contentType: 'text/markdown', upsert: false });
+            const { data: urlData } = supabase.storage.from('business-assets').getPublicUrl(chemin);
+            const { error: errInsert } = errUpload ? { error: errUpload } as any : await supabase
+              .from('agent_documents')
+              .insert({
+                user_id: user.id,
+                agent_id,
+                name: titre,
+                type: 'document',
+                folder: '',
+                file_url: urlData?.publicUrl || '',
+                file_size: tampon.length,
+                mime_type: 'text/markdown',
+                source: 'agent_chat',
+              });
+            actionResult = errInsert
+              ? `Document rédigé mais pas enregistré (${String((errInsert as any).message || errInsert).slice(0, 80)}) — dis-moi et je réessaie.`
+              : `« ${titre} » est prêt, dans l'onglet Documents de cet agent.`;
+          }
         } else if (actionType === 'send_emails') {
           // Cross-agent: any agent can trigger emails
           const res = await fetch(`${baseUrl}/api/agents/email/daily?slot=morning&force=true&user_id=${user.id}`, {
