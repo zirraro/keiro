@@ -3018,7 +3018,16 @@ export default function AgentWorkspacePage() {
               button in the header (founder caught: "le reduire c'est un
               peu cache"). Auto-scrolls to last message on open
               ("faudrait que la conversation s'ouvre direct avec le bas"). */}
-          <div className={`fixed z-[60] flex flex-col ${isMobile ? 'inset-x-0 bottom-0 rounded-t-2xl shadow-2xl shadow-black/50 overflow-hidden' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out', height: isMobile ? '78vh' : 'min(480px, calc(100vh - 100px))' }}>
+          <div className={`fixed z-[60] flex flex-col ${isMobile ? 'inset-x-0 bottom-0 rounded-t-2xl shadow-2xl shadow-black/50 overflow-hidden' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{
+            animation: 'slideIn 0.25s ease-out',
+            // 78vh mangeait presque tout l'écran, et clavier ouvert il ne
+            // restait rien de lisible. `dvh` suit la hauteur RÉELLE du
+            // navigateur mobile — barres d'adresse et clavier compris — là où
+            // `vh` reste figé sur la hauteur théorique et déborde.
+            height: isMobile ? 'min(62dvh, 560px)' : 'min(480px, calc(100vh - 100px))',
+            maxHeight: isMobile ? 'calc(100dvh - 96px)' : undefined,
+            paddingBottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : undefined,
+          }}>
             {isMobile && (
               <button
                 onClick={() => setChatMinimised(true)}
