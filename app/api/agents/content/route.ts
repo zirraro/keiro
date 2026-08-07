@@ -6997,6 +6997,25 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
   // Un sujet imposé ne dépend ni du pilier, ni de la présence d'actualités,
   // ni de quoi que ce soit d'autre : c'est un ordre direct du client.
   const sujetImpose = (clientSettings as any)?._forced_topic;
+  // ── Les rendez-vous sportifs, matière du calendrier marketing ──
+  //
+  // Une actualité se subit ; un calendrier s'anticipe. Un bar ou un restaurant
+  // sait quoi proposer un soir de Ligue des Champions — encore faut-il que
+  // quelqu'un le lui rappelle deux semaines avant, quand il peut encore
+  // préparer une offre.
+  //
+  // Aucune affiche ni horaire ici : ces données changent en permanence et les
+  // inventer ferait perdre sa crédibilité au commerce en une publication. Ce
+  // sont les repères de saison, publiés des mois à l'avance, et chacun porte
+  // son degré de certitude.
+  let blocSport = '';
+  try {
+    const { blocCalendrierSportif } = await import('@/lib/marketing/calendrier-sportif');
+    blocSport = blocCalendrierSportif(detectedBusinessType || (clientSettings as any)?.business_type, 30);
+  } catch (e: any) {
+    console.warn('[Content] calendrier sportif non chargé:', e?.message);
+  }
+
   const NL_SUJET = String.fromCharCode(10);
   if (sujetImpose) {
     // Assemblé par jointure : un saut de ligne littéral dans une chaîne
@@ -7130,7 +7149,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${reachStrategyBlock}${registerBlock}${personalBrandingBlock}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${blocSport}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${sujetImpose ? 'celui qui sert le SUJET IMPOSÉ ci-dessus — il prime sur toute suggestion' : pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
