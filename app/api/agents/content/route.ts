@@ -20,6 +20,7 @@ import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert, isTransientPublishError, nextRetryDelayMs, MAX_PUBLISH_RETRIES } from '@/lib/agents/publish-diagnostics';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
+import { diapoRealiste } from '@/lib/visuals/realisme-photo';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -1170,7 +1171,7 @@ async function publishToInstagram(
             continue;
           }
           try {
-            const varUrl = await generateVisual(slideDesc, 'carrousel');
+            const varUrl = await generateVisual(diapoRealiste(slideDesc), 'carrousel');
             if (varUrl) carouselUrls.push(varUrl);
           } catch { /* skip slide on error */ }
         }
@@ -1189,7 +1190,7 @@ async function publishToInstagram(
         const narrativeVariations = repliNarratif(baseDesc, businessTypeForVisuals, sceneSignature);
         for (const variation of narrativeVariations) {
           try {
-            const varUrl = await generateVisual(variation, 'carrousel');
+            const varUrl = await generateVisual(diapoRealiste(variation), 'carrousel');
             if (varUrl) carouselUrls.push(varUrl);
           } catch { /* skip variation on error */ }
         }
@@ -2272,7 +2273,7 @@ async function publishToTikTok(
           const slideDesc = s.visual?.trim();
           if (!slideDesc) continue;
           try {
-            const varUrl = await generateVisual(slideDesc, 'carrousel');
+            const varUrl = await generateVisual(diapoRealiste(slideDesc), 'carrousel');
             if (varUrl) tiktokPhotoUrls.push(varUrl);
           } catch { /* skip slide on error */ }
         }

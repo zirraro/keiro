@@ -448,9 +448,9 @@ export async function POST(req: NextRequest) {
         const VOICE_SUPPORTED = new Set(['fr', 'en', 'es', 'de', 'it', 'pt']);
         if (VOICE_SUPPORTED.has(langCode) && body.voiceScript) {
           try {
-            const { generateAudioWithElevenLabs, DEFAULT_VOICE_ID } = await import('@/lib/audio/elevenlabs-tts');
+            const { generateAudioWithElevenLabs, voixPourLangue } = await import('@/lib/audio/elevenlabs-tts');
             const script = String(body.voiceScript).slice(0, 200);
-            voiceUrl = await generateAudioWithElevenLabs(script, DEFAULT_VOICE_ID, langCode);
+            voiceUrl = await generateAudioWithElevenLabs(script, await voixPourLangue(langCode), langCode);
           } catch (e: any) {
             console.warn('[lena-dvr] voiceover failed:', e?.message);
           }

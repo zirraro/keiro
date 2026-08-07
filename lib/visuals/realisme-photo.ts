@@ -99,3 +99,38 @@ export function blocRealismeCourt(styleDemande?: string | null): string {
     + 'visible texture and grain, slightly imperfect framing, lived-in and untidy. '
     + 'NOT 3D, NOT CGI, NOT airbrushed, NOT studio-lit, NOT over-saturated, NOT stock-photo staging.';
 }
+
+/**
+ * Impose le rendu photo à une diapositive de carrousel.
+ *
+ * Constat du fondateur (2026-08-07) : « le dernier carrousel, la 1re photo ok,
+ * la 2e elle est animée, la 3e en mode robot. Ça sort des indications. »
+ *
+ * Chaque diapositive est générée SÉPARÉMENT, à partir de la description que le
+ * modèle a écrite pour elle. S'il écrit « illustration de… » ou « rendu 3D
+ * de… », c'est exactement ce qu'on obtient — et le carrousel part dans trois
+ * directions visuelles différentes.
+ *
+ * On nettoie donc la description des termes qui font dérailler le rendu, et on
+ * lui accroche le socle photographique. Le style du client, lui, reste
+ * prioritaire : s'il a demandé de l'illustration, on n'y touche pas.
+ */
+export function diapoRealiste(description: string, styleDemande?: string | null): string {
+  const style = String(styleDemande || '').toLowerCase();
+  if (/(illustration|dessin|cartoon|3d|rendu|graphique|anim[ée]|flat design|vectoriel|aquarelle)/.test(style)) {
+    return description;
+  }
+  // Les termes qui basculent le moteur en non-photo, retirés du brief lui-même :
+  // les laisser et ajouter « photoréaliste » à côté donne un résultat hybride,
+  // souvent pire que l'un ou l'autre.
+  // Les bornes de mot sont indispensables : sans elles « 3d » se retrouve
+  // découpé dans d'autres mots, et la compression d'espaces écrite sans
+  // échappement supprimait les suites de la lettre « s » — « glasses »
+  // devenait « glae ». Deux bugs invisibles à la lecture rapide.
+  const TERMES_NON_PHOTO = /\b(3d render|3d|cgi|illustration|illustrated|cartoon|anime|animated|digital painting|concept art|vector|flat design|watercolor|sketch|drawing|render(ed|ing)?)\b/gi;
+  const nettoyee = String(description || '')
+    .replace(TERMES_NON_PHOTO, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return nettoyee + ' — ' + blocRealismeCourt();
+}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateAudioWithElevenLabs, estimateAudioDuration, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
+import { voixPourLangue, generateAudioWithElevenLabs, estimateAudioDuration, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
 import { condenseText } from '@/lib/audio/condense-text';
 
 export const runtime = 'edge';
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // STEP 2: Generate audio with ElevenLabs TTS in the client's language
     const voiceId = voice || DEFAULT_VOICE_ID;
-    const audioUrl = await generateAudioWithElevenLabs(scriptText, voiceId, language);
+    const audioUrl = await generateAudioWithElevenLabs(scriptText, voiceId || await voixPourLangue(language), language);
     const estimatedDuration = estimateAudioDuration(scriptText);
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
-import { generateAudioWithElevenLabs, estimateAudioDuration, ELEVENLABS_VOICES, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
+import { voixPourLangue, generateAudioWithElevenLabs, estimateAudioDuration, ELEVENLABS_VOICES, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
 import { condenseText } from '@/lib/audio/condense-text';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { checkTtsQuota, logQuotaUsage } from '@/lib/credits/quotas';
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Generate audio with ElevenLabs TTS in the client's language
     console.log(`[GenerateAudioTTS] Generating audio with ElevenLabs (language: ${language})...`);
-    const audioUrl = await generateAudioWithElevenLabs(finalText, voiceId, language);
+    const audioUrl = await generateAudioWithElevenLabs(finalText, voiceId || await voixPourLangue(language), language);
 
     // 3. Estimate actual duration
     const estimatedDuration = estimateAudioDuration(finalText, speed);
