@@ -556,7 +556,37 @@ détail vit dans le Planning.`;
     // Une action a-t-elle RÉELLEMENT tourné ? C'est ce qui autorise l'agent à
     // annoncer un résultat au passé (cf. garde-fou anti-mensonge plus bas).
     let actionRan = false;
-    const actionMatch = reply.match(/\[ACTION:\{.*?\}\]/);
+    let actionMatch = reply.match(/[ACTION:{.*?}]/);
+
+    // ── Filet de sécurité : l'exécution ne dépend plus du modèle ──
+    //
+    // Le 7 août, le fondateur demande un post, l'agent répond aimablement…
+    // et n'émet aucun tag. Rien ne part. Le message précédent, lui, avait
+    // bien publié : la seule différence tient à la formulation du modèle.
+    //
+    // Faire dépendre l'exécution d'un ordre client de la capacité du modèle à
+    // produire un tag exact est intenable — il y arrive neuf fois sur dix, et
+    // la dixième le client croit qu'on l'a ignoré. Quand l'intention est sans
+    // ambiguïté dans SA phrase, on exécute nous-mêmes.
+    //
+    // Volontairement étroit : on ne déduit que ce qui est demandé
+    // explicitement, jamais ce qui est évoqué, et jamais si le client parle de
+    // brouillon ou de programmation.
+    if (!actionMatch) {
+      const m = String(message || '').toLowerCase();
+      const veutPublier = /(publie|publier|poster|postez|poste|mets en ligne|met en ligne|balance|envoie le post)/.test(m)
+        && !/(brouillon|plus tard|ne publie pas|pas publier|programme|planifie)/.test(m);
+      if (veutPublier) {
+        const plateforme = /tiktok/.test(m) ? 'tiktok' : /linkedin/.test(m) ? 'linkedin' : 'instagram';
+        const format = /(reel|réel|video|vidéo)/.test(m)
+          ? (plateforme === 'tiktok' ? 'video' : 'reel')
+          : /(carrousel|carousel)/.test(m) ? 'carousel'
+          : plateforme === 'tiktok' ? 'video' : 'post';
+        actionMatch = [`[ACTION:{"type":"generate_post","platform":"${plateforme}","format":"${format}","draft":false}]`] as unknown as RegExpMatchArray;
+        console.log('[ClientChat] Action déduite de la demande client (aucun tag émis) :', plateforme, format);
+      }
+    }
+
     if (actionMatch) {
       try {
         const actionJson = JSON.parse(actionMatch[0].replace('[ACTION:', '').replace(']', ''));
