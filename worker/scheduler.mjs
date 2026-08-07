@@ -174,6 +174,12 @@ const GLOBAL_SCHEDULE = [
   // story + 1 TT Photo Mode per client per 18h. Avoids reusing the
   // same asset within 60 days. Complements the post-publish teaser.
   { cron: '0 9 * * *',    path: '/api/cron/story-library-recycle', label: 'Library Story Recycle (silent-slot filler)' },
+  // 2026-08-07 — Écarte les posts retenus par le contrôle qualité dont le
+  // créneau est passé. Trente d'entre eux dormaient en base, certains depuis
+  // avril : le contrôle les bloquait, rien ne prenait le relais, et le client
+  // ne recevait rien sans que personne le sache. Tourne après la publication
+  // du matin, pour ne jamais écarter un post qui pouvait encore partir.
+  { cron: '30 9 * * *',   path: '/api/cron/posts-bloques', label: 'Posts bloqués par le QC — balayage' },
   // 2026-06-09 — Daily 07:00 UTC. Vérifie projection coûts MTD vs
   // revenu mensuel. Email admin avec breakdown si marge projetée < 70%
   // ou spike clients > 5× avg.

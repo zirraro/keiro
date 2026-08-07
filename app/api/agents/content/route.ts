@@ -6984,8 +6984,40 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
   // that Léna executes. Without this, Léna picks a random headline and
   // writes "happy [holiday] from [business]".
   let newsAngleBlock = '';
+
+  // ── Le sujet demandé par le client, AVANT toute autre logique ──
+  //
+  // Première tentative (07/08) : j'avais placé ce test à l'intérieur du bloc
+  // de sélection d'actualité, lui-même conditionné à `pillar === 'trends'`.
+  // Or le chat envoie 'tips' par défaut : le bloc n'était jamais atteint, et
+  // le post « Ligue des Champions » est reparti sans aucun rapport avec la
+  // demande. J'avais annoncé le correctif sans vérifier le chemin d'exécution.
+  //
+  // Un sujet imposé ne dépend ni du pilier, ni de la présence d'actualités,
+  // ni de quoi que ce soit d'autre : c'est un ordre direct du client.
+  const sujetImpose = (clientSettings as any)?._forced_topic;
+  const NL_SUJET = String.fromCharCode(10);
+  if (sujetImpose) {
+    // Assemblé par jointure : un saut de ligne littéral dans une chaîne
+    // simple casse le fichier, et les gabarits imbriqués sont illisibles ici.
+    newsAngleBlock = [
+      '',
+      '=== SUJET IMPOSÉ PAR LE CLIENT ===',
+      'Le client a demandé EXPRESSÉMENT ce post : « ' + String(sujetImpose).slice(0, 300) + ' »',
+      'Ce sujet est OBLIGATOIRE. Le visuel, le hook ET la légende portent dessus.',
+      "Tu l'ancres dans SON commerce — son métier, sa ville, son offre — mais tu ne",
+      'changes PAS de sujet et tu ne le dilues pas dans un propos général.',
+      "N'invente aucun fait précis (score, date, affiche, résultat) que tu ne connais",
+      "pas : tu parles de l'événement et de ce que le commerce en propose.",
+      "",
+    ].join(NL_SUJET);
+    console.log('[Content] Sujet imposé par le client :', String(sujetImpose).slice(0, 80));
+  }
+
   try {
-    const shouldPickAngle = pillar === 'trends' || trendsUpcomingEvents.length > 0;
+    // Un sujet imposé remplace la sélection automatique : inutile d'aller
+    // chercher une actualité qu'on n'utilisera pas.
+    const shouldPickAngle = !sujetImpose && (pillar === 'trends' || trendsUpcomingEvents.length > 0);
     if (shouldPickAngle && (trendsTrendItems.length > 0 || trendsNewsItems.length > 0 || trendsUpcomingEvents.length > 0)) {
       let dossierForAngle: any = null;
       if (userId) {
@@ -7048,34 +7080,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
         avoidTopics,
         prefer,
       });
-      // ── Le sujet demandé par le client passe AVANT tout le reste ──
-      //
-      // Le 7 août : « fais-moi un post sur la Ligue des Champions pour un
-      // resto » → le post publié n'avait aucun rapport. Léna choisissait son
-      // angle habituel et ignorait la demande, parce que le sujet ne
-      // descendait simplement jamais jusqu'ici.
-      //
-      // Un ordre explicite du client n'est pas une suggestion : il écrase la
-      // sélection automatique d'actualité.
-      const sujetImpose = (clientSettings as any)?._forced_topic;
-      if (sujetImpose) {
-        newsAngleBlock = `
-=== SUJET IMPOSÉ PAR LE CLIENT ===
-`
-          + `Le client a demandé EXPRESSÉMENT ce post : « ${sujetImpose} »
-`
-          + `Ce sujet est OBLIGATOIRE. Le visuel, le hook et la légende portent dessus.
-`
-          + `Tu l'ancres dans SON commerce (son métier, sa ville, son offre) — mais tu ne
-`
-          + `changes PAS de sujet, et tu ne le dilues pas dans un propos général.
-`
-          + `N'invente aucun fait précis (score, date, affiche) que tu ne connais pas :
-`
-          + `parle de l'événement et de ce que le commerce en propose.
-`;
-        console.log('[Content] Sujet imposé par le client :', String(sujetImpose).slice(0, 80));
-      } else if (angle) {
+      if (angle) {
         newsAngleBlock = angleToPromptBlock(angle);
         // Persist so future generations never repeat this actu (founder priority).
         try {

@@ -395,6 +395,20 @@ export async function GET(req: NextRequest) {
         detail: `${g.count} publication(s) ${g.platform} due(s) NON publiée(s) (${[...g.statuses].join(', ')}) — le client n'a pas reçu ce qui était prévu`,
       });
     }
+    // Retenus par le contrôle qualité : je les collectais sans jamais les
+    // restituer — le rapport ne montrait donc rien, exactement le défaut que
+    // je venais de corriger ailleurs. L'action attendue est différente d'un
+    // échec de publication : il faut REGÉNÉRER, pas réessayer d'envoyer.
+    for (const [key, g] of qcMap) {
+      const uid = key.split('::')[0];
+      deliveryIssues.push({
+        client_id: uid,
+        client_email: userIdToEmail.get(uid) || uid.slice(0, 8),
+        plan: (clients || []).find(c => c.id === uid)?.subscription_plan || '?',
+        network: g.platform,
+        detail: `${g.count} publication(s) ${g.platform} RETENUE(S) par le contrôle qualité (${[...g.raisons].join(', ')}) — le client n'a rien reçu sur ce créneau. Action : régénérer, pas republier.`,
+      });
+    }
   } catch { /* best-effort */ }
 
   // ── 2.6 PORTÉE MORTE — TOUS RÉSEAUX (founder 24/07) : un post publié depuis +48h
