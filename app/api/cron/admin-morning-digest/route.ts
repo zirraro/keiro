@@ -343,6 +343,9 @@ export async function GET(req: NextRequest) {
     // qui noyait le seul cas réel à traiter.
     const { isNoContentAccount } = await import('@/lib/agents/internal-accounts');
     const gapMap = new Map<string, { platform: string; count: number; statuses: Set<string> }>();
+    // Retenus par le contrôle qualité : comptés à part, parce qu'ils appellent
+    // une régénération et non une nouvelle tentative de publication.
+    const qcMap = new Map<string, { platform: string; count: number; raisons: Set<string> }>();
     for (const p of stuck || []) {
       if (!p.user_id) continue; // contenu interne/prospection, pas un client
       if (isNoContentAccount({ userId: p.user_id, email: userIdToEmail.get(p.user_id) })) continue;
@@ -351,19 +354,28 @@ export async function GET(req: NextRequest) {
       // signaler comme un échec noyait les vrais problèmes.
       const deferred = /cap_deferred|autopost_paused|account_changed_archived/.test(String(p.publish_diagnostic || ''));
       if (deferred) continue;
-      // ── Attendre une validation n'est PAS une livraison ratée ──
+      // ── Pourquoi ce post n'est pas parti : trois causes, trois actions ──
       //
-      // Le rapport du 7 août annonçait « 4 publications dues NON publiées
-      // (pending_approval, draft) — le client n'a pas reçu ce qui était
-      // prévu ». C'était faux : ces posts attendaient que LE CLIENT les
-      // valide, parce qu'il a choisi le mode « Tu valides ». Rien n'avait
-      // échoué de notre côté.
+      // Première lecture (7 août) : j'ai cru que les posts en draft
+      // attendaient la validation du client et j'ai cessé de les compter. Le
+      // fondateur a corrigé — il était en mode AUTO. Vérification faite, ces
+      // posts étaient retenus par le CONTRÔLE QUALITÉ : notes de 4 à 7 sur 10,
+      // images hors-sujet, une preuve inventée dans une légende.
       //
-      // Les compter comme des manques noyait le seul cas qui demande une
-      // action de notre part, et faisait passer un réglage volontaire du
-      // client pour une panne.
-      const attendClient = p.status === 'draft' || p.status === 'pending_approval';
-      if (attendClient) continue;
+      // Le contrôle fait son travail. Mais du point de vue du client, c'est
+      // bien une livraison manquée : il n'a rien reçu. Les masquer était donc
+      // une erreur — on les garde, en disant la cause, parce que l'action à
+      // mener n'est pas la même : régénérer, pas republier.
+      const diag = String(p.publish_diagnostic || '');
+      const retenuQc = /qc_|coherence_retenu|top_insuffisant/.test(diag);
+      if (retenuQc) {
+        const key = `${p.user_id}::${p.platform}::qc`;
+        const g = qcMap.get(key) || { platform: p.platform, count: 0, raisons: new Set<string>() };
+        g.count++;
+        g.raisons.add(diag.split(':')[0].slice(0, 40));
+        qcMap.set(key, g);
+        continue;
+      }
       const overdue = String(p.scheduled_date) < todayD; // slot passé
       const failed = p.status === 'publish_failed' || p.status === 'retry_pending';
       // Échec réel = publish raté, OU un post approuvé/prêt dont le créneau est PASSÉ
