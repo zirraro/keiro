@@ -64,21 +64,43 @@ export async function GET(req: NextRequest) {
     let locationName = '';
     let locationTitle = '';
 
+    // ── On parcourt TOUS les comptes, pas seulement le premier ──
+    //
+    // Le 7 août : le fondateur crée sa fiche, la fait valider, connecte
+    // Google — et rien n'apparaît. account_id et location_id restaient vides.
+    //
+    // Deux causes, corrigées ensemble. D'abord accounts[0] : beaucoup de gens
+    // ont un compte Google personnel ET un compte professionnel, et la fiche
+    // n'est pas forcément sur le premier renvoyé. La boucle de réparation de
+    // /api/agents/google-reviews itérait déjà tous les comptes ; ce rappel-ci,
+    // non. Ensuite l'échec partait dans un console.warn que personne ne lit :
+    // impossible de savoir si Google avait refusé, ou s'il n'y avait
+    // réellement aucun établissement.
+    const trace: string[] = [];
     try {
       const accounts = await listAccounts(tokens.access_token);
-      console.log(`[GoogleCallback] Found ${accounts.length} Google Business accounts`);
+      trace.push(`${accounts.length} compte(s) Google Business`);
 
-      if (accounts.length > 0) {
-        accountName = accounts[0].name; // accounts/{id}
-
-        const locations = await listLocations(tokens.access_token, accountName);
-        console.log(`[GoogleCallback] Found ${locations.length} locations for ${accountName}`);
-
-        if (locations.length > 0) {
-          locationName = locations[0].name; // accounts/{id}/locations/{id}
-          locationTitle = locations[0].title || locations[0].storefrontAddress?.locality || '';
+      for (const acc of accounts) {
+        try {
+          const locations = await listLocations(tokens.access_token, acc.name);
+          trace.push(`${acc.name} → ${locations.length} établissement(s)`);
+          if (locations.length > 0) {
+            accountName = acc.name;
+            locationName = locations[0].name;
+            locationTitle = locations[0].title || locations[0].storefrontAddress?.locality || '';
+            break;
+          }
+        } catch (e: any) {
+          // Un compte qui refuse ne doit pas empêcher d'essayer les suivants.
+          trace.push(`${acc.name} → refus : ${String(e?.message || e).slice(0, 140)}`);
         }
+      }
 
+      // On enregistre même sans établissement : connaître le compte permet à
+      // la réparation ultérieure de repartir de là, et au chemin v4 d'avoir
+      // son « accounts/X ».
+      if (accountName) {
         await supabase.from('profiles').update({
           google_business_account_id: accountName,
           google_business_location_id: locationName,
@@ -86,8 +108,22 @@ export async function GET(req: NextRequest) {
         }).eq('id', userId);
       }
     } catch (e: any) {
-      console.warn(`[GoogleCallback] Account/location fetch failed (non-fatal):`, e.message);
+      trace.push(`listAccounts a échoué : ${String(e?.message || e).slice(0, 200)}`);
     }
+
+    // La trace est persistée : sans elle, « aucun établissement » est
+    // indiscernable d'un refus d'API, et on envoie le client créer une fiche
+    // qu'il possède déjà.
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'gmaps',
+        action: 'google_connect_diagnostic',
+        user_id: userId,
+        status: locationName ? 'ok' : 'warning',
+        data: { trace, account: accountName || null, location: locationName || null },
+        created_at: new Date().toISOString(),
+      });
+    } catch { /* la trace ne doit jamais faire échouer la connexion */ }
 
     console.log(`[GoogleCallback] Google Business connected for user ${userId}: account=${accountName}, location=${locationName}`);
 

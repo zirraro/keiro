@@ -351,6 +351,19 @@ export async function GET(req: NextRequest) {
       // signaler comme un échec noyait les vrais problèmes.
       const deferred = /cap_deferred|autopost_paused|account_changed_archived/.test(String(p.publish_diagnostic || ''));
       if (deferred) continue;
+      // ── Attendre une validation n'est PAS une livraison ratée ──
+      //
+      // Le rapport du 7 août annonçait « 4 publications dues NON publiées
+      // (pending_approval, draft) — le client n'a pas reçu ce qui était
+      // prévu ». C'était faux : ces posts attendaient que LE CLIENT les
+      // valide, parce qu'il a choisi le mode « Tu valides ». Rien n'avait
+      // échoué de notre côté.
+      //
+      // Les compter comme des manques noyait le seul cas qui demande une
+      // action de notre part, et faisait passer un réglage volontaire du
+      // client pour une panne.
+      const attendClient = p.status === 'draft' || p.status === 'pending_approval';
+      if (attendClient) continue;
       const overdue = String(p.scheduled_date) < todayD; // slot passé
       const failed = p.status === 'publish_failed' || p.status === 'retry_pending';
       // Échec réel = publish raté, OU un post approuvé/prêt dont le créneau est PASSÉ
