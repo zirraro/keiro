@@ -7010,6 +7010,18 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
       "N'invente aucun fait précis (score, date, affiche, résultat) que tu ne connais",
       "pas : tu parles de l'événement et de ce que le commerce en propose.",
       "",
+      "ARBITRAGE SI L'ACTUALITÉ MANQUE :",
+      "Tu vérifies d'abord si tu disposes d'un élément d'actualité RÉEL et vérifiable",
+      "sur ce sujet. Si oui, tu t'appuies dessus. Sinon — et c'est fréquent, tu ne",
+      "connais ni les affiches, ni les scores, ni les dates du jour — tu ne l'inventes",
+      "PAS et tu ne renonces pas non plus : tu traites le sujet de façon GÉNÉRALE et tu",
+      "ancres le lien avec le commerce.",
+      "Exemple : sur la Ligue des Champions sans connaître le match, tu parles des",
+      "soirs de match dans SA salle — l'ambiance, ce qu'il propose ce soir-là, la table",
+      "qu'on garde pour les habitués. Le sujet est tenu, rien n'est inventé.",
+      "Le même arbitrage vaut pour n'importe quel sujet : une sortie, une saison, une",
+      "fête, une tendance. Angle général + ancrage concret dans son commerce.",
+      "",
     ].join(NL_SUJET);
     console.log('[Content] Sujet imposé par le client :', String(sujetImpose).slice(0, 80));
   }

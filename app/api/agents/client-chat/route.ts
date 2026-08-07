@@ -649,44 +649,75 @@ détail vit dans le Planning.`;
         let actionResult = '';
 
         if (actionType === 'generate_post') {
-          const res = await fetch(`${baseUrl}/api/agents/content`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            body: JSON.stringify({
-              action: 'generate_post',
-              platform: actionJson.platform || 'instagram',
-              format: actionJson.format || 'post',
-              // Un sujet imposé impose aussi son pilier. Laisser 'tips' par
-              // défaut mettait le prompt en tension : « pilier suggéré :
-              // conseils » face à « sujet obligatoire : la Ligue des
-              // Champions ». Le modèle arbitrait, et pas toujours du bon côté.
-              pillar: actionJson.pillar || (actionJson.sujet || actionJson.topic ? 'trends' : 'tips'),
-              draftOnly: actionJson.draft || false,
-              user_id: user.id,
-              // Le sujet demandé. L'agent peut le préciser dans le tag ; sinon
-              // on reprend la phrase du client, qui le contient toujours.
-              sujet: actionJson.sujet || actionJson.topic || message,
-            }),
-          });
-          const data = await res.json();
-          // « (en brouillon) » était faux : les posts finissaient en
-          // publish_failed, pas en brouillon, et le client n'avait aucune
-          // idée que la publication avait échoué ni pourquoi. La route
-          // renvoie publication_error depuis toujours — on ne le lisait pas.
-          if (!data.ok) {
-            actionResult = `Erreur: ${data.error || 'échec'}`;
+          // ── Un post demandé par le client DOIT aboutir ──
+          //
+          // Consigne du fondateur (07/08) : « il faut améliorer et passer le
+          // contrôle qualité et publier absolument si le client a demandé un
+          // post. » Jusqu'ici, un rejet qualité laissait le post en brouillon
+          // et le client repartait les mains vides — sans même savoir pourquoi.
+          //
+          // On réessaie donc, en transmettant à chaque tour ce qui a bloqué,
+          // pour que la tentative suivante corrige au lieu de rejouer. Trois
+          // essais : au-delà, l'échec n'est plus un aléa de génération et
+          // insister ne ferait que brûler des crédits.
+          //
+          // Le contrôle qualité n'est jamais contourné : c'est lui qui décide
+          // si ça part. On lui donne juste de meilleures chances.
+          const demandeBrouillon = !!actionJson.draft;
+          const sujetDemande = actionJson.sujet || actionJson.topic || message;
+          const MAX_ESSAIS = demandeBrouillon ? 1 : 3;
+
+          let data: any = null;
+          let dernierBlocage = '';
+          let essais = 0;
+
+          for (let essai = 1; essai <= MAX_ESSAIS; essai++) {
+            essais = essai;
+            const res = await fetch(`${baseUrl}/api/agents/content`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+              body: JSON.stringify({
+                action: 'generate_post',
+                platform: actionJson.platform || 'instagram',
+                format: actionJson.format || 'post',
+                // Un sujet imposé impose aussi son pilier : laisser 'tips'
+                // mettait le prompt en tension avec le sujet obligatoire.
+                pillar: actionJson.pillar || (actionJson.sujet || actionJson.topic ? 'trends' : 'tips'),
+                draftOnly: demandeBrouillon,
+                user_id: user.id,
+                sujet: dernierBlocage
+                  ? `${sujetDemande}
+
+[Tentative ${essai}. La précédente a été retenue par le contrôle qualité : ${dernierBlocage.slice(0, 200)}. Corrige précisément ce point — ne rejoue pas la même proposition.]`
+                  : sujetDemande,
+              }),
+            });
+            data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+
+            // Publié, ou brouillon demandé : dans les deux cas on s'arrête.
+            if (!data?.ok) break;
+            if (data.instagram_permalink || data.tiktok_publish_id || demandeBrouillon) break;
+
+            dernierBlocage = String(data.publication_error || 'qualité insuffisante').slice(0, 300);
+            console.log(`[ClientChat] post retenu (essai ${essai}/${MAX_ESSAIS}) : ${dernierBlocage.slice(0, 100)}`);
+          }
+
+          if (!data?.ok) {
+            actionResult = `Erreur: ${data?.error || 'échec'}`;
           } else {
             const plateforme = data.post?.platform || 'instagram';
             const lien = data.instagram_permalink || (data.tiktok_publish_id ? 'TikTok' : null);
             if (lien) {
-              actionResult = `Post ${plateforme} publié${data.instagram_permalink ? ` : ${data.instagram_permalink}` : ' sur TikTok'}`;
-            } else if (actionJson.draft) {
+              actionResult = `Post ${plateforme} publié${data.instagram_permalink ? ` : ${data.instagram_permalink}` : ' sur TikTok'}${essais > 1 ? ` (repris ${essais} fois pour passer le contrôle qualité)` : ''}`;
+            } else if (demandeBrouillon) {
               actionResult = `Post ${plateforme} préparé, il t'attend en brouillon.`;
-            } else if (data.publication_error) {
-              actionResult = `Post ${plateforme} créé mais NON publié — ${String(data.publication_error).slice(0, 180)}. Il est gardé, je peux réessayer.`;
             } else {
-              actionResult = `Post ${plateforme} créé mais non publié. Vérifie que ton compte ${plateforme} est bien connecté — je peux réessayer ensuite.`;
+              // Après trois tentatives, on dit la vérité plutôt que d'insister
+              // ou de publier quelque chose qui ne tient pas la route.
+              actionResult = `Je n'ai pas réussi à produire un post qui tienne la route sur ce sujet, après ${essais} tentatives — dernier blocage : ${dernierBlocage.slice(0, 140)}. Le brouillon est gardé. Donne-moi un angle plus précis et je le reprends.`;
             }
           }
+
         } else if (actionType === 'scan_dms') {
           // Sans user_id, cette route se rabattait sur le compte admin : le
           // client voyait un décompte de DM qui n'était pas le sien.
