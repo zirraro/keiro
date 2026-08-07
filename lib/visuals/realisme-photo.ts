@@ -101,6 +101,50 @@ export function blocRealismeCourt(styleDemande?: string | null): string {
 }
 
 /**
+ * Le socle vidéo — reels et clips.
+ *
+ * La règle vidéo existante disait « photographer realism — Vogue/Cereal
+ * editorial look ». Or « Vogue editorial » pousse vers le léché, le poli, le
+ * publicitaire : exactement l'inverse du naturel demandé. Une vidéo trahit
+ * d'ailleurs plus vite qu'une photo — un mouvement de caméra trop parfait, une
+ * lumière qui ne bouge pas, une peau sans grain, et l'œil décroche.
+ *
+ * Ce qui rend une vidéo crédible tient à trois choses : une caméra tenue à la
+ * main avec ses micro-imperfections, une lumière qui a une source et qui varie
+ * quand le sujet bouge, et une action réelle plutôt qu'une pose.
+ */
+export const REALISME_VIDEO = [
+  'REALISM — ABSOLUTE PRIORITY: footage must look shot on a real camera by a real person,',
+  'never generated, never a commercial.',
+  '',
+  'CAMERA: handheld with natural micro-movement — tiny drift, small corrections, imperfect',
+  'framing. NOT a perfect gimbal glide, NOT a drone sweep, NOT a locked-off tripod unless the',
+  'scene calls for it. Shallow depth of field from a real fast lens, with focus that breathes.',
+  '',
+  'LIGHT: one identifiable source. As the subject or camera moves, the light on them CHANGES —',
+  'that variation is what makes it read as real. Mixed colour temperature welcome.',
+  '',
+  'ACTION: someone doing their actual job, mid-gesture, not posing or presenting to camera.',
+  'Hands working. No eye contact with the lens unless it happens naturally.',
+  '',
+  'TEXTURE: skin with pores, steam, flour dust, condensation, worn surfaces. Fine grain.',
+  'Nothing beautified, nothing smoothed.',
+  '',
+  'NOT: slow-motion glamour, speed ramps, colour grading with orange-and-teal, lens flares,',
+  'bloom, motion graphics, text overlays, logo animations, stock-footage staging, or the',
+  'glossy look of an advert. Documentary before commercial, always.',
+].join('\n');
+
+/** À accrocher à un prompt vidéo, sauf style explicitement demandé. */
+export function blocRealismeVideo(styleDemande?: string | null): string {
+  const style = String(styleDemande || '').toLowerCase();
+  if (/(illustration|dessin|cartoon|3d|rendu|graphique|anim[ée]|motion design)/.test(style)) {
+    return `Rendu demandé par le client : ${String(styleDemande).slice(0, 60)}.`;
+  }
+  return REALISME_VIDEO;
+}
+
+/**
  * Impose le rendu photo à une diapositive de carrousel.
  *
  * Constat du fondateur (2026-08-07) : « le dernier carrousel, la 1re photo ok,

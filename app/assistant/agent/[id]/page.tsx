@@ -2981,15 +2981,26 @@ export default function AgentWorkspacePage() {
       {(!chatOpen || chatMinimised) && (
         <button
           onClick={() => { setChatOpen(true); setChatMinimised(false); }}
-          className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-2xl hover:scale-105 flex items-center justify-center transition-all lg:bottom-8 lg:right-8 overflow-hidden"
-          style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}
+          className="fixed right-4 z-40 w-14 h-14 rounded-full shadow-2xl hover:scale-105 active:scale-95 flex items-center justify-center transition-all lg:bottom-8 lg:right-8 overflow-hidden ring-2 ring-white/20"
+          // La barre de navigation basse et le repose-pouce de l'iPhone se
+          // partagent le bas de l'écran : sans l'inset de zone sûre, la bulle
+          // se retrouvait à cheval sur les deux.
+          style={{
+            bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
+            background: `linear-gradient(135deg, ${gf}, ${gt})`,
+          }}
           aria-label={chatMinimised ? `Rouvrir la conversation avec ${dn}` : `Ouvrir une conversation avec ${dn}`}
           title={chatMinimised ? `Rouvrir la conversation avec ${dn}` : `Ouvrir une conversation avec ${dn}`}
         >
-          {chatMinimised && av ? (
+          {/* Le visage de l'agent, toujours — pas seulement quand la
+              conversation est en cours. Le fondateur, sur mobile : « il y a un
+              chat dispo, c'est celui de qui ? quel agent ? » L'icône générique
+              ne répondait à personne : sur la page de Léna c'est Léna, sur
+              celle de Théo c'est Théo, mais rien ne le disait. */}
+          {av ? (
             <img src={av} alt={dn} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
           ) : (
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            <span className="text-white text-lg font-bold">{String(dn || '?').charAt(0).toUpperCase()}</span>
           )}
           {chatMinimised && messages.length > 0 && (
             <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0a1628]" />
@@ -3104,11 +3115,11 @@ export default function AgentWorkspacePage() {
                 />
               </div>
               <div className="flex items-end gap-2">
-                <textarea ref={inputRef} value={input} onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={`Message a ${dn}...`} rows={1} className="flex-1 px-3 py-2.5 border border-white/15 rounded-xl text-[13px] text-white placeholder-white/35 bg-white/5 focus:ring-2 focus:ring-purple-500/50 outline-none resize-none" style={{ maxHeight: 100 }} disabled={isLoading} />
-                <button onClick={toggleVoiceInput} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`} title={isRecording ? 'Arreter' : 'Dicter'}>
+                <textarea ref={inputRef} value={input} onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={`Message à ${dn}…`} rows={1} className="flex-1 min-h-[44px] px-3 py-2.5 border border-white/15 rounded-xl text-base sm:text-[13px] text-white placeholder-white/35 bg-white/5 focus:ring-2 focus:ring-purple-500/50 outline-none resize-none" style={{ maxHeight: 100 }} disabled={isLoading} />
+                <button onClick={toggleVoiceInput} className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`} title={isRecording ? 'Arreter' : 'Dicter'}>
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 15a3 3 0 003-3V5a3 3 0 00-6 0v7a3 3 0 003 3z" /></svg>
                 </button>
-                <button onClick={handleSend} disabled={isLoading || !input.trim()} className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center disabled:opacity-30 transition-all flex-shrink-0">
+                <button onClick={handleSend} disabled={isLoading || !input.trim()} className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center disabled:opacity-30 transition-all flex-shrink-0">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </button>
               </div>

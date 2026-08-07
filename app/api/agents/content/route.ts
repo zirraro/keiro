@@ -20,7 +20,7 @@ import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert, isTransientPublishError, nextRetryDelayMs, MAX_PUBLISH_RETRIES } from '@/lib/agents/publish-diagnostics';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
-import { diapoRealiste } from '@/lib/visuals/realisme-photo';
+import { diapoRealiste, REALISME_VIDEO } from '@/lib/visuals/realisme-photo';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -4452,7 +4452,7 @@ async function POSTInterne(request: NextRequest) {
                     // 2026-06-07 — Global rules: zero text in video + single
                     // continuous shot (no cuts/transitions). Prepended to every
                     // motion prompt so they outrank any soft hint.
-                    const GLOBAL = 'ABSOLUTE RULE 1: ZERO text in the video — no captions, titles, labels, overlays, signage with words, watermark. Not a single letter. RULE 2: cuts only if narratively justified. Default = single continuous shot. Allowed: a single matched-on-action cut wide→close-up of the SAME subject. BANNED: fade-to-black, dissolve, whip-pan transition, glitch, jump cut to a different scene, anything that screams motion graphics. ABSOLUTE RULE 3: photographer realism — Vogue/Cereal editorial look, no fancy effects. ';
+                    const GLOBAL = 'ABSOLUTE RULE 1: ZERO text in the video — no captions, titles, labels, overlays, signage with words, watermark. Not a single letter. RULE 2: cuts only if narratively justified. Default = single continuous shot. Allowed: a single matched-on-action cut wide→close-up of the SAME subject. BANNED: fade-to-black, dissolve, whip-pan transition, glitch, jump cut to a different scene, anything that screams motion graphics. ABSOLUTE RULE 3: ' + REALISME_VIDEO + ' ';
                     const MOTION_PROMPTS: Record<string, string> = {
                       parallax: GLOBAL + 'LOCKED ELEMENTS: the plated dish, the venue background, the table, every object — all stay exactly as in frame 1. CAMERA: continuous slow horizontal parallax 8-10% lateral drift + 4% push-in by the last second. Smooth steadicam. ACTION: warm daylight noticeably shifts over the clip — warmth deepens, shadows lengthen, a single steam wisp may rise. NO human enters. CINEMATOGRAPHY: Hasselblad X2D 80mm f/2.8, Portra 400 grain. BANNED: zoom, rotation, halo, neon, plastic, midjourney, CGI, cartoon.',
                       dolly_steam: GLOBAL + 'LOCKED ELEMENTS: the plated dish, the venue, the table, every object — all as in frame 1. CAMERA: very slow dolly-in toward the plate, ~8% closer by the end. ACTION: 2-3 thin wisps of gentle white steam rise from the dish and dissipate; faint warm flicker from an off-frame candle. NO human enters. CINEMATOGRAPHY: Leica M11 50mm Summilux f/2, mixed tungsten + golden-hour, Portra 400 grain. BANNED: fast moves, zoom, rotation, halo, neon, plastic, midjourney, CGI, cartoon.',
