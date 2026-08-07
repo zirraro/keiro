@@ -3675,11 +3675,16 @@ async function POSTInterne(request: NextRequest) {
         const dayOfWeek = new Date().getDay();
         // Allow caller to force the news-angle source ('news' | 'trend' | 'event')
         // via body.preferAngleSource — handy for A/B testing the 2 modes.
-        const callSettings = (body.preferAngleSource || body.avoidTopics)
+        const callSettings = (body.preferAngleSource || body.avoidTopics || body.sujet)
           ? {
               ...clientSettings,
               ...(body.preferAngleSource ? { _prefer_angle_source: body.preferAngleSource } : {}),
               ...(Array.isArray(body.avoidTopics) ? { _avoid_topics: body.avoidTopics } : {}),
+              // Le sujet demandé dans le chat. Sans lui, « fais un post sur la
+              // Ligue des Champions » produisait le contenu habituel de Léna :
+              // le client voyait partir un post qui n'avait aucun rapport avec
+              // sa demande. Vaut pour CE post uniquement, pas comme réglage.
+              ...(body.sujet ? { _forced_topic: String(body.sujet).slice(0, 300) } : {}),
             }
           : clientSettings;
         return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, callSettings, body.format);
@@ -7023,7 +7028,34 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
         avoidTopics,
         prefer,
       });
-      if (angle) {
+      // ── Le sujet demandé par le client passe AVANT tout le reste ──
+      //
+      // Le 7 août : « fais-moi un post sur la Ligue des Champions pour un
+      // resto » → le post publié n'avait aucun rapport. Léna choisissait son
+      // angle habituel et ignorait la demande, parce que le sujet ne
+      // descendait simplement jamais jusqu'ici.
+      //
+      // Un ordre explicite du client n'est pas une suggestion : il écrase la
+      // sélection automatique d'actualité.
+      const sujetImpose = (clientSettings as any)?._forced_topic;
+      if (sujetImpose) {
+        newsAngleBlock = `
+=== SUJET IMPOSÉ PAR LE CLIENT ===
+`
+          + `Le client a demandé EXPRESSÉMENT ce post : « ${sujetImpose} »
+`
+          + `Ce sujet est OBLIGATOIRE. Le visuel, le hook et la légende portent dessus.
+`
+          + `Tu l'ancres dans SON commerce (son métier, sa ville, son offre) — mais tu ne
+`
+          + `changes PAS de sujet, et tu ne le dilues pas dans un propos général.
+`
+          + `N'invente aucun fait précis (score, date, affiche) que tu ne connais pas :
+`
+          + `parle de l'événement et de ce que le commerce en propose.
+`;
+        console.log('[Content] Sujet imposé par le client :', String(sujetImpose).slice(0, 80));
+      } else if (angle) {
         newsAngleBlock = angleToPromptBlock(angle);
         // Persist so future generations never repeat this actu (founder priority).
         try {

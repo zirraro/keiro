@@ -334,7 +334,10 @@ Tu peux déclencher N'IMPORTE quelle action, même si tu n'es pas l'agent en cha
 Hugo peut générer un post. Lena peut envoyer des emails. Léo peut scanner les DMs.
 
 Pour exécuter une action, INCLUS le tag DANS ta réponse:
-- Post Instagram: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
+- Post Instagram: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips","sujet":"le sujet exact demandé par le client"}]
+  → « sujet » est OBLIGATOIRE dès que le client précise un thème (un événement,
+    une offre, une actualité). C'est ce qui fait que le post parle de CE qu'il a
+    demandé et pas d'autre chose.
 - Reel Instagram: [ACTION:{"type":"generate_post","platform":"instagram","format":"reel","pillar":"trends"}]
 - Post TikTok: [ACTION:{"type":"generate_post","platform":"tiktok","format":"video"}]
 - Post LinkedIn: [ACTION:{"type":"generate_post","platform":"linkedin","format":"text"}]
@@ -574,9 +577,30 @@ détail vit dans le Planning.`;
     // brouillon ou de programmation.
     if (!actionMatch) {
       const m = String(message || '').toLowerCase();
-      const veutPublier = /(publie|publier|poster|postez|poste|mets en ligne|met en ligne|balance|envoie le post)/.test(m)
+      const estQuestionPub = /^(comment|pourquoi|quand|qui|combien|est-ce que|peux-tu|tu peux|c'est quoi|qu'est-ce)/.test(m.trim());
+      const veutPublier = !estQuestionPub
+        && /(publie|publier|poster|postez|poste|mets en ligne|met en ligne|balance|envoie le post)/.test(m)
         && !/(brouillon|plus tard|ne publie pas|pas publier|programme|planifie)/.test(m);
-      if (veutPublier) {
+      // Chaque agent a son ordre le plus courant. Si le client le donne
+      // clairement et que le modèle n'a rien émis, on exécute quand même.
+      // L'ordre compte : on teste du plus spécifique au plus général.
+      const intentions: Array<[boolean, string]> = [
+        [/(r[ée]ponds?|traite|g[èe]re|scanne).{0,20}(dm|messages? priv)/.test(m), '{"type":"scan_dms"}'],
+        [/(r[ée]ponds?|traite).{0,20}commentaires?/.test(m), '{"type":"reply_comments"}'],
+        [/(r[ée]ponds?|traite|g[èe]re).{0,20}avis/.test(m), '{"type":"repondre_avis"}'],
+        [/(nettoie|trie|range|fais le m[ée]nage).{0,25}(mail|bo[îi]te|email)/.test(m), '{"type":"mailbox_triage"}'],
+        [/(envoie|lance|relance).{0,20}(mail|email)/.test(m), '{"type":"send_emails"}'],
+        [/(prospecte|trouve|cherche).{0,30}(prospect|client|commerce)/.test(m), null as any],
+      ];
+      // « Comment tu réponds aux avis ? » est une question sur la méthode,
+      // pas un ordre. Déclencher dessus serait pire que de ne rien faire :
+      // le client n'a rien demandé et une action part en son nom.
+      const estUneQuestion = /^(comment|pourquoi|quand|qui|combien|est-ce que|peux-tu|tu peux|c'est quoi|qu'est-ce)/.test(m.trim());
+      const trouve = estUneQuestion ? undefined : intentions.find(([ok]) => ok);
+      if (!veutPublier && trouve && trouve[1]) {
+        actionMatch = [`[ACTION:${trouve[1]}]`] as unknown as RegExpMatchArray;
+        console.log('[ClientChat] Action déduite (aucun tag émis) :', trouve[1]);
+      } else if (veutPublier) {
         const plateforme = /tiktok/.test(m) ? 'tiktok' : /linkedin/.test(m) ? 'linkedin' : 'instagram';
         const format = /(reel|réel|video|vidéo)/.test(m)
           ? (plateforme === 'tiktok' ? 'video' : 'reel')
@@ -600,7 +624,17 @@ détail vit dans le Planning.`;
         if (actionType === 'generate_post') {
           const res = await fetch(`${baseUrl}/api/agents/content`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
-            body: JSON.stringify({ action: 'generate_post', platform: actionJson.platform || 'instagram', format: actionJson.format || 'post', pillar: actionJson.pillar || 'tips', draftOnly: actionJson.draft || false, user_id: user.id }),
+            body: JSON.stringify({
+              action: 'generate_post',
+              platform: actionJson.platform || 'instagram',
+              format: actionJson.format || 'post',
+              pillar: actionJson.pillar || 'tips',
+              draftOnly: actionJson.draft || false,
+              user_id: user.id,
+              // Le sujet demandé. L'agent peut le préciser dans le tag ; sinon
+              // on reprend la phrase du client, qui le contient toujours.
+              sujet: actionJson.sujet || actionJson.topic || message,
+            }),
           });
           const data = await res.json();
           // « (en brouillon) » était faux : les posts finissaient en
