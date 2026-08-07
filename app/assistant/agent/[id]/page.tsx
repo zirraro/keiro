@@ -603,8 +603,19 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
   const [loading, setLoading] = useState(true);
   // Skipped is HIDDEN by default — those are noise (network disabled,
   // QA salvaged after retry, etc). User can opt-in via the chip.
-  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['draft', 'approved', 'published']));
-  const [platformFilter, setPlatformFilter] = useState<Set<string>>(new Set(['instagram', 'tiktok', 'linkedin']));
+  // ── Ce qu'on montre à l'ouverture ──
+  //
+  // Demande du fondateur (07/08) : « dans le planning, j'aimerais que les
+  // posts affichés à l'ouverture soient programmés et Insta, pour une
+  // meilleure lisibilité directe. »
+  //
+  // Le planning s'ouvrait sur les trois réseaux ET les brouillons mélangés
+  // aux publiés : trois colonnes de contenus hétérogènes où l'on cherchait ce
+  // qui allait vraiment partir. On ouvre donc sur ce qui est PROGRAMMÉ, sur
+  // Instagram. Les autres filtres restent à un clic — on change la vue par
+  // défaut, on ne retire rien.
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['approved']));
+  const [platformFilter, setPlatformFilter] = useState<Set<string>>(new Set(['instagram']));
   const [selected, setSelected] = useState<any>(null);
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchDays, setBatchDays] = useState<number>(7);

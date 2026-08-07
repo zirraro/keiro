@@ -6123,6 +6123,17 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
         naturalismBlock = naturalismToPromptBlock(profile);
         console.log(`[Content] Naturalism profile applied: ${profile.id} for business "${dossier.business_type}"`);
       }
+      // Le réalisme photographique s'applique à TOUS les commerces, y compris
+      // ceux dont le métier n'a pas de profil dédié. Il était jusqu'ici traité
+      // par endroits — très fort pour les plats, absent pour un post équipe ou
+      // une story promo, qui sortaient avec le rendu par défaut du modèle.
+      // Le style demandé par le client reste prioritaire : c'est la règle.
+      try {
+        const { blocRealisme } = await import('@/lib/visuals/realisme-photo');
+        naturalismBlock = blocRealisme((clientSettings as any)?.visual_style) + String.fromCharCode(10) + naturalismBlock;
+      } catch (e: any) {
+        console.warn('[Content] bloc réalisme non chargé:', e?.message);
+      }
     } catch (e: any) {
       console.warn('[Content] naturalism block load failed:', e?.message);
     }
