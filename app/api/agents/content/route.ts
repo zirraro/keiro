@@ -20,7 +20,7 @@ import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert, isTransientPublishError, nextRetryDelayMs, MAX_PUBLISH_RETRIES } from '@/lib/agents/publish-diagnostics';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
-import { diapoRealiste, REALISME_VIDEO } from '@/lib/visuals/realisme-photo';
+import { diapoRealiste, REALISME_VIDEO, registreVisuelPour, nuanceRegistre } from '@/lib/visuals/realisme-photo';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -453,7 +453,21 @@ function derivePixabayQuery(desc: string): string | null {
   return words.slice(0, 4).join(' ');
 }
 
-async function generateVisual(visualDescription: string, format: string, userIdForReuse?: string, platformForReuse?: string): Promise<string | null> {
+async function generateVisual(
+  visualDescription: string,
+  format: string,
+  userIdForReuse?: string,
+  platformForReuse?: string,
+  /**
+   * Le métier du client, pour choisir le registre visuel.
+   *
+   * Un restaurant veut du vécu, une bijouterie du soin — dans les deux cas une
+   * vraie photo, jamais un rendu. Sans ce paramètre, tout le monde recevait la
+   * même mise en scène, et le registre « authentique » (le défaut) reste le
+   * plus sûr quand on ne sait pas.
+   */
+  businessTypePourVisuel?: string | null,
+): Promise<string | null> {
   try {
     // 2026-06-03 — Levier 3: visual reuse INTRA-client.
     // 30% probability d'utiliser un top performer du client (économie
@@ -513,6 +527,7 @@ async function generateVisual(visualDescription: string, format: string, userIdF
     // couleur IA/violet — y compris les posts de KeiroAI elle-même. L'ancien
     // guide marque violet (SEEDREAM_STYLE_GUIDE) est retiré pour le contenu : on
     // utilise TOUJOURS le guide photo-réaliste + le bloc anti-AI-tells.
+    const registreMetier = nuanceRegistre(registreVisuelPour(businessTypePourVisuel));
     const t2iSystem = `You are an elite prompt engineer for Seedream (text-to-image AI). The output must look like an AUTHENTIC PHOTOGRAPH a real person shot — NOT a branded graphic, NOT a 3D render, NOT an illustration.
 
 ⛔ ZERO AI/brand colours: NO violet, purple, lilac, magenta, electric blue, neon, or synthetic gradient — EVER (unless the real-world subject is naturally that colour, e.g. lavender, an eggplant). Use grounded photographic palettes: natural daylight, warm amber, terracotta, soft cream, charcoal, sage, wood tones, linen. Light is a colour: golden hour, north-window soft light, tungsten warm.
@@ -528,7 +543,7 @@ Output ONLY the optimized English prompt — pure visual description, no jargon,
     void SEEDREAM_STYLE_GUIDE;
     const optimizedText = await callClaude({
       system: t2iSystem,
-      message: `Create a PREMIUM visual prompt for a ${format} post.\n\nVisual brief: ${visualDescription}\n\nFormat context: ${format === 'carrousel' || format === 'post' ? 'Square format (1:1), must look stunning as Instagram grid thumbnail. Professional photography quality, magazine-level composition.' : format === 'story' ? 'Vertical 9:16 story format. MUST be visually STRIKING and PREMIUM — think high-end magazine ad or luxury brand story. Bold typography-ready composition, dramatic lighting, professional product photography or lifestyle shot. This is the FIRST thing people see, it must STOP the scroll.' : format === 'reel' || format === 'video' ? 'Vertical 9:16 video thumbnail format. Bold, eye-catching, cinematic feel.' : 'Horizontal 16:9 LinkedIn format, professional and corporate-friendly.'}\n\n━━━ NIVEAU EXIGÉ — JAMAIS "TROP SIMPLE" ━━━\nThe #1 failure is a plain, empty, generic shot. Every visual must be RICH and scroll-stopping:\n- A clear HERO subject + real DEPTH (foreground / midground / background), not a flat centered object on emptiness.\n- A captured MOMENT or human gesture (hands plating, steam rising, someone mid-laugh, a pour) — life, not a static product.\n- Intentional LIGHT with direction and mood (golden-hour rim light, soft window side-light, dramatic shadow) that sculpts the scene.\n- Layered, tactile DETAIL the eye can explore on zoom (textures, props that tell a story, natural imperfections).\n- A point of view a top editorial photographer would choose (low angle, over-the-shoulder, intimate close detail) — never a boring eye-level catalogue shot.\nThink Kinfolk / Cereal / Apple / a Michelin restaurant's feed. Composed, deep, alive — yet still an authentic photo (natural, zero AI/violet look).\n\nIMPORTANT: Do NOT include any hex color codes, aspect ratios, numbers, or technical specifications. Describe colors by name only. Output a PURE VISUAL DESCRIPTION, richly detailed (composition + subject + light + depth + textures + mood).`,
+      message: `Build the image prompt for this ${format}.\n\nVisual brief: ${visualDescription}\n\nFormat: ${format === 'carrousel' || format === 'post' ? 'Square 1:1. It has to hold up as a thumbnail in the Instagram grid.' : format === 'story' ? 'Vertical 9:16. First thing people see — it has to feel like something real is happening.' : format === 'reel' || format === 'video' ? 'Vertical 9:16 video still.' : 'Horizontal 16:9 for LinkedIn.'}\n\n━━━ IT MUST BE A REAL PHOTOGRAPH ━━━\nA real photographer, on a real assignment, in a real place. Never a brand campaign,\nnever a studio product shot, never a rendered image.\n- One identifiable light source (window, shopfront, lamp, sun) with direction and\n  consequence: real shadows, one side darker than the other. Never lit evenly from nowhere.\n- Visible texture: skin with pores, flour dust, steam, condensation, fingerprints, wear.\n  Fine grain in the shadows. Nothing airbrushed, nothing plastic.\n- Slightly imperfect framing, as someone working fast would get it. Off-centre is good.\n- The place looks used: a cloth left out, a chair not aligned, a hand entering frame.\n  That untidiness is what makes it credible — do not clean it away.\n- Natural, restrained colour. No boosted saturation, no orange-and-teal, no glow, no flare.\n\n━━━ AND IT MUST NOT BE EMPTY ━━━\nA flat, generic shot fails too. Depth (foreground / midground / background), a real gesture\ncaught mid-action — hands working, someone mid-laugh, a pour — and details the eye can\nexplore. Rich and alive, but through what is actually happening, not through polish.\n\nNEVER: 3D render, CGI, illustration, cartoon, digital painting, airbrushed skin,\nmodel-agency faces, showroom perfection, stock-photo staging (people laughing at salad,\nthumbs-up, fake eye contact), text or logos.\n\nNo hex codes, no aspect ratios, no numbers, no technical jargon. Colours by name.\nOutput ONE pure visual description in English: subject, light, depth, texture, mood.\n\n${registreMetier}`,
       maxTokens: 500,
     });
 

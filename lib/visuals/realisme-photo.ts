@@ -28,6 +28,8 @@
  * modèles suppriment par défaut.
  */
 
+import { famillesDe } from '../business-families';
+
 /** Le socle, ajouté à chaque prompt d'image. */
 export const REALISME_SOCLE = [
   'PHOTOREALISM — ABSOLUTE PRIORITY: this must read as a real photograph taken by a professional',
@@ -101,6 +103,64 @@ export function blocRealismeCourt(styleDemande?: string | null): string {
 }
 
 /**
+ * Le registre visuel du métier.
+ *
+ * Précision du fondateur (2026-08-08) : « par domaine on peut peut-être faire
+ * du léché ou d'autres directives de base, mais pour certains domaines et le
+ * restaurant, ce n'est pas la direction à prendre — il faut de l'authentique. »
+ *
+ * Nuance qui manquait. Un restaurant de quartier, une boulangerie, un garage
+ * vendent la confiance : la photo doit sentir le lieu réel, avec ses traces
+ * d'usage. Une bijouterie, une boutique de mode, un institut haut de gamme
+ * vendent le soin et la maîtrise : une image trop brute y ferait bon marché.
+ *
+ * La différence ne porte JAMAIS sur le réalisme — aucun métier ne veut d'une
+ * image qui sente la génération. Elle porte sur la mise en scène : lieu vécu et
+ * geste attrapé au vol d'un côté, composition posée et lumière maîtrisée de
+ * l'autre. Dans les deux cas, un photographe professionnel, jamais un moteur.
+ */
+export type RegistreVisuel = 'authentique' | 'soigne';
+
+const REGISTRE_PAR_FAMILLE: Record<string, RegistreVisuel> = {
+  // Le vécu vend la confiance.
+  restaurant: 'authentique', boulangerie: 'authentique', patisserie: 'authentique',
+  boucherie: 'authentique', cafe: 'authentique', bar: 'authentique',
+  garage: 'authentique', plombier: 'authentique', electricien: 'authentique',
+  menuisier: 'authentique', fleuriste: 'authentique', coiffeur: 'authentique',
+  salle_sport: 'authentique', veterinaire: 'authentique', menage: 'authentique',
+  // Le soin fait partie du produit.
+  bijouterie: 'soigne', mode: 'soigne', opticien: 'soigne',
+  institut_beaute: 'soigne', hotel: 'soigne', immobilier: 'soigne',
+  comptable: 'soigne', agence: 'soigne',
+};
+
+/** Le registre du métier — authentique par défaut, c'est le plus sûr. */
+export function registreVisuelPour(businessType?: string | null): RegistreVisuel {
+  for (const f of famillesDe(businessType)) {
+    if (REGISTRE_PAR_FAMILLE[f]) return REGISTRE_PAR_FAMILLE[f];
+  }
+  return 'authentique';
+}
+
+/** Ce qui change entre les deux registres — la mise en scène, jamais le réalisme. */
+export function nuanceRegistre(registre: RegistreVisuel): string {
+  return registre === 'soigne'
+    ? [
+        'REGISTER — CONSIDERED: this trade sells care and mastery, so the frame is composed and the',
+        'light is controlled. Cleaner surfaces, deliberate arrangement, a calmer palette.',
+        'It stays a REAL photograph: same texture, same single light source, same fine grain, same',
+        'refusal of airbrushing. Composed does not mean synthetic — a skilled photographer simply',
+        'took time. Still no CGI, no plastic skin, no showroom emptiness.',
+      ].join('\n')
+    : [
+        'REGISTER — LIVED-IN: this trade sells trust, and trust comes from the place looking real.',
+        'Keep the working mess: a cloth left out, a chair off-line, crumbs, worn surfaces, a hand',
+        'entering frame. Catch the gesture mid-action rather than arranging it.',
+        'Tidying the scene is the single fastest way to make it look generated.',
+      ].join('\n');
+}
+
+/**
  * Le socle vidéo — reels et clips.
  *
  * La règle vidéo existante disait « photographer realism — Vogue/Cereal
@@ -133,6 +193,37 @@ export const REALISME_VIDEO = [
   'NOT: slow-motion glamour, speed ramps, colour grading with orange-and-teal, lens flares,',
   'bloom, motion graphics, text overlays, logo animations, stock-footage staging, or the',
   'glossy look of an advert. Documentary before commercial, always.',
+].join('\n');
+
+/**
+ * Les deux formats de reel qui fonctionnent pour un commerce.
+ *
+ * Demande du fondateur (2026-08-08) : « en image, et un peu clip
+ * cinématographie en reel — ou format interview. »
+ *
+ * Ce sont deux registres bien distincts, et les mélanger donne le pire des
+ * deux. Le clip vit du geste et de la matière, sans parole ; l'interview vit
+ * de la personne qui parle, et tout le reste s'efface derrière elle.
+ *
+ * L'interview est le format le plus difficile à truquer et le plus crédible :
+ * c'est aussi celui qui exige que le client fournisse son propre média, parce
+ * qu'un visage généré se repère immédiatement et trahirait tout le compte.
+ */
+export const REEL_CLIP = [
+  'FORMAT — CINEMATIC CLIP: no speech, no presenter. The subject is the craft itself.',
+  'One continuous shot, or a single matched cut from wide to detail on the SAME subject.',
+  'Slow, deliberate movement following a real gesture — kneading, pouring, plating, wiping down.',
+  'Sound design carries it, not narration. Let the material breathe: steam, flour, water, metal.',
+  'Cinematic means patient and composed, NOT graded orange-and-teal, NOT slow-motion glamour.',
+].join('\n');
+
+export const REEL_INTERVIEW = [
+  'FORMAT — INTERVIEW: one person talking to camera or slightly off-axis, in their own place.',
+  'Static or barely-moving frame at eye level, subject off-centre, the workplace readable behind',
+  'them but out of focus. Natural light from a window on one side.',
+  'They speak as themselves — hesitations, hands moving, a look away mid-sentence. Not a pitch.',
+  'This format REQUIRES the client\'s own footage: a generated face is spotted immediately and',
+  'discredits the whole account. If no real footage exists, fall back to the cinematic clip.',
 ].join('\n');
 
 /** À accrocher à un prompt vidéo, sauf style explicitement demandé. */
