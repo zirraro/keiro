@@ -402,12 +402,30 @@ qui s'en charge, va voir dans son espace, la tâche est en cours. » Nomme l'age
 (Léna=contenu, Jade=DM Instagram, Hugo=email, Léo=prospection, Stella=WhatsApp, Théo=avis)
 et dis au client d'aller dans l'espace de cet agent. Toujours confirmer que c'est EN COURS.
 
-ACCUSÉ DE RÉCEPTION SYSTÉMATIQUE (founder 22/07) : DÈS que tu déclenches une action
-(publication, email, prospection, DM, WhatsApp, avis…), ta réponse doit d'abord dire,
-en une phrase courte : « Compris — c'est en cours, je te confirme dès que c'est fait. »
-Puis le tag [ACTION]. Ne laisse JAMAIS le client sans accusé pendant que ça tourne.
-Une fois l'action exécutée (le système ajoute "Résultat: ..."), tu CONFIRMES que c'est
-fait, brièvement.
+ACCUSÉ DE RÉCEPTION — UNE LIGNE, PAS PLUS (founder 22/07, resserré le 07/08) :
+dès que tu déclenches une action, ta réponse tient en UNE ligne qui reformule la
+demande, puis le tag [ACTION]. Rien d'autre.
+
+Le fondateur, en relisant une conversation avec Léna le 07/08 : « on ne veut pas
+autant de blabla, le client veut un récap rapide et des messages clairs, de
+l'efficacité et de la fluidité au max. »
+
+Ce que tu N'ÉCRIS PLUS, jamais, avant une action :
+- la formule toute faite « Compris — c'est en cours, je te confirme dès que c'est
+  fait » (elle ne dit rien de la demande) ;
+- le contenu du post, sa légende, ses hashtags, son concept visuel — le client
+  verra le résultat, il n'a pas à le relire en texte dans une fenêtre de chat ;
+- le détail de ta méthode, tes étapes, ce que tu vas vérifier ;
+- des questions de confirmation quand la demande est claire.
+
+BIEN : « Post Ligue des Champions pour ton resto, je publie. [ACTION:…] »
+BIEN : « Contrat d'extra samedi soir, je le rédige. [ACTION:…] »
+MAL  : « Compris — c'est en cours… Voici la proposition prête à publier : ###
+        Concept : … Idée visuelle : … Légende : … Hashtags : … »
+
+Après l'exécution, le système ajoute le résultat réel. Tu n'ajoutes RIEN : ni
+reformulation, ni félicitations, ni promesse pour la prochaine fois. Le résultat
+parle tout seul.
 
 FICHIERS DU CLIENT — SON RÉGLAGE PRIME, IL RESTE MAÎTRE (founder 23/07) : le client a
 un réglage par défaut de ce qu'on a le droit de faire de SES photos/vidéos (brut / retouche
@@ -581,7 +599,9 @@ détail vit dans le Planning.`;
             method: 'POST', headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
           });
           const data = await res.json();
-          actionResult = `${data.replied || 0} DMs répondus, ${data.total_conversations || 0} conversations scannées`;
+          actionResult = (res.ok && !data?.error)
+            ? `${data.replied || 0} DM${(data.replied || 0) > 1 ? 's' : ''} répondu${(data.replied || 0) > 1 ? 's' : ''} sur ${data.total_conversations || 0} conversation${(data.total_conversations || 0) > 1 ? 's' : ''}`
+            : `Je n'ai pas pu accéder à tes DM — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'reply_comments') {
           // Cette route lit user_id dans le CORPS. Sans lui, elle se rabat
           // sur le premier profil is_admin : un client demandait à Jade de
@@ -592,7 +612,9 @@ détail vit dans le Planning.`;
             body: JSON.stringify({ action: 'auto_reply_all', user_id: user.id }),
           });
           const data = await res.json();
-          actionResult = `${data.replied || data.comments_replied || 0} commentaires répondus`;
+          actionResult = (res.ok && !data?.error)
+            ? `${data.replied || data.comments_replied || 0} commentaire(s) répondu(s)`
+            : `Je n'ai pas pu traiter tes commentaires — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'repondre_avis') {
           // Théo n'avait aucune action exécutable : à « réponds à mes avis »,
           // il décrivait ce qu'il ferait. La route existe depuis toujours.
@@ -661,7 +683,9 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
             headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
           });
           const data = await res.json();
-          actionResult = `${data.stats?.success || 0} emails envoyés`;
+          actionResult = (res.ok && !data?.error)
+            ? `${data.stats?.success || 0} email(s) envoyé(s)${data.stats?.failed ? `, ${data.stats.failed} en échec` : ''}`
+            : `Les emails ne sont pas partis — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'prospect') {
           // Même piège : sans user_id dans l'URL, les prospects trouvés
           // atterrissaient dans le CRM de l'admin, pas dans celui du client.
@@ -670,7 +694,9 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
             body: JSON.stringify({ query: actionJson.query, user_id: user.id }),
           });
           const data = await res.json();
-          actionResult = `${data.imported || 0} prospects trouvés sur Google Maps`;
+          actionResult = (res.ok && !data?.error)
+            ? `${data.imported || 0} prospect(s) ajouté(s) à ton CRM`
+            : `La recherche n'a pas abouti — ${String(data?.error || `erreur ${res.status}`).slice(0, 120)}`;
         } else if (actionType === 'whatsapp_send') {
           // Cross-agent : n'importe quel agent peut demander à Stella d'écrire un WhatsApp.
           try {

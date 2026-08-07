@@ -1176,7 +1176,7 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
         const j = await r.json();
         if (cancelled) return;
         const cfg = j.settings || {};
-        setAutoMode(cfg[`auto_mode_${network}`] ?? cfg.auto_mode ?? false);
+        setAutoMode(cfg[`auto_mode_${network}`] ?? cfg.auto_publish ?? cfg.auto_mode ?? false);
         setAutoLoaded(true);
       } catch { setAutoLoaded(true); }
     })();
@@ -1196,6 +1196,9 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
           agent_id: 'content',
           auto_mode: next,
           [`auto_mode_${network}`]: next,
+          // Le planning lit auto_publish. Sans cet alias, couper la
+          // validation ici la laissait active là-bas, et inversement.
+          auto_publish: next,
         }),
       });
     } catch { setAutoMode(!next); } finally { setSavingAuto(false); }
@@ -1268,13 +1271,23 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
         <div className="flex items-center gap-2">
           {autoLoaded && (
             <button
+              type="button"
+              role="switch"
+              aria-checked={autoMode}
+              aria-label={`Publication automatique sur ${meta.label}`}
               onClick={toggleAuto}
               disabled={savingAuto}
-              title={autoMode ? `Auto-publish on ${meta.label} is ON — click to disable` : `Auto-publish on ${meta.label} is OFF — click to enable`}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition ${autoMode ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white/80'}`}
+              title={autoMode
+                ? `${meta.label} : Léna publie seule, sans validation`
+                : `${meta.label} : tu valides chaque publication`}
+              className="flex items-center gap-2 min-h-[44px] px-2 rounded-lg transition-colors hover:bg-white/[0.06] disabled:opacity-50"
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${autoMode ? 'bg-emerald-400' : 'bg-white/30'}`} />
-              Auto-publish {autoMode ? 'ON' : 'OFF'}
+              <span className={`relative w-9 h-5 rounded-full flex-shrink-0 transition-colors ${autoMode ? 'bg-emerald-500' : 'bg-white/20'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </span>
+              <span className={`text-[11px] font-semibold whitespace-nowrap ${autoMode ? 'text-emerald-300' : 'text-white/50'}`}>
+                {autoMode ? 'Publie seule' : 'Tu valides'}
+              </span>
             </button>
           )}
           <button
