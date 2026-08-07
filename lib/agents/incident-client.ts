@@ -68,18 +68,24 @@ function expliquer(detail: string, action: string): { texte: string; clientPeutA
       clientPeutAgir: false,
     };
   }
-  if (/credit|solde|insuffisant/.test(d)) {
-    return {
-      texte: `Il ne reste plus assez de crédits sur ton forfait pour ${action}. `
-        + `Tu peux en ajouter depuis tes paramètres, ou attendre le renouvellement mensuel.`,
-      clientPeutAgir: true,
-    };
-  }
-  if (/qualit|qc_|coherence|insuffisant/.test(d)) {
+  // La qualité AVANT les crédits : « qc_top_insuffisant (4/10) » contient
+  // « insuffisant » et tombait dans le test des crédits. Le client s'entendait
+  // dire qu'il n'avait plus de crédits alors que son forfait était intact —
+  // un diagnostic faux, et une inquiétude gratuite. Vérifié par exécution.
+  if (/qualit|qc_|coherence|insuffisant \(|retenu/.test(d)) {
     return {
       texte: `J'ai fait plusieurs propositions et aucune n'atteignait le niveau que je m'impose `
         + `avant de publier en ton nom. Je préfère ne rien sortir plutôt que sortir du tiède. `
         + `Donne-moi un angle plus précis — un détail, une offre, une date — et je reprends.`,
+      clientPeutAgir: true,
+    };
+  }
+  // Les crédits arrivent APRÈS la qualité, faute de quoi « insuffisant » les
+  // capturait. On exige donc un mot du domaine, pas l'adjectif seul.
+  if (/cr[ée]dit|solde|balance insuffisante|quota de cr/.test(d)) {
+    return {
+      texte: `Il ne reste plus assez de crédits sur ton forfait pour ${action}. `
+        + `Tu peux en ajouter depuis tes paramètres, ou attendre le renouvellement mensuel.`,
       clientPeutAgir: true,
     };
   }
