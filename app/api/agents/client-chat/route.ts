@@ -655,7 +655,11 @@ détail vit dans le Planning.`;
               action: 'generate_post',
               platform: actionJson.platform || 'instagram',
               format: actionJson.format || 'post',
-              pillar: actionJson.pillar || 'tips',
+              // Un sujet imposé impose aussi son pilier. Laisser 'tips' par
+              // défaut mettait le prompt en tension : « pilier suggéré :
+              // conseils » face à « sujet obligatoire : la Ligue des
+              // Champions ». Le modèle arbitrait, et pas toujours du bon côté.
+              pillar: actionJson.pillar || (actionJson.sujet || actionJson.topic ? 'trends' : 'tips'),
               draftOnly: actionJson.draft || false,
               user_id: user.id,
               // Le sujet demandé. L'agent peut le préciser dans le tag ; sinon

@@ -7120,7 +7120,7 @@ ${trendsContext}${eventContext}${reachStrategyBlock}${registerBlock}${personalBr
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
-Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
+Pilier suggéré : ${sujetImpose ? 'celui qui sert le SUJET IMPOSÉ ci-dessus — il prime sur toute suggestion' : pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
 
 CONTEXTE FEED (les derniers posts, du plus récent) :
 ${gridContext}
