@@ -128,10 +128,16 @@ async function POSTInterne(request: NextRequest) {
 
     // 5. Load business dossier for context
     let dossierContext = '';
+    // Le métier et l'IDCC servent plus bas à Sara et Louis : on les retient
+    // ici, le dossier lui-même restant local à ce bloc.
+    let typeCommerce: string | null = null;
+    let idccClient: string | null = null;
     try {
       const dossier = await loadBusinessDossier(supabase, user.id);
       if (dossier) {
         dossierContext = formatDossierForPrompt(dossier);
+        typeCommerce = (dossier as any).business_type || null;
+        idccClient = (dossier as any).idcc || (dossier as any).convention_collective || null;
       }
     } catch (e: any) {
       console.warn('[ClientChat] Failed to load dossier (non-fatal):', e?.message);
@@ -447,7 +453,28 @@ semaine ✅ ») PUIS renvoie le client vers l'onglet Planning pour qu'il jette u
 « Va voir l'onglet Planning pour le détail et prévisualiser. » Le chat reste léger, le
 détail vit dans le Planning.`;
 
-    const fullSystemPrompt = systemPrompt + boostedRules;
+    // ── Sara et Louis raisonnent à partir de la CONVENTION COLLECTIVE ──
+    //
+    // Demande du fondateur (07/08) : « une boutique n'a pas la même convention
+    // qu'un restaurant, un hôtel ou la sécurité, et la convention passe AVANT
+    // le Code du travail. »
+    //
+    // Le Code du travail est un plancher ; la branche l'améliore presque
+    // toujours sur les points qui comptent — période d'essai, préavis, minima,
+    // majorations, ancienneté. Un contrat d'extra rédigé au seul Code du
+    // travail a l'air correct et se trouve en dessous de ce que la branche
+    // impose : le client ne le voit pas, un contrôle si.
+    let blocMetier = '';
+    if (agent_id === 'rh' || agent_id === 'comptable') {
+      try {
+        const { blocConvention } = await import('@/lib/agents/conventions-collectives');
+        blocMetier = blocConvention(typeCommerce, idccClient);
+      } catch (e: any) {
+        console.warn('[ClientChat] bloc convention non chargé:', e?.message);
+      }
+    }
+
+    const fullSystemPrompt = systemPrompt + boostedRules + blocMetier;
 
     // Choose model based on plan + agent type
     const premiumPlans = ['business', 'elite', 'agence'];
