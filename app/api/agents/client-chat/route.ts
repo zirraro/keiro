@@ -10,6 +10,7 @@ import { formatDossierForPrompt, loadBusinessDossier } from '@/lib/agents/client
 import { enrichAgentContext } from '@/lib/agents/enrich-context';
 
 import { sendBrevoCompat } from '@/lib/email/brevo-compat';
+import { signalerIncident } from '@/lib/agents/incident-client';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -586,7 +587,7 @@ détail vit dans le Planning.`;
     // Une action a-t-elle RÉELLEMENT tourné ? C'est ce qui autorise l'agent à
     // annoncer un résultat au passé (cf. garde-fou anti-mensonge plus bas).
     let actionRan = false;
-    let actionMatch = reply.match(/[ACTION:{.*?}]/);
+    let actionMatch = reply.match(new RegExp("\\[ACTION:\\{.*?\\}\\]"));
 
     // ── Filet de sécurité : l'exécution ne dépend plus du modèle ──
     //
@@ -640,7 +641,16 @@ détail vit dans le Planning.`;
 
     if (actionMatch) {
       try {
-        const actionJson = JSON.parse(actionMatch[0].replace('[ACTION:', '').replace(']', ''));
+        // Le 07/08, une regex devenue classe de caractères matchait le « C »
+        // de « Compris » : actionMatch[0] valait "C", JSON.parse levait, et le
+        // client lisait « "C" is not valid JSON » en plein chat. Un tag
+        // illisible ne doit jamais lui remonter — on l'ignore et on trace.
+        const brut = String(actionMatch[0] || '');
+        if (!brut.startsWith('[ACTION:')) {
+          console.warn('[ClientChat] tag ignoré, forme inattendue :', brut.slice(0, 60));
+          throw new Error('TAG_INVALIDE');
+        }
+        const actionJson = JSON.parse(brut.slice('[ACTION:'.length, brut.lastIndexOf(']')));
         console.log(`[ClientChat] Action detected:`, actionJson);
 
         // Execute the action
@@ -667,11 +677,21 @@ détail vit dans le Planning.`;
           const { startTaskRun, finishTaskRun } = await import('@/lib/agents/task-runs');
           const runId = await startTaskRun(supabase, { userId: user.id, agent, action, label: libelle });
           travail()
-            .then(r => finishTaskRun(supabase, runId, { userId: user.id, agent, action, ok: r.ok, summary: r.resume }))
-            .catch(e => finishTaskRun(supabase, runId, {
-              userId: user.id, agent, action, ok: false,
-              summary: 'échec technique : ' + String(e?.message || e).slice(0, 140),
-            }));
+            .then(async r => {
+              // Un échec n'est jamais un cul-de-sac : on explique en français,
+              // et on remonte le détail à l'équipe sans que le client ait à le
+              // faire. La notification de fin porte le message humain.
+              const resume = r.ok ? r.resume : await signalerIncident(supabase, {
+                action: libelle, detail: r.resume, agent, userId: user.id, clientEmail: user.email || null,
+              });
+              return finishTaskRun(supabase, runId, { userId: user.id, agent, action, ok: r.ok, summary: resume });
+            })
+            .catch(async e => {
+              const resume = await signalerIncident(supabase, {
+                action: libelle, detail: String(e?.message || e), agent, userId: user.id, clientEmail: user.email || null,
+              });
+              return finishTaskRun(supabase, runId, { userId: user.id, agent, action, ok: false, summary: resume });
+            });
           return libelle.charAt(0).toUpperCase() + libelle.slice(1) + " — LANCÉ. Je te préviens dès que c'est terminé, avec le résultat.";
         };
 
@@ -977,11 +997,19 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
         console.warn('[ClientChat] Action execution error:', e.message);
         reply = reply.replace(/\[ACTION:\{.*?\}\]/, '').trim();
         actionRan = false;
-        reply += [
-          '',
-          '',
-          "⚠️ **Ça n'est pas parti.** " + String(e?.message || e).slice(0, 160) + " — redemande-moi et je réessaie.",
-        ].join(String.fromCharCode(10));
+        // Un tag mal formé n'est pas un incident : l'agent n'a simplement
+        // pas émis d'action valide. Alerter l'équipe là-dessus noierait les
+        // vrais incidents, et dire quelque chose au client l'inquiéterait
+        // pour rien.
+        if (String(e?.message) === 'TAG_INVALIDE') {
+          console.warn('[ClientChat] tag ignoré (forme invalide)');
+        } else {
+        const messageIncident = await signalerIncident(supabase, {
+          action: 'ta demande', detail: String(e?.message || e),
+          agent: agent_id, userId: user.id, clientEmail: user.email || null,
+        });
+        reply += [String.fromCharCode(10), String.fromCharCode(10), messageIncident].join('');
+        }
       }
     }
 
