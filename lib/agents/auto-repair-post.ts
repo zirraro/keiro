@@ -39,7 +39,29 @@ export interface ResultatReparation {
 }
 
 /** Au-delà, on s'acharne : le problème vient du visuel, pas du texte. */
-const TENTATIVES_MAX = 2;
+/**
+ * Trois tentatives, puis un palier de repli.
+ *
+ * Consigne du fondateur (2026-08-08) : « si les posts générés ne passent pas le
+ * contrôle qualité et que c'est régénéré et que ça passe cette fois-ci, il faut
+ * publier. Et comme on souhaite maîtriser nos coûts, si la génération à nouveau
+ * ne passe pas, on peut accepter au bout de la 3e génération un niveau de 7 —
+ * mais il ne faut pas que ce soit récurrent, ça doit passer le plus souvent
+ * au-dessus, à 8, 9 ou 10. Il faut absolument livrer au client à chaque
+ * publication prévue. »
+ *
+ * Deux exigences en tension, arbitrées ainsi : on vise le niveau haut, on
+ * réessaie trois fois, et à la troisième on accepte 7 plutôt que de ne rien
+ * livrer. En dessous de 7 on ne publie pas — un post à 4/10 sous le nom du
+ * client abîme plus qu'une absence.
+ *
+ * Chaque repli est tracé : c'est le seul moyen de voir s'il devient récurrent,
+ * auquel cas le problème est en amont, dans la génération, pas dans le contrôle.
+ */
+const TENTATIVES_MAX = 3;
+
+/** En dessous, on ne publie pas, même en dernier recours. */
+const SEUIL_REPLI = 7;
 
 /**
  * Tente de rendre un post publiable.
@@ -64,6 +86,10 @@ export async function reparerPost(
 
   const { repairPostText } = await import('@/lib/visuals/post-repair');
 
+  // On garde la meilleure tentative : sans ça, les trois réécritures étaient
+  // jetées et le repli n'aurait rien eu à publier.
+  let meilleur: { caption: string; hashtags: string[]; verdict: { pass: boolean; score: number; reasons?: string[] } | null } | null = null;
+
   for (let essai = 1; essai <= TENTATIVES_MAX; essai++) {
     const repare = await repairPostText({
       visualUrl: post.visual_url,
@@ -77,6 +103,10 @@ export async function reparerPost(
     // réessayer à l'identique ne changerait rien.
     if (!repare) {
       return { repare: false, motif, detail: 'réécriture indisponible (contrôle vision hors service ou image illisible)' };
+    }
+
+    if (repare.verdict && (!meilleur?.verdict || repare.verdict.score > meilleur.verdict.score)) {
+      meilleur = { caption: repare.caption, hashtags: repare.hashtags, verdict: repare.verdict };
     }
 
     // Un verdict absent n'est pas un verdict positif : on ne publie que ce
@@ -96,7 +126,45 @@ export async function reparerPost(
     }
   }
 
-  return { repare: false, motif, detail: `${TENTATIVES_MAX} réécritures recalées : le problème vient probablement du visuel` };
+  // ── Dernier recours : livrer plutôt que laisser le créneau vide ──
+  //
+  // Après trois réécritures, on reprend la meilleure et on la publie si elle
+  // atteint 7. Le client attend une publication ; en dessous de 7 on renonce
+  // quand même, parce qu'un post franchement mauvais coûte plus cher qu'un
+  // silence.
+  if (meilleur && meilleur.verdict && meilleur.verdict.score >= SEUIL_REPLI) {
+    await supabase.from('content_calendar').update({
+      caption: meilleur.caption,
+      hashtags: meilleur.hashtags,
+      qa_notes: `repli qualité (${motif}) — publié à ${meilleur.verdict.score}/10 après ${TENTATIVES_MAX} réécritures`,
+    }).eq('id', post.id);
+
+    // Tracé pour pouvoir mesurer la récurrence : si ce repli devient fréquent,
+    // le problème est en amont — dans la génération — et pas dans le contrôle.
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'content',
+        action: 'qc_repli_seuil',
+        status: 'warning',
+        data: {
+          post_id: post.id, motif,
+          score: meilleur.verdict.score,
+          tentatives: TENTATIVES_MAX,
+          raisons: (meilleur.verdict.reasons || []).slice(0, 3),
+        },
+        created_at: new Date().toISOString(),
+      });
+    } catch { /* la trace ne doit pas empêcher la publication */ }
+
+    return {
+      repare: true, motif,
+      detail: `repli : publié à ${meilleur.verdict.score}/10 après ${TENTATIVES_MAX} réécritures`,
+      caption: meilleur.caption, hashtags: meilleur.hashtags,
+    };
+  }
+
+  const note = meilleur?.verdict ? ` (meilleur score ${meilleur.verdict.score}/10, sous le seuil de ${SEUIL_REPLI})` : '';
+  return { repare: false, motif, detail: `${TENTATIVES_MAX} réécritures recalées${note} : le problème vient probablement du visuel` };
 }
 
 /**
