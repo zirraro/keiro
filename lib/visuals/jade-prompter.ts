@@ -30,13 +30,27 @@ const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/
 export const JADE_STYLE_GUIDE = `You are an elite prompt engineer for Seedream (text-to-image AI).
 Your goal: create premium, brand-consistent visuals for KeiroAI clients (local businesses on social media).
 
-BRAND / VISUAL PRINCIPLES:
-- Studio-quality lighting (soft, directional, no harsh shadows)
-- Clean compositions with a clear focal point and negative space
-- Modern colour grading (slightly desaturated, filmic)
-- 4K detail level, sharp focus on subject, depth of field when it serves the story
-- Magazine-quality atmosphere (Vogue, Apple, Nike benchmark)
-- Respect the client's brand colours and tone when mentioned in the brief
+PHOTOGRAPHIC PRINCIPLES — IT MUST READ AS A REAL PHOTOGRAPH:
+- ONE identifiable light source (window, shopfront, lamp, sun) with direction and
+  consequence: real shadows, one side darker. Never lit evenly from nowhere.
+- Visible texture: skin with pores, steam, flour, condensation, fingerprints, wear.
+  Fine grain in the shadows. Nothing airbrushed, nothing plastic.
+- Slightly imperfect framing, as a photographer working fast would get it.
+- The place looks used — a cloth left out, a chair off-line, a hand entering frame.
+  That untidiness is what makes it credible; do not clean it away.
+- Natural restrained colour. No boosted saturation, no orange-and-teal, no glow, no flare.
+- Respect the client's brand colours and tone when mentioned in the brief.
+
+NEVER: 3D render, CGI, illustration, cartoon, digital painting, airbrushed skin,
+model-agency faces, showroom perfection, studio product-shot lighting on a real
+scene, stock-photo staging (laughing at salad, thumbs-up, fake eye contact).
+
+The previous version of this guide asked for "studio-quality lighting", "clean
+compositions", "Vogue / Apple / Nike benchmark" and "magazine-quality atmosphere".
+That is precisely the glossy advertising look the eye reads as AI-generated —
+the founder flagged it repeatedly (2026-08-08). Rich and alive is right; polished
+is not. Depth and detail must come from what is actually happening in the frame,
+never from varnish.
 
 AUTHENTICITY — THE HARD RULE:
 The image must represent the CLIENT'S OWN REALITY. Never invent products,
@@ -75,7 +89,7 @@ ABSOLUTELY FORBIDDEN:
   "generic AI agency template" and undermine the artisan client's
   credibility. Stick to photographic / editorial / reportage.
 - Split-screen / diptych compositions — use only when the concept
-  truly requires it AND you can execute at magazine-pro level
+  truly requires it AND it reads as something a real photographer captured
   (matching light, alignment, palette). Otherwise single frame is
   almost always stronger.
 - Stereotypical "restaurant food" or "boutique item" that doesn't match
@@ -167,7 +181,7 @@ function formatBriefForClaude(format: string): string {
     case 'post':
       return 'Square (1:1) Instagram grid thumbnail. Magazine-level composition.';
     case 'story':
-      return 'Vertical 9:16 story. Striking premium composition, dramatic lighting. This is the FIRST thing people see — it must stop the scroll.';
+      return 'Vertical 9:16 story. It is the first thing people see, so it must feel like something real is happening — a gesture, a moment, not a poster.';
     case 'reel':
     case 'video':
       return 'Vertical 9:16 video thumbnail. Bold, cinematic feel.';
@@ -175,7 +189,7 @@ function formatBriefForClaude(format: string): string {
     case 'text':
       return 'Horizontal 16:9 LinkedIn format, professional and corporate-friendly.';
     default:
-      return 'Square 1:1 premium social visual.';
+      return 'Square 1:1. It has to hold up as a thumbnail in the grid, through the scene itself.';
   }
 }
 

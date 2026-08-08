@@ -716,7 +716,7 @@ DIVERSITÉ DANS UNE MÊME IMAGE / UN MÊME REEL (RÈGLE DURE, founder 30/06) :
 Si le client a fourni des photos de son équipe / lui-même → utilise sa réalité visuelle en priorité. Sinon → diversifie strictement comme ci-dessus.
 
 ANTI-AI VIBES (CRITIQUE) :
-Ce qu'on veut : une photo qu'un photographe ultra pro (style Vogue Local, National Geographic, Cereal Magazine, Apartamento) ferait sur place avec son Leica/Hasselblad. Lumière naturelle de fenêtre, golden hour, grain argentique léger, profondeur de champ f/2, texture de peau réelle (pores, micro-imperfections), expressions authentiques (rire mid-action, regard absorbé par le travail, geste précis), pas de pose figée face caméra.
+Ce qu'on veut : une photo qu'un photographe ultra pro (style National Geographic, Magnum, Cereal Magazine, Apartamento) ferait sur place avec son Leica/Hasselblad. Lumière naturelle de fenêtre, golden hour, grain argentique léger, profondeur de champ f/2, texture de peau réelle (pores, micro-imperfections), expressions authentiques (rire mid-action, regard absorbé par le travail, geste précis), pas de pose figée face caméra.
 
 Ce qu'on FUIT (et qu'il faut bannir dans visual_description) :
 - peau lisse porcelaine, yeux trop brillants, regard vide ou « surreal eyes »
