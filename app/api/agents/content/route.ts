@@ -2703,6 +2703,12 @@ async function GETInterne(request: NextRequest) {
                 const reparation = await reparerPost(
                   supabase, pfull as any, 'kit_marque',
                   verdict.violations.map(v => v.rule).join(', '),
+                  // Le client et son métier : sans eux, le recours au visuel de
+                  // secours ne peut ni retrouver ses photos ni juger la
+                  // pertinence d'une image de banque. Le métier n'est pas dans
+                  // cette portée — le module le relit depuis le dossier client
+                  // quand il n'est pas fourni.
+                  userId, null,
                 );
                 if (reparation.repare) {
                   console.log(`[Content] QA gate FAIL post ${post.id} → réparé automatiquement (${reparation.detail})`);

@@ -76,6 +76,14 @@ export async function reparerPost(
   post: { id: string; caption?: string | null; hook?: string | null; visual_url?: string | null; platform?: string | null; format?: string | null },
   motif: MotifRecalage,
   detailControle?: string,
+  /**
+   * Nécessaires au recours ultime : sans eux on ne peut ni retrouver les
+   * photos du client, ni juger la pertinence d'une image de banque. Optionnels
+   * pour ne casser aucun appelant existant — le recours est alors simplement
+   * sauté, et le comportement reste celui d'avant.
+   */
+  userId?: string | null,
+  businessType?: string | null,
 ): Promise<ResultatReparation> {
   if (motif === 'date_perimee') {
     return { repare: false, motif, detail: 'contenu daté : une réécriture ne le rendrait pas pertinent' };
@@ -163,8 +171,67 @@ export async function reparerPost(
     };
   }
 
+  // ── Ultime recours : changer le VISUEL, pas le texte ──
+  //
+  // Le message d'échec ci-dessous le disait déjà : « le problème vient
+  // probablement du visuel ». Continuer à réécrire un texte pour une image
+  // ratée, c'est s'acharner sur la mauvaise moitié du post.
+  //
+  // Le fondateur (2026-08-08) : « on doit trouver une solution pour sortir
+  // quelque chose quand même — image brute si disponible, ou banque d'images,
+  // et surtout pertinente ; l'image doit être en lien avec le business. »
+  //
+  // Une vraie photo du client bat toujours une génération : c'est son lieu,
+  // son matériel, ses produits. À défaut, une photo de banque cadrée sur son
+  // métier. Si rien de pertinent n'existe, on laisse le créneau vide — une
+  // image hors-sujet coûte plus cher qu'une absence.
+  if (userId) {
+    try {
+      const { trouverVisuelDeSecours } = await import('@/lib/visuals/visuel-de-secours');
+      const secours = await trouverVisuelDeSecours(supabase, userId, businessType, post.caption || post.hook || null);
+      if (secours) {
+        const { repairPostText } = await import('@/lib/visuals/post-repair');
+        const reecrit = await repairPostText({
+          visualUrl: secours.url,
+          platform: post.platform || undefined,
+          format: post.format || undefined,
+          imageDescription: secours.description,
+          originalCaption: post.caption || post.hook || undefined,
+        });
+
+        // On revérifie : le recours ne dispense pas du contrôle, il lui donne
+        // une meilleure matière. Le seuil de repli s'applique aussi ici.
+        const score = reecrit?.verdict?.score ?? 0;
+        if (reecrit && (reecrit.verdict?.pass || score >= SEUIL_REPLI)) {
+          await supabase.from('content_calendar').update({
+            visual_url: secours.url,
+            caption: reecrit.caption,
+            hashtags: reecrit.hashtags,
+            qa_notes: `visuel remplacé (${secours.origine}) après ${TENTATIVES_MAX} réécritures — revalidé à ${score}/10`,
+          }).eq('id', post.id);
+
+          try {
+            await supabase.from('agent_logs').insert({
+              agent: 'content', action: 'qc_visuel_remplace', status: 'warning',
+              data: { post_id: post.id, motif, origine: secours.origine, score },
+              created_at: new Date().toISOString(),
+            });
+          } catch { /* la trace ne doit pas empêcher la publication */ }
+
+          return {
+            repare: true, motif,
+            detail: `visuel remplacé par ${secours.origine === 'photo_client' ? 'une photo du client' : 'une photo de banque'}, revalidé à ${score}/10`,
+            caption: reecrit.caption, hashtags: reecrit.hashtags,
+          };
+        }
+      }
+    } catch (e: any) {
+      console.warn('[AutoRepair] visuel de secours indisponible :', e?.message);
+    }
+  }
+
   const note = meilleur?.verdict ? ` (meilleur score ${meilleur.verdict.score}/10, sous le seuil de ${SEUIL_REPLI})` : '';
-  return { repare: false, motif, detail: `${TENTATIVES_MAX} réécritures recalées${note} : le problème vient probablement du visuel` };
+  return { repare: false, motif, detail: `${TENTATIVES_MAX} réécritures recalées${note}, et aucun visuel de remplacement pertinent` };
 }
 
 /**
