@@ -27,8 +27,23 @@ import { ANTI_AI_REALISM } from '@/lib/visuals/realism';
 const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
 
+/**
+ * Guide de style envoyé au modèle.
+ *
+ * ── Une leçon apprise le 08/08 ──
+ *
+ * J'avais d'abord écrit DANS ce guide l'explication de ce qu'il ne fallait
+ * plus faire, en citant les termes proscrits : « la version précédente
+ * demandait studio-quality lighting, Vogue / Apple / Nike benchmark… ». Le
+ * modèle lit ces mots ; il ne comprend pas qu'ils sont un contre-exemple. Le
+ * backtest a compté sept formulations publicitaires actives dans un guide que
+ * je croyais assaini.
+ *
+ * La règle : le raisonnement va dans les commentaires de code, jamais dans la
+ * chaîne envoyée au modèle. Ce qui est écrit dans le prompt est demandé.
+ */
 export const JADE_STYLE_GUIDE = `You are an elite prompt engineer for Seedream (text-to-image AI).
-Your goal: create premium, brand-consistent visuals for KeiroAI clients (local businesses on social media).
+Your goal: images that look like real photographs of KeiroAI clients (local businesses on social media).
 
 PHOTOGRAPHIC PRINCIPLES — IT MUST READ AS A REAL PHOTOGRAPH:
 - ONE identifiable light source (window, shopfront, lamp, sun) with direction and
@@ -45,12 +60,8 @@ NEVER: 3D render, CGI, illustration, cartoon, digital painting, airbrushed skin,
 model-agency faces, showroom perfection, studio product-shot lighting on a real
 scene, stock-photo staging (laughing at salad, thumbs-up, fake eye contact).
 
-The previous version of this guide asked for "studio-quality lighting", "clean
-compositions", "Vogue / Apple / Nike benchmark" and "magazine-quality atmosphere".
-That is precisely the glossy advertising look the eye reads as AI-generated —
-the founder flagged it repeatedly (2026-08-08). Rich and alive is right; polished
-is not. Depth and detail must come from what is actually happening in the frame,
-never from varnish.
+Rich and alive is right; polished is not. Depth and detail must come from what
+is actually happening in the frame, never from varnish.
 
 AUTHENTICITY — THE HARD RULE:
 The image must represent the CLIENT'S OWN REALITY. Never invent products,
@@ -107,9 +118,8 @@ IF TEXT IS EXPLICITLY REQUESTED — INTEGRATION RULES:
 1. PREFER IN-FRAME placement: text engraved on an object, printed on a
    sign, chalkboard, screen, label, embroidered on apron, written on
    paper. The text becomes part of the scene, not an overlay.
-2. SECOND BEST: editorial floating text in negative space, fine
-   magazine typography (think Kinfolk / Cereal / Apartamento), no
-   background fill, just subtle shadow for legibility.
+2. SECOND BEST: floating text in negative space, fine editorial
+   typography, no background fill, just subtle shadow for legibility.
 3. LAST RESORT: a TRANSPARENT GRADIENT fade at the bottom (dark→0,
    10-15% of frame height) so the photo continues to breathe.
 
@@ -234,7 +244,7 @@ async function optimiseBrief(visualBrief: string, format: string, userId?: strin
   const designContext = await loadDesignReferences(userId);
   const optimized = await callClaude({
     system: JADE_STYLE_GUIDE + designContext,
-    message: `Create a PREMIUM visual prompt for a ${format} post.\n\nVisual brief: ${visualBrief}\n\nFormat context: ${formatBriefForClaude(format)}\n\nIMPORTANT: Do NOT include hex color codes, aspect ratios, numbers, or technical specs. Describe colors by name. Output a PURE VISUAL DESCRIPTION. Think Vogue / Apple / Nike quality — never generic.`,
+    message: `Build the image prompt for this ${format}.\n\nVisual brief: ${visualBrief}\n\nFormat context: ${formatBriefForClaude(format)}\n\nIMPORTANT: Do NOT include hex color codes, aspect ratios, numbers, or technical specs. Describe colors by name. Output ONE pure visual description: subject, light, depth, texture, mood. It must read as a real photograph a person took — never generic, never an advert.`,
   });
   return (optimized || visualBrief) + NO_TEXT_SUFFIX;
 }
@@ -263,7 +273,7 @@ VIDEO-SPECIFIC GUIDANCE:
 - Keep the opening frame strong enough to work as a thumbnail in social feeds
 - Duration ${opts.duration || 5}s — match pacing to duration (faster cuts for short, slower for long)
 - Aspect ratio ${opts.aspectRatio || '9:16'} — stage composition accordingly
-- ${opts.hasReferenceImage ? 'This is IMAGE-TO-VIDEO — keep subject + space recognisable, animate the existing scene naturally.' : 'This is TEXT-TO-VIDEO — no reference, invent a premium scene from scratch.'}
+- ${opts.hasReferenceImage ? 'This is IMAGE-TO-VIDEO — keep subject + space recognisable, animate the existing scene naturally.' : 'This is TEXT-TO-VIDEO — no reference: build a real, lived-in scene from scratch.'}
 
 OUTPUT: the final video prompt, ready to be sent to the generation API. No intro, no explanation.`,
       message: `Brief: ${videoBrief}\n\nWrite the optimised video prompt.`,
