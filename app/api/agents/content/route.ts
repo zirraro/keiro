@@ -20,7 +20,7 @@ import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert, isTransientPublishError, nextRetryDelayMs, MAX_PUBLISH_RETRIES } from '@/lib/agents/publish-diagnostics';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
-import { diapoRealiste, REALISME_VIDEO, registreVisuelPour, nuanceRegistre } from '@/lib/visuals/realisme-photo';
+import { diapoRealiste, REALISME_VIDEO, registreVisuelPour, nuanceRegistre, estTourPublicitaire, REGISTRE_AFFICHE } from '@/lib/visuals/realisme-photo';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -527,7 +527,11 @@ async function generateVisual(
     // couleur IA/violet — y compris les posts de KeiroAI elle-même. L'ancien
     // guide marque violet (SEEDREAM_STYLE_GUIDE) est retiré pour le contenu : on
     // utilise TOUJOURS le guide photo-réaliste + le bloc anti-AI-tells.
-    const registreMetier = nuanceRegistre(registreVisuelPour(businessTypePourVisuel));
+    // Une publication sur sept prend le registre affiche : un accent dans le
+    // feed, jamais la norme. Le reste garde le registre du métier.
+    const registreMetier = estTourPublicitaire(userIdForReuse)
+      ? REGISTRE_AFFICHE
+      : nuanceRegistre(registreVisuelPour(businessTypePourVisuel));
     const t2iSystem = `You are an elite prompt engineer for Seedream (text-to-image AI). The output must look like an AUTHENTIC PHOTOGRAPH a real person shot — NOT a branded graphic, NOT a 3D render, NOT an illustration.
 
 ⛔ ZERO AI/brand colours: NO violet, purple, lilac, magenta, electric blue, neon, or synthetic gradient — EVER (unless the real-world subject is naturally that colour, e.g. lavender, an eggplant). Use grounded photographic palettes: natural daylight, warm amber, terracotta, soft cream, charcoal, sage, wood tones, linen. Light is a colour: golden hour, north-window soft light, tungsten warm.

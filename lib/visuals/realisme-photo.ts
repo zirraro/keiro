@@ -142,6 +142,45 @@ export function registreVisuelPour(businessType?: string | null): RegistreVisuel
   return 'authentique';
 }
 
+/**
+ * La respiration publicitaire — une publication sur sept, pas plus.
+ *
+ * Demande du fondateur (2026-08-08) : « on veut des formats photographe pro, et
+ * pourquoi pas publicitaire, mais tournant dans la stratégie — pas les
+ * publications principales. »
+ *
+ * Un feed uniquement documentaire finit par se ressembler : même lumière, même
+ * geste, même cadrage imparfait. Une affiche de temps en temps casse le rythme
+ * et donne un repère de marque. Mais elle ne peut pas devenir la norme, sinon
+ * on retombe exactement dans le look publicitaire qu'on vient de retirer.
+ *
+ * Une sur sept : assez rare pour rester un accent, assez fréquente pour se
+ * remarquer sur un mois. Le choix est DÉTERMINISTE, calculé sur la date et le
+ * client : deux générations du même jour ne peuvent pas tomber toutes les deux
+ * en publicitaire, et le rythme reste vérifiable a posteriori.
+ *
+ * Le réalisme n'est PAS abandonné pour autant : une affiche crédible reste une
+ * photo, simplement composée et pensée pour porter un message.
+ */
+export function estTourPublicitaire(userId: string | null | undefined, date = new Date()): boolean {
+  const jour = Math.floor(date.getTime() / 86400000);
+  // Décalage par client : tous les commerces n'ont pas leur affiche le même
+  // jour, ce qui éviterait de faire ressembler les comptes entre eux.
+  let empreinte = 0;
+  for (const c of String(userId || '')) empreinte = (empreinte * 31 + c.charCodeAt(0)) % 7;
+  return (jour + empreinte) % 7 === 0;
+}
+
+/** Le registre « affiche » — composé, mais toujours photographique. */
+export const REGISTRE_AFFICHE = [
+  'REGISTER — POSTER: this one is an accent in the feed, not the everyday post.',
+  'A composed frame built to carry one message: a clear hero subject, generous negative',
+  'space where a headline could sit, deliberate arrangement, a restrained palette.',
+  'It REMAINS a real photograph — same single light source, same texture, same grain,',
+  'same refusal of airbrushing. A poster shot by a photographer, not a rendered graphic.',
+  'No 3D, no CGI, no flat design, no gradient art, no added text.',
+].join('\n');
+
 /** Ce qui change entre les deux registres — la mise en scène, jamais le réalisme. */
 export function nuanceRegistre(registre: RegistreVisuel): string {
   return registre === 'soigne'
