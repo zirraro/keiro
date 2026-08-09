@@ -38,8 +38,21 @@ function supa() {
   );
 }
 
-/** Au-delà de ce délai, le créneau est considéré comme définitivement perdu. */
-const JOURS_DE_GRACE = 2;
+/**
+ * Au-delà de ce délai, le créneau est considéré comme définitivement perdu.
+ *
+ * Ramené de 2 jours à 1 le 2026-08-09. Le fondateur : « les points reviennent
+ * tous les jours, pourquoi ? Règle-les définitivement, je ne dois plus les voir
+ * revenir. »
+ *
+ * Avec deux jours de grâce, un post retenu le lundi était signalé lundi, mardi
+ * ET mercredi matin avant d'être écarté — trois alertes pour un seul incident.
+ * Le rapport devenait du bruit, et le bruit finit par masquer les vrais cas.
+ *
+ * Un jour suffit : le créneau d'hier est passé, et le rattrapage de la journée
+ * a déjà eu lieu. Ce qui n'est pas parti hier ne partira pas.
+ */
+const JOURS_DE_GRACE = 1;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;

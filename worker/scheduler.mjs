@@ -179,7 +179,8 @@ const GLOBAL_SCHEDULE = [
   // avril : le contrôle les bloquait, rien ne prenait le relais, et le client
   // ne recevait rien sans que personne le sache. Tourne après la publication
   // du matin, pour ne jamais écarter un post qui pouvait encore partir.
-  { cron: '30 9 * * *',   path: '/api/cron/posts-bloques', label: 'Posts bloqués par le QC — balayage' },
+  // Le balayage est désormais enchaîné juste AVANT le rapport matinal
+  // (voir app/api/cron/scheduler) : une entrée autonome ferait doublon.
   // 2026-06-09 — Daily 07:00 UTC. Vérifie projection coûts MTD vs
   // revenu mensuel. Email admin avec breakdown si marge projetée < 70%
   // ou spike clients > 5× avg.
@@ -248,7 +249,16 @@ const GLOBAL_SCHEDULE = [
 // in lib/agents/feature-flags.ts.
 const AGENT_ENDPOINTS = {
   content:             { path: '/api/agents/content', method: 'GET' },
-  email:               { path: '/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste', method: 'GET' },
+  // 2026-08-09 — Le ciblage par type a été retiré. Il limitait l'envoi à cinq
+  // métiers (restaurant, traiteur, boutique, coiffeur, fleuriste) alors que le
+  // CRM en contient bien d'autres : sur 369 prospects contactables, seuls 75
+  // entraient dans la liste, et 182 n'étaient JAMAIS contactés — 137 PME,
+  // 43 coachs, 29 agences, 20 services, 13 cavistes.
+  //
+  // Le fondateur : « pourquoi il n'y a que 6 mails de prospection par jour ? »
+  // C'était la cause. Ces prospects sont dans SON CRM, qualifiés par Léo selon
+  // son ICP : les filtrer une seconde fois ici revenait à défaire ce travail.
+  email:               { path: '/api/agents/email/daily?slot=morning', method: 'GET' },
   commercial:          { path: '/api/agents/commercial', method: 'POST' },
   dm_instagram:        { path: '/api/agents/dm-instagram?slot=morning', method: 'POST' },
   instagram_comments:  { path: '/api/agents/instagram-comments', method: 'POST', body: { action: 'auto_reply_all' } },

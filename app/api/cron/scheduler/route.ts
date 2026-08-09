@@ -351,6 +351,11 @@ export async function GET(request: NextRequest) {
       // Founder ask 2026-05-27: "1 le matin in s'assure que l'infra de
       // tout les agents et client est pret pour la journée".
       fireBackground(async () => {
+        // Le balayage AVANT le rapport, sinon celui-ci signale des posts qui
+        // seront écartés dans l'heure. Le fondateur voyait les mêmes alertes
+        // revenir chaque matin : ce n'était pas une récidive, c'était le
+        // rapport qui prenait de l'avance sur le nettoyage.
+        await callEndpoint('Posts bloqués — balayage', '/api/cron/posts-bloques', 'GET');
         await callEndpoint('Admin Morning Digest', '/api/cron/admin-morning-digest', 'GET');
         // Contrôle de sécurité automatique quotidien — toute régression (headers,
         // chiffrement, divulgation…) remonte en erreur dans le digest admin.
