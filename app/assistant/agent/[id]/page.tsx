@@ -14,6 +14,7 @@ import WeeklyPlanCard from './components/WeeklyPlanCard';
 import PlanningReviewFlow from './components/PlanningReviewFlow';
 import ProspectionSession from './components/ProspectionSession';
 import InfoTooltip from '@/components/InfoTooltip';
+import StrategiePanel from './components/panels/StrategiePanel';
 
 // Per-tab explanations shown by the "i" next to each agent tab (FR/EN).
 function tabInfoText(key: string, agentId: string, isEn: boolean): string {
@@ -2386,6 +2387,11 @@ export default function AgentWorkspacePage() {
         )}
         {activeTab === 'planning' && agentId !== 'email' && (
           <div data-tour="planning-view">
+            {/* La stratégie en tête du planning : on lit ce qui est prévu
+                AVANT de regarder le calendrier qui l'exécute. Demande du
+                fondateur (08/08) — « il doit pouvoir voir sa stratégie et
+                l'ajuster ». */}
+            {agentId === 'content' && <StrategiePanel />}
             {agentId === 'content' && <WeeklyPlanCard />}
             {agentId === 'content' && <PlanningReviewFlow />}
             <EditorialCalendarFull agentId={agentId} />
