@@ -4042,6 +4042,42 @@ async function POSTInterne(request: NextRequest) {
         return NextResponse.json(psResult);
       }
 
+      case 'set_visual': {
+        /**
+         * Repose un visuel connu sur un post — le retour arrière après
+         * régénération.
+         *
+         * Demande du fondateur (2026-08-09) : « si un client fait une modif sur
+         * un reel ou une image, il doit pouvoir revenir au précédent s'il
+         * souhaite finalement le garder. »
+         *
+         * Volontairement bête : on écrit les URL fournies, on ne régénère rien.
+         * Le client a déjà vu ces deux versions, c'est lui qui tranche.
+         *
+         * Les URL viennent du client, donc on n'accepte que des adresses http(s)
+         * — pas question d'écrire n'importe quoi dans la table depuis le
+         * navigateur.
+         */
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const urlValide = (u: any) => typeof u === 'string' && /^https?:\/\//.test(u);
+        const maj: Record<string, any> = { updated_at: new Date().toISOString() };
+        if (body.visual_url === null || urlValide(body.visual_url)) maj.visual_url = body.visual_url || null;
+        if (body.video_url === null || urlValide(body.video_url)) maj.video_url = body.video_url || null;
+        if (Object.keys(maj).length === 1) {
+          return NextResponse.json({ ok: false, error: 'aucune URL valide fournie' }, { status: 400 });
+        }
+        const { data: repose, error: errRepose } = await supabase
+          .from('content_calendar')
+          .update(maj)
+          .eq('id', body.postId)
+          .select('id, visual_url, video_url')
+          .single();
+        if (errRepose) {
+          return NextResponse.json({ ok: false, error: errRepose.message }, { status: 500 });
+        }
+        return NextResponse.json({ ok: true, post: repose });
+      }
+
       case 'regenerate_visual': {
         // Regenerate visual with a NEW description + send new notification email
         if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });

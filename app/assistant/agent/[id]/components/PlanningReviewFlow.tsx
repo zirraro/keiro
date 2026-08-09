@@ -20,6 +20,8 @@ import { useLanguage } from '@/lib/i18n/context';
 interface Post {
   id: string;
   visual_url?: string;
+  /** Présent sur les reels et vidéos — sans lui, un reel s'affichait figé. */
+  video_url?: string;
   caption?: string;
   hook?: string;
   platform?: string;
@@ -74,8 +76,26 @@ export default function PlanningReviewFlow() {
     return { pos: sameDay.findIndex(p => p.id === cur.id) + 1, total: sameDay.length };
   }, [cur, posts]);
 
+  /**
+   * La version précédente du visuel, pour pouvoir y revenir.
+   *
+   * Demande du fondateur (2026-08-09) : « si un client fait une modif sur un
+   * reel ou une image, il doit pouvoir revenir à la version précédente s'il
+   * souhaite finalement la garder. »
+   *
+   * Une régénération ne modifie pas l'image : elle en fabrique une AUTRE. Sans
+   * mémoire du précédent, un client qui trouvait la première correcte et qui
+   * voulait juste un détail se retrouve avec un visuel qu'il n'a pas choisi et
+   * aucun moyen de faire marche arrière. C'est la mauvaise surprise la plus
+   * facile à éviter.
+   */
+  const [precedent, setPrecedent] = useState<{ id: string; visual_url?: string; video_url?: string } | null>(null);
+
   const act = useCallback(async (action: string, extra: Record<string, any> = {}) => {
     if (!cur) return null;
+    if (action === 'regenerate_visual') {
+      setPrecedent({ id: cur.id, visual_url: cur.visual_url, video_url: cur.video_url });
+    }
     setBusy(action);
     try {
       const res = await fetch('/api/agents/content', {
@@ -157,9 +177,26 @@ export default function PlanningReviewFlow() {
 
           {/* Aperçu du post */}
           <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 mb-2">
-            {cur.visual_url
-              ? <img src={cur.visual_url} alt="" className="w-full aspect-square object-cover" />
-              : <div className="aspect-square flex items-center justify-center text-white/30 text-xs">{en ? 'No image' : 'Pas d’image'}</div>}
+            {/* L'aperçu occupait tout l'écran en carré plein, et « object-cover »
+                RECADRAIT le visuel : impossible de le voir en entier, donc
+                impossible de juger ce qu'on valide. Hauteur plafonnée pour que
+                la légende reste visible sans défiler, et « object-contain » pour
+                ne rien couper — on valide ce qu'on voit.
+                Un reel se joue, il ne s'affiche pas en vignette figée. */}
+            {cur.video_url ? (
+              <video
+                src={cur.video_url}
+                poster={cur.visual_url || undefined}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full max-h-[46vh] object-contain bg-black"
+              />
+            ) : cur.visual_url ? (
+              <img src={cur.visual_url} alt="" className="w-full max-h-[46vh] object-contain bg-black" />
+            ) : (
+              <div className="h-40 flex items-center justify-center text-white/30 text-xs">{en ? 'No image' : 'Pas d’image'}</div>
+            )}
             <div className="p-2.5">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 capitalize">{cur.platform || 'instagram'}</span>
@@ -188,6 +225,29 @@ export default function PlanningReviewFlow() {
           </div>
 
           {/* Actions sur le post */}
+          {/* Le retour en arrière, offert seulement quand il a du sens : juste
+              après une régénération, sur CE post, et si l'ancienne version
+              existe encore. Un bouton toujours visible mais souvent inopérant
+              serait pire que pas de bouton. */}
+          {precedent && precedent.id === cur.id && (precedent.visual_url || precedent.video_url) && (
+            <button
+              onClick={async () => {
+                await act('set_visual', {
+                  visual_url: precedent.visual_url || null,
+                  video_url: precedent.video_url || null,
+                });
+                setPosts(prev => prev.map(p => (p.id === cur.id
+                  ? { ...p, visual_url: precedent.visual_url, video_url: precedent.video_url }
+                  : p)));
+                setPrecedent(null);
+              }}
+              disabled={!!busy}
+              className="w-full min-h-[44px] mb-2 px-3 rounded-lg border border-white/20 text-white/75 hover:text-white hover:bg-white/[0.06] text-[12px] font-medium transition-colors disabled:opacity-40"
+            >
+              ↩︎ {en ? 'Restore the previous version' : 'Revenir à la version précédente'}
+            </button>
+          )}
+
           <div className="grid grid-cols-3 gap-2 mb-2">
             <button
               onClick={() => { setDraftCaption(cur.caption || cur.hook || ''); setEditing(true); }}
@@ -195,9 +255,19 @@ export default function PlanningReviewFlow() {
               className="px-2 py-2 min-h-[40px] text-[10px] font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
             >✏️ {en ? 'Edit' : 'Modifier'}</button>
             <button
-              onClick={() => act('regenerate_visual')}
+              onClick={() => {
+                // Régénérer ne retouche pas : ça refabrique. Sur un reel, le
+                // montage entier change — le client doit le savoir AVANT, pas
+                // le découvrir après.
+                const estVideo = !!cur.video_url;
+                const message = estVideo
+                  ? "Régénérer refait la vidéo entièrement : plans, rythme et images seront différents. Ce n'est pas une retouche.\n\nTu pourras revenir à la version actuelle juste après si tu la préfères."
+                  : "Régénérer crée une NOUVELLE image, pas une retouche de celle-ci : le résultat sera différent.\n\nTu pourras revenir à la version actuelle juste après si tu la préfères.";
+                if (typeof window !== 'undefined' && !window.confirm(message)) return;
+                act('regenerate_visual');
+              }}
               disabled={!!busy}
-              className="px-2 py-2 min-h-[40px] text-[10px] font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
+              className="px-2 py-2 min-h-[44px] text-[10px] font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
             >{busy === 'regenerate_visual' ? '...' : `🔄 ${en ? 'Regenerate' : 'Régénérer'}`}</button>
             <button
               onClick={validateAndNext}

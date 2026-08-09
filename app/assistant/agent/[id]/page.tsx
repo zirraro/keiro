@@ -1233,7 +1233,21 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
-        {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[32vh] object-contain bg-black" />}
+        {/* Un reel programmé s'affichait en IMAGE FIXE : le client voyait une
+            vignette et ne pouvait pas juger le montage, donc pas demander la
+            bonne correction. Quand une vidéo existe, on la joue. */}
+        {selected.video_url ? (
+          <video
+            src={selected.video_url}
+            poster={selected.visual_url || undefined}
+            controls
+            playsInline
+            preload="metadata"
+            className="w-full max-h-[42vh] object-contain bg-black"
+          />
+        ) : selected.visual_url ? (
+          <img src={selected.visual_url} alt="" className="w-full max-h-[42vh] object-contain bg-black" />
+        ) : null}
         <div className="px-4 py-3 space-y-2">
           {selected.hook && <p className="text-sm font-bold text-white">{selected.hook}</p>}
           {(selected.status === 'draft' || selected.status === 'approved') ? (
