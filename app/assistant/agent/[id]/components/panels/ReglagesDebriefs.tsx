@@ -46,7 +46,10 @@ interface Prefs {
   inapp_enabled: boolean;
 }
 
-export default function ReglagesDebriefs({ en = false }: { en?: boolean }) {
+export default function ReglagesDebriefs({ en = false, replie = false }: { en?: boolean; replie?: boolean }) {
+  // Repliable : dans Ami, ce bloc vit en bas de page et n'a pas à occuper de
+  // la place tant qu'on ne vient pas le chercher.
+  const [ouvert, setOuvert] = useState(!replie);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [enregistre, setEnregistre] = useState(false);
   const [erreur, setErreur] = useState(false);
@@ -97,16 +100,29 @@ export default function ReglagesDebriefs({ en = false }: { en?: boolean }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4">
       <div className="flex items-start justify-between gap-3 mb-1">
-        <div className="min-w-0">
-          <h3 className="text-white text-sm font-semibold">
+        {/* Replié, l'en-tête annonce déjà l'état — inutile d'ouvrir pour savoir
+            si on reçoit quelque chose, et à quel rythme. */}
+        <button
+          type="button"
+          onClick={() => setOuvert(o => !o)}
+          aria-expanded={ouvert}
+          className="min-w-0 text-left flex-1"
+        >
+          <h3 className="text-white text-sm font-semibold flex items-center gap-2">
             {en ? 'Your briefings' : 'Tes points réguliers'}
+            <span className="text-white/35 text-base leading-none font-normal">{ouvert ? '−' : '+'}</span>
           </h3>
           <p className="text-white/50 text-xs mt-0.5 leading-relaxed">
-            {en
-              ? 'What your team plans, and what it actually did.'
-              : "Ce que ton équipe prévoit, et ce qu'elle a réellement fait."}
+            {!prefs.enabled
+              ? (en ? 'Off — you receive nothing.' : 'Coupés — tu ne reçois rien.')
+              : ouvert
+                ? (en ? 'What your team plans, and what it actually did.' : "Ce que ton équipe prévoit, et ce qu'elle a réellement fait.")
+                : (FREQUENCES.find(f => f.valeur === prefs.frequency)?.libelle || '') +
+                  (prefs.email_enabled && prefs.inapp_enabled ? ' · ici et par email'
+                    : prefs.email_enabled ? ' · par email'
+                    : prefs.inapp_enabled ? ' · ici' : ' · aucun canal')}
           </p>
-        </div>
+        </button>
         <div className="flex items-center gap-2 flex-shrink-0">
           {enregistre && <span className="text-emerald-400 text-[11px] font-semibold">Enregistré</span>}
           <button
@@ -122,7 +138,7 @@ export default function ReglagesDebriefs({ en = false }: { en?: boolean }) {
         </div>
       </div>
 
-      {erreur && (
+      {ouvert && erreur && (
         <p className="mt-2 text-amber-300 text-[12px] leading-relaxed">
           {en
             ? "Couldn't save. Your previous setting still applies — try again."
@@ -130,7 +146,7 @@ export default function ReglagesDebriefs({ en = false }: { en?: boolean }) {
         </p>
       )}
 
-      {prefs.enabled && (
+      {ouvert && prefs.enabled && (
         <>
           <div className="mt-4">
             <div className="text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-2">
@@ -169,20 +185,34 @@ export default function ReglagesDebriefs({ en = false }: { en?: boolean }) {
                 ['inapp_enabled', en ? 'In KeiroAI' : 'Dans KeiroAI', en ? 'In your notifications.' : 'Dans tes notifications.'],
                 ['email_enabled', en ? 'By email' : 'Par email', en ? 'In your inbox, same time.' : 'Dans ta boîte mail, à la même heure.'],
               ] as Array<[keyof Prefs, string, string]>).map(([cle, titre, detail]) => (
+                // Une coche verte et un rond vide se ressemblent trop : on ne
+                // sait pas au premier coup d'oeil ce qui est actif, et rien ne
+                // dit que c'est cliquable. Un interrupteur montre l'état ET
+                // l'action, sans texte.
                 <button
                   key={String(cle)}
+                  type="button"
+                  role="switch"
+                  aria-checked={!!prefs[cle]}
+                  aria-label={titre}
                   onClick={() => enregistrer({ [cle]: !prefs[cle] } as Partial<Prefs>)}
-                  className={`text-left min-h-[52px] px-3 py-2.5 rounded-xl border transition-colors ${
-                    prefs[cle] ? 'bg-white/10 border-white/25' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.06]'
+                  className={`text-left min-h-[56px] px-3 py-2.5 rounded-xl border transition-colors ${
+                    prefs[cle]
+                      ? 'bg-white/10 border-white/25'
+                      : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.06] active:bg-white/[0.09]'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[13px] ${prefs[cle] ? 'text-emerald-400' : 'text-white/25'}`}>
-                      {prefs[cle] ? '✓' : '○'}
+                  <div className="flex items-center gap-2.5">
+                    <span className={`relative inline-flex shrink-0 w-9 h-5 rounded-full transition-colors ${
+                      prefs[cle] ? 'bg-emerald-400' : 'bg-white/25'
+                    }`}>
+                      <span className={`absolute inset-y-0 my-auto w-4 h-4 rounded-full bg-white transition-transform ${
+                        prefs[cle] ? 'translate-x-[18px]' : 'translate-x-[2px]'
+                      }`} />
                     </span>
                     <span className="text-white text-[13px] font-semibold">{titre}</span>
                   </div>
-                  <p className="text-white/45 text-[12px] leading-snug mt-0.5 pl-5">{detail}</p>
+                  <p className="text-white/45 text-[12px] leading-snug mt-1 pl-[46px]">{detail}</p>
                 </button>
               ))}
             </div>

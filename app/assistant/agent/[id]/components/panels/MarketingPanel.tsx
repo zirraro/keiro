@@ -93,10 +93,6 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         </div>
 
         {/* Selected network insight section */}
-        {/* Les briefs et débriefs sont pilotés ici, chez Ami : Noah n'est plus
-            accessible et l'API existait déjà sans aucune interface branchée. */}
-        <ReglagesDebriefs en={en} />
-
         {/* Le regroupement des chiffres de TOUS les agents, chez Ami. Le
             fondateur veut moins de stats dans chaque agent et une seule vue
             ici : « c'est AMI qui regroupe les stats et qui explique ». */}
@@ -340,6 +336,11 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         <KpiCard label={p.genericKpiRec} value={fmt(recs.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label={p.genericKpiScore} value="--" gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
+
+      {/* Les réglages en BAS, et repliés : on ouvre Ami pour voir ce qui
+          s'est passé. Mettre un formulaire avant les résultats faisait passer
+          l'accessoire devant l'essentiel. */}
+      <ReglagesDebriefs en={en} replie />
 
       <SectionTitle>{p.genericSectionRec}</SectionTitle>
       {recs.length === 0 ? (

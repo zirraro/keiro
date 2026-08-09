@@ -1,3 +1,20 @@
+/**
+ * ⚠️ NE PAS RETIRER LES STATISTIQUES INSTAGRAM DE CE PANNEAU.
+ *
+ * Le guide du reviewer Meta (/meta-review, section instagram_business_manage_
+ * insights) l'envoie EXPLICITEMENT ici : « Click the Léna — Analytics agent in
+ * the workspace. The dashboard fetches metrics from /insights… Click any post
+ * tile… and renders a per-post breakdown. »
+ *
+ * Les vidéos de démonstration soumises à Meta suivent ce parcours. Les retirer
+ * — même pour les regrouper chez Ami, ce qui est par ailleurs la bonne idée —
+ * ferait échouer le renouvellement de la permission : le reviewer cliquerait
+ * sur Léna et ne verrait aucune donnée Insights.
+ *
+ * Si ce regroupement doit se faire un jour, l'ordre est : mettre à jour le
+ * guide reviewer, RÉENREGISTRER les vidéos, obtenir la validation, et
+ * seulement ensuite toucher à ce panneau.
+ */
 'use client';
 
 /**

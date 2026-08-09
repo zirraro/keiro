@@ -75,9 +75,41 @@ function Variation({ m }: { m: Metrique }) {
   );
 }
 
+/** Ce que le client a choisi de suivre, gardé sur son appareil. */
+const CLE_CHOIX = 'keiro_agents_suivis';
+
 export default function ResultatsParAgent({ en = false }: { en?: boolean }) {
   const [canaux, setCanaux] = useState<Canal[] | null>(null);
   const [inactifs, setInactifs] = useState<string[]>([]);
+
+  /**
+   * Le client choisit les agents qu'il veut suivre.
+   *
+   * Demande du fondateur (2026-08-09) : « le client doit avoir le choix des
+   * stats également. »
+   *
+   * Un commerçant qui n'utilise ni WhatsApp ni la prospection n'a pas à faire
+   * défiler leurs blocs pour atteindre ce qui l'intéresse. Le choix vit en
+   * local : c'est une préférence d'affichage, pas une donnée métier, et la
+   * faire transiter par le serveur ajouterait une latence pour rien.
+   */
+  const [masques, setMasques] = useState<string[]>([]);
+  const [choisir, setChoisir] = useState(false);
+
+  useEffect(() => {
+    try {
+      const brut = localStorage.getItem(CLE_CHOIX);
+      if (brut) setMasques(JSON.parse(brut));
+    } catch { /* préférence illisible : on montre tout, c'est le bon défaut */ }
+  }, []);
+
+  const basculer = (canal: string) => {
+    setMasques(prev => {
+      const suivant = prev.includes(canal) ? prev.filter(c => c !== canal) : [...prev, canal];
+      try { localStorage.setItem(CLE_CHOIX, JSON.stringify(suivant)); } catch { /* quota */ }
+      return suivant;
+    });
+  };
 
   useEffect(() => {
     let annule = false;
@@ -112,15 +144,59 @@ export default function ResultatsParAgent({ en = false }: { en?: boolean }) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4">
-      <div className="mb-3">
-        <h3 className="text-white text-sm font-semibold">Ce que ton équipe a fait</h3>
-        <p className="text-white/45 text-[12px] mt-0.5 leading-relaxed">
-          Sept derniers jours, par agent. Les chiffres de tous tes agents sont réunis ici.
-        </p>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <h3 className="text-white text-sm font-semibold">Ce que ton équipe a fait</h3>
+          <p className="text-white/45 text-[12px] mt-0.5 leading-relaxed">
+            Sept derniers jours, par agent.
+          </p>
+        </div>
+        <button
+          onClick={() => setChoisir(c => !c)}
+          className="min-h-[44px] px-3 -mr-1 rounded-lg text-white/45 hover:text-white/80 text-[12px] font-medium transition-colors flex-shrink-0"
+        >
+          {choisir ? 'Terminé' : 'Choisir'}
+        </button>
       </div>
 
+      {/* Le choix ne s'ouvre qu'à la demande : affiché en permanence, il
+          prendrait la place de ce qu'on vient lire. */}
+      {choisir && (
+        <div className="mb-3 rounded-xl bg-white/[0.03] border border-white/10 p-3">
+          <p className="text-white/45 text-[12px] mb-2 leading-relaxed">
+            Décoche ce que tu ne veux pas suivre. Les chiffres continuent d&apos;être mesurés,
+            ils ne s&apos;affichent simplement plus ici.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {actifs.map(c => {
+              const visible = !masques.includes(c.canal);
+              return (
+                <button
+                  key={c.canal}
+                  onClick={() => basculer(c.canal)}
+                  role="switch"
+                  aria-checked={visible}
+                  className={`min-h-[44px] inline-flex items-center gap-2 px-3 rounded-full border text-[13px] font-medium transition-colors ${
+                    visible ? 'bg-white/10 border-white/25 text-white' : 'bg-white/[0.02] border-white/10 text-white/40'
+                  }`}
+                >
+                  <span className={`relative inline-flex shrink-0 w-8 h-[18px] rounded-full transition-colors ${
+                    visible ? 'bg-emerald-400' : 'bg-white/25'
+                  }`}>
+                    <span className={`absolute inset-y-0 my-auto w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                      visible ? 'translate-x-[16px]' : 'translate-x-[2px]'
+                    }`} />
+                  </span>
+                  {AGENTS[c.canal]?.nom || c.agent}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2.5">
-        {actifs.map(c => {
+        {actifs.filter(c => !masques.includes(c.canal)).map(c => {
           const a = AGENTS[c.canal] || { nom: c.agent, fait: '' };
           const mesures = Object.entries(c.metriques)
             .filter(([, m]) => m.valeur !== null)
