@@ -237,6 +237,21 @@ export default function StrategiePanel({ en = false, replie = false }: { en?: bo
           Écris-le comme tu le dirais. Ton équipe en tient compte dès la prochaine publication.
         </p>
       </div>
+
+      {/* Le pont vers Ami.
+          Ici on règle ce qui VA se passer ; Ami dit ce que ça a donné et
+          pourquoi. Sans ce lien, le client règle à l'aveugle : il change une
+          fréquence sans savoir si l'ancienne marchait. */}
+      <a
+        href="/assistant/agent/marketing"
+        className="mt-4 flex items-center justify-between gap-3 min-h-[52px] px-4 rounded-xl border border-white/15 hover:bg-white/[0.06] active:bg-white/[0.09] transition-colors"
+      >
+        <span className="text-white/70 text-[13px] leading-snug">
+          Pour savoir <span className="text-white">ce que ça donne</span> — chiffres, tendances,
+          ce qui marche — c&apos;est Ami qui suit tout ça.
+        </span>
+        <span className="text-white/40 flex-shrink-0">→</span>
+      </a>
       </div>
       )}
     </div>

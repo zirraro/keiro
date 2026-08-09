@@ -20,6 +20,7 @@ import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 import { sampleFor } from '@/lib/meta/sample-insights';
 import ReglagesDebriefs from './ReglagesDebriefs';
+import ResultatsParAgent from './ResultatsParAgent';
 
 type AmiNetwork = 'instagram' | 'tiktok' | 'linkedin';
 
@@ -95,6 +96,11 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         {/* Les briefs et débriefs sont pilotés ici, chez Ami : Noah n'est plus
             accessible et l'API existait déjà sans aucune interface branchée. */}
         <ReglagesDebriefs en={en} />
+
+        {/* Le regroupement des chiffres de TOUS les agents, chez Ami. Le
+            fondateur veut moins de stats dans chaque agent et une seule vue
+            ici : « c'est AMI qui regroupe les stats et qui explique ». */}
+        <ResultatsParAgent en={en} />
 
         {network === 'instagram' && (
           <NetworkInsightSection
@@ -187,10 +193,14 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
                   <p className="text-xs text-white/85 leading-relaxed">{gs.recommendation}</p>
                 </div>
               </div>
-              <p className="mt-3 pt-3 border-t border-white/10 text-[10px] text-white/40 leading-relaxed">
+              {/* L'ancien texte disait \u00ab la r\u00e8gle est persist\u00e9e et appliqu\u00e9e \u00e0
+                  chaque ex\u00e9cution suivante \u00bb et listait cinq pr\u00e9noms d'agents.
+                  Du jargon, et une consigne de navigation l\u00e0 o\u00f9 il fallait une
+                  invitation \u00e0 parler. Une ligne suffit. */}
+              <p className="mt-3 pt-3 border-t border-white/10 text-[12px] text-white/50 leading-relaxed">
                 {en
-                  ? <>\ud83d\udcac To apply this analysis, open AMI&apos;s chat or that of the relevant agent (L\u00e9na, Jade, Hugo, L\u00e9o, Th\u00e9o) and tell it what you want to adjust. The rule is persisted and applied on every subsequent run.</>
-                  : <>\ud83d\udcac Pour appliquer cette analyse, ouvre le chat d&apos;AMI ou celui de l&apos;agent concern\u00e9 (L\u00e9na, Jade, Hugo, L\u00e9o, Th\u00e9o) et dis-lui ce que tu veux ajuster. La r\u00e8gle est persist\u00e9e et appliqu\u00e9e \u00e0 chaque ex\u00e9cution suivante.</>}
+                  ? 'Want to change something? Tell Ami in the chat \u2014 she passes it on to the right agent.'
+                  : 'Tu veux ajuster quelque chose ? Dis-le \u00e0 Ami dans le chat, elle transmet \u00e0 qui de droit.'}
               </p>
             </div>
           </>
