@@ -475,7 +475,19 @@ détail vit dans le Planning.`;
       }
     }
 
-    const fullSystemPrompt = systemPrompt + boostedRules + blocMetier;
+    // La préférence de génération du client vaut pour TOUS les agents, pas
+    // seulement Léna : elle était rangée sous la config 'content' et Jade,
+    // Hugo et Stella ne la voyaient jamais. Un client qui déclare « que mes
+    // vraies photos » voyait sa consigne respectée une fois sur trois.
+    let blocPref = '';
+    try {
+      const { blocPreferencePour } = await import('@/lib/agents/preference-generation');
+      blocPref = await blocPreferencePour(supabase, user.id);
+    } catch (e: any) {
+      console.warn('[ClientChat] préférence de génération non chargée:', e?.message);
+    }
+
+    const fullSystemPrompt = systemPrompt + boostedRules + blocMetier + blocPref;
 
     // Choose model based on plan + agent type
     const premiumPlans = ['business', 'elite', 'agence'];
