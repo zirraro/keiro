@@ -106,6 +106,55 @@ export async function enregistrerInfo(
   // sans qu'aucune erreur n'apparaisse nulle part.
   await upsertBusinessDossier(supabase, userId, { [info.cle]: valeur });
 
+  // ── La préférence de génération ne vit pas dans le dossier ──
+  //
+  // Elle est lue par tous les agents depuis org_agent_configs.content
+  // .asset_usage_policy (module preference-generation). L'écrire seulement
+  // dans le dossier l'aurait rendue invisible pour eux : le client aurait
+  // répondu à la question et rien n'aurait changé — la panne muette classique.
+  if (info.cle === 'preference_generation') {
+    try {
+      const v = valeur.toLowerCase();
+      const mode = /sans retouche|uniquement mes|brut/.test(v) ? 'raw'
+        : /mélange|melange|composée|composee|scènes|scenes/.test(v) ? 'free'
+        : 'light';
+      // « Uniquement mes vraies photos » vaut 100 % de brut ; le mélange en
+      // laisse la moitié ; la retouche en garde une bonne part, puisque ce
+      // sont toujours SES photos qui servent de base.
+      const partBrut = mode === 'raw' ? 100 : mode === 'free' ? 50 : 80;
+
+      const { data: rows } = await supabase
+        .from('org_agent_configs')
+        .select('id, config, created_at')
+        .eq('user_id', userId)
+        .eq('agent_id', 'content')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const existant = rows?.[0];
+      const config = {
+        ...((existant?.config as any) || {}),
+        asset_usage_policy: {
+          mode,
+          part_brut: partBrut,
+          // Le mélange n'est autorisé que s'il l'a explicitement choisi.
+          allow_mix: mode === 'free',
+          allow_add_elements: false,
+          updated_at: new Date().toISOString(),
+          source: 'onboarding',
+        },
+      };
+
+      if (existant?.id) {
+        await supabase.from('org_agent_configs').update({ config }).eq('id', existant.id);
+      } else {
+        await supabase.from('org_agent_configs').insert({ user_id: userId, agent_id: 'content', config });
+      }
+    } catch (e: any) {
+      console.warn('[Clara] préférence de génération non transmise :', e?.message);
+    }
+  }
+
   // Une clé inconnue du catalogue reste utile : le client a jugé bon de nous
   // la donner. On la conserve et on prévient largement plutôt que de la perdre.
   const destinataires = besoin

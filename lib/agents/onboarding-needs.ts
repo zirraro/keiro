@@ -92,6 +92,35 @@ const SOCLE: BesoinAgent[] = [
     priorite: 'essentiel', type: 'texte',
   },
   {
+    /**
+     * La préférence de génération visuelle.
+     *
+     * Demande du fondateur (2026-08-08) : « une question qui indique une
+     * préférence pour les générations ultra naturelles, qualité photographe.
+     * Trois choix : image brute, image brute améliorée, ou mixte d'images et
+     * d'ambiances. Et on lui propose de dire 100 % brut, ou 50/50, donc 0 % IA. »
+     *
+     * Posée tôt et à TOUS les métiers : elle conditionne chaque visuel produit
+     * ensuite, et la découvrir après trois semaines de publications qui ne lui
+     * conviennent pas est le pire moment. Elle est marquée essentielle pour
+     * cette raison — un client qui ne veut que ses vraies photos ne doit pas
+     * avoir à le découvrir.
+     *
+     * La réponse alimente asset_usage_policy, lue par tous les agents depuis le
+     * module preference-generation.
+     */
+    cle: 'preference_generation', agents: ['content', 'dm', 'email', 'whatsapp', 'chatbot'],
+    question: 'Tes visuels : tes vraies photos, ou des images créées pour toi ?',
+    aQuoiCaSert: "C'est la règle que toute l'équipe suit sur chaque visuel. Tes photos telles quelles, retravaillées, ou des scènes composées à partir de ton métier — tu peux aussi donner une proportion, par exemple la moitié de tes vraies photos.",
+    priorite: 'essentiel', type: 'choix',
+    options: [
+      'Uniquement mes vraies photos, sans retouche',
+      'Mes photos, retravaillées (lumière, cadrage, netteté)',
+      'Un mélange : mes photos et des scènes composées pour moi',
+    ],
+    exemple: 'La plupart des commerces choisissent le deuxième : leurs vraies photos, en mieux.',
+  },
+  {
     cle: 'unique_selling_points', agents: ['content', 'email', 'dm', 'chatbot', 'commercial'],
     question: "Ce qui te distingue vraiment des autres, chez toi",
     aQuoiCaSert: "C'est l'argument qu'on répète partout. Sans lui, les agents écrivent des banalités vraies pour n'importe quel concurrent.",
