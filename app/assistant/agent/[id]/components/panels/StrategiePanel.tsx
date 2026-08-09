@@ -70,7 +70,11 @@ function phraseRythme(r: Reglages): string {
   return `${parSemaine} publication${parSemaine > 1 ? 's' : ''} par semaine sur ${liste}.`;
 }
 
-export default function StrategiePanel({ en = false }: { en?: boolean }) {
+export default function StrategiePanel({ en = false, replie = false }: { en?: boolean; replie?: boolean }) {
+  // Replié par défaut quand on le demande : le fondateur veut que le planning
+  // et le catalogue de réglages restent au premier plan, et que la stratégie
+  // soit là quand on la cherche — pas devant en permanence.
+  const [ouvert, setOuvert] = useState(!replie);
   const [r, setR] = useState<Reglages | null>(null);
   const [enregistre, setEnregistre] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -133,18 +137,29 @@ export default function StrategiePanel({ en = false }: { en?: boolean }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 mb-4">
-      <div className="flex items-start justify-between gap-3 mb-3">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] mb-4 overflow-hidden">
+      {/* L'en-tête est le bouton : replié, il montre déjà l'essentiel — la
+          phrase qui résume ce qui part. On sait donc ce qu'il y a dedans sans
+          l'ouvrir, ce qui est tout l'intérêt d'un repli. */}
+      <button
+        onClick={() => setOuvert(o => !o)}
+        aria-expanded={ouvert}
+        className="w-full text-left px-4 sm:px-5 py-4 flex items-start justify-between gap-3 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors"
+      >
         <div className="min-w-0">
           <h3 className="text-white font-bold text-base">Ta stratégie en ce moment</h3>
-          <p className="text-white/50 text-[13px] mt-0.5 leading-relaxed">
-            Ce que ton équipe publie pour toi. Touche ce que tu veux changer.
+          <p className="text-white/55 text-[13px] mt-0.5 leading-relaxed">
+            {ouvert ? 'Touche ce que tu veux changer.' : phraseRythme(r)}
           </p>
         </div>
-        {enregistre && (
-          <span className="text-emerald-400 text-[11px] font-semibold flex-shrink-0">Pris en compte</span>
-        )}
-      </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {enregistre && <span className="text-emerald-400 text-[11px] font-semibold">Pris en compte</span>}
+          <span className="text-white/40 text-lg leading-none">{ouvert ? '−' : '+'}</span>
+        </div>
+      </button>
+
+      {ouvert && (
+      <div className="px-4 sm:px-5 pb-5">
 
       {erreur && (
         <p className="mb-3 text-amber-300 text-[12px] leading-relaxed">{erreur}</p>
@@ -222,6 +237,8 @@ export default function StrategiePanel({ en = false }: { en?: boolean }) {
           Écris-le comme tu le dirais. Ton équipe en tient compte dès la prochaine publication.
         </p>
       </div>
+      </div>
+      )}
     </div>
   );
 }

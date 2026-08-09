@@ -2210,7 +2210,10 @@ export default function AgentWorkspacePage() {
               { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
               // History tab removed: was leaking system-level logs (user_id IS NULL)
               // across accounts, and live agent stats already show activity.
-              { key: 'settings' as const, label: isEn ? 'Settings' : 'Paramètres', icon: '\u2699\uFE0F' },
+              // « Paramètres » ne disait pas à qui ça s'adresse. « Stratégie
+              // avancée » annonce la couleur : c'est pour les équipes qui
+              // veulent piloter, pas pour celles qui laissent tourner.
+              { key: 'settings' as const, label: isEn ? 'Advanced strategy' : 'Stratégie avancée', icon: '⚙️' },
             ]).map(tab => (
               <button
                 key={tab.key}
@@ -2387,11 +2390,6 @@ export default function AgentWorkspacePage() {
         )}
         {activeTab === 'planning' && agentId !== 'email' && (
           <div data-tour="planning-view">
-            {/* La stratégie en tête du planning : on lit ce qui est prévu
-                AVANT de regarder le calendrier qui l'exécute. Demande du
-                fondateur (08/08) — « il doit pouvoir voir sa stratégie et
-                l'ajuster ». */}
-            {agentId === 'content' && <StrategiePanel />}
             {agentId === 'content' && <WeeklyPlanCard />}
             {agentId === 'content' && <PlanningReviewFlow />}
             <EditorialCalendarFull agentId={agentId} />
@@ -2577,10 +2575,14 @@ export default function AgentWorkspacePage() {
         {/* ═══ TAB: SETTINGS ═══ */}
         {activeTab === 'settings' && (
           <div className="max-w-5xl space-y-6">
+            {/* La stratégie lisible en tête, repliée : on voit d'un coup d'oeil
+                ce qui part, et on déplie seulement si on veut y toucher. Le
+                catalogue détaillé reste dessous pour ceux qui pilotent. */}
+            {agentId === 'content' && <StrategiePanel replie />}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white font-bold text-sm">{'\u2699\uFE0F'} Parametrage de {dn}</h3>
-                <p className="text-white/40 text-xs mt-0.5">Configurez le comportement de l&apos;agent selon vos besoins</p>
+                <p className="text-white/40 text-xs mt-0.5">Pour piloter dans le détail. Si tu laisses tourner en automatique, tu n&apos;as rien à toucher ici.</p>
               </div>
               {settingsSaved && (
                 <span className="text-[10px] text-emerald-400 animate-in fade-in duration-300">{'\u2713'} Sauvegarde auto</span>
