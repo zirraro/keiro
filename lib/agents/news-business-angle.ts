@@ -1,3 +1,4 @@
+import { fetchModele } from './anthropic-avec-repli';
 /**
  * Sonnet step that picks ONE news/trend item and crafts a SHARP angle
  * linking it to the client's business reality. Without this, Léna sees
@@ -140,7 +141,7 @@ ${input.avoidTopics && input.avoidTopics.length > 0
 Choose the strongest connection and return JSON. If nothing in ${input.prefer ? `the ${input.prefer.toUpperCase()} category` : 'any category'} connects genuinely, return { "picked": null }.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': apiKey,

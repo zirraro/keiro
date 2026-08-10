@@ -1,3 +1,4 @@
+import { fetchModele } from '../agents/anthropic-avec-repli';
 /**
  * Instagram account inspiration — analyse a public IG handle and extract
  * stylistic cues so the content agent can generate posts in that aesthetic.
@@ -84,7 +85,7 @@ export async function analyzeIgAccount(input: {
   const captionList = recentPosts.map((p, i) => `Post ${i + 1}: ${p.caption_preview || '(no caption)'}`).join('\n');
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': apiKey,

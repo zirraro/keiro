@@ -1,3 +1,4 @@
+import { fetchModele } from './anthropic-avec-repli';
 /**
  * CONTRÔLE QUALITÉ DES DM DE PROSPECTION (founder 15/07 : « contrôle qualité
  * comme pour les générations »). Même philosophie que le vision-gate des visuels
@@ -91,7 +92,7 @@ Barème (10 = un humain expert l'aurait écrit, 6 = envoyable, <6 = à régéné
 - NATUREL + TON JUSTE : indistinguable d'un humain. Registre PROFESSIONNEL MAIS DÉCONTRACTÉ — sérieux et crédible, jamais sur-familier. Pénalise FORT ("over_casual", score ≤ 5) le slang d'ado : "yo", "frr", "grave", "insane", "dead", "ça claque", "c'est chaud", excès de "haha". Tutoiement OK, ponctuation normale, pas de langage SMS.
 Contexte réel du commerce : "${realCtx || 'inconnu'}". Type : ${prospect?.type || 'commerce'}.`;
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({

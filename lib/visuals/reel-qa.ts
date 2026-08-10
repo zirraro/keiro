@@ -16,6 +16,7 @@
  * This is cheap (~€0.01 per reel) and runs once per generated reel,
  * NOT on every frame.
  */
+import { fetchModele } from '../agents/anthropic-avec-repli';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
@@ -158,7 +159,7 @@ JSON only. No preamble.`;
       { type: 'image', source: { type: 'url', url: u3 } },
     ];
 
-    const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const visionRes = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': process.env.ANTHROPIC_API_KEY,

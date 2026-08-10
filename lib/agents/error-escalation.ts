@@ -9,6 +9,7 @@
  * 5. Le CEO est notifie via le shared context
  */
 
+import { fetchModele } from './anthropic-avec-repli';
 import { createClient } from '@supabase/supabase-js';
 
 import { sendBrevoCompat } from '@/lib/email/brevo-compat';
@@ -179,7 +180,7 @@ export async function escalateAgentError(report: ErrorReport): Promise<void> {
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
     if (ANTHROPIC_KEY) {
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        const res = await fetchModele({
           method: 'POST',
           headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
           body: JSON.stringify({

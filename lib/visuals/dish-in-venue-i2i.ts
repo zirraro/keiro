@@ -18,6 +18,7 @@
  * Cost: composite ~€0 (sharp local) + Seedream i2i ~€0.025 = ~€0.025 per still.
  */
 
+import { fetchModele } from '../agents/anthropic-avec-repli';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { compositeDishOnVenue } from './dish-in-venue';
 
@@ -375,7 +376,7 @@ export async function qaRefinedStillWithVision(
   }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_KEY,
@@ -447,7 +448,7 @@ export async function detectGuestInStill(stillUrl: string): Promise<{ guestVisib
     return { guestVisible: false, reason: `fetch_threw:${e?.message?.substring(0, 40)}` };
   }
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_KEY,

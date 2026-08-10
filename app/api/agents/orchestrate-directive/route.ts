@@ -19,6 +19,7 @@
  * message. The chat path remains fully functional in parallel.
  */
 
+import { fetchModele } from '../../../../lib/agents/anthropic-avec-repli';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 import { createClient } from '@supabase/supabase-js';
@@ -31,7 +32,7 @@ const CANDIDATE_AGENTS = ['content', 'dm_instagram', 'email', 'commercial', 'gma
 async function callSonnet(system: string, message: string, maxTokens = 500): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY missing');
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const r = await fetchModele({
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({

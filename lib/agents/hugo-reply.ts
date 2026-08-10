@@ -23,6 +23,7 @@
  * the dossier + CRM data, not from conditional branches.
  */
 
+import { fetchModele } from './anthropic-avec-repli';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { textToSafeHtml } from '@/lib/email/text-to-html';
 
@@ -77,7 +78,7 @@ export async function classifyInbound(
   }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -241,7 +242,7 @@ export async function generateReply(params: {
       : `Réponds brièvement, honnêtement, sans agressivité.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({

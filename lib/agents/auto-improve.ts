@@ -10,6 +10,7 @@
  * Called automatically after each agent execution.
  */
 
+import { fetchModele } from './anthropic-avec-repli';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { saveLearning } from './learning';
 import { learnFromAction } from './knowledge-rag';
@@ -58,7 +59,7 @@ export async function autoImprove(
 
       if (ANTHROPIC_KEY) {
         try {
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
+          const res = await fetchModele({
             method: 'POST',
             headers: {
               'x-api-key': ANTHROPIC_KEY,

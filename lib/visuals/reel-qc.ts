@@ -10,6 +10,7 @@
  * never break the montage path: if QC can't run, it returns null and the caller
  * decides (we publish on null rather than block on an infra hiccup).
  */
+import { fetchModele } from '../agents/anthropic-avec-repli';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises';
@@ -127,7 +128,7 @@ Juge UNIQUEMENT ce que tu vois. Note SÉVÈREMENT comme un pro qui décide si on
 3. LANGUE : tout texte À L'ÉCRAN (hook, sous-titre) doit être en ${langName} (langue du client). Un texte dans une autre langue = défaut MAJEUR (réalisme ≤4).
 4. ENCHAÎNEMENT ET ACCROCHE (founder 29/07) : les plans doivent SE SUIVRE — soit une logique claire (même scène qui progresse, avant→après, geste qui se termine), soit une montée d'intérêt qui donne envie de rester. La première frame doit à elle seule donner envie de ne pas scroller. Un montage qui part dans tous les sens, ou qui s'ouvre sur un plan mou/vide, est un échec même si chaque image est belle prise isolément.
 Ce reel dure ${dur.toFixed(1)}s : juge aussi s'il va au BOUT de son idée (fin nette, pas une coupure brutale au milieu d'un geste ou d'une phrase).`;
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({

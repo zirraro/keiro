@@ -1,3 +1,4 @@
+import { fetchModele } from '../agents/anthropic-avec-repli';
 /**
  * Curateur de photos par VISION (founder: "inspire-toi sur internet, sois très
  * fin et rigoureux dans la sélection pour avoir les meilleures").
@@ -50,7 +51,7 @@ export async function curateCoherentPhotos(
     }];
     imgs.forEach((im) => content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: im.b64 } }));
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({

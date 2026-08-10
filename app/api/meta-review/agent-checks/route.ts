@@ -16,6 +16,7 @@
  * threats — without staring at production data.
  */
 
+import { fetchModele } from '../../../../lib/agents/anthropic-avec-repli';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 import { generateReviewReply } from '@/lib/agents/theo-review-reply';
@@ -45,7 +46,7 @@ async function classifyEmailReply(replyContent: string): Promise<{
 
   // Mirror the exact prompt the Brevo webhook uses, so we test the real
   // production behaviour rather than a reduced version.
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchModele({
     method: 'POST',
     headers: {
       'x-api-key': ANTHROPIC_KEY,
@@ -342,7 +343,7 @@ export async function GET(req: NextRequest) {
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
     if (ANTHROPIC_KEY) {
       const { getContentSystemPrompt } = await import('@/lib/agents/content-prompt');
-      const lenaRes = await fetch('https://api.anthropic.com/v1/messages', {
+      const lenaRes = await fetchModele({
         method: 'POST',
         headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -409,7 +410,7 @@ Retourne UNIQUEMENT le JSON strict défini dans le system prompt, sans markdown.
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
     if (ANTHROPIC_KEY) {
       const { getDMSystemPrompt } = await import('@/lib/agents/dm-prompt');
-      const jadeTtRes = await fetch('https://api.anthropic.com/v1/messages', {
+      const jadeTtRes = await fetchModele({
         method: 'POST',
         headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -484,7 +485,7 @@ Réponds UNIQUEMENT en JSON strict.`,
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
     if (ANTHROPIC_KEY) {
       const { getDMSystemPrompt } = await import('@/lib/agents/dm-prompt');
-      const jadeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      const jadeRes = await fetchModele({
         method: 'POST',
         headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({

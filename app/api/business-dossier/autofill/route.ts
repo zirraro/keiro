@@ -1,3 +1,4 @@
+import { fetchModele } from '../../../../lib/agents/anthropic-avec-repli';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -198,7 +199,7 @@ async function extractDossierFromWebText(
   if (!ANTHROPIC_KEY) return {};
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_KEY,

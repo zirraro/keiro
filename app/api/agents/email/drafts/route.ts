@@ -1,3 +1,4 @@
+import { fetchModele } from '../../../../../lib/agents/anthropic-avec-repli';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
@@ -282,7 +283,7 @@ async function improveDraft(params: {
     : 'Aucun dossier — ton pro et neutre.';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({

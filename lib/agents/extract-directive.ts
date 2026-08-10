@@ -18,6 +18,7 @@
  * persistent strategy / quality / brand-direction inputs survive.
  */
 
+import { fetchModele } from './anthropic-avec-repli';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type ExtractedDirective = {
@@ -74,7 +75,7 @@ scope = "business_type" only when the rule is general enough that ALL clients of
 JSON only. No preamble.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': apiKey,

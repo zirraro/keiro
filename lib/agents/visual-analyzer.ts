@@ -1,3 +1,4 @@
+import { fetchModele } from './anthropic-avec-repli';
 /**
  * Per-agent visual asset analyzer.
  *
@@ -64,7 +65,7 @@ export async function analyzeImageForAgent(
   const bizHint = businessType ? `Their business type is: ${businessType}.` : '';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_KEY,
@@ -203,7 +204,7 @@ export async function analyzePdfForAgent(
         : 'General business context for all agents.';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_KEY,

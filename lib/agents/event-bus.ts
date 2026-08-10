@@ -12,6 +12,7 @@
  *   All agents → emit events, receive orders
  */
 
+import { fetchModele } from './anthropic-avec-repli';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 // ─── Types ──────────────────────────────────────────────────
@@ -142,7 +143,7 @@ export async function ceoProcessEvents(
   let actions: DispatchAction[] = [];
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_KEY,

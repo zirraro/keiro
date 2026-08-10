@@ -1,3 +1,4 @@
+import { fetchModele } from './anthropic-avec-repli';
 /**
  * Théo's review-reply generator.
  *
@@ -119,7 +120,7 @@ export async function generateReviewReply(
     : '';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { fetchModele } from '../../../../lib/agents/anthropic-avec-repli';
 import { avecContexteRoute } from '@/lib/admin/contexte-cout';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -7509,7 +7510,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     // mangled the output — a fresh call with shorter context fixes it.
     console.warn('[Content] First parse failed, retrying Claude with strict JSON mode');
     try {
-      const retryRes = await fetch('https://api.anthropic.com/v1/messages', {
+      const retryRes = await fetchModele({
         method: 'POST',
         headers: {
           'x-api-key': process.env.ANTHROPIC_API_KEY || '',

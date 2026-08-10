@@ -18,6 +18,7 @@
  * per client (cheap: each scoring = 1 Haiku call ~€0.001).
  */
 
+import { fetchModele } from './anthropic-avec-repli';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { scrapeTiktok } from './prospect-scraper';
 
@@ -71,7 +72,7 @@ PROSPECT TIKTOK:
 ${profileSummary}`;
 
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_KEY,

@@ -1,3 +1,4 @@
+import { fetchModele } from '../../../../lib/agents/anthropic-avec-repli';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { saveLearning } from '@/lib/agents/learning';
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
     let learnedRules: Array<{ agent: string; summary: string; content: string }> = [];
     if (ANTHROPIC_KEY && failures.length > 0) {
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        const res = await fetchModele({
           method: 'POST',
           headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -1522,7 +1523,7 @@ async function handleClientBrief(
 
       if (ANTHROPIC_KEY) {
         try {
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
+          const res = await fetchModele({
             method: 'POST',
             headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
             body: JSON.stringify({

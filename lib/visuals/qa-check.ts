@@ -1,3 +1,4 @@
+import { fetchModele } from '../agents/anthropic-avec-repli';
 /**
  * Post-generation visual QA via Claude Vision.
  *
@@ -73,7 +74,7 @@ Reply with JSON only, no preamble.`;
       );
     }
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': key,

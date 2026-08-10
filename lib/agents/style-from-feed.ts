@@ -7,6 +7,7 @@
  * gagnants, ET ce qui n'a jamais marché (à éviter). Coût ~0,10€ (1 lecture API +
  * 1 analyse Haiku), une fois. Best-effort, jamais bloquant pour l'OAuth.
  */
+import { fetchModele } from './anthropic-avec-repli';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 interface FeedPost {
@@ -57,7 +58,7 @@ ${flops.map(fmt).join('\n')}
 Analyse le STYLE RÉEL de ce compte et réponds en JSON strict:
 {"tone":"description du ton/voix réel en 1 phrase (tutoiement/vouvoiement, chaleureux/pro, emojis, longueur…)","pillars":["3-5 thèmes récurrents"],"works":"ce qui génère le plus d'engagement chez EUX, 1 phrase","avoid":"ce qui ne marche pas chez eux, 1 phrase"}`;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),

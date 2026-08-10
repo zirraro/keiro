@@ -1,3 +1,4 @@
+import { fetchModele } from '../../../../lib/agents/anthropic-avec-repli';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { calculateTemperature, getSequenceForProspect } from '@/lib/agents/scoring';
@@ -416,7 +417,7 @@ export async function POST(request: NextRequest) {
           const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
           if (ANTHROPIC_KEY && replyContent) {
             try {
-              const classifyRes = await fetch('https://api.anthropic.com/v1/messages', {
+              const classifyRes = await fetchModele({
                 method: 'POST',
                 headers: {
                   'x-api-key': ANTHROPIC_KEY,

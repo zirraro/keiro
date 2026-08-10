@@ -9,6 +9,7 @@
  * become first-class assets that Léna can reference in generations
  * and Ami can include in montages.
  */
+import { fetchModele } from '../agents/anthropic-avec-repli';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
@@ -138,7 +139,7 @@ export async function analyzeVideo(input: {
     let visionAnalysis: Partial<VideoAnalysis> = {};
     if (keyframeUrl && process.env.ANTHROPIC_API_KEY) {
       try {
-        const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
+        const visionRes = await fetchModele({
           method: 'POST',
           headers: {
             'x-api-key': process.env.ANTHROPIC_API_KEY,

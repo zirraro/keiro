@@ -12,6 +12,7 @@
  * - Dashboard + notification sync
  */
 
+import { fetchModele } from './anthropic-avec-repli';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Events } from './event-bus';
 import { saveKnowledge } from './knowledge-rag';
@@ -101,7 +102,7 @@ export async function generateEmail(
   } catch { /* playbook optional */ }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -188,7 +189,7 @@ export async function analyzeSentiment(
   if (!ANTHROPIC_KEY || !replyBody) return defaults;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({

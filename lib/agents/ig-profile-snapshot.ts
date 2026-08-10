@@ -1,3 +1,4 @@
+import { fetchModele } from './anthropic-avec-repli';
 /**
  * Rich Instagram profile snapshot via business_discovery.
  *
@@ -239,7 +240,7 @@ JSON only.`;
     for (const img of images) {
       content.push({ type: 'image', source: { type: 'url', url: img } });
     }
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': apiKey,

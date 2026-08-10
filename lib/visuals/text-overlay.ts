@@ -13,6 +13,7 @@
  * Cost: ~€0.005 per decide call (Haiku, 200 tokens). Sharp compositing
  * is local CPU, free.
  */
+import { fetchModele } from '../agents/anthropic-avec-repli';
 import sharp from 'sharp';
 import { createClient } from '@supabase/supabase-js';
 
@@ -182,7 +183,7 @@ ${input.recentNews ? `\n=== ACTUALITÉ DU JOUR (pour pillar=trends) ===\n${input
 Décide. JSON strict.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': apiKey,

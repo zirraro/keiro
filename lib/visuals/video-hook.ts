@@ -13,6 +13,7 @@
  * no audio remix yet (Phase 2).
  */
 
+import { fetchModele } from '../agents/anthropic-avec-repli';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
@@ -102,7 +103,7 @@ Rules:
 Return STRICT JSON: { "primary": "...", "secondary": "..." } — secondary may be empty. JSON only.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchModele({
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
