@@ -67,7 +67,31 @@ async function run() {
       expiryLabel = daysLeft > 0 ? `J-${daysLeft}` : 'EXPIRÉ';
     }
 
-    rows.push({ code, unlimited, expiryLabel, email: p.email || uid.slice(0, 8), company: p.company_name || '', plan: p.subscription_plan || '?', balance: p.credits_balance || 0, creditsSpent, posts, emails, dms, prospects, actions });
+    /**
+     * La nature du compte, dite explicitement.
+     *
+     * Le relevé du 2026-08-10 présentait « ultracode » et « METAREVIEW2026 »
+     * comme deux comptes à surveiller, sans montrer l'email — il affichait le
+     * nom de société. Le fondateur a cru à un usage externe et a demandé de
+     * couper leurs agents. Or l'un est SON compte principal et l'autre le bac
+     * à sable Meta, actif pendant un renouvellement de permissions : les
+     * couper aurait arrêté sa production et présenté un compte mort au
+     * reviewer.
+     *
+     * Un rapport qui ne dit pas à qui appartient un compte pousse à des
+     * décisions dangereuses. Il le dit maintenant.
+     */
+    const emailCompte = String(p.email || '');
+    let nature: { libelle: string; couleur: string } | null = null;
+    if (/^mrzirraro@/.test(emailCompte)) {
+      nature = { libelle: '→ ton compte principal', couleur: '#2563eb' };
+    } else if (/\+metareview@/.test(emailCompte) || /^contact@keiroai/.test(emailCompte)) {
+      nature = { libelle: '→ compte interne KeiroAI (bac à sable / démo)', couleur: '#7c3aed' };
+    } else {
+      nature = { libelle: '→ client externe', couleur: '#059669' };
+    }
+
+    rows.push({ code, unlimited, expiryLabel, email: emailCompte || uid.slice(0, 8), nature, company: p.company_name || '', plan: p.subscription_plan || '?', balance: p.credits_balance || 0, creditsSpent, posts, emails, dms, prospects, actions });
   }
 
   // Trie : illimités d'abord, puis par crédits consommés.
@@ -75,7 +99,11 @@ async function run() {
 
   const trHtml = rows.map(r => `<tr>
     <td style="padding:4px 8px;">${r.code}${r.unlimited ? ' <span style="color:#7c3aed;font-weight:bold;">accès complet</span>' : ''}${r.expiryLabel ? ` <span style="color:${r.expiryLabel === 'EXPIRÉ' ? '#dc2626' : '#6b7280'};font-size:11px;">${r.expiryLabel}</span>` : ''}</td>
-    <td style="padding:4px 8px;">${r.company || r.email}</td>
+    <td style="padding:4px 8px;">
+      <div style="font-family:monospace;font-size:12px;">${r.email}</div>
+      ${r.nature ? `<div style="font-size:11px;color:${r.nature.couleur};font-weight:600;">${r.nature.libelle}</div>` : ''}
+      ${r.company ? `<div style="font-size:11px;color:#9ca3af;">${String(r.company).slice(0, 46)}</div>` : ''}
+    </td>
     <td style="padding:4px 8px;text-align:right;font-weight:bold;">${r.creditsSpent}</td>
     <td style="padding:4px 8px;text-align:right;">${r.posts}</td>
     <td style="padding:4px 8px;text-align:right;">${r.emails}</td>
@@ -91,7 +119,8 @@ async function run() {
       subject: `📊 Relevé hebdo — usage des ${rows.length} compte(s) à code activé`,
       html: `<div style="font-family:Arial,sans-serif;color:#333;max-width:720px;">
         <h3>Usage effectif des comptes à code (7 derniers jours)</h3>
-        <p style="color:#6b7280;font-size:13px;">∞ = code illimité (Créateur) — à surveiller de près côté coûts. « Crédits » = crédits consommés sur 7j.</p>
+        <p style="color:#6b7280;font-size:13px;">∞ = code illimité (Créateur) — à surveiller côté coûts. « Crédits » = crédits consommés sur 7j.<br>
+        Ce relevé est un suivi de consommation, pas une alerte : tes comptes internes y figurent normalement.</p>
         <table style="border-collapse:collapse;font-size:12px;width:100%;"><thead><tr style="background:#f3f4f6;">
           <th style="padding:6px 8px;text-align:left;">Code</th><th style="padding:6px 8px;text-align:left;">Compte</th>
           <th style="padding:6px 8px;text-align:right;">Crédits</th><th style="padding:6px 8px;text-align:right;">Posts</th>
