@@ -45,6 +45,12 @@ const UNIVERS: Record<string, string[]> = {
   animal: ['chien', 'chat', 'animal', 'veterinaire', 'pet', 'dog', 'cat'],
   fleur: ['fleur', 'bouquet', 'floral', 'flower'],
   sport: ['halteres', 'musculation', 'tapis de course', 'gym', 'workout', 'dumbbell', 'fitness'],
+  // Ajoutés le 2026-08-10 : le carrousel signalé mêlait joaillerie et
+  // restauration, et la joaillerie n'était dans aucun univers — donc la
+  // diapositive passait pour neutre, compatible avec n'importe quoi.
+  bijou: ['bijou', 'joaillerie', 'bijouterie', 'collier', 'bague', 'boucle d oreille', 'jewellery', 'jewelry', 'necklace', 'ring', 'earring', 'bracelet', 'gemstone', 'diamant', 'diamond'],
+  mode: ['vetement', 'boutique de mode', 'pret a porter', 'robe', 'chemise', 'portant', 'cabine d essayage', 'clothing', 'garment', 'dress', 'fashion boutique', 'clothing rack', 'fitting room'],
+  livre: ['livre', 'librairie', 'bibliotheque', 'book', 'bookstore', 'bookshelf'],
 };
 
 /** Quels univers sont légitimes pour une famille de métier. */
@@ -96,7 +102,10 @@ export function verifierDiapo(briefVisuel: string, businessType?: string | null)
   for (const f of familles) for (const u of UNIVERS_ATTENDUS[f] || []) attendus.add(u);
   if (!attendus.size) return { coherent: true };
 
-  const present = (univers: string) => (UNIVERS[univers] || []).some(mot => texte.includes(mot));
+  // Bornes de mot obligatoires : avec une simple sous-chaîne, « car » se
+  // trouve dans « cartoon » et le brief d'un dessin animé était rangé dans
+  // l'univers automobile. Trouvé au backtest du 2026-08-10.
+  const present = (univers: string) => (UNIVERS[univers] || []).some(mot => contientLeMot(texte, mot));
 
   // Si un univers légitime est là, le brief est ancré dans le bon métier.
   for (const u of attendus) if (present(u)) return { coherent: true };
@@ -243,4 +252,181 @@ export function repliNarratif(
     `${baseDesc}. DIAPOSITIVE 2 — visuellement opposée à la première : si la première est large et calme, celle-ci est serrée et vivante ; autre moment de la journée, autre cadrage, autre énergie. Scène réelle de ${metier}, JAMAIS un autre métier. Photographie éditoriale, peau et matières réalistes, lumière naturelle.`,
     `${baseDesc}. DIAPOSITIVE 3 — la preuve du résultat : ${preuve}. Scène réelle de ${metier}, aucun élément d'un autre métier, aucun sujet répété des diapositives 1 et 2. Intimité documentaire, faible profondeur de champ, lumière de fenêtre.`,
   ];
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * COHÉRENCE DE SÉRIE — les diapositives jugées les unes par rapport aux autres
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ── Le défaut que ça corrige ──
+ *
+ * 2026-08-10, le fondateur, pour la troisième fois : « un carrousel doit être
+ * dédié, et toujours les images qui se suivent ont un lien ». Le dernier post
+ * mêlait joaillerie, restaurant et une image en dessin animé.
+ *
+ * `verifierDiapo` existait déjà, mais il compare chaque diapositive AU MÉTIER,
+ * jamais aux autres diapositives. Et il s'arrête net quand le métier est
+ * inconnu : « métier inconnu : on ne juge pas ». Le compte KeiroAI lui-même
+ * n'est ni restaurant ni coiffeur — donc aucune des trois diapositives n'a été
+ * contrôlée. Le garde-fou était là, il ne regardait simplement pas dans la
+ * bonne direction.
+ *
+ * D'où ce second contrôle, qui n'a pas besoin de connaître le métier : il
+ * demande seulement que les diapositives d'un même carrousel parlent du MÊME
+ * univers. Joaillerie puis restaurant, c'est deux univers — quel que soit le
+ * commerce, c'est faux.
+ */
+
+/**
+ * Le mot est-il présent EN TANT QUE MOT ?
+ *
+ * `texte.includes(mot)` ne suffit pas, et le backtest l'a prouvé sur le cas
+ * même que ce fichier devait régler : « cartoon illustration » déclenchait
+ * l'univers « auto », parce que « car » est dans « cartoon ». Le diagnostic
+ * devenait faux et la mauvaise diapositive aurait pu être écartée.
+ *
+ * C'est la troisième fois que la recherche par sous-chaîne se retourne contre
+ * nous ici — « 3d » découpé dans d'autres mots, « glasses » réduit à « glae ».
+ * Les bornes de mot ne sont pas un détail de style.
+ *
+ * Les termes composés (« salon de coiffure », « reservation book ») sont
+ * cherchés tels quels, bornés aux deux extrémités.
+ */
+function contientLeMot(texte: string, mot: string): boolean {
+  const echappe = mot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^a-z0-9])${echappe}([^a-z0-9]|$)`, 'i').test(texte);
+}
+
+/**
+ * Marqueurs de rendu non photographique.
+ *
+ * Ce n'est pas un « univers » — c'est une manière de fabriquer l'image. Une
+ * diapositive en dessin animé au milieu de deux photographies casse la série
+ * quel que soit son sujet, et c'est exactement ce que le fondateur a vu.
+ */
+const RENDU_NON_PHOTO = [
+  'cartoon', 'illustration', 'illustrated', 'anime', 'animated', 'dessin anime',
+  '3d', '3d render', 'cgi', 'digital painting', 'concept art', 'vector',
+  'flat design', 'watercolor', 'aquarelle', 'sketch', 'drawing', 'rendered',
+  'rendering', 'render', 'pixar', 'disney', 'comic', 'manga',
+];
+
+export function estRenduNonPhoto(brief: string): boolean {
+  const texte = normaliser(brief || '');
+  return RENDU_NON_PHOTO.some((m) => contientLeMot(texte, m));
+}
+
+/** Univers détectés dans un brief, par ordre d'apparition. */
+function universDe(brief: string): string[] {
+  const texte = normaliser(brief || '');
+  const trouves: string[] = [];
+  for (const [univers, mots] of Object.entries(UNIVERS)) {
+    if (mots.some((m) => contientLeMot(texte, m))) trouves.push(univers);
+  }
+  return trouves;
+}
+
+export interface VerdictSerie {
+  coherente: boolean;
+  /** L'univers qui domine la série — celui auquel les autres doivent se tenir. */
+  universDominant?: string;
+  /** Index (base 0) des diapositives à refaire. */
+  diapoIncoherentes: number[];
+  motif?: string;
+}
+
+/**
+ * Les diapositives d'un carrousel racontent-elles la même histoire ?
+ *
+ * On prend l'univers majoritaire comme référence plutôt que celui de la
+ * première diapositive : si deux diapositives sur trois parlent de coiffure,
+ * c'est la troisième qui est fautive, même si c'est elle qui ouvre.
+ *
+ * Une diapositive sans univers détectable n'est pas fautive — un plan sur des
+ * mains, un détail de matière ou un fond neutre appartiennent à toutes les
+ * histoires. On ne rejette que ce qui appartient VISIBLEMENT à une autre.
+ */
+export function verifierSerieDiapos(briefs: string[]): VerdictSerie {
+  // Une diapositive en dessin animé, en 3D ou en illustration casse la série
+  // quel que soit son sujet : on la sort d'abord, avant même de raisonner sur
+  // les univers. C'est la « 3e image en mode robot » du signalement.
+  const nonPhoto: number[] = [];
+  briefs.forEach((b, i) => { if (estRenduNonPhoto(b)) nonPhoto.push(i); });
+
+  const universParDiapo = briefs.map(universDe);
+
+  const compte: Record<string, number> = {};
+  for (const liste of universParDiapo) for (const u of liste) compte[u] = (compte[u] || 0) + 1;
+
+  const classe = Object.entries(compte).sort((a, b) => b[1] - a[1]);
+  const dominant = classe.length ? classe[0][0] : undefined;
+
+  const fautives = new Set<number>(nonPhoto);
+  if (dominant) {
+    for (let i = 0; i < universParDiapo.length; i++) {
+      const u = universParDiapo[i];
+      if (u.length === 0) continue;          // neutre : compatible avec tout
+      if (u.includes(dominant)) continue;    // ancrée dans la bonne histoire
+      fautives.add(i);
+    }
+  }
+
+  if (fautives.size === 0) return { coherente: true, universDominant: dominant, diapoIncoherentes: [] };
+
+  const liste = [...fautives].sort((a, b) => a - b);
+  const raisons: string[] = [];
+  if (nonPhoto.length) raisons.push(`${nonPhoto.length} en rendu non photographique`);
+  const horsUnivers = liste.filter((i) => !nonPhoto.includes(i));
+  if (horsUnivers.length) {
+    raisons.push(
+      `${horsUnivers.length} hors de l'univers « ${dominant} » (${horsUnivers.map((i) => universParDiapo[i].join('/')).join(', ')})`,
+    );
+  }
+
+  return {
+    coherente: false,
+    universDominant: dominant,
+    diapoIncoherentes: liste,
+    motif: `diapositive(s) à refaire : ${raisons.join(' ; ')}`,
+  };
+}
+
+/**
+ * ── L'ancre visuelle commune ──
+ *
+ * Contrôler les sujets ne suffit pas. Chaque diapositive était générée comme
+ * une image indépendante, à partir de son seul texte : même sujet, mais autre
+ * lumière, autre lieu, autre style de rendu. C'est ce qui produit « la 1ère
+ * photo est bonne, la 2e est animée, la 3e en mode robot ».
+ *
+ * On fabrique donc un contrat de scène à partir de la première diapositive et
+ * on l'impose à toutes les suivantes : même lieu, même lumière, même appareil,
+ * même personne. Les diapositives changent de cadrage et de moment — c'est ce
+ * qui fait un récit — mais pas de monde.
+ *
+ * Formulé en une phrase courte et concrète : les moteurs d'image suivent mal
+ * les consignes abstraites, et bien les consignes matérielles.
+ */
+export function contratDeScene(briefPremiereDiapo: string, metier?: string | null): string {
+  const lieu = metier ? `le même établissement de ${metier}` : 'le même lieu';
+  return (
+    `MÊME SÉRIE PHOTO que la première image : ${lieu}, même lumière naturelle, ` +
+    `même palette de couleurs, mêmes personnes, même appareil et même objectif. ` +
+    `Seuls le cadrage et le moment changent. Photographie, jamais illustration ni rendu.`
+  );
+}
+
+/**
+ * Brief final d'une diapositive : son propre sujet, tenu par le contrat de
+ * scène. L'ordre compte — le sujet d'abord, la contrainte ensuite : c'est
+ * l'inverse qui produisait des images génériques où la consigne mangeait le
+ * sujet.
+ */
+export function briefDiapoAncre(
+  briefDiapo: string,
+  contrat: string,
+  numero: number,
+): string {
+  return `${briefDiapo.trim()} — DIAPOSITIVE ${numero} d'une série. ${contrat}`;
 }

@@ -45,6 +45,7 @@ TEXT RULE (highest priority): ${textRule}
 
 HARD FAILS (must NOT ship):
 - ⚠️ Text in the image violating the text rule above.
+- ⚠️ NOT A PHOTOGRAPH. The image reads as illustration, cartoon, anime, 3D render, CGI, digital painting, vector art or a plastic "AI look" (waxy skin, glassy eyes, impossible symmetry, airbrushed surfaces, unnaturally saturated colours). The client asked for the work of a professional photographer: if a viewer scrolling their feed would not believe a camera took this, it is a hard fail. This applies unless the brief EXPLICITLY asked for an illustrated style.
 - Subject blurry / out-of-focus where it should be sharp (the dish, the product, the face).
 - Unreadable smudged details where the eye expects clarity.
 - Severe noise / grain / artefacts (melted edges, deformed limbs, gibberish text patches).

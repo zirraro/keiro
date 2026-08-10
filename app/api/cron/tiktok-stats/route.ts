@@ -71,13 +71,67 @@ export async function GET(req: NextRequest) {
         .gte('published_at', since);
 
       let updated = 0;
+
+      /**
+       * ── Une vidéo TikTok appartient à UN seul post ──
+       *
+       * 2026-08-10 — Le fondateur trouve des vues identiques sur des posts
+       * différents. En base : 13 cas où deux lignes du calendrier portaient le
+       * MÊME identifiant de vidéo TikTok, avec les mêmes vues au chiffre près
+       * (259/259, 249/249, 899/899…).
+       *
+       * La cause était ici. L'ancien rapprochement retenait la première vidéo
+       * publiée dans une fenêtre de ±36 HEURES autour du post. Quand deux posts
+       * sortaient le même jour — le cas normal, 2 à 3 par jour — ils tombaient
+       * tous les deux sur la première vidéo de la fenêtre. Le second héritait
+       * des vues du premier, et le permalien erroné était écrit en base, ce qui
+       * verrouillait l'erreur : au passage suivant le rapprochement par
+       * share_url confirmait la fausse correspondance.
+       *
+       * Conséquence directe : la portée TikTok affichée était SURESTIMÉE. Un
+       * même compteur était lu deux fois. Les « ~250 vues par post » du mois de
+       * juillet comptaient souvent une seule vidéo pour deux publications.
+       *
+       * Corrigé en deux temps. D'abord les correspondances certaines, par
+       * share_url. Ensuite seulement les incertaines, par proximité de date,
+       * fenêtre ramenée à 6 heures et attribution au plus proche — et chaque
+       * vidéo est CONSOMMÉE dès qu'elle est attribuée, donc elle ne peut plus
+       * servir à un autre post. Un post sans vidéo disponible reste sans
+       * statistiques, ce qui est la vérité, au lieu d'emprunter celles du
+       * voisin.
+       */
+      const dejaAttribuees = new Set<string>();
+      const rapprochements = new Map<string, any>();
+
+      // 1er temps — les certitudes : le permalien déjà connu.
       for (const post of posts || []) {
-        // Match by share_url, else by create_time ≈ published_at (±36h)
-        let match = post.tiktok_permalink ? videos.find(v => v.share_url === post.tiktok_permalink) : null;
-        if (!match && post.published_at) {
-          const pubMs = new Date(post.published_at).getTime();
-          match = videos.find(v => v.create_time && Math.abs(v.create_time * 1000 - pubMs) < 36 * 3600 * 1000);
+        if (!post.tiktok_permalink) continue;
+        const v = videos.find((v: any) => v.share_url === post.tiktok_permalink && !dejaAttribuees.has(String(v.id)));
+        if (v) { rapprochements.set(post.id, v); dejaAttribuees.add(String(v.id)); }
+      }
+
+      // 2e temps — les suppositions, du plus proche au plus lointain, chaque
+      // vidéo n'étant attribuable qu'une fois.
+      const FENETRE_MS = 6 * 3600 * 1000;
+      const candidats: Array<{ postId: string; video: any; ecart: number }> = [];
+      for (const post of posts || []) {
+        if (rapprochements.has(post.id) || !post.published_at) continue;
+        const pubMs = new Date(post.published_at).getTime();
+        for (const v of videos) {
+          if (!v.create_time || dejaAttribuees.has(String(v.id))) continue;
+          const ecart = Math.abs(v.create_time * 1000 - pubMs);
+          if (ecart < FENETRE_MS) candidats.push({ postId: post.id, video: v, ecart });
         }
+      }
+      candidats.sort((a, b) => a.ecart - b.ecart);
+      for (const c of candidats) {
+        if (rapprochements.has(c.postId) || dejaAttribuees.has(String(c.video.id))) continue;
+        rapprochements.set(c.postId, c.video);
+        dejaAttribuees.add(String(c.video.id));
+      }
+
+      for (const post of posts || []) {
+        const match = rapprochements.get(post.id);
         if (!match) continue;
         await supabase.from('content_calendar').update({
           tiktok_permalink: post.tiktok_permalink || match.share_url || null,

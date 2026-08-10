@@ -1177,20 +1177,100 @@ async function publishToInstagram(
       const slidesToUse = slides.slice(1, 10);
       if (slidesToUse.length > 0) {
         console.log(`[Content] Carousel: using ${slidesToUse.length} per-slide visual_description from LLM`);
-        const { verifierDiapo } = await import('@/lib/visuals/carousel-coherence');
-        for (const s of slidesToUse) {
-          const slideDesc = s.visual?.trim();
+        const { verifierDiapo, verifierSerieDiapos, contratDeScene, briefDiapoAncre } =
+          await import('@/lib/visuals/carousel-coherence');
+
+        const briefs = slidesToUse.map((s) => (s.visual || '').trim()).filter(Boolean);
+
+        // ── 1. Les diapositives se tiennent-elles entre elles ? ──
+        //
+        // 2026-08-10, troisième signalement du fondateur : « un carrousel doit
+        // être dédié, et toujours les images qui se suivent ont un lien ». Le
+        // contrôle existant comparait chaque diapositive AU MÉTIER et s'arrêtait
+        // net quand le métier était inconnu — ce qui est le cas du compte
+        // KeiroAI lui-même. Les trois diapositives joaillerie / restaurant /
+        // dessin animé n'ont donc jamais été examinées.
+        //
+        // Ce contrôle-ci n'a pas besoin de connaître le métier : il demande
+        // seulement que les diapositives d'un même carrousel parlent du même
+        // univers. On écarte la fautive plutôt que d'abandonner le carrousel.
+        const serie = verifierSerieDiapos([baseDesc, ...briefs]);
+        const horsSerie = new Set(
+          serie.coherente ? [] : serie.diapoIncoherentes.map((i) => i - 1).filter((i) => i >= 0),
+        );
+        if (!serie.coherente) {
+          console.warn(`[Content] Carrousel — ${serie.motif}`);
+        }
+
+        // ── 2. L'ancre visuelle commune ──
+        //
+        // Chaque diapositive était générée à partir de son seul texte, donc
+        // avec sa propre lumière, son propre lieu et son propre style de rendu.
+        // C'est ce qui donnait « la 1ère photo correcte, la 2e animée, la 3e en
+        // mode robot ». Le contrat de scène impose le même monde à toutes.
+        const contrat = contratDeScene(baseDesc, businessTypeForVisuals);
+
+        for (let i = 0; i < slidesToUse.length; i++) {
+          const slideDesc = slidesToUse[i].visual?.trim();
           if (!slideDesc) continue;
-          // Contrôle déterministe AVANT génération : une diapositive hors-sujet
-          // rejetée ici ne coûte rien, alors que la générer puis la publier
-          // coûte une image et la crédibilité du compte.
+
+          // Contrôle métier déterministe AVANT génération : une diapositive
+          // hors-sujet rejetée ici ne coûte rien, alors que la générer puis la
+          // publier coûte une image et la crédibilité du compte.
           const verdict = verifierDiapo(slideDesc, businessTypeForVisuals);
           if (!verdict.coherent) {
             console.warn(`[Content] Diapositive écartée — ${verdict.motif} · brief: "${slideDesc.slice(0, 90)}"`);
             continue;
           }
+          if (horsSerie.has(i)) {
+            console.warn(`[Content] Diapositive ${i + 2} écartée — hors de l'univers « ${serie.universDominant} »`);
+            continue;
+          }
+
+          // ── 3. Chaque diapositive passe le contrôle qualité, pas seulement
+          // la première ──
+          //
+          // Le contrôle vision ne tournait que sur l'image principale. Les
+          // diapositives 2 et suivantes partaient sans qu'aucun œil ne les
+          // regarde — d'où « la 1ère photo est bonne, la 2e est animée, la 3e
+          // en mode robot ». Le fondateur : « ne laisse jamais passer de la
+          // mauvaise qualité, mais toujours publier pour livrer le client ».
+          //
+          // On tient les deux : une diapositive ratée est REFAITE une fois,
+          // avec le défaut nommé dans le brief. Si elle rate encore, elle est
+          // écartée — un carrousel de trois bonnes images vaut mieux qu'un de
+          // quatre dont une gâche l'ensemble — et le post part quand même.
           try {
-            const varUrl = await generateVisual(diapoRealiste(slideDesc), 'carrousel');
+            const brief = briefDiapoAncre(slideDesc, contrat, i + 2);
+            let varUrl = await generateVisual(diapoRealiste(brief), 'carrousel');
+
+            if (varUrl) {
+              try {
+                const { reviewGeneratedImage } = await import('@/lib/visuals/image-qa');
+                const qa = await reviewGeneratedImage({
+                  imageUrl: varUrl,
+                  visualBrief: brief,
+                  businessType: businessTypeForVisuals || undefined,
+                });
+                if (qa.verdict === 'hard_fail') {
+                  console.warn(`[Content] Diapositive ${i + 2} refusée (${qa.issue}) — seconde tentative`);
+                  const correctif = `${brief} À CORRIGER ABSOLUMENT : ${qa.issue || 'rendu non photographique'}. Vraie photographie prise à l'appareil, aucun rendu illustré ni 3D.`;
+                  const secondEssai = await generateVisual(diapoRealiste(correctif), 'carrousel');
+                  if (secondEssai) {
+                    const qa2 = await reviewGeneratedImage({
+                      imageUrl: secondEssai,
+                      visualBrief: correctif,
+                      businessType: businessTypeForVisuals || undefined,
+                    });
+                    varUrl = qa2.verdict === 'hard_fail' ? null : secondEssai;
+                    if (!varUrl) console.warn(`[Content] Diapositive ${i + 2} écartée après 2 tentatives — ${qa2.issue}`);
+                  } else {
+                    varUrl = null;
+                  }
+                }
+              } catch { /* contrôle indisponible : on ne bloque pas la livraison */ }
+            }
+
             if (varUrl) carouselUrls.push(varUrl);
           } catch { /* skip slide on error */ }
         }
@@ -3792,6 +3872,54 @@ async function POSTInterne(request: NextRequest) {
             }).eq('id', body.postId);
             console.warn('[Content] publication retenue ' + body.postId + ' — ' + claim.reason);
             return NextResponse.json({ ok: false, held: true, reason: claim.reason, excerpt: claim.excerpt });
+          }
+        } catch (e) { /* un garde-fou en panne ne bloque pas la publication */ }
+
+        // ── Anti-doublon : on ne republie jamais le même contenu ──
+        //
+        // 2026-08-10 — Le fondateur signale un TikTok identique à un post déjà
+        // sorti. Confirmé : la même accroche est partie les 26 et 27 juillet,
+        // puis le 10 août. Les deux premières ont fait ~250 vues, la troisième
+        // ZÉRO — la plateforme reconnaît le contenu et cesse de le pousser.
+        //
+        // Ce n'était pas isolé : 35 posts programmés reprenaient une accroche
+        // déjà publiée, 231 faisaient doublon entre eux, et « Le Tour de France
+        // débute » était programmé cinq fois le même jour.
+        //
+        // Règle posée : « on poste 1 fois un reel ou une image générée par IA,
+        // JAMAIS 2 fois, pour le même client » — d'où un contrôle du média tous
+        // réseaux confondus, et de l'accroche réseau par réseau.
+        //
+        // Le post repasse en brouillon avec le motif en clair : on ne supprime
+        // rien, le client peut le réécrire. Retenir un doublon protège la
+        // portée du compte, ça n'est pas un échec de livraison.
+        try {
+          const { dejaPublie, diagnostiquerDoublon } = await import('@/lib/visuals/doublon-guard');
+          const verdict = await dejaPublie(supabase, {
+            id: pubPost.id,
+            hook: pubPost.hook,
+            caption: pubPost.caption,
+            video_url: pubPost.video_url,
+            visual_url: pubPost.visual_url,
+            platform: targetPlatform,
+            user_id: pubPost.user_id,
+          });
+          if (verdict.doublon) {
+            const diagnostic = diagnostiquerDoublon(verdict);
+            await supabase.from('content_calendar').update({
+              status: 'draft',
+              publish_diagnostic: diagnostic.slice(0, 500),
+              updated_at: new Date().toISOString(),
+            }).eq('id', body.postId);
+            console.warn('[Content] publication retenue ' + body.postId + ' — ' + diagnostic);
+            return NextResponse.json({
+              ok: false,
+              held: true,
+              doublon: true,
+              reason: verdict.motif,
+              publie_le: verdict.publieLe,
+              post_origine: verdict.postOrigine,
+            });
           }
         } catch (e) { /* un garde-fou en panne ne bloque pas la publication */ }
 
