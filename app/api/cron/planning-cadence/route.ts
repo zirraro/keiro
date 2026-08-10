@@ -62,6 +62,107 @@ const EVENEMENTS: Array<[RegExp, string]> = [
   [/\bsoldes\b/i, '08-05'],
 ];
 
+
+/**
+ * ── La répartition entre réseaux, pilotée par ce qu'Ami mesure ──
+ *
+ * 2026-08-10, le fondateur : « avec évidemment notre stratégie adaptive pilotée
+ * par AMI ».
+ *
+ * La cadence était figée : 3 Instagram et 1 TikTok par jour, réglés une fois.
+ * Or ce qu'Ami relève depuis un mois dit exactement l'inverse :
+ *
+ *     TikTok    204 vues par publication (n=33)
+ *     Instagram  10 vues par publication (n=16)
+ *
+ * Vingt fois moins de portée, trois fois plus de volume. On dépensait l'essentiel
+ * de la production là où presque personne ne regarde.
+ *
+ * Ce module garde le VOLUME TOTAL que le client a choisi — c'est sa décision, et
+ * elle engage son budget — mais répartit ce volume entre les réseaux selon la
+ * portée réellement mesurée.
+ *
+ * Deux garde-fous. Un plancher d'une publication par jour sur chaque réseau
+ * actif : un compte qu'on abandonne se referme, et une mauvaise semaine ne doit
+ * pas tuer un canal. Un plafond de trois : au-delà, publier davantage sur un même
+ * réseau ne multiplie pas la portée, ça sature l'audience.
+ *
+ * Sans mesure — compte neuf, réseau fraîchement connecté — on ne touche à rien :
+ * la répartition du client fait foi tant qu'on n'a pas de quoi la contredire.
+ */
+const PLANCHER_PAR_RESEAU = 1;
+const PLAFOND_PAR_RESEAU = 3;
+const ECHANTILLON_MINIMUM = 8;   // en dessous, le chiffre ne veut rien dire
+
+async function repartitionSelonPortee(
+  supabase: any,
+  userId: string,
+  cadenceChoisie: Record<string, number>,
+): Promise<{ cadence: Record<string, number>; motif: string }> {
+  const actifs = Object.entries(cadenceChoisie).filter(([, n]) => n > 0);
+  if (actifs.length < 2) return { cadence: cadenceChoisie, motif: 'un seul réseau actif' };
+
+  const total = actifs.reduce((s, [, n]) => s + n, 0);
+  const depuis = new Date(Date.now() - 30 * 86400000).toISOString();
+
+  const { data: publies } = await supabase
+    .from('content_calendar')
+    .select('platform, engagement_data')
+    .eq('user_id', userId)
+    .eq('status', 'published')
+    .gte('published_at', depuis)
+    .limit(400);
+
+  const portee: Record<string, { n: number; total: number }> = {};
+  for (const p of publies || []) {
+    const v = (p.engagement_data as any)?.views ?? (p.engagement_data as any)?.view_count;
+    if (v == null) continue;
+    (portee[p.platform] ||= { n: 0, total: 0 });
+    portee[p.platform].n++;
+    portee[p.platform].total += Number(v) || 0;
+  }
+
+  const moyennes = actifs.map(([reseau]) => {
+    const m = portee[reseau];
+    return { reseau, moyenne: m && m.n >= ECHANTILLON_MINIMUM ? m.total / m.n : null, n: m?.n || 0 };
+  });
+
+  // Tant qu'un réseau n'a pas assez d'observations, on ne redistribue pas :
+  // comparer 204 vues sur 33 posts à 10 vues sur 2 posts n'aurait aucun sens.
+  if (moyennes.some((m) => m.moyenne === null)) {
+    return { cadence: cadenceChoisie, motif: 'mesure insuffisante sur au moins un réseau' };
+  }
+
+  const sommePortee = moyennes.reduce((s, m) => s + (m.moyenne || 0), 0);
+  if (sommePortee <= 0) return { cadence: cadenceChoisie, motif: 'aucune portée mesurée' };
+
+  const nouvelle: Record<string, number> = {};
+  let distribue = 0;
+  for (const m of moyennes) {
+    const part = Math.round((total * (m.moyenne || 0)) / sommePortee);
+    nouvelle[m.reseau] = Math.max(PLANCHER_PAR_RESEAU, Math.min(PLAFOND_PAR_RESEAU, part));
+    distribue += nouvelle[m.reseau];
+  }
+
+  // Les arrondis, planchers et plafonds font dériver du total voulu : on rend
+  // ou on reprend au réseau qui porte le mieux, puis au moins bon.
+  const ordre = [...moyennes].sort((a, b) => (b.moyenne || 0) - (a.moyenne || 0));
+  let ecart = total - distribue;
+  while (ecart !== 0) {
+    let bouge = false;
+    for (const m of ecart > 0 ? ordre : [...ordre].reverse()) {
+      const n = nouvelle[m.reseau];
+      if (ecart > 0 && n < PLAFOND_PAR_RESEAU) { nouvelle[m.reseau]++; ecart--; bouge = true; }
+      else if (ecart < 0 && n > PLANCHER_PAR_RESEAU) { nouvelle[m.reseau]--; ecart++; bouge = true; }
+      if (ecart === 0) break;
+    }
+    if (!bouge) break;   // plus rien à ajuster sans franchir une borne
+  }
+
+  const detail = moyennes.map((m) => `${m.reseau} ${Math.round(m.moyenne || 0)} vues (n=${m.n}) → ${nouvelle[m.reseau]}/j`).join(' · ');
+  return { cadence: nouvelle, motif: `réparti sur la portée mesurée — ${detail}` };
+}
+
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
@@ -134,9 +235,26 @@ export async function GET(req: NextRequest) {
     (groupes[cle] ||= []).push(p);
   }
 
+  // La répartition d'Ami, calculée une fois par client puis appliquée à chacun
+  // de ses réseaux — inutile de refaire la mesure trois fois.
+  const repartitions: Record<string, Record<string, number>> = {};
+  const motifs: Record<string, string> = {};
+  for (const cle of Object.keys(groupes)) {
+    const userId = cle.split('|')[0];
+    if (userId === 'sans' || repartitions[userId]) continue;
+    const choisie: Record<string, number> = {};
+    for (const r of ['instagram', 'tiktok', 'linkedin']) {
+      const n = cadenceDe(userId, r);
+      if (n > 0) choisie[r] = n;
+    }
+    const { cadence, motif } = await repartitionSelonPortee(supabase, userId, choisie);
+    repartitions[userId] = cadence;
+    motifs[userId] = motif;
+  }
+
   for (const [cle, liste] of Object.entries(groupes)) {
     const [userId, reseau] = cle.split('|');
-    const parJour = cadenceDe(userId === 'sans' ? null : userId, reseau);
+    const parJour = repartitions[userId]?.[reseau] ?? cadenceDe(userId === 'sans' ? null : userId, reseau);
     if (parJour === 0) continue;   // réseau volontairement coupé : on n'y touche pas
 
     // La qualité passe devant l'ordre initial : à capacité contrainte, c'est le
@@ -170,10 +288,10 @@ export async function GET(req: NextRequest) {
   try {
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'planning_cadence', status: 'ok',
-      data: { examines: posts.length, ecartes, replanifies, en_reserve: enReserve, horizon_jours: HORIZON_JOURS },
+      data: { examines: posts.length, ecartes, replanifies, en_reserve: enReserve, horizon_jours: HORIZON_JOURS, repartition: repartitions, motifs },
       created_at: maintenant,
     });
   } catch { /* la trace ne bloque pas */ }
 
-  return NextResponse.json({ ok: true, examines: posts.length, ecartes, replanifies, en_reserve: enReserve });
+  return NextResponse.json({ ok: true, examines: posts.length, ecartes, replanifies, en_reserve: enReserve, repartition: repartitions, motifs });
 }

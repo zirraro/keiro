@@ -64,7 +64,28 @@ export const REALISME_INTERDITS = [
   'NOT: over-saturated or HDR-looking colour, halo or bloom effects, lens flare added for style.',
   'NOT: impossibly tidy spaces, showroom perfection, everything centred and aligned.',
   'NOT: stock-photo staging — people laughing at salad, exaggerated thumbs-up, fake eye contact.',
-  'NOT: visible text artefacts, warped hands, extra fingers, mismatched reflections.',
+  'NOT: warped hands, extra fingers, mismatched reflections.',
+  '',
+  // ── ZÉRO TEXTE ──
+  //
+  // 2026-08-10 — Le repassage des 357 publications du planning a refusé 80
+  // images, dont CINQUANTE pour du texte parasite : enseignes inventées,
+  // charabia sur un emballage, mots anglais sur un commerce français.
+  //
+  // Le contrôle qualité rejette le texte depuis des mois. Le générateur, lui,
+  // n'a jamais reçu la consigne de ne pas en produire — la ligne précédente
+  // parlait d'« artefacts de texte », noyée au milieu des mains déformées, ce
+  // qui n'est pas une interdiction mais une remarque. On refusait donc ce
+  // qu'on n'avait jamais demandé d'éviter, et on repayait la génération.
+  //
+  // Formulé en tête, en majuscules, avec les cas concrets : les moteurs
+  // d'image suivent mal une consigne noyée, et bien une consigne isolée.
+  'ABSOLUTELY NO TEXT ANYWHERE IN THE IMAGE. No letters, words, numbers, glyphs',
+  'or characters of any kind. No shop signs, no menu boards, no chalkboards, no',
+  'labels on packaging, no price tags, no book covers, no screens showing text,',
+  'no watermarks, no logos with readable lettering. If the scene would naturally',
+  'contain a sign or a label, frame it out, blur it beyond legibility, or turn it',
+  'away from the camera. A single stray character makes the image unusable.',
 ].join('\n');
 
 /**
