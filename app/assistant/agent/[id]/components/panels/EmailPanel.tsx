@@ -243,11 +243,15 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Auto mode toggle */}
       <div data-tour="auto-toggle"><AutoModeToggle agentId="email" autoLabel="Automatic emails" manualLabel="Manual emails" autoDesc="Hugo sends email sequences automatically" manualDesc="You validate each email before sending" /></div>
 
-      {/* Reply mode + Gmail drafts : dépendent de gmail.readonly/compose (scopes
-          RESTREINTS). En OPTION A (gmail.send seul), on les MASQUE pour que la
-          fonctionnalité visible corresponde exactement au scope demandé à Google
-          (sinon incohérence = rejet). Réaffichés en B (NEXT_PUBLIC_GMAIL_FULL=on). */}
-      {showMailboxFeatures && <ReplyModeToggle onMode={setReplyMode} />}
+      {/* ── Réglage de réponse et brouillons : descendus dans la boîte ──
+          2026-08-10, le fondateur : « tu mets les mails reçus en haut avec les
+          différentes tâches possibles — répondre, lu, brouillon — mais en bas
+          tu mets la boîte mail. Il faut que tout soit en bas pour avoir une
+          gestion uniformisée. »
+          Deux endroits pour traiter le même message, c'était deux endroits où
+          se tromper. Le réglage auto/brouillon vit maintenant dans l'en-tête de
+          la boîte, et les brouillons y sont un onglet — au même endroit que les
+          reçus, les envoyés et la corbeille. */}
 
       {/* Email connection banner — remonte l'état live pour gater les cartes */}
       <EmailConnectBanner connections={(data as any).connections} onStatus={setLiveConn} />
@@ -260,9 +264,8 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           invisible tant que le user n'a pas activé (flag full_mailbox / GMAIL_OPTION_B). */}
       <GmailNativeInbox />
 
-      {/* Brouillons Hugo — affichés SEULEMENT en mode "brouillon" (en envoi auto,
-          Hugo envoie tout seul → rien à relire, on masque la section). */}
-      {showMailboxFeatures && replyMode === 'draft' && <DraftsCard />}
+      {/* DraftsCard retirée d'ici : les brouillons sont l'onglet « Brouillons »
+          de la boîte, plus bas. Ils n'ont plus de carte séparée. */}
 
       {/* ── UNIFIED STATS SECTION ─────────────────────────────────
           User feedback: too many stat blocks repeated in different
@@ -404,10 +407,10 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Hot prospects — direct notification */}
       {/* HotProspectsAlert removed */}
 
-      {/* Hugo's mailbox — unified view (sent + received + non-prospect)
-          with view toggle (list / split-pane) and inline stats. */}
+      {/* La boîte mail unifiée : reçus, envoyés, brouillons, corbeille, le
+          réglage de réponse et la rédaction — un seul endroit pour tout traiter. */}
       <div data-tour="email-inbox">
-        <FullInbox />
+        <FullInbox onReplyMode={setReplyMode} />
       </div>
 
       {/* Custom domain — discrete option */}
@@ -876,7 +879,7 @@ const FULLINBOX_DEMO = [
   { id: 'demo_t1', direction: 'trash', from_name: 'Newsletter', from_email: 'no-reply@promo.com', subject: 'Offre expirée', body: 'Email supprimé.', date: new Date(Date.now() - 72 * 3600000).toISOString(), auto: false },
 ];
 
-function FullInbox() {
+function FullInbox({ onReplyMode }: { onReplyMode?: (m: 'auto_send' | 'draft') => void }) {
   const { locale } = useLanguage();
   const en = locale === 'en';
   const dateLocale = en ? 'en-US' : 'fr-FR';
@@ -885,6 +888,20 @@ function FullInbox() {
   // option B). En option A (gmail.send) = false → on affiche un aperçu exemple
   // étiqueté (pas de vrais mails reçus → cohérent pour le reviewer Google).
   const [canRead, setCanRead] = useState(false);
+  /**
+   * Une boîte est-elle connectée — Gmail, Outlook ou domaine personnalisé ?
+   *
+   * 2026-08-10, le fondateur : « on met des exemples QUE si pas connecté ; si
+   * connecté on affiche la vraie boîte, que ce soit un nom de domaine
+   * personnalisé ou Gmail. » C'est ce drapeau-là qui décide, et lui seul.
+   *
+   * Avant, l'affichage était piloté par `canRead`, l'accès en LECTURE. Une
+   * boîte Gmail connectée en envoi seul donnait donc des envoyés RÉELS et des
+   * reçus en EXEMPLE, côte à côte dans la même liste — c'est exactement
+   * l'incompréhension signalée. Mélanger du vrai et du figuré dans une même
+   * boîte est pire que de n'en montrer qu'une partie.
+   */
+  const [connecte, setConnecte] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'inbox' | 'sent' | 'draft' | 'trash'>('sent');
   const [view, setView] = useState<'list' | 'split'>(() => {
@@ -954,7 +971,7 @@ function FullInbox() {
     setLoading(true);
     fetch(`/api/me/inbox?direction=all&limit=120`, { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.ok) { setItems(d.items || []); setCanRead(d.canReadInbox === true); } })
+      .then(d => { if (d.ok) { setItems(d.items || []); setCanRead(d.canReadInbox === true); setConnecte(d.mailboxConnected === true); } })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -972,15 +989,29 @@ function FullInbox() {
   const realReceived = items.filter((i: any) => i.direction === 'inbox');
   const realDrafts = items.filter((i: any) => i.direction === 'draft');
   const realTrash = items.filter((i: any) => i.direction === 'trash');
-  // ENVOYÉS = toujours réels (on a l'accès send). REÇUS/BROUILLONS/POUBELLE =
-  // réels si accès lecture (domaine perso / Outlook / option B), sinon EXEMPLES
-  // (on ne lit pas la boîte Gmail). Reflète une vraie messagerie tout en restant
-  // honnête pour le reviewer.
-  const displayedReceived = canRead ? realReceived : demoByDir('inbox');
-  const displayedDrafts = (canRead && realDrafts.length) ? realDrafts : demoByDir('draft');
-  const displayedTrash = (canRead && realTrash.length) ? realTrash : demoByDir('trash');
+  // ── Une seule règle : connecté = tout réel, déconnecté = tout exemple ──
+  //
+  // Le mélange précédent (envoyés réels + reçus en exemple) rendait la boîte
+  // illisible : rien ne disait au client lesquels de ces messages existaient
+  // vraiment. Désormais l'aperçu d'exemple est un mode ENTIER, affiché
+  // uniquement tant qu'aucune boîte n'est connectée, et il s'efface d'un bloc
+  // dès la connexion.
+  //
+  // Un onglet vide sur une boîte connectée reste vide : c'est une information
+  // juste — il n'y a rien à lire — alors qu'un exemple à cet endroit ferait
+  // croire à des messages qui n'existent pas.
+  //
+  // Nuance : Hugo envoie ses mails de prospection depuis contact@keiroai.com,
+  // sans qu'aucune boîte personnelle soit connectée. Ces envois-là sont bien
+  // réels, et les masquer derrière un aperçu serait mentir dans l'autre sens.
+  // Le mode exemple ne s'applique donc que si la boîte n'est PAS connectée ET
+  // qu'il n'y a aucun message réel à montrer.
+  const modeApercu = !connecte && items.length === 0;
+  const displayedReceived = modeApercu ? demoByDir('inbox') : realReceived;
+  const displayedDrafts = modeApercu ? demoByDir('draft') : realDrafts;
+  const displayedTrash = modeApercu ? demoByDir('trash') : realTrash;
   let listItems: any[];
-  if (filter === 'sent') listItems = realSent;
+  if (filter === 'sent') listItems = modeApercu ? demoByDir('sent') : realSent;
   else if (filter === 'inbox') listItems = displayedReceived;
   else if (filter === 'draft') listItems = displayedDrafts;
   else listItems = displayedTrash;
@@ -1077,19 +1108,23 @@ function FullInbox() {
           Étiqueté clairement = le reviewer Google comprend que ce n'est PAS une
           lecture de boîte réelle, et le client voit le rendu de la future
           lecture native (option B / domaine perso). */}
-      {!canRead && !loading && (
+      {modeApercu && !loading && (
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 flex items-start gap-2">
           <span className="text-sm">{'ℹ️'}</span>
           <p className="text-[11px] text-amber-200/80 leading-snug">{en
-            ? <><strong>Sent</strong> emails are real (KeiroAI has send-only Gmail access). <strong>Received</strong> emails shown here are <strong>examples</strong> — KeiroAI does <strong>not</strong> read your Gmail inbox. Native inbox reading arrives with full mailbox access.</>
-            : <>Les emails <strong>envoyés</strong> sont réels (KeiroAI a un accès Gmail en envoi seul). Les emails <strong>reçus</strong> affichés ici sont des <strong>exemples</strong> — KeiroAI ne <strong>lit pas</strong> ta boîte Gmail. La lecture native arrive avec l'accès complet.</>}</p>
+            ? <><strong>Preview</strong> — connect a mailbox (Gmail, Outlook or your own domain) and your real messages replace these examples.</>
+            : <><strong>Aperçu</strong> — connecte une boîte (Gmail, Outlook ou ton nom de domaine) et tes vrais messages remplacent ces exemples.</>}</p>
         </div>
       )}
+      {/* Le réglage de réponse, à l'endroit où on lit les messages : c'est en
+          voyant sa boîte qu'on décide si Hugo répond seul ou prépare. */}
+      <ReplyModeToggle onMode={onReplyMode} />
+
       {/* Header — title + view toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h3 className="text-sm font-bold text-white">{en ? 'Hugo conversations' : 'Conversations Hugo'}</h3>
-          <p className="text-[10px] text-white/40">{en ? 'Emails Hugo sent + prospect replies — not your full Gmail inbox' : 'Emails envoyés par Hugo + réponses des prospects — pas ta boîte Gmail complète'}</p>
+          <h3 className="text-sm font-bold text-white">{en ? 'Mailbox' : 'Boîte mail'}</h3>
+          <p className="text-[10px] text-white/40">{en ? 'Received, sent, drafts and trash — all in one place' : 'Reçus, envoyés, brouillons et corbeille — tout au même endroit'}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -1219,21 +1254,14 @@ function FullInbox() {
         <button onClick={load} className="ml-auto px-2 py-2 min-h-[40px] text-base text-white/40 hover:text-white/70" title={en ? 'Refresh' : 'Rafraîchir'} aria-label="Refresh">↻</button>
       </div>
 
-      {/* Message clair PAR ONGLET (explicite pour le reviewer + le client) */}
-      {filter === 'sent' && (
-        <p className="text-[11px] text-emerald-300/80 px-1">{en ? '✅ Real emails sent from your connected mailbox (Gmail / your domain).' : '✅ Emails réellement envoyés depuis ta boîte connectée (Gmail / ton domaine).'}</p>
-      )}
-      {filter === 'inbox' && !canRead && (
-        <p className="text-[11px] text-amber-300/80 px-1">{en ? 'ℹ️ Examples — with full mailbox access, your real received emails would show here. KeiroAI does not read your Gmail inbox.' : 'ℹ️ Exemples — avec l\'accès complet, tes vrais emails reçus s\'afficheraient ici. KeiroAI ne lit pas ta boîte Gmail.'}</p>
-      )}
-      {filter === 'inbox' && canRead && (
-        <p className="text-[11px] text-cyan-300/80 px-1">{en ? '✅ Real received emails from your connected mailbox.' : '✅ Emails reçus réels depuis ta boîte connectée.'}</p>
-      )}
-      {(filter === 'draft' || filter === 'trash') && !canRead && (
-        <p className="text-[11px] text-amber-300/80 px-1">{en ? 'ℹ️ Examples — with full mailbox access (custom domain or Gmail read access), your real ones would show here.' : 'ℹ️ Exemples — avec l\'accès complet (domaine perso ou lecture Gmail), les tiens s\'afficheraient ici.'}</p>
-      )}
-      {(filter === 'draft' || filter === 'trash') && canRead && (
-        <p className="text-[11px] text-cyan-300/80 px-1">{en ? '✅ From your connected mailbox.' : '✅ Depuis ta boîte connectée.'}</p>
+      {/* Une seule ligne de contexte, la même pour tous les onglets.
+          Les quatre messages précédents disaient onglet par onglet ce qui était
+          réel et ce qui ne l'était pas — c'était le symptôme d'une boîte qui
+          mélangeait les deux. Une fois le mélange supprimé, une phrase suffit. */}
+      {modeApercu ? (
+        <p className="text-[11px] text-amber-300/80 px-1">{en ? 'ℹ️ Examples, shown until a mailbox is connected.' : 'ℹ️ Exemples, affichés tant qu\'aucune boîte n\'est connectée.'}</p>
+      ) : (
+        <p className="text-[11px] text-emerald-300/80 px-1">{en ? '✅ Your real mailbox — Gmail, Outlook or your own domain.' : '✅ Ta vraie boîte — Gmail, Outlook ou ton nom de domaine.'}</p>
       )}
 
       {view === 'list' && (

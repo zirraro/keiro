@@ -301,7 +301,18 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           « lancer une campagne » ne veut rien dire pour un contrat de travail.
           Léo et Hugo sont les deux agents dont le travail EST une campagne, et
           tous deux sont des agents du plan Pro. */}
-      {!isAdmin && (agentId === 'commercial' || agentId === 'email') && (
+      {/* \u2500\u2500 Retir\u00E9 chez Hugo le 2026-08-10 \u2500\u2500
+          Le fondateur : \u00AB retire-moi le bouton lancer une campagne, il sert \u00E0
+          rien, on a dans param\u00E8tres le nombre de mails, la fr\u00E9quence d'envoi,
+          et AMI fait la strat\u00E9gie. \u00BB
+          Le bouton doublonnait deux r\u00E9glages qui existaient d\u00E9j\u00E0 et faisaient
+          mieux le travail : le volume et la cadence se r\u00E8glent dans les
+          param\u00E8tres de l'agent, et le choix de qui cibler quand rel\u00E8ve d'Ami,
+          qui voit tous les canaux. Un troisi\u00E8me endroit pour d\u00E9cider la m\u00EAme
+          chose ne pouvait que les contredire.
+          L\u00E9o le garde : chez lui, une campagne d\u00E9limite un territoire et un
+          secteur \u00E0 prospecter, ce qu'aucun r\u00E9glage de cadence ne remplace. */}
+      {!isAdmin && agentId === 'commercial' && (
         <div data-tour="launch-campaign" className="mx-5 mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}

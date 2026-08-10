@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/context';
 import dynamic from 'next/dynamic';
 import type { ClientAgent } from '@/lib/agents/client-context';
+import { journalLisible } from '@/lib/agents/journal-lisible';
 import { CLIENT_AGENTS } from '@/lib/agents/client-context';
 import UpsellBanner from '@/app/components/UpsellBanner';
 import AgentOrdersHint from './components/AgentOrdersHint';
@@ -490,24 +491,33 @@ function EmailPlanningView() {
         </div>
       </div>
 
-      {/* Recent activity */}
-      {data.recent_logs.length > 0 && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <h3 className="text-white font-bold text-sm mb-3">{en ? 'Recent activity' : 'Activité récente'}</h3>
-          <div className="space-y-1.5">
-            {data.recent_logs.map((l: any, i: number) => (
-              <div key={i} className="flex items-center gap-2 text-[11px]">
-                <span className={`shrink-0 w-2 h-2 rounded-full ${l.status === 'success' ? 'bg-emerald-400' : l.status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
-                <span className="text-white/60 shrink-0 w-32 truncate">{l.action}</span>
-                <span className="text-white/40 truncate flex-1">{l.preview || '—'}</span>
-                <span className="text-white/45 text-[10px] shrink-0">
-                  {new Date(l.created_at).toLocaleTimeString(en ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            ))}
+      {/* ── Ce que l'agent a fait, en français ──
+          2026-08-10, le fondateur : « activité récente, ça sert à rien de dire
+          "google data access", le client s'en fiche. »
+          La section affichait la colonne `action` d'agent_logs telle quelle —
+          des noms de fonctions. On tait maintenant la plomberie (jetons,
+          sondes de santé, rafraîchissements) et on reformule le reste en
+          phrases qui disent ce qui a été fait POUR le commerçant. */}
+      {(() => {
+        const journal = journalLisible(data.recent_logs || []);
+        if (journal.length === 0) return null;
+        return (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <h3 className="text-white font-bold text-sm mb-3">{en ? 'What I did' : 'Ce que j\'ai fait'}</h3>
+            <div className="space-y-2">
+              {journal.map((e, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-[11px] sm:text-xs">
+                  <span className={`shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full ${e.statut === 'succes' ? 'bg-emerald-400' : e.statut === 'erreur' ? 'bg-amber-400' : 'bg-white/30'}`} />
+                  <span className="text-white/75 leading-snug flex-1">{e.texte}</span>
+                  <span className="text-white/35 text-[10px] shrink-0 mt-0.5 tabular-nums">
+                    {new Date(e.quand).toLocaleTimeString(en ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
