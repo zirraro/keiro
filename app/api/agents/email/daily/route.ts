@@ -1694,7 +1694,25 @@ async function GETInterne(request: NextRequest) {
         .not('email_sequence_status', 'eq', 'bounced')
         .not('email_sequence_status', 'eq', 'email_invalid')
         .not('email_sequence_status', 'eq', 'stopped')
-        .not('email_sequence_status', 'eq', 'paused');
+        .not('email_sequence_status', 'eq', 'paused')
+        // ── Les grosses exclusions descendent en SQL ──
+        //
+        // PostgREST plafonne silencieusement à 1000 lignes. Sans ces deux
+        // filtres, la requête ramenait les 1000 PREMIÈRES lignes d'un ensemble
+        // de 1913, dominé par 1338 prospects « perdu » — et le tri en
+        // JavaScript qui suit n'avait plus rien d'éligible à se mettre sous la
+        // dent. La route annonçait « aucun prospect éligible » alors que 488
+        // attendaient, simplement au-delà de la fenêtre.
+        //
+        // Le fondateur : « pourquoi si peu d'emails partent ? » C'était ça, et
+        // pas le ciblage par métier que j'avais corrigé la veille — celui-là
+        // limitait le potentiel, celui-ci l'annulait.
+        //
+        // Exclure en base ramène l'ensemble à ~490 lignes, largement sous le
+        // plafond. Les mêmes conditions restent appliquées côté JavaScript :
+        // elles ne coûtent rien et protègent si un statut inattendu apparaît.
+        .not('status', 'eq', 'perdu')
+        .not('temperature', 'eq', 'dead');
 
       // Multi-tenant: filter by client
       if (clientUserId) {
