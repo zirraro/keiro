@@ -337,7 +337,13 @@ function versSchemaGemini(schema: any): any {
   return conv(schema);
 }
 
-async function fetchImageBase64(url: string): Promise<{ data: string; mediaType: string } | null> {
+/**
+ * Exporté le 2026-08-10 : le contrôle d'image (image-qa) passe désormais par
+ * la même chaîne de repli, et il a besoin de la même conversion — y compris de
+ * la détection de type par les octets, parce que le parc contient des JPEG
+ * nommés .png qu'Anthropic refuse quand le media_type ne correspond pas.
+ */
+export async function fetchImageBase64(url: string): Promise<{ data: string; mediaType: string } | null> {
   try {
     const r = await fetch(url);
     if (!r.ok) return null;

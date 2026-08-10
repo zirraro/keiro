@@ -50,8 +50,23 @@ export async function reviewGeneratedImage(input: {
   clientLanguage?: string;       // 2026-06-08 — foreign-script text rejection
   textAllowed?: boolean;         // when true (text-overlay variant), don't penalize Latin text
 }): Promise<ImageQaVerdict> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { verdict: 'indisponible', raisonIndisponible: 'aucune cle ANTHROPIC_API_KEY' };
+  // ── Le repli existait, ce contrôle-ci ne l'utilisait pas ──
+  //
+  // 2026-08-10, le fondateur : « tu peux passer par Gemini, évidemment, on est
+  // censé avoir mis le repli. » Il avait raison : `jugerAvecVision` enchaîne
+  // Anthropic puis Gemini depuis des semaines, avec coupe-circuit sur crédit
+  // épuisé et suivi du coût. Ce module-ci appelait Anthropic en direct et
+  // s'arrêtait là — d'où un contrôle mort alors qu'un modèle restait
+  // disponible.
+  //
+  // On emprunte donc la chaîne existante au lieu d'en écrire une seconde. Même
+  // raison que pour les carrousels : deux implémentations d'une même chose
+  // divergent toujours.
+  const { jugerAvecVision, fetchImageBase64 } = await import('./post-coherence-qc');
+
+  const image = await fetchImageBase64(input.imageUrl);
+  if (!image) {
+    return { verdict: 'indisponible', raisonIndisponible: 'image illisible ou trop petite' };
   }
 
   const clientLang = (input.clientLanguage || 'fr').toLowerCase();
@@ -83,87 +98,109 @@ PASS:
 - ZERO visible text (or text in ${clientLang.toUpperCase()} when allowed by the brief).
 - A normal client looking at this would not say "this is blurry" or "this looks AI-broken".
 
-Return STRICT JSON:
-{
-  "verdict": "pass" | "soft_fail" | "hard_fail",
-  "issue": "<one short sentence describing the worst issue, or empty>",
-  "confidence": 0..1,
-  "has_text": true | false,
-  "text_language": "<detected script if has_text, else 'none'>"
-}
+Answer by calling the rendre_verdict tool. Set has_text to true if ANY text is visible, and text_language to the script you detected ('none' when there is no text).`;
 
-JSON only. No preamble.`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
+  /**
+   * Schéma imposé au modèle. Un outil structuré plutôt qu'un JSON demandé en
+   * prose : c'est ce que `jugerAvecVision` sait faire des deux côtés de la
+   * chaîne, et ça supprime l'analyse d'une réponse libre — la branche qui
+   * renvoyait « conforme » quand le texte était illisible.
+   */
+  const outil = {
+    name: 'rendre_verdict',
+    description: 'Rend le verdict technique sur l image generee.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        verdict: { type: 'string', enum: ['pass', 'soft_fail', 'hard_fail'] },
+        issue: { type: 'string', description: 'One short sentence on the worst issue, empty if none.' },
+        confidence: { type: 'number' },
+        has_text: { type: 'boolean' },
+        text_language: { type: 'string' },
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 250,
-        system,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: `Brief: ${input.visualBrief || 'unknown'}\nBusiness: ${input.businessType || 'unknown'}\nReview this image for technical quality. JSON.` },
-            { type: 'image', source: { type: 'url', url: input.imageUrl } },
-          ],
-        }],
-      }),
-    });
-    if (!res.ok) {
-      // On lit le corps : « credit balance is too low » et « rate limit » sont
-      // deux pannes tres differentes, et les confondre coute du temps le jour
-      // ou il faut comprendre pourquoi plus rien n'est controle.
-      const corps = await res.text().catch(() => '');
-      const raison = /credit balance|billing/i.test(corps)
-        ? 'credit Anthropic epuise'
-        : (/rate.?limit/i.test(corps) || res.status === 429)
-          ? 'limite de debit atteinte'
-          : `reponse ${res.status}`;
-      console.warn('[image-qa] controle impossible — ' + raison);
-      return { verdict: 'indisponible', raisonIndisponible: raison };
-    }
-    const data = await res.json();
-    const txt = (data.content?.[0]?.text || '').trim();
-    const m = txt.match(/\{[\s\S]*\}/);
-    if (!m) return { verdict: 'indisponible', raisonIndisponible: 'reponse illisible' };
-    const parsed = JSON.parse(m[0]);
-    let verdict: 'pass' | 'soft_fail' | 'hard_fail' =
-      ['pass', 'soft_fail', 'hard_fail'].includes(parsed.verdict) ? parsed.verdict : 'pass';
-    let issue = typeof parsed.issue === 'string' ? parsed.issue.substring(0, 240) : undefined;
+      required: ['verdict', 'has_text'],
+    },
+  };
 
-    // 2026-06-08 — Foreign-script defense in depth. Even if Sonnet
-    // rated this 'pass', any non-Latin text on a Latin-language client
-    // = force hard_fail. Founder rule: "0 text c'est 0 sauf si
-    // coherent et dans la langue du client".
-    const latinLangs = new Set(['fr', 'en', 'es', 'de', 'it', 'pt', 'nl', 'sv', 'da', 'no']);
-    if (parsed.has_text === true && latinLangs.has(clientLang)) {
-      const detectedScript = (parsed.text_language || '').toLowerCase();
-      const foreignScripts = ['chinese', 'japanese', 'korean', 'hanzi', 'kanji', 'hiragana', 'katakana', 'hangul', 'cyrillic', 'arabic', 'devanagari', 'thai', 'hebrew', 'greek'];
-      const isForeignScript = foreignScripts.some((s) => detectedScript.includes(s));
-      const isGibberish = /gibberish|broken|garbled|random/.test(detectedScript);
-      // Also: text NOT allowed at all in this image → any text fails.
-      const textNotAllowed = !input.textAllowed;
-      if (isForeignScript || isGibberish || textNotAllowed) {
-        verdict = 'hard_fail';
-        issue = textNotAllowed
-          ? `Visible text detected (${detectedScript}) — brief required ZERO text`
-          : `Foreign-script text detected (${detectedScript}) — reject for ${clientLang.toUpperCase()} client`;
-      }
-    }
+  const parsed = await jugerAvecVision({
+    system,
+    tool: outil,
+    imageBase64: image.data,
+    mediaType: image.mediaType,
+    texte: `Brief: ${input.visualBrief || 'unknown'}
+Business: ${input.businessType || 'unknown'}
+Review this image for technical quality.`,
+    maxTokens: 300,
+  });
 
-    return {
-      verdict,
-      issue,
-      confidence: Number.isFinite(parsed.confidence) ? parsed.confidence : undefined,
-    };
-  } catch (e: any) {
-    console.warn('[image-qa] review failed:', e?.message);
-    return { verdict: 'indisponible', raisonIndisponible: e?.message || 'erreur reseau' };
+  // `null` = AUCUN des deux modèles n'a répondu. Ce n'est pas un verdict
+  // favorable, et c'est toute la différence avec la version précédente, qui
+  // renvoyait « conforme » dans ce cas et laissait passer des images que
+  // personne n'avait regardées.
+  if (!parsed) {
+    return { verdict: 'indisponible', raisonIndisponible: 'aucun modèle de vision disponible' };
   }
+
+  let verdict: 'pass' | 'soft_fail' | 'hard_fail' =
+    ['pass', 'soft_fail', 'hard_fail'].includes(parsed.verdict) ? parsed.verdict : 'pass';
+  let issue = typeof parsed.issue === 'string' ? parsed.issue.substring(0, 240) : undefined;
+
+  // ── Défense en profondeur : le motif prime sur le verdict ──
+  //
+  // 2026-08-10, constaté sur un échantillon réel de 12 posts : le modèle écrit
+  // « The image is clearly an illustration, not a photograph, which violates
+  // the brief » — et rend le verdict « pass ». Deux fois sur douze. Il voit
+  // juste et conclut faux.
+  //
+  // On ne peut pas se contenter de reformuler la consigne : un modèle qui se
+  // contredit se contredira encore. On lit donc ce qu'il a ÉCRIT, et un motif
+  // qui décrit un rendu non photographique impose le refus, quel que soit le
+  // verdict annoncé. Même principe que la défense sur les écritures étrangères
+  // juste en dessous, qui existe depuis juin pour la même raison.
+  //
+  // Bornes de mot obligatoires : « car » se trouve dans « cartoon », et cette
+  // erreur-là a déjà coûté un faux diagnostic dans le contrôle des carrousels.
+  const MOTIF_NON_PHOTO = /(^|[^a-z])(illustration|illustrated|cartoon|cartoonish|anime|animated|3d|cgi|render|rendered|rendering|digital painting|vector|drawing|sketch|not a photograph|not photographic|artificial look|ai look|plastic look)([^a-z]|$)/i;
+  if (verdict !== 'hard_fail' && issue && MOTIF_NON_PHOTO.test(issue)) {
+    verdict = 'hard_fail';
+    issue = `Rendu non photographique — ${issue}`;
+  }
+
+  // 2026-06-08 — Défense en profondeur sur les écritures étrangères. Même si le
+  // modèle a noté « pass », tout texte non latin chez un client de langue
+  // latine est un refus. Règle du fondateur : « 0 texte c'est 0, sauf si
+  // cohérent et dans la langue du client ».
+  const latinLangs = new Set(['fr', 'en', 'es', 'de', 'it', 'pt', 'nl', 'sv', 'da', 'no']);
+  if (parsed.has_text === true && latinLangs.has(clientLang)) {
+    const detectedScript = (parsed.text_language || '').toLowerCase();
+    const foreignScripts = ['chinese', 'japanese', 'korean', 'hanzi', 'kanji', 'hiragana', 'katakana', 'hangul', 'cyrillic', 'arabic', 'devanagari', 'thai', 'hebrew', 'greek'];
+    const isForeignScript = foreignScripts.some((s) => detectedScript.includes(s));
+    const isGibberish = /gibberish|broken|garbled|random/.test(detectedScript);
+    const textNotAllowed = !input.textAllowed;
+
+    // Le modèle se contredit parfois : has_text à vrai, et une écriture
+    // détectée « none ». Observé le 2026-08-10 sur un post rapatrié, refusé
+    // pour « Visible text detected (none) » — une phrase qui ne veut rien dire.
+    // Refuser sur cette base, c'est jeter une image correcte et en repayer une
+    // autre. On retient au lieu de refuser : le post part, et le doute est
+    // consigné.
+    const seContredit = !detectedScript || detectedScript === 'none';
+
+    if (isForeignScript || isGibberish) {
+      verdict = 'hard_fail';
+      issue = `Foreign-script text detected (${detectedScript}) — reject for ${clientLang.toUpperCase()} client`;
+    } else if (textNotAllowed && !seContredit) {
+      verdict = 'hard_fail';
+      issue = `Visible text detected (${detectedScript}) — brief required ZERO text`;
+    } else if (textNotAllowed && seContredit && verdict === 'pass') {
+      verdict = 'soft_fail';
+      issue = issue || 'texte peut-être visible, écriture non identifiée — à vérifier';
+    }
+  }
+
+  return {
+    verdict,
+    issue,
+    confidence: Number.isFinite(parsed.confidence) ? parsed.confidence : undefined,
+  };
 }
