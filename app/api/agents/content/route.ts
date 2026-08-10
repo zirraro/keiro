@@ -1188,7 +1188,10 @@ async function publishToInstagram(
           premiereImage: post.visual_url!,
           businessType: businessTypeForVisuals,
           sceneClient: sceneSignature,
-          maximum: 10,                       // Instagram plafonne à 10 images
+          maximum: 10,
+          // Un texte incrusté voulu n'est pas un défaut de génération : sans cette
+          // information le contrôle refuse l'image pour « texte visible ».
+          texteAutorise: !!((post as any)?.overlay_text && Object.keys((post as any).overlay_text || {}).length),                       // Instagram plafonne à 10 images
           genererVisuel: (b, f) => generateVisual(b, f),
           signalerControleIndisponible: (raison, numero) => {
             console.warn(`[Content] Instagram — contrôle qualité indisponible (${raison}) sur la diapositive ${numero}`);
@@ -2338,7 +2341,10 @@ async function publishToTikTok(
           premiereImage: visualUrl!,
           businessType: profilVisuel.businessType,
           sceneClient: profilVisuel.sceneClient,
-          maximum: 5,                       // TikTok respire mieux entre 2 et 5 photos
+          maximum: 5,
+          // Un texte incrusté voulu n'est pas un défaut de génération : sans cette
+          // information le contrôle refuse l'image pour « texte visible ».
+          texteAutorise: !!((post as any)?.overlay_text && Object.keys((post as any).overlay_text || {}).length),                       // TikTok respire mieux entre 2 et 5 photos
           genererVisuel: (b, f) => generateVisual(b, f),
           signalerControleIndisponible: (raison, numero) => {
             console.warn(`[Content] TikTok — contrôle qualité indisponible (${raison}) sur la diapositive ${numero}`);

@@ -49,6 +49,17 @@ export interface OptionsCarrousel {
   genererVisuel: (brief: string, format: string) => Promise<string | null>;
   /** Journalise un contrôle qualité impossible (crédit épuisé, service muet). */
   signalerControleIndisponible?: (raison: string, numero: number) => void;
+  /**
+   * Le post porte-t-il un texte incrusté VOULU ?
+   *
+   * 2026-08-10 — Au repassage des 240 posts rapatriés, deux ont été refusés
+   * pour « texte visible » alors que leur texte était un overlay demandé par la
+   * stratégie. Le contrôle applique la règle « zéro texte » du fondateur, qui
+   * vise les inscriptions parasites du générateur — enseignes inventées,
+   * charabia, écritures étrangères — pas une accroche qu'on a nous-mêmes posée.
+   * Sans cette information, il ne peut pas faire la différence.
+   */
+  texteAutorise?: boolean;
 }
 
 export interface ResultatCarrousel {
@@ -61,10 +72,10 @@ export interface ResultatCarrousel {
  * Le contrôle qualité, appelé paresseusement : le module ne dépend pas d'une
  * clé d'API au chargement, et reste testable hors ligne.
  */
-async function controler(imageUrl: string, brief: string, businessType?: string | null) {
+async function controler(imageUrl: string, brief: string, businessType?: string | null, texteAutorise?: boolean) {
   try {
     const { reviewGeneratedImage } = await import('./image-qa');
-    return await reviewGeneratedImage({ imageUrl, visualBrief: brief, businessType: businessType || undefined });
+    return await reviewGeneratedImage({ imageUrl, visualBrief: brief, businessType: businessType || undefined, textAllowed: texteAutorise });
   } catch {
     return { verdict: 'indisponible' as const, raisonIndisponible: 'module indisponible' };
   }
@@ -113,7 +124,7 @@ export async function construireCarrousel(o: OptionsCarrousel): Promise<Resultat
     } catch { url = null; }
     if (!url) { ecartees.push({ numero, motif: 'génération impossible' }); continue; }
 
-    const qa = await controler(url, brief, o.businessType);
+    const qa = await controler(url, brief, o.businessType, o.texteAutorise);
     if (qa.verdict === 'indisponible') {
       // On livre, mais on le dit. Un contrôle mort ne doit jamais ressembler
       // à un contrôle réussi.
@@ -126,7 +137,7 @@ export async function construireCarrousel(o: OptionsCarrousel): Promise<Resultat
       let second: string | null = null;
       try { second = await o.genererVisuel(diapoRealiste(correctif), 'carrousel'); } catch { second = null; }
       if (second) {
-        const qa2 = await controler(second, correctif, o.businessType);
+        const qa2 = await controler(second, correctif, o.businessType, o.texteAutorise);
         if (qa2.verdict !== 'hard_fail') { images.push(second); continue; }
         ecartees.push({ numero, motif: `refusée 2 fois — ${qa2.issue || ''}`.trim() });
       } else {
