@@ -1493,23 +1493,44 @@ async function GETInterne(request: NextRequest) {
   // The agent stops at the target even when more prospects are
   // available, so "today's count" matches "yesterday's count" — the
   // QA visibility the founder asked for.
-  let dailyTarget = 40; // Pro tier baseline
+  /**
+   * Le plafond du jour vient du PLAN du client, via PLAN_QUOTAS.emails_per_day.
+   *
+   * Deux défauts corrigés le 2026-08-10 :
+   *
+   * 1. Le plan était lu sur le propriétaire du PREMIER prospect renvoyé par la
+   *    base — sans tri, donc une ligne arbitraire. Un client Business pouvait
+   *    hériter du plafond d'un compte Créateur, ou l'inverse, selon l'ordre
+   *    des lignes. On lit maintenant le plan du client visé quand la route est
+   *    appelée pour lui.
+   * 2. Le chiffre vivait en dur dans ce fichier (40, et 500 pour l'admin). Un
+   *    quota de plan doit vivre dans la grille des plans, là où on le lit pour
+   *    le vendre — sinon la promesse commerciale et le code divergent sans que
+   *    personne s'en aperçoive.
+   *
+   * L'échelle reste modeste et c'est délibéré : un email PART, là où un DM est
+   * seulement préparé. Quarante envois quotidiens pour un plan Pro, c'est ce
+   * qu'un domaine expéditeur de commerce local supporte sans se faire classer
+   * en spam.
+   */
+  let dailyTarget = 40; // repli : la valeur historique du plan Pro
   try {
-    const { data: firstProspect } = await supabase
-      .from('crm_prospects')
-      .select('user_id')
-      .limit(1)
-      .maybeSingle();
-    if (firstProspect?.user_id) {
-      const { data: ownerProfile } = await supabase
+    const { PLAN_QUOTAS } = await import('@/lib/credits/constants');
+    let planClient = '';
+    if (clientUserId) {
+      const { data: prof } = await supabase
         .from('profiles')
-        .select('plan:subscription_plan')
-        .eq('id', firstProspect.user_id)
+        .select('plan:subscription_plan, is_admin')
+        .eq('id', clientUserId)
         .maybeSingle();
-      const plan = (ownerProfile?.plan || '').toLowerCase();
-      if (plan === 'admin') dailyTarget = 500;
+      planClient = String(prof?.plan || '').toLowerCase();
+      if (prof?.is_admin) planClient = 'agence'; // le compte de test garde la marge haute
     }
-  } catch {}
+    const q = (PLAN_QUOTAS as any)[planClient];
+    if (q && typeof q.emails_per_day === 'number') dailyTarget = q.emails_per_day;
+  } catch (e: any) {
+    console.warn('[EmailDaily] quota de plan illisible, repli à 40 :', e?.message);
+  }
   const DAILY_EMAIL_LIMIT = Math.min(dailyTarget, 500);
   // Calculate midnight Paris time (CET/CEST)
   const parisOffset = now.getMonth() >= 2 && now.getMonth() <= 9 ? 2 : 1; // Simple DST: March-October = +2, else +1
@@ -1827,7 +1848,30 @@ async function GETInterne(request: NextRequest) {
       let skippedCompleted = 0;
       let recycledCount = 0;
       let selfVerifiedCount = 0;
-      const MAX_STEP1_PER_DAY = isManualTrigger ? 500 : 500; // Max emails per run — send as many as possible
+      /**
+       * Le plafond quotidien vient du PLAN, plus d'une constante en dur.
+       *
+       * Le fondateur (2026-08-10) : « on ne doit pas envoyer 472 d'un coup, on
+       * doit envoyer par le quota prévu dans le plan Pro par jour. » Il avait
+       * raison sur le principe, et raison de le demander : ce quota n'existait
+       * pas. La grille définissait 100 DM par jour pour Pro et rien pour les
+       * emails — le code se rabattait sur 500, identique pour tous les plans.
+       *
+       * emails_per_day suit désormais la même échelle que les DM : 50 en
+       * Créateur, 100 en Pro, 200 en Business. Un commerce qui peut envoyer
+       * 100 DM peut envoyer 100 emails.
+       *
+       * Deux bénéfices au-delà de la cohérence tarifaire : la réputation du
+       * domaine expéditeur ne subit pas de pic — passer de 3 envois par jour à
+       * 472 est exactement ce qui déclenche un classement en spam — et le plan
+       * redevient une promesse chiffrée plutôt qu'une limite technique
+       * arbitraire.
+       */
+      // Le plafond du jour est déjà calculé plus haut (DAILY_EMAIL_LIMIT), à
+      // partir du plan du client. Le redéfinir ici créerait deux vérités pour
+      // la même limite, et c'est la plus basse qui aurait gagné sans qu'on
+      // sache laquelle.
+      const MAX_STEP1_PER_DAY = DAILY_EMAIL_LIMIT;
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 0; // No delay — send immediately
       // For manual triggers: send immediately (no multi-day gaps)
       // For cron: respect normal spacing between steps (min 3 days between any email to same prospect)

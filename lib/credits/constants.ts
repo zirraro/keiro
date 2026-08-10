@@ -74,6 +74,7 @@ export const PLAN_QUOTAS: Record<string, {
   video_max_seconds: number;
   tts_minutes_per_month: number;
   dms_per_day: number;        // Jade Instagram DM cap
+  emails_per_day: number;  // Hugo — emails de prospection RÉELLEMENT envoyés par jour
   chatbot_sessions_per_day: number; // Max website chatbot cap
   agent_chat_free_per_month: number;
 }> = {
@@ -83,6 +84,7 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 0,
     tts_minutes_per_month: 0,
     dms_per_day: 0,
+    emails_per_day: 0,
     chatbot_sessions_per_day: 0,
     agent_chat_free_per_month: 5,
   },
@@ -105,6 +107,7 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 30,          // 30s max (relaxed from 15s)
     tts_minutes_per_month: 15,
     dms_per_day: 50,
+    emails_per_day: 20,
     chatbot_sessions_per_day: 0,    // Max not included on Créateur
     agent_chat_free_per_month: 15,
   },
@@ -119,6 +122,7 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 45,
     tts_minutes_per_month: 45,
     dms_per_day: 100,
+    emails_per_day: 40,
     chatbot_sessions_per_day: 20,
     agent_chat_free_per_month: 20,
   },
@@ -128,6 +132,7 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 60,
     tts_minutes_per_month: 90,
     dms_per_day: 200,
+    emails_per_day: 80,
     chatbot_sessions_per_day: 60,
     agent_chat_free_per_month: 25,
   },
@@ -139,6 +144,7 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 90,
     tts_minutes_per_month: 180,
     dms_per_day: 300,
+    emails_per_day: 120,
     chatbot_sessions_per_day: 100,
     agent_chat_free_per_month: 30,
   },
@@ -151,6 +157,7 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 90,
     tts_minutes_per_month: 300,
     dms_per_day: 500,
+    emails_per_day: 200,
     chatbot_sessions_per_day: 999999,
     agent_chat_free_per_month: 40,
   },
@@ -160,6 +167,7 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 90,
     tts_minutes_per_month: 999999,
     dms_per_day: 999999,
+    emails_per_day: 500,
     chatbot_sessions_per_day: 999999,
     agent_chat_free_per_month: 50,
   },
@@ -169,6 +177,10 @@ export const PLAN_QUOTAS: Record<string, {
     video_max_seconds: 90,
     tts_minutes_per_month: 999999,
     dms_per_day: 999999,
+    // Pas d'illimité sur l'email, même en admin : la réputation du domaine
+    // expéditeur est partagée par tous les clients. Un test à 999 999 envois
+    // ferait classer keiroai.com en spam pour tout le monde.
+    emails_per_day: 500,
     chatbot_sessions_per_day: 999999,
     agent_chat_free_per_month: 999999,
   },
