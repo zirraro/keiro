@@ -367,6 +367,24 @@ export async function GET(req: NextRequest) {
       // une erreur — on les garde, en disant la cause, parce que l'action à
       // mener n'est pas la même : régénérer, pas republier.
       const diag = String(p.publish_diagnostic || '');
+
+      // ── Trois filtres AVANT de classer, dans cet ordre ──
+      //
+      // 1. Un post RÉPARÉ n'est pas un post retenu. « qc_coherence_reecrit
+      //    (4/10 → 9/10) » décrit une réussite : le contrôle a rejeté, la
+      //    réécriture a corrigé, le post est bon. Le compter comme un échec
+      //    était mon erreur — le fondateur voyait « 6 publications retenues »
+      //    dont trois étaient en fait réparées et prêtes.
+      const repare = /→\s*(8|9|10)(\.\d)?\/10/.test(diag);
+      if (repare) continue;
+
+      // 2. Un post APPROUVÉ dont le créneau n'est pas passé attend simplement
+      //    son tour. Il n'a rien à faire dans un rapport d'incidents.
+      const enRetard = String(p.scheduled_date) < todayD;
+      if (p.status === 'approved' && !enRetard) continue;
+
+      // 3. Ce qui reste et porte une trace de contrôle qualité est un vrai
+      //    blocage, à régénérer.
       const retenuQc = /qc_|coherence_retenu|top_insuffisant/.test(diag);
       if (retenuQc) {
         const key = `${p.user_id}::${p.platform}::qc`;
