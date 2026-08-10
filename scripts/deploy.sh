@@ -27,9 +27,49 @@ npm ci --no-audit --no-fund
 #
 # Reconstruire de zéro coûte une minute de plus par déploiement. C'est le prix
 # à payer pour que ce mode de panne n'existe plus.
+# ── Les fichiers de l'ANCIENNE version doivent survivre au déploiement ──
+#
+# Incident 2026-08-10. Le fondateur, en pleine utilisation : « Application
+# error: a client-side exception has occurred ». Puis, lui-même : « en fait je
+# me rends compte que c'est parce que tu travailles sur le site — quand tu mets
+# à jour, ça bloque certaines fonctions. Sur Vercel ça marchait bien. »
+#
+# Diagnostic exact. Next.js découpe l'application en fichiers JavaScript dont le
+# nom contient une empreinte du contenu : à chaque build, de nouveaux noms. Un
+# navigateur qui a chargé la page AVANT le déploiement continue de réclamer les
+# ANCIENS noms — au premier clic sur un onglet, à l'ouverture d'un éditeur. Le
+# "rm -rf .next" les avait effacés : 404, et l'application entière tombe.
+#
+# Vercel ne connaît pas ce problème parce qu'il garde les versions précédentes
+# en ligne et bascule le trafic sans rien supprimer. On reproduit ce
+# comportement : on met de côté les fichiers statiques de la version en place,
+# on reconstruit proprement, puis on remet les anciens À CÔTÉ des nouveaux.
+#
+# Les noms contenant une empreinte, aucune collision n'est possible : un ancien
+# fichier ne peut pas écraser un nouveau. On garde donc les deux, et une session
+# ouverte pendant le déploiement continue de fonctionner.
+ANCIENS=/opt/keiro/.next-anciens
+mkdir -p "$ANCIENS"
+if [ -d .next/static ]; then
+  echo "▶ mise de côté des fichiers de la version en place"
+  cp -rn .next/static/. "$ANCIENS/" 2>/dev/null || true
+fi
+
 echo "▶ build propre (suppression de .next)"
 rm -rf .next
 npm run build
+
+# On remet les anciens fichiers À CÔTÉ des nouveaux, sans jamais écraser (-n) :
+# les nouveaux font foi, les anciens ne servent qu'aux sessions déjà ouvertes.
+# Purge au-delà de 7 jours — passé ce délai plus aucune session ne les réclame,
+# et le disque n'a pas à porter l'historique complet.
+if [ -d "$ANCIENS" ]; then
+  echo "▶ conservation des fichiers des versions précédentes"
+  cp -rn "$ANCIENS/." .next/static/ 2>/dev/null || true
+  find "$ANCIENS" -type f -mtime +7 -delete 2>/dev/null || true
+  find "$ANCIENS" -type d -empty -delete 2>/dev/null || true
+fi
+
 
 # Filet de sécurité : si un manifeste manque malgré tout, on arrête AVANT le
 # reload plutôt que de mettre en ligne une application aux routes mortes.
