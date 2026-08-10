@@ -4042,6 +4042,54 @@ async function POSTInterne(request: NextRequest) {
         return NextResponse.json(psResult);
       }
 
+      case 'modify':
+      case 'update_caption': {
+        /**
+         * Enregistre la légende modifiée par le client depuis le planning.
+         *
+         * Cette action était APPELÉE et n'existait pas. Le client éditait sa
+         * légende, le champ gardait sa saisie — il n'est pas contrôlé — et il
+         * repartait convaincu que c'était enregistré. Au rechargement, son
+         * texte avait disparu. Le catch vide côté navigateur garantissait le
+         * silence.
+         *
+         * Trouvé le 2026-08-10 par un audit des actions postées vers cette
+         * route sans `case` correspondant — la même classe de défaut que
+         * `set_visual`, créé quelques heures plus tôt pour la même raison.
+         */
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId requis' }, { status: 400 });
+        const legende = typeof body.caption === 'string' ? body.caption.slice(0, 5000) : null;
+        if (legende === null) return NextResponse.json({ ok: false, error: 'caption requise' }, { status: 400 });
+
+        // L'aperçu de Léna envoie aussi les hashtags sous l'action `modify` :
+        // les ignorer aurait enregistré la moitié de sa modification, ce qui
+        // est plus déroutant que de n'en enregistrer aucune.
+        const motsCles = Array.isArray(body.hashtags)
+          ? body.hashtags.map((h: any) => String(h).slice(0, 60)).slice(0, 30)
+          : null;
+
+        const { data: majPost, error: errLegende } = await supabase
+          .from('content_calendar')
+          .update({
+            caption: legende,
+            ...(motsCles ? { hashtags: motsCles } : {}),
+            // La légende éditée à la main est la référence : on note l'origine
+            // pour qu'une régénération ultérieure ne l'écrase pas sans qu'on
+            // sache d'où elle venait.
+            qa_notes: 'légende modifiée par le client',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', body.postId)
+          .select('id, caption, hashtags')
+          .single();
+
+        if (errLegende) {
+          console.error('[Content] update_caption:', errLegende.message);
+          return NextResponse.json({ ok: false, error: errLegende.message }, { status: 500 });
+        }
+        return NextResponse.json({ ok: true, post: majPost });
+      }
+
       case 'set_visual': {
         /**
          * Repose un visuel connu sur un post — le retour arrière après

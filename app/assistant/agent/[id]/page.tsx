@@ -1255,7 +1255,19 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
               defaultValue={selected.caption || ''}
               onBlur={async (e) => {
                 if (e.target.value !== selected.caption) {
-                  try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'update_caption', postId: selected.id, caption: e.target.value }) }); } catch {}
+                  // Un échec d'enregistrement doit se voir : le champ n'est pas
+                  // contrôlé, donc il garde la saisie même quand rien n'a été
+                  // sauvegardé — le client repartait convaincu que c'était fait.
+                  try {
+                    const res = await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'update_caption', postId: selected.id, caption: e.target.value }) });
+                    const d = await res.json().catch(() => null);
+                    if (!res.ok || !d?.ok) throw new Error(d?.error || String(res.status));
+                    e.target.style.borderColor = 'rgba(52,211,153,0.6)';
+                    setTimeout(() => { try { e.target.style.borderColor = ''; } catch {} }, 1200);
+                  } catch (err: any) {
+                    e.target.style.borderColor = 'rgba(251,191,36,0.7)';
+                    alert("Ta modification n'a pas été enregistrée : " + String(err?.message || err).slice(0, 120) + '. Réessaie.');
+                  }
                 }
               }}
               className="w-full text-xs text-white/70 bg-white/5 border border-white/10 rounded-lg p-2 min-h-[80px] resize-y focus:ring-1 focus:ring-purple-500/50 focus:outline-none"
