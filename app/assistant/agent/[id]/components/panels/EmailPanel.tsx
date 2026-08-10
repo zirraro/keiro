@@ -332,67 +332,16 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         )}
       </div>
 
-      {/* 2026-06-02 \u2014 Split metrics 24h : envois 1er/relance + Hugo replies */}
-      {splitMetrics && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4 mt-3">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h3 className="text-xs sm:text-sm font-bold text-white">D\u00e9tail 24h</h3>
-            <div className="text-[10px] text-white/40">
-              {splitMetrics.inboundsTotal24h ? `Hugo r\u00e9pond \u00e0 ${splitMetrics.replyRate24h}% des emails re\u00e7us` : 'Aucun email re\u00e7u aujourd\'hui'}
-            </div>
-          </div>
-          {/* Row 1 : Envois Hugo */}
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2.5 text-center">
-              <div className="text-lg sm:text-xl font-bold text-blue-300">{splitMetrics.firstSends24h ?? 0}</div>
-              <div className="text-[10px] text-blue-300/70 mt-0.5">1er envois</div>
-            </div>
-            <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-2.5 text-center">
-              <div className="text-lg sm:text-xl font-bold text-cyan-300">{splitMetrics.followUps24h ?? 0}</div>
-              <div className="text-[10px] text-cyan-300/70 mt-0.5">Relances</div>
-            </div>
-            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-center">
-              <div className="text-lg sm:text-xl font-bold text-emerald-300">{splitMetrics.hugoAutoReplied24h ?? 0}</div>
-              <div className="text-[10px] text-emerald-300/70 mt-0.5">Hugo a r\u00e9pondu</div>
-            </div>
-          </div>
-          {/* Row 2 : R\u00e9ceptions + reply rate */}
-          {(splitMetrics.inboundsTotal24h ?? 0) > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-white/60">
-                  \ud83d\udce5 {splitMetrics.inboundsTotal24h} email{(splitMetrics.inboundsTotal24h ?? 0) > 1 ? 's' : ''} re\u00e7u{(splitMetrics.inboundsTotal24h ?? 0) > 1 ? 's' : ''} (24h)
-                </span>
-                <span className={`font-bold ${(splitMetrics.replyRate24h ?? 0) >= 95 ? 'text-emerald-300' : (splitMetrics.replyRate24h ?? 0) >= 70 ? 'text-yellow-300' : 'text-red-300'}`}>
-                  {splitMetrics.replyRate24h}% r\u00e9pondu
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                <div
-                  className={`h-full transition-all ${(splitMetrics.replyRate24h ?? 0) >= 95 ? 'bg-emerald-400' : (splitMetrics.replyRate24h ?? 0) >= 70 ? 'bg-yellow-400' : 'bg-red-400'}`}
-                  style={{ width: `${Math.min(100, splitMetrics.replyRate24h ?? 0)}%` }}
-                />
-              </div>
-            </div>
-          )}
-          {/* Liste des non-r\u00e9pondus pour debug */}
-          {splitMetrics.unrepliedInbounds && splitMetrics.unrepliedInbounds.length > 0 && (
-            <details className="mt-3 rounded-lg bg-white/[0.02] border border-yellow-500/20 p-2.5">
-              <summary className="text-[11px] text-yellow-300 cursor-pointer font-medium">
-                \u26a0\ufe0f {splitMetrics.unrepliedInbounds.length} email{splitMetrics.unrepliedInbounds.length > 1 ? 's' : ''} non r\u00e9pondu{splitMetrics.unrepliedInbounds.length > 1 ? 's' : ''} \u2014 clique pour voir pourquoi
-              </summary>
-              <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
-                {splitMetrics.unrepliedInbounds.map((u, i) => (
-                  <div key={i} className="text-[10px] text-white/60 px-2 py-1 rounded bg-white/[0.02] border border-white/5">
-                    <span className="text-white/80 font-medium">{u.from}</span> \u2014 <span className="text-yellow-300/80">{u.decision}</span> ({u.classification})
-                    <span className="text-white/30 ml-1">\u00b7 {new Date(u.received_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
-      )}
+      {/* ── « Détail 24h » descendu dans la boîte ──
+          2026-08-10, le fondateur : « il y a toujours 2 parties, en haut et en
+          bas ; on garde en bas, et ce qui est en haut — emails reçus avec
+          options — on l'intègre à la boîte native en bas. »
+          Ce bloc portait les chiffres du jour ET la liste des emails restés
+          sans réponse, avec le motif de chacun. Or c'est exactement ce qu'on
+          traite dans une boîte mail : le sortir de la boîte obligeait à
+          regarder à deux endroits pour un même travail. Le tout est passé dans
+          FullInbox, où les chiffres tiennent en une ligne et où les
+          non-répondus s'affichent dans l'onglet « Reçus ». */}
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
@@ -410,7 +359,7 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* La boîte mail unifiée : reçus, envoyés, brouillons, corbeille, le
           réglage de réponse et la rédaction — un seul endroit pour tout traiter. */}
       <div data-tour="email-inbox">
-        <FullInbox onReplyMode={setReplyMode} />
+        <FullInbox onReplyMode={setReplyMode} metriques={splitMetrics} />
       </div>
 
       {/* Custom domain — discrete option */}
@@ -879,7 +828,16 @@ const FULLINBOX_DEMO = [
   { id: 'demo_t1', direction: 'trash', from_name: 'Newsletter', from_email: 'no-reply@promo.com', subject: 'Offre expirée', body: 'Email supprimé.', date: new Date(Date.now() - 72 * 3600000).toISOString(), auto: false },
 ];
 
-function FullInbox({ onReplyMode }: { onReplyMode?: (m: 'auto_send' | 'draft') => void }) {
+function FullInbox({ onReplyMode, metriques }: {
+  onReplyMode?: (m: 'auto_send' | 'draft') => void;
+  /** Les chiffres du jour, remontés depuis le panneau : ils vivent avec les
+   *  messages qu'ils décrivent, plutôt que dans une carte séparée en haut. */
+  metriques?: {
+    firstSends24h?: number; followUps24h?: number; hugoAutoReplied24h?: number;
+    inboundsTotal24h?: number; replyRate24h?: number;
+    unrepliedInbounds?: Array<{ from: string; classification: string; decision: string; received_at: string }>;
+  };
+}) {
   const { locale } = useLanguage();
   const en = locale === 'en';
   const dateLocale = en ? 'en-US' : 'fr-FR';
@@ -1120,6 +1078,28 @@ function FullInbox({ onReplyMode }: { onReplyMode?: (m: 'auto_send' | 'draft') =
           voyant sa boîte qu'on décide si Hugo répond seul ou prépare. */}
       <ReplyModeToggle onMode={onReplyMode} />
 
+      {/* Les chiffres du jour, en une ligne au-dessus des messages qu'ils
+          décrivent. Ils occupaient une carte entière en haut du panneau, avec
+          trois grands nombres et une barre de progression — beaucoup de place
+          pour une information qui se lit en une phrase, et qui obligeait à
+          remonter pour la voir. */}
+      {metriques && ((metriques.firstSends24h ?? 0) + (metriques.followUps24h ?? 0) + (metriques.inboundsTotal24h ?? 0) > 0) && (
+        <p className="text-[11px] text-white/50 px-1 leading-snug">
+          {en ? 'Last 24h:' : 'Dernières 24 h :'}{' '}
+          <span className="text-white/80 font-medium tabular-nums">{metriques.firstSends24h ?? 0}</span> {en ? 'first sends' : 'premiers envois'},{' '}
+          <span className="text-white/80 font-medium tabular-nums">{metriques.followUps24h ?? 0}</span> {en ? 'follow-ups' : 'relances'}
+          {(metriques.inboundsTotal24h ?? 0) > 0 && (
+            <>
+              {' · '}
+              <span className="text-white/80 font-medium tabular-nums">{metriques.inboundsTotal24h}</span> {en ? 'received' : 'reçus'}, {en ? 'Hugo answered' : 'Hugo a répondu à'}{' '}
+              <span className={`font-medium tabular-nums ${(metriques.replyRate24h ?? 0) >= 95 ? 'text-emerald-300' : (metriques.replyRate24h ?? 0) >= 70 ? 'text-yellow-300' : 'text-red-300'}`}>
+                {metriques.replyRate24h ?? 0} %
+              </span>
+            </>
+          )}
+        </p>
+      )}
+
       {/* Header — title + view toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
@@ -1262,6 +1242,30 @@ function FullInbox({ onReplyMode }: { onReplyMode?: (m: 'auto_send' | 'draft') =
         <p className="text-[11px] text-amber-300/80 px-1">{en ? 'ℹ️ Examples, shown until a mailbox is connected.' : 'ℹ️ Exemples, affichés tant qu\'aucune boîte n\'est connectée.'}</p>
       ) : (
         <p className="text-[11px] text-emerald-300/80 px-1">{en ? '✅ Your real mailbox — Gmail, Outlook or your own domain.' : '✅ Ta vraie boîte — Gmail, Outlook ou ton nom de domaine.'}</p>
+      )}
+
+      {/* Les emails restés sans réponse, dans l'onglet où on les traite.
+          Cette liste vivait dans la carte « Détail 24h », tout en haut du
+          panneau : on y lisait qu'un message n'avait pas eu de réponse, puis il
+          fallait redescendre jusqu'à la boîte pour faire quelque chose. Ici,
+          l'information et l'action sont au même endroit. */}
+      {filter === 'inbox' && metriques?.unrepliedInbounds && metriques.unrepliedInbounds.length > 0 && (
+        <details className="rounded-lg bg-white/[0.02] border border-yellow-500/20 p-2.5">
+          <summary className="text-[11px] text-yellow-300 cursor-pointer font-medium min-h-[32px] flex items-center">
+            {metriques.unrepliedInbounds.length} {en
+              ? `email${metriques.unrepliedInbounds.length > 1 ? 's' : ''} without a reply — see why`
+              : `email${metriques.unrepliedInbounds.length > 1 ? 's' : ''} sans réponse — voir pourquoi`}
+          </summary>
+          <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+            {metriques.unrepliedInbounds.map((u, i) => (
+              <div key={i} className="text-[10px] text-white/60 px-2 py-1.5 rounded bg-white/[0.02] border border-white/5">
+                <span className="text-white/80 font-medium break-all">{u.from}</span>
+                {' — '}<span className="text-yellow-300/80">{u.decision}</span> ({u.classification})
+                <span className="text-white/30 ml-1">· {new Date(u.received_at).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            ))}
+          </div>
+        </details>
       )}
 
       {view === 'list' && (
