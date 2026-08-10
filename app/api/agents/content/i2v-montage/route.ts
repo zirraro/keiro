@@ -1,3 +1,4 @@
+import { BRIEF_REEL_SUR_GRILLE } from '@/lib/visuals/realisme-photo';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
@@ -87,7 +88,78 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch { /* best-effort */ }
+
+  // ── Les images que le client dépose dans Léna comptent aussi ──
+  //
+  // 2026-08-10, le fondateur : « pour les reels, on doit aussi pouvoir
+  // s'inspirer des images que le client dépose sur Léna ou Clara. »
+  //
+  // On ne lisait que `business_dossiers.uploaded_files` — ce que le client a
+  // versé pendant l'onboarding avec Clara, une fois, au début. Tout ce qu'il
+  // ajoute ensuite dans sa bibliothèque via Léna était ignoré : ses meilleures
+  // photos, les plus récentes, celles qui montrent son commerce tel qu'il est
+  // aujourd'hui.
+  //
+  // Or un reel bâti sur une vraie photo du client bat n'importe quelle image
+  // générée : le lieu est le sien, les visages sont réels, et rien ne « fait
+  // IA » puisque rien n'est fabriqué. C'est aussi le chemin le moins cher.
+  //
+  // Les plus récentes d'abord : la bibliothèque reflète ce que le commerce est
+  // devenu, pas ce qu'il était à l'inscription.
+  try {
+    const proprietaire = (post.user_id || '') as string;
+    if (proprietaire) {
+      const { data: bibliotheque } = await supabase
+        .from('saved_images')
+        .select('image_url, created_at')
+        .eq('user_id', proprietaire)
+        .not('image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(12);
+      for (const img of bibliotheque || []) {
+        const u = String((img as any).image_url || '');
+        if (u && !clientPhotos.includes(u)) clientPhotos.unshift(u);
+      }
+    }
+  } catch { /* la bibliothèque est un bonus, jamais un blocage */ }
+
   const clientBaseImage = clientPhotos[0] || '';
+  // ── Les reels qui se suivent doivent se répondre ──
+  //
+  // 2026-08-10, le fondateur : « les reels qui se suivent sont pertinents »,
+  // au même titre que les diapositives d'un carrousel.
+  //
+  // Chaque reel était pensé seul, sans savoir ce qui venait de sortir. D'où des
+  // séries qui repartent de zéro à chaque fois, refont le même plan sous un
+  // autre angle, ou sautent d'un sujet à l'autre sans fil conducteur — un
+  // compte qui ne raconte rien.
+  //
+  // On donne donc au brief les deux derniers reels publiés : ce qu'ils ont
+  // montré, pour ne pas le refaire, et de quoi enchaîner dessus.
+  let reelsPrecedents = '';
+  try {
+    const proprio = (post.user_id || '') as string;
+    if (proprio) {
+      const { data: derniers } = await supabase
+        .from('content_calendar')
+        .select('hook, published_at')
+        .eq('user_id', proprio)
+        .in('format', ['reel', 'video'])
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(2);
+      if (derniers && derniers.length) {
+        const liste = derniers
+          .map((r: any, i: number) => '  ' + (i + 1) + '. "' + String(r.hook || '').slice(0, 110) + '"')
+          .join('\n');
+        reelsPrecedents = 'PREVIOUS REELS on this account, most recent first:\n' + liste
+          + '\nThis new reel must READ AS THE NEXT CHAPTER of the same account: same world,'
+          + ' same craft, recognisably the same place — but a DIFFERENT moment, a different'
+          + ' gesture, a different angle. Never repeat a shot or a subject already used above.\n\n';
+      }
+    }
+  } catch { /* le contexte est un bonus, jamais un blocage */ }
+
 
   const plan: MontagePlan = body.durationSec
     ? (body.durationSec <= 14
@@ -134,11 +206,11 @@ export async function POST(req: NextRequest) {
         properties: {
           pixabay_query: { type: 'string', description: 'ONE very concrete, photographable subject in 2-3 English keywords PRECISE to THIS specific business — derive it from the real activity/products, not a generic category (e.g. a sushi place → "sushi chef counter" not "restaurant"; a tattoo studio → "tattoo artist ink" not "shop"; a yoga studio → "yoga studio class" not "sport"). It must return a COHERENT set of real photos of the SAME kind of place AND visually scream THIS business on a muted feed. Never abstract concepts.' },
           scenes: { type: 'array', items: { type: 'string' }, minItems: plan.sceneCount, maxItems: plan.sceneCount,
-            description: `${plan.sceneCount} English i2v MOTION prompts forming ONE cinematic STORY ARC in the SAME place — a real little narrative, not random clips. Order them as a story: (1) wide ESTABLISHING shot setting the place, then BUILD into closer detail, a human gesture/action, the product/result, and a CLOSING beat that lands the feeling. Each prompt = a CAMERA MOVE + subtle natural action that fits ANY photo of "${'${pixabay_query}'}" (e.g. "slow cinematic push-in, soft morning light", "gentle pan revealing the counter", "rack focus onto the hands at work", "slow pull-back closing on the finished product"). Each beat should flow into the next so a crossfade feels natural (end on a calm/open frame). Realistic, natural, NO on-screen text, no beat that contradicts another. ${plan.sceneCount === 1 ? 'For this single beat: the one strongest, most cinematic shot of the subject.' : ''}` },
+            description: `${plan.sceneCount} English i2v MOTION prompts forming ONE cinematic STORY ARC in the SAME place — a real little narrative, not random clips. Order them as a story: (1) OPEN CLOSE ON A GESTURE ALREADY IN MOTION — hands working, steam rising, liquid pouring — because the first frame alone decides whether anyone watches; a wide establishing shot in first position scores ZERO on the hook criterion. Then (2) a WIDER reveal of the place, (3) the product/result, and a CLOSING beat landing on the COMPLETED gesture, held a moment. Each prompt = a CAMERA MOVE + subtle natural action that fits ANY photo of "${'${pixabay_query}'}" (e.g. "slow cinematic push-in, soft morning light", "gentle pan revealing the counter", "rack focus onto the hands at work", "slow pull-back closing on the finished product"). Each beat must END on a frame that MATCHES the start of the next — same subject, same light, compatible framing — so the transition reads as one continuous scene rather than a cut between two clips. The last beat lands on the finished result, never mid-gesture. Realistic, natural, NO on-screen text, no beat that contradicts another. ${plan.sceneCount === 1 ? 'For this single beat: the one strongest, most cinematic shot of the subject.' : ''}` },
         }, required: ['pixabay_query', 'scenes'], additionalProperties: false,
       } as any }],
       tool_choice: { type: 'tool', name: 'montage' },
-      messages: [{ role: 'user', content: `Build a ${plan.durationSec}s COHERENT cinematic reel for ${company || businessType || 'a local business'} as a REAL STORY (${plan.sceneCount} scene${plan.sceneCount > 1 ? 's' : ''}).\nSubject/brief: "${String(subject).slice(0, 400)}"\nProducts: ${mainProducts}\n\n${clientBaseImage ? 'NOTE: scene 1 animates the CLIENT\'S OWN real photo (already chosen). Write camera-motion prompts generic enough to flow naturally from that real image — do not assume a specific stock subject.\n' : ''}CRITICAL:\n- pixabay_query must be PRECISE to ${company || businessType || 'this business'} (products: ${mainProducts || 'n/a'}) — the exact activity, not a generic category. The visual link must be unmistakable.\n- The ${plan.sceneCount} clips must read as ONE continuous scene in the SAME real place AND progress like a tiny story (establishing → build → action → reveal → close), so stitched + crossfaded clips feel directed, not random.\n- Camera-motion prompts must work on any photo of that subject. Natural, realistic, cinematic. No text.` }],
+      messages: [{ role: 'user', content: `Build a ${plan.durationSec}s COHERENT cinematic reel for ${company || businessType || 'a local business'} as a REAL STORY (${plan.sceneCount} scene${plan.sceneCount > 1 ? 's' : ''}).\nSubject/brief: "${String(subject).slice(0, 400)}"\nProducts: ${mainProducts}\n\n${clientBaseImage ? 'NOTE: scene 1 animates the CLIENT\'S OWN real photo (already chosen). Write camera-motion prompts generic enough to flow naturally from that real image — do not assume a specific stock subject.\n' : ''}${BRIEF_REEL_SUR_GRILLE}\n\n${reelsPrecedents}CRITICAL:\n- pixabay_query must be PRECISE to ${company || businessType || 'this business'} (products: ${mainProducts || 'n/a'}) — the exact activity, not a generic category. The visual link must be unmistakable.\n- The ${plan.sceneCount} clips must read as ONE continuous scene in the SAME real place AND progress like a tiny story (gesture already in motion → wider reveal → result → completed close), so stitched + crossfaded clips feel directed, not random.\n- Camera-motion prompts must work on any photo of that subject. Natural, realistic, cinematic. No text.` }],
     });
     const tu = r.content.find((b: any) => b.type === 'tool_use') as any;
     if (tu?.input?.scenes?.length) scenes = tu.input.scenes;
@@ -298,7 +370,14 @@ export async function POST(req: NextRequest) {
   let attempts = 0;
   // Cap at 2 to protect margin: a generated/multiPlan retry re-runs Seedream
   // (1 hero + 2 i2i) + a vision QC, so 2 attempts is the worst-case ceiling.
-  const MAX_ATTEMPTS = 2;
+  /**
+   * Trois tentatives, comme pour les images.
+   *
+   * Le fondateur : « on peut accepter au bout de la 3e génération un niveau de
+   * 7. » La règle suppose trois essais ; il n'y en avait que deux, donc le
+   * palier de repli n'était jamais atteint dans les conditions prévues.
+   */
+  const MAX_ATTEMPTS = 3;
   // Methods built on FIXED real assets won't improve by retrying (same photos →
   // same result) → never retry them. Only generated/stock (random) benefit.
   const NO_RETRY = new Set(['client_footage', 'client_photos', 'real_business_photos']);
@@ -310,7 +389,45 @@ export async function POST(req: NextRequest) {
     if (!gen.url) continue;
     const thisQc = await assessReelQuality(gen.url, { businessType: businessType || post.pillar, subject, lang: clientLang });
     if (!best || (thisQc?.score ?? 0) > (best.qc?.score ?? 0)) best = { url: gen.url, qc: thisQc, method: gen.method };
-    if (!thisQc || thisQc.pass) { finalUrl = gen.url; qc = thisQc; break; } // pass / QC down → ship
+    // ── Le contrôle n'a pas pu répondre ──
+    //
+    // 2026-08-10 — Cette ligne disait « QC down → ship » : un contrôle muet
+    // valait un contrôle réussi, et le reel partait sans que personne ne l'ait
+    // regardé. C'est le même défaut que sur les images, où une clé sans crédit
+    // produisait un flot d'illustrations « conformes ».
+    //
+    // On livre quand même — une panne de notre côté ne suspend pas la
+    // publication d'un client — mais on l'ÉCRIT, et le rapport du matin la
+    // remonte.
+    if (!thisQc) {
+      finalUrl = gen.url; qc = thisQc;
+      console.warn('[i2v] contrôle qualité indisponible — reel publié sans vérification');
+      try {
+        await supabase.from('agent_logs').insert({
+          agent: 'content', action: 'qc_reel_indisponible', status: 'error',
+          user_id: post.user_id || undefined,
+          data: { post_id: post.id, tentative: attempts, methode: gen.method },
+          created_at: new Date().toISOString(),
+        });
+      } catch { /* la trace ne bloque pas la livraison */ }
+      break;
+    }
+    if (thisQc.pass) { finalUrl = gen.url; qc = thisQc; break; }
+    // Dernière tentative : on accepte le palier de repli (note ≥ 7), les
+    // critères éliminatoires restant inchangés. Mieux vaut un reel correct que
+    // pas de publication du tout.
+    // Palier de repli dès la DEUXIÈME tentative, pas la troisième.
+    //
+    // Le fondateur (2026-08-10) : « vu le prix des reels, on accepte 7 à partir
+    // de la 2e tentative. » Une troisième génération coûte plus cher que
+    // l'écart entre un reel à 7 et un reel à 8 ne rapporte. Les critères
+    // éliminatoires — réalisme, cohérence avec le commerce — ne bougent pas
+    // pour autant : c'est la note globale qu'on assouplit, pas le plancher.
+    if (attempts >= 2 && (thisQc as any).passeAuRepli) {
+      finalUrl = gen.url; qc = thisQc;
+      console.warn(`[i2v] reel accepté au palier de repli (${thisQc.score}/10) après ${attempts} tentatives`);
+      break;
+    }
     if (NO_RETRY.has(gen.method)) { finalUrl = gen.url; qc = thisQc; break; } // fixed assets → no point retrying
   }
   if (!finalUrl && best) { finalUrl = best.url; qc = best.qc; method = best.method; }

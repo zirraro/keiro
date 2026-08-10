@@ -308,3 +308,72 @@ export function diapoRealiste(description: string, styleDemande?: string | null)
     .trim();
   return nettoyee + ' — ' + blocRealismeCourt();
 }
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LE BRIEF D'UN REEL, ÉCRIT SUR LA GRILLE QUI LE NOTERA
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ── Le défaut trouvé le 2026-08-10 ──
+ *
+ * Le fondateur : « vu le prix des reels, on doit avoir la qualité attendue dès
+ * la 1re génération. »
+ *
+ * En comparant le brief de génération et la grille du contrôle qualité, ils se
+ * contredisaient sur le point le plus important. Le brief demandait :
+ *
+ *     « (1) wide ESTABLISHING shot setting the place »
+ *
+ * et la grille note l'accroche ainsi :
+ *
+ *     « la PREMIÈRE frame donne-t-elle envie de ne pas scroller ? Mouvement
+ *       déjà engagé, gros plan texturé, tension visuelle (10) vs plan large
+ *       mou, lieu vide, image de mise en place (0) »
+ *
+ * On commandait donc exactement ce qui vaut zéro. Le premier essai partait
+ * perdant sur l'un des six critères éliminatoires, et il fallait une deuxième
+ * génération — payante — pour rattraper une consigne fautive.
+ *
+ * ── Le principe ──
+ *
+ * Un générateur ne devine pas comment on le juge. Chaque critère de la grille
+ * est donc une consigne explicite du brief, dans le vocabulaire concret que les
+ * moteurs suivent — un geste, une matière, un mouvement d'appareil — et jamais
+ * en termes abstraits de qualité.
+ *
+ * Toute évolution de la grille de notation doit être répercutée ici. Les deux
+ * textes forment une paire : les laisser diverger, c'est payer des générations
+ * pour rien.
+ */
+export const BRIEF_REEL_SUR_GRILLE = [
+  'HOW THIS REEL WILL BE GRADED — write every beat to score high on all six:',
+  '',
+  '1. HOOK (first frame decides everything). Open ON A GESTURE ALREADY IN MOTION,',
+  '   framed CLOSE, with visible texture — hands mid-knead, coffee mid-pour, scissors',
+  '   mid-cut, steam already rising. NEVER open on a wide empty room, a storefront, or',
+  '   a set-up shot: an establishing wide scores ZERO and the viewer scrolls past.',
+  '   Save the wider view for beat 2 or 3, as a reveal.',
+  '',
+  '2. CONTINUITY. The SAME subject and the SAME object from first frame to last.',
+  '   An object that changes between beats — a jar becoming a vase, a raspberry',
+  '   becoming a pastry — is the single worst failure. One place, one light, one hand.',
+  '',
+  '3. COHERENCE. Everything on screen belongs to THIS business. No prop, fruit or',
+  '   accessory appearing from nowhere. If the viewer cannot name the trade from any',
+  '   single frame, the beat is wrong.',
+  '',
+  '4. MOTION. Every beat carries REAL movement — the camera travels, or the subject',
+  '   acts. Never a still photograph drifting across the frame: a slideshow scores zero.',
+  '   One clear move per beat: push-in, rack focus onto the hands, pan following the',
+  '   gesture, slow pull-back on the finished result.',
+  '',
+  '5. FLOW. The beats follow each other: the same scene progressing, a gesture that',
+  '   starts and FINISHES, before becoming after. Never cut mid-gesture — land the',
+  '   final beat on the completed result, held for a moment.',
+  '',
+  '6. REALISM. Shot by a person on a real camera. Handheld micro-movement, one',
+  '   identifiable light source, imperfect framing. Any plastic, waxy or synthetically',
+  '   perfect look is rejected outright.',
+  '',
+  'NO on-screen text, in any language. No presenter addressing the camera.',
+].join('\n');

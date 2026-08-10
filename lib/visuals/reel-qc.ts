@@ -40,9 +40,29 @@ export interface ReelQCResult {
   issues: string[];       // concrete defects found
   summary: string;        // one-line verdict (FR)
   pass: boolean;          // seuil global + réalisme + mouvement + cohérence + enchaînement + accroche
+  /** Publiable en dernier recours (note ≥ 7), critères éliminatoires inchangés. */
+  passeAuRepli?: boolean;
 }
 
-const QC_THRESHOLD = 6; // /10 — below this the reel is held, not published
+/**
+ * Seuil de publication d'un reel.
+ *
+ * Relevé de 6 à 8 le 2026-08-10. La règle du fondateur est explicite : « ça
+ * doit passer le plus souvent au-dessus, à 8 et 9 ou 10 ; on peut accepter au
+ * bout de la 3e génération un niveau de 7, mais il ne faut pas que ce soit
+ * récurrent. » Un seuil à 6 laissait passer en routine ce qui n'était censé
+ * être qu'une tolérance de dernier recours.
+ */
+const QC_THRESHOLD = 8;
+
+/**
+ * Le seuil de repli, applicable à la DERNIÈRE tentative seulement.
+ *
+ * L'autre moitié de la règle : « il faut absolument livrer au client à chaque
+ * publication prévue. » Retenir indéfiniment un reel à 7 revient à ne rien
+ * livrer, ce qui est pire qu'un reel correct sans être excellent.
+ */
+export const SEUIL_REPLI_REEL = 7;
 
 async function fetchBuf(url: string, ms = 30_000): Promise<Buffer | null> {
   try { const r = await fetch(url, { signal: AbortSignal.timeout(ms) }); if (!r.ok) return null; return Buffer.from(await r.arrayBuffer()); }
@@ -186,6 +206,11 @@ Ce reel dure ${dur.toFixed(1)}s : juge aussi s'il va au BOUT de son idée (fin n
       // s'ouvre sur un plan mou ne publie pas non plus — c'est là que se joue
       // la rétention, donc la portée.
       pass: score >= QC_THRESHOLD && realism >= 5 && motion >= 4 && coherence >= 6 && continuity >= 5 && flow >= 5 && hook >= 5,
+      // Acceptable en dernier recours : la note globale descend à 7, mais les
+      // critères éliminatoires — réalisme, cohérence avec le commerce — ne
+      // bougent PAS. Un reel qui fait IA ou qui montre autre chose que le
+      // commerce ne devient pas publiable parce qu'on a épuisé les tentatives.
+      passeAuRepli: score >= SEUIL_REPLI_REEL && realism >= 5 && motion >= 4 && coherence >= 6 && continuity >= 5 && flow >= 5 && hook >= 5,
     };
   } catch {
     return null;
