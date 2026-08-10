@@ -16,7 +16,27 @@
  */
 
 export type ImageQaVerdict = {
-  verdict: 'pass' | 'soft_fail' | 'hard_fail';
+  /**
+   * `indisponible` = le controle n'a PAS pu avoir lieu (credit d'API epuise,
+   * service injoignable, reponse illisible). Ce n'est pas un verdict favorable.
+   *
+   * 2026-08-10 — Toutes les branches d'erreur de cette fonction renvoyaient
+   * `pass`. Une cle sans credit produisait donc un flot ininterrompu d'images
+   * « validees » sans qu'aucune n'ait ete regardee, et rien nulle part ne
+   * disait que le controle etait mort. C'est le pire mode de panne : celui qui
+   * ressemble au succes.
+   *
+   * Verifie le jour meme sur la cle de developpement : reponse 400 « credit
+   * balance is too low », verdict renvoye « pass ». En production, un journal
+   * du 10 aout portait deja la mention « controle vision hors service ».
+   *
+   * L'appelant decide quoi en faire. Regle du fondateur : on livre quand meme
+   * — une panne de NOTRE cote ne suspend pas la publication d'un client — mais
+   * on l'enregistre au lieu de la maquiller en succes.
+   */
+  verdict: 'pass' | 'soft_fail' | 'hard_fail' | 'indisponible';
+  /** Pourquoi le controle n'a pas pu avoir lieu, quand c'est le cas. */
+  raisonIndisponible?: string;
   // One short sentence on the most important issue, if any.
   issue?: string;
   // 0..1
@@ -30,7 +50,9 @@ export async function reviewGeneratedImage(input: {
   clientLanguage?: string;       // 2026-06-08 — foreign-script text rejection
   textAllowed?: boolean;         // when true (text-overlay variant), don't penalize Latin text
 }): Promise<ImageQaVerdict> {
-  if (!process.env.ANTHROPIC_API_KEY) return { verdict: 'pass' };
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { verdict: 'indisponible', raisonIndisponible: 'aucune cle ANTHROPIC_API_KEY' };
+  }
 
   const clientLang = (input.clientLanguage || 'fr').toLowerCase();
   const textRule = input.textAllowed
@@ -93,11 +115,23 @@ JSON only. No preamble.`;
         }],
       }),
     });
-    if (!res.ok) return { verdict: 'pass' };
+    if (!res.ok) {
+      // On lit le corps : « credit balance is too low » et « rate limit » sont
+      // deux pannes tres differentes, et les confondre coute du temps le jour
+      // ou il faut comprendre pourquoi plus rien n'est controle.
+      const corps = await res.text().catch(() => '');
+      const raison = /credit balance|billing/i.test(corps)
+        ? 'credit Anthropic epuise'
+        : (/rate.?limit/i.test(corps) || res.status === 429)
+          ? 'limite de debit atteinte'
+          : `reponse ${res.status}`;
+      console.warn('[image-qa] controle impossible — ' + raison);
+      return { verdict: 'indisponible', raisonIndisponible: raison };
+    }
     const data = await res.json();
     const txt = (data.content?.[0]?.text || '').trim();
     const m = txt.match(/\{[\s\S]*\}/);
-    if (!m) return { verdict: 'pass' };
+    if (!m) return { verdict: 'indisponible', raisonIndisponible: 'reponse illisible' };
     const parsed = JSON.parse(m[0]);
     let verdict: 'pass' | 'soft_fail' | 'hard_fail' =
       ['pass', 'soft_fail', 'hard_fail'].includes(parsed.verdict) ? parsed.verdict : 'pass';
@@ -130,6 +164,6 @@ JSON only. No preamble.`;
     };
   } catch (e: any) {
     console.warn('[image-qa] review failed:', e?.message);
-    return { verdict: 'pass' };
+    return { verdict: 'indisponible', raisonIndisponible: e?.message || 'erreur reseau' };
   }
 }

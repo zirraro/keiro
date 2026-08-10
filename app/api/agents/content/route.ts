@@ -1252,6 +1252,24 @@ async function publishToInstagram(
                   visualBrief: brief,
                   businessType: businessTypeForVisuals || undefined,
                 });
+                // Le contrôle n'a pas pu avoir lieu : on livre quand même —
+                // une panne de notre côté ne suspend pas la publication d'un
+                // client — mais on l'ÉCRIT. Avant, cette branche renvoyait
+                // « pass » et une clé sans crédit produisait un flot d'images
+                // « validées » que personne n'avait regardées.
+                if (qa.verdict === 'indisponible') {
+                  console.warn(`[Content] contrôle qualité indisponible (${qa.raisonIndisponible}) — diapositive ${i + 2} publiée sans vérification`);
+                  try {
+                    await supabase.from('agent_logs').insert({
+                      agent: 'content',
+                      action: 'qc_image_indisponible',
+                      status: 'error',
+                      user_id: (post as any)?.user_id || undefined,
+                      data: { raison: qa.raisonIndisponible, post_id: post.id, diapositive: i + 2 },
+                      created_at: new Date().toISOString(),
+                    });
+                  } catch { /* la trace ne doit jamais bloquer */ }
+                }
                 if (qa.verdict === 'hard_fail') {
                   console.warn(`[Content] Diapositive ${i + 2} refusée (${qa.issue}) — seconde tentative`);
                   const correctif = `${brief} À CORRIGER ABSOLUMENT : ${qa.issue || 'rendu non photographique'}. Vraie photographie prise à l'appareil, aucun rendu illustré ni 3D.`;
