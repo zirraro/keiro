@@ -1844,6 +1844,51 @@ async function GETInterne(request: NextRequest) {
         return NextResponse.json({ ok: true, stats: { total: 0, success: 0, failed: 0 }, diagnostic });
       }
 
+      /**
+       * Le plafond se compte PAR CLIENT, pas globalement.
+       *
+       * Le cron tourne une fois pour tout le monde. Avec un compteur unique,
+       * deux clients se partageraient 40 emails au lieu d'en recevoir 40
+       * chacun — et le premier servi par l'ordre des lignes viderait le quota
+       * du second. Aujourd'hui un seul client a des prospects emailables, donc
+       * le défaut est invisible ; il apparaîtrait au deuxième, sous la forme
+       * la plus difficile à diagnostiquer : « mes emails ne partent plus » sans
+       * la moindre erreur nulle part.
+       *
+       * Chaque propriétaire porte son propre compteur, et son propre plafond
+       * lu depuis son plan.
+       */
+      const compteurParClient = new Map<string, number>();
+      const plafondParClient = new Map<string, number>();
+
+      const plafondDe = async (userId: string | null): Promise<number> => {
+        const cle = userId || '__sans_proprietaire__';
+        if (plafondParClient.has(cle)) return plafondParClient.get(cle)!;
+        let plafond = DAILY_EMAIL_LIMIT;
+        if (userId) {
+          try {
+            const { PLAN_QUOTAS } = await import('@/lib/credits/constants');
+            const { data: prof } = await supabase
+              .from('profiles').select('plan:subscription_plan, is_admin').eq('id', userId).maybeSingle();
+            const plan = prof?.is_admin ? 'agence' : String(prof?.plan || '').toLowerCase();
+            const q = (PLAN_QUOTAS as any)[plan];
+            if (q && typeof q.emails_per_day === 'number') plafond = q.emails_per_day;
+          } catch { /* repli sur le plafond global, déjà prudent */ }
+        }
+        plafondParClient.set(cle, plafond);
+        return plafond;
+      };
+
+      const quotaAtteint = async (userId: string | null): Promise<boolean> => {
+        const cle = userId || '__sans_proprietaire__';
+        return (compteurParClient.get(cle) || 0) >= await plafondDe(userId);
+      };
+
+      const compter = (userId: string | null) => {
+        const cle = userId || '__sans_proprietaire__';
+        compteurParClient.set(cle, (compteurParClient.get(cle) || 0) + 1);
+      };
+
       let step1Count = 0;
       let skippedCompleted = 0;
       let recycledCount = 0;
@@ -1871,7 +1916,10 @@ async function GETInterne(request: NextRequest) {
       // partir du plan du client. Le redéfinir ici créerait deux vérités pour
       // la même limite, et c'est la plus basse qui aurait gagné sans qu'on
       // sache laquelle.
-      const MAX_STEP1_PER_DAY = DAILY_EMAIL_LIMIT;
+      // MAX_STEP1_PER_DAY retiré : le plafond se compte désormais par client
+      // (quotaAtteint / compter). Laisser une constante globale inutilisée à côté
+      // aurait invité le prochain lecteur à s'en resservir, et à réintroduire le
+      // partage de quota entre clients.
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 0; // No delay — send immediately
       // For manual triggers: send immediately (no multi-day gaps)
       // For cron: respect normal spacing between steps (min 3 days between any email to same prospect)
@@ -2007,14 +2055,14 @@ async function GETInterne(request: NextRequest) {
         if (step === 0) {
           // Step 0 → send step 1 (premier contact)
           if (hoursSinceCreation < MIN_HOURS_BEFORE_FIRST_EMAIL) { skippedTooRecent++; continue; }
-          if (step1Count >= MAX_STEP1_PER_DAY) { skippedMaxDaily++; continue; }
+          if (await quotaAtteint(prospect.user_id)) { skippedMaxDaily++; continue; }
           batchForAI.push({ prospect, category, step: 1 });
-          step1Count++;
+          step1Count++; compter(prospect.user_id);
         } else if (step === 1 && !lastSent) {
           // Step 1 without lastSent = data inconsistency → RE-SEND step 1 (don't skip)
-          if (step1Count >= MAX_STEP1_PER_DAY) { skippedMaxDaily++; continue; }
+          if (await quotaAtteint(prospect.user_id)) { skippedMaxDaily++; continue; }
           batchForAI.push({ prospect, category, step: 1 });
-          step1Count++;
+          step1Count++; compter(prospect.user_id);
         } else if (step === 1 && lastSent) {
           // Step 1 → step 2 (relance douce). Gap adapts to engagement.
           if (daysSinceLastSent < effectiveGap) { skippedWaitingNextStep++; continue; }
