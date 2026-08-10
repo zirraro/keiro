@@ -64,103 +64,100 @@ const EVENEMENTS: Array<[RegExp, string]> = [
 
 
 /**
- * ── La répartition entre réseaux, pilotée par ce qu'Ami mesure ──
+ * ── Chaque réseau a sa propre cadence, jugée sur ses propres résultats ──
  *
- * 2026-08-10, le fondateur : « avec évidemment notre stratégie adaptive pilotée
- * par AMI ».
+ * 2026-08-10, correction du fondateur : « ATTENTION, on sépare quand même les
+ * réseaux sociaux en termes de cadence, mais on analyse les résultats
+ * intrinsèques de chacun et on adapte la stratégie PAR RÉSEAU. »
  *
- * La cadence était figée : 3 Instagram et 1 TikTok par jour, réglés une fois.
- * Or ce qu'Ami relève depuis un mois dit exactement l'inverse :
+ * La version précédente mutualisait un volume total et le répartissait selon la
+ * portée comparée — TikTok fait vingt fois mieux qu'Instagram, donc TikTok
+ * prend le volume d'Instagram. C'était une erreur de raisonnement : les deux
+ * réseaux n'ont ni la même audience, ni le même coût de production, ni le même
+ * stock de contenu prêt. Comparer leurs portées pour arbitrer entre eux revient
+ * à fermer un canal parce qu'un autre marche mieux.
  *
- *     TikTok    204 vues par publication (n=33)
- *     Instagram  10 vues par publication (n=16)
+ * Chaque réseau est donc jugé SEUL, sur son évolution à lui :
  *
- * Vingt fois moins de portée, trois fois plus de volume. On dépensait l'essentiel
- * de la production là où presque personne ne regarde.
+ *   · TikTok — 2 par jour. Le fondateur : « je veux bien publier plus sur
+ *     TikTok, mais le coût de génération je veux pouvoir le monitorer, donc
+ *     2 fois par jour, ça coûte suffisamment cher. » Le plafond est ici une
+ *     décision de budget, pas de performance : chaque TikTok est une vidéo, et
+ *     une vidéo se paie.
  *
- * Ce module garde le VOLUME TOTAL que le client a choisi — c'est sa décision, et
- * elle engage son budget — mais répartit ce volume entre les réseaux selon la
- * portée réellement mesurée.
+ *   · Instagram — 3 par jour. « On a déjà un reliquat qui a passé le contrôle
+ *     qualité, donc on peut monter à 3 par jour. » Le contenu est déjà produit
+ *     et validé : le publier ne coûte plus rien.
  *
- * Deux garde-fous. Un plancher d'une publication par jour sur chaque réseau
- * actif : un compte qu'on abandonne se referme, et une mauvaise semaine ne doit
- * pas tuer un canal. Un plafond de trois : au-delà, publier davantage sur un même
- * réseau ne multiplie pas la portée, ça sature l'audience.
- *
- * Sans mesure — compte neuf, réseau fraîchement connecté — on ne touche à rien :
- * la répartition du client fait foi tant qu'on n'a pas de quoi la contredire.
+ * Ce que l'adaptation regarde, réseau par réseau : la portée de ce réseau
+ * PROGRESSE-T-ELLE ? Une baisse franche fait ralentir — inutile d'insister
+ * quand l'algorithme ne pousse plus. Une hausse franche autorise un cran de
+ * plus, dans la limite du plafond que le client a fixé pour son budget.
  */
-const PLANCHER_PAR_RESEAU = 1;
-const PLAFOND_PAR_RESEAU = 3;
-const ECHANTILLON_MINIMUM = 8;   // en dessous, le chiffre ne veut rien dire
+const CADENCE_PAR_RESEAU: Record<string, number> = {
+  tiktok: 2,       // décision de coût : une vidéo par publication
+  instagram: 3,    // stock déjà produit et validé
+  linkedin: 1,
+};
 
-async function repartitionSelonPortee(
+/** En dessous, une variation ne veut rien dire. */
+const ECHANTILLON_MINIMUM = 6;
+
+async function cadenceDuReseau(
   supabase: any,
   userId: string,
-  cadenceChoisie: Record<string, number>,
-): Promise<{ cadence: Record<string, number>; motif: string }> {
-  const actifs = Object.entries(cadenceChoisie).filter(([, n]) => n > 0);
-  if (actifs.length < 2) return { cadence: cadenceChoisie, motif: 'un seul réseau actif' };
-
-  const total = actifs.reduce((s, [, n]) => s + n, 0);
-  const depuis = new Date(Date.now() - 30 * 86400000).toISOString();
+  reseau: string,
+  plafondClient: number,
+): Promise<{ parJour: number; motif: string }> {
+  const base = Math.min(plafondClient, CADENCE_PAR_RESEAU[reseau] ?? 1);
+  if (base === 0) return { parJour: 0, motif: 'réseau coupé par le client' };
 
   const { data: publies } = await supabase
     .from('content_calendar')
-    .select('platform, engagement_data')
+    .select('engagement_data, published_at, tiktok_permalink')
     .eq('user_id', userId)
+    .eq('platform', reseau)
     .eq('status', 'published')
-    .gte('published_at', depuis)
-    .limit(400);
+    .gte('published_at', new Date(Date.now() - 60 * 86400000).toISOString())
+    .order('published_at', { ascending: false })
+    .limit(200);
 
-  const portee: Record<string, { n: number; total: number }> = {};
+  // Dédoublonnage par vidéo réelle : jusqu'au 10 août, deux lignes du
+  // calendrier pouvaient porter la même vidéo TikTok et donc les mêmes vues.
+  // Compter ces lignes deux fois gonflerait la portée et ferait accélérer une
+  // cadence sur un chiffre faux.
+  const vues = new Map<string, { v: number; t: number }>();
   for (const p of publies || []) {
     const v = (p.engagement_data as any)?.views ?? (p.engagement_data as any)?.view_count;
     if (v == null) continue;
-    (portee[p.platform] ||= { n: 0, total: 0 });
-    portee[p.platform].n++;
-    portee[p.platform].total += Number(v) || 0;
+    const cle = (p.tiktok_permalink || '').match(/video\/(\d+)/)?.[1] || String(p.published_at);
+    const t = new Date(p.published_at).getTime();
+    const dejaLa = vues.get(cle);
+    if (!dejaLa || Number(v) > dejaLa.v) vues.set(cle, { v: Number(v) || 0, t });
   }
 
-  const moyennes = actifs.map(([reseau]) => {
-    const m = portee[reseau];
-    return { reseau, moyenne: m && m.n >= ECHANTILLON_MINIMUM ? m.total / m.n : null, n: m?.n || 0 };
-  });
-
-  // Tant qu'un réseau n'a pas assez d'observations, on ne redistribue pas :
-  // comparer 204 vues sur 33 posts à 10 vues sur 2 posts n'aurait aucun sens.
-  if (moyennes.some((m) => m.moyenne === null)) {
-    return { cadence: cadenceChoisie, motif: 'mesure insuffisante sur au moins un réseau' };
+  const serie = [...vues.values()].sort((a, b) => b.t - a.t);
+  if (serie.length < ECHANTILLON_MINIMUM * 2) {
+    return { parJour: base, motif: `pas assez de recul (${serie.length} publications mesurées)` };
   }
 
-  const sommePortee = moyennes.reduce((s, m) => s + (m.moyenne || 0), 0);
-  if (sommePortee <= 0) return { cadence: cadenceChoisie, motif: 'aucune portée mesurée' };
+  const moitie = Math.floor(serie.length / 2);
+  const moyenne = (arr: typeof serie) => arr.reduce((s, x) => s + x.v, 0) / Math.max(1, arr.length);
+  const recent = moyenne(serie.slice(0, moitie));
+  const ancien = moyenne(serie.slice(moitie));
+  if (ancien <= 0) return { parJour: base, motif: 'aucune portée antérieure comparable' };
 
-  const nouvelle: Record<string, number> = {};
-  let distribue = 0;
-  for (const m of moyennes) {
-    const part = Math.round((total * (m.moyenne || 0)) / sommePortee);
-    nouvelle[m.reseau] = Math.max(PLANCHER_PAR_RESEAU, Math.min(PLAFOND_PAR_RESEAU, part));
-    distribue += nouvelle[m.reseau];
+  const evolution = (recent - ancien) / ancien;
+
+  // Un cran, jamais deux : une cadence qui saute d'un extrême à l'autre casse
+  // la régularité, et c'est la régularité qui construit une audience.
+  if (evolution < -0.4) {
+    return { parJour: Math.max(1, base - 1), motif: `portée en baisse de ${Math.round(evolution * -100)} % — on ralentit d'un cran` };
   }
-
-  // Les arrondis, planchers et plafonds font dériver du total voulu : on rend
-  // ou on reprend au réseau qui porte le mieux, puis au moins bon.
-  const ordre = [...moyennes].sort((a, b) => (b.moyenne || 0) - (a.moyenne || 0));
-  let ecart = total - distribue;
-  while (ecart !== 0) {
-    let bouge = false;
-    for (const m of ecart > 0 ? ordre : [...ordre].reverse()) {
-      const n = nouvelle[m.reseau];
-      if (ecart > 0 && n < PLAFOND_PAR_RESEAU) { nouvelle[m.reseau]++; ecart--; bouge = true; }
-      else if (ecart < 0 && n > PLANCHER_PAR_RESEAU) { nouvelle[m.reseau]--; ecart++; bouge = true; }
-      if (ecart === 0) break;
-    }
-    if (!bouge) break;   // plus rien à ajuster sans franchir une borne
+  if (evolution > 0.4 && base < plafondClient) {
+    return { parJour: base + 1, motif: `portée en hausse de ${Math.round(evolution * 100)} % — un cran de plus` };
   }
-
-  const detail = moyennes.map((m) => `${m.reseau} ${Math.round(m.moyenne || 0)} vues (n=${m.n}) → ${nouvelle[m.reseau]}/j`).join(' · ');
-  return { cadence: nouvelle, motif: `réparti sur la portée mesurée — ${detail}` };
+  return { parJour: base, motif: `portée stable (${Math.round(recent)} vues de moyenne) — cadence maintenue` };
 }
 
 function sb() {
@@ -235,26 +232,21 @@ export async function GET(req: NextRequest) {
     (groupes[cle] ||= []).push(p);
   }
 
-  // La répartition d'Ami, calculée une fois par client puis appliquée à chacun
-  // de ses réseaux — inutile de refaire la mesure trois fois.
-  const repartitions: Record<string, Record<string, number>> = {};
+  // Une cadence par COUPLE client × réseau : chacun jugé sur ses propres
+  // résultats, jamais l'un contre l'autre.
+  const repartitions: Record<string, number> = {};
   const motifs: Record<string, string> = {};
   for (const cle of Object.keys(groupes)) {
-    const userId = cle.split('|')[0];
-    if (userId === 'sans' || repartitions[userId]) continue;
-    const choisie: Record<string, number> = {};
-    for (const r of ['instagram', 'tiktok', 'linkedin']) {
-      const n = cadenceDe(userId, r);
-      if (n > 0) choisie[r] = n;
-    }
-    const { cadence, motif } = await repartitionSelonPortee(supabase, userId, choisie);
-    repartitions[userId] = cadence;
-    motifs[userId] = motif;
+    const [userId, reseau] = cle.split('|');
+    if (userId === 'sans') continue;
+    const { parJour, motif } = await cadenceDuReseau(supabase, userId, reseau, cadenceDe(userId, reseau));
+    repartitions[cle] = parJour;
+    motifs[cle] = motif;
   }
 
   for (const [cle, liste] of Object.entries(groupes)) {
     const [userId, reseau] = cle.split('|');
-    const parJour = repartitions[userId]?.[reseau] ?? cadenceDe(userId === 'sans' ? null : userId, reseau);
+    const parJour = repartitions[cle] ?? cadenceDe(userId === 'sans' ? null : userId, reseau);
     if (parJour === 0) continue;   // réseau volontairement coupé : on n'y touche pas
 
     // La qualité passe devant l'ordre initial : à capacité contrainte, c'est le

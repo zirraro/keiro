@@ -16,7 +16,7 @@ import {
 } from './Primitives';
 import { AutoModeToggle } from './AutoModeToggle';
 import { EmailConnectBanner } from './SharedBanners';
-import GmailNativeInbox, { MailboxBetaToggle } from './GmailNativeInbox';
+import { MailboxBetaToggle } from './GmailNativeInbox';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
@@ -256,81 +256,29 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Email connection banner — remonte l'état live pour gater les cartes */}
       <EmailConnectBanner connections={(data as any).connections} onStatus={setLiveConn} />
 
-      {/* Toggle Option B (gestion complète boîte) — visible seulement si
-          NEXT_PUBLIC_MAILBOX_BETA=on (founder/test users). */}
-      <MailboxBetaToggle />
-
-      {/* OPTION B (post-CASA) — boîte Gmail native + brouillons + gestion. Auto-gaté :
-          invisible tant que le user n'a pas activé (flag full_mailbox / GMAIL_OPTION_B). */}
-      <GmailNativeInbox />
+      {/* ── La seconde boîte mail retirée (2026-08-10) ──
+          GmailNativeInbox affichait une boîte COMPLÈTE en haut du panneau, au
+          -dessus de celle du bas : c'est le doublon que le fondateur signalait,
+          et il n'était visible que pour lui — utilisateur de test avec l'option
+          complète activée — ce qui explique que je ne le voyais pas dans le
+          code rendu par défaut.
+          La boîte unifiée du bas fait désormais tout ce qu'elle faisait : lire
+          les reçus, préparer un brouillon, répondre, écrire. Deux boîtes pour
+          une messagerie, c'était l'incompréhension même. */}
 
       {/* DraftsCard retirée d'ici : les brouillons sont l'onglet « Brouillons »
           de la boîte, plus bas. Ils n'ont plus de carte séparée. */}
 
-      {/* ── UNIFIED STATS SECTION ─────────────────────────────────
-          User feedback: too many stat blocks repeated in different
-          shapes (KPI cards + circular progress + bar chart all
-          showing the same Sent/Opened/Clicked numbers). Consolidated
-          into ONE section: a single funnel pipeline (telling the
-          'sent→opened→clicked→replied' story) + the open/click %
-          inline. Removed redundant Performance circulars and the
-          recent-perf bar chart.
-      */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 className="text-xs sm:text-sm font-bold text-white">Funnel email Hugo</h3>
-          <div className="flex items-center gap-3 text-[10px] sm:text-xs">
-            <span className="text-white/50">Open <strong className="text-cyan-300">{fmtPercent(stats.openRate)}</strong></span>
-            <span className="text-white/50">Click <strong className="text-purple-300">{fmtPercent(stats.clickRate)}</strong></span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-1 text-center">
-          {[
-            { label: 'Prospects', value: emailProspects, icon: '\u{1F465}', color: '#94a3b8' },
-            { label: p.emailCardStatusSent, value: stats.sent, icon: '\u{1F4E7}', color: '#60a5fa' },
-            { label: p.emailCardStatusOpened, value: stats.opened, icon: '\u{1F4EC}', color: '#fbbf24' },
-            { label: 'Clicked', value: stats.clicked, icon: '\u{1F517}', color: '#a855f7' },
-            { label: p.emailCardStatusReplied, value: emailReplied, icon: '\u{1F4AC}', color: '#22c55e' },
-          ].map((step, i) => (
-            <div key={step.label} className="flex items-center flex-1 min-w-0">
-              <div className="flex-1 text-center min-w-0">
-                <div className="text-base sm:text-lg mb-0.5">{step.icon}</div>
-                <div className="text-xs sm:text-sm font-bold" style={{ color: step.color }}>{fmt(step.value)}</div>
-                <div className="text-[10px] text-white/40 mt-0.5 truncate">{step.label}</div>
-              </div>
-              {i < 4 && <div className="hidden sm:block text-white/45 text-[10px] mx-0.5 flex-shrink-0">{'\u2192'}</div>}
-            </div>
-          ))}
-        </div>
-        {seqEntries.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-white/5">
-            <div className="text-[10px] text-white/50 mb-1.5">{en ? 'Active sequences' : 'Séquences en cours'}</div>
-            <div className="flex h-4 rounded-full overflow-hidden">
-              {seqEntries.map(([name, count], i) => (
-                <div
-                  key={name}
-                  className="h-full flex items-center justify-center text-[10px] font-medium text-white"
-                  style={{
-                    width: `${(count / seqTotal) * 100}%`,
-                    background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
-                    opacity: 1 - i * 0.15,
-                  }}
-                  title={`${name}: ${count}`}
-                >
-                  {count > 1 ? name : ''}
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
-              {seqEntries.map(([name, count]) => (
-                <span key={name} className="text-[10px] text-white/50">
-                  {name}: <span className="text-white/80 font-medium">{fmt(count)}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* ── Le tunnel email retiré du panneau (2026-08-10) ──
+          Le fondateur voyait encore « deux parties ». Celle du haut était
+          cette carte de statistiques : envoyés, ouverts, cliqués, répondus.
+          Sa règle tient en une phrase — « on veut le moins de stats possible
+          dans les agents pour que ce soit plus simple et plus clair, c'est
+          AMI qui regroupe les stats et qui explique ».
+          Hugo garde ce qu'on FAIT avec les emails ; Ami garde ce qu'ils
+          RAPPORTENT, par réseau et par agent, où le client choisit ce qu'il
+          veut voir. Deux endroits pour les mêmes chiffres, c'était deux
+          chances de les lire différemment. */}
 
       {/* ── « Détail 24h » descendu dans la boîte ──
           2026-08-10, le fondateur : « il y a toujours 2 parties, en haut et en
@@ -359,6 +307,8 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* La boîte mail unifiée : reçus, envoyés, brouillons, corbeille, le
           réglage de réponse et la rédaction — un seul endroit pour tout traiter. */}
       <div data-tour="email-inbox">
+        {/* Le réglage d'accès complet vit avec la boîte qu'il ouvre. */}
+        <MailboxBetaToggle />
         <FullInbox onReplyMode={setReplyMode} metriques={splitMetrics} />
       </div>
 

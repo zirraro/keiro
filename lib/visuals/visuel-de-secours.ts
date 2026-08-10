@@ -121,7 +121,10 @@ export async function trouverVisuelDeSecours(
 
     const classees = (uploads || [])
       .map((u: any) => ({ u, score: pertinence(u.ai_analysis, u.caption, mots) }))
-      .filter(x => x.score > 0)
+      // Plus de filtre sur la pertinence : on CLASSE. Une photo du commerce
+      // qui ne colle pas parfaitement au sujet reste une vraie photo de son
+      // lieu — meilleure qu'une image de banque, et sans commune mesure avec
+      // un créneau vide. Le fondateur : « il faut absolument livrer. »
       .sort((a, b) => b.score - a.score);
 
     if (classees.length) {
@@ -136,6 +139,46 @@ export async function trouverVisuelDeSecours(
     }
   } catch (e: any) {
     console.warn('[VisuelSecours] lecture des photos client échouée :', e?.message);
+  }
+
+  // ── 1 bis. La bibliothèque du client dans Léna ──
+  //
+  // 2026-08-10 — Le rapport admin signale « aucun visuel de remplacement
+  // pertinent » : le dernier recours n'avait rien à proposer, et un créneau
+  // client est resté vide.
+  //
+  // Deux raisons, toutes deux réparées ici. On ne lisait que `agent_uploads`,
+  // et seulement les photos DÉJÀ ANALYSÉES par l'IA — or l'analyse coûte un
+  // appel, et le jour où le crédit manque, plus aucune photo n'est éligible.
+  // Le remplacement tombait donc en panne exactement quand on en avait besoin.
+  //
+  // La bibliothèque Léna est ajoutée comme source, et la pertinence devient un
+  // classement, plus un filtre : à défaut de correspondance thématique, la
+  // photo la plus récente du commerce vaut infiniment mieux qu'une image de
+  // banque — c'est son vrai lieu, ses vrais produits.
+  try {
+    const { data: bibliotheque } = await supabase
+      .from('saved_images')
+      .select('image_url, title, created_at')
+      .eq('user_id', userId)
+      .not('image_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(40);
+
+    const candidats = (bibliotheque || [])
+      .map((b: any) => ({ b, score: pertinence(null, b.title, mots) }))
+      .sort((a, b) => b.score - a.score);
+
+    if (candidats.length) {
+      const gagnant = candidats[0].b;
+      return {
+        url: gagnant.image_url,
+        origine: 'photo_client',
+        description: gagnant.title || `visuel de la bibliothèque${metier ? ` — ${metier}` : ''}`,
+      };
+    }
+  } catch (e: any) {
+    console.warn('[VisuelSecours] bibliothèque illisible :', e?.message);
   }
 
   // ── 2. La banque d'images ──
