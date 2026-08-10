@@ -356,6 +356,13 @@ export async function GET(request: NextRequest) {
         // revenir chaque matin : ce n'était pas une récidive, c'était le
         // rapport qui prenait de l'avance sur le nettoyage.
         await callEndpoint('Posts bloqués — balayage', '/api/cron/posts-bloques', 'GET');
+        // Le planning remis à la cadence réellement configurée. Il portait
+        // quatre fois celle-ci le 2026-08-10 — treize publications Instagram
+        // programmées un jour où il en part trois. Sans dégât visible, le
+        // plafond de publication tenant bon, mais avec un planning qui ne
+        // voulait rien dire pour le client, des générations payées pour rien,
+        // et un stock de contenus voisins d'où sortaient les doublons.
+        await callEndpoint('Planning — remise à la cadence', '/api/cron/planning-cadence', 'GET');
         await callEndpoint('Admin Morning Digest', '/api/cron/admin-morning-digest', 'GET');
         // Contrôle de sécurité automatique quotidien — toute régression (headers,
         // chiffrement, divulgation…) remonte en erreur dans le digest admin.
