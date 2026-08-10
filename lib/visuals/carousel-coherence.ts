@@ -36,15 +36,40 @@ import { famillesDe } from '../business-families';
  * ce qui coûte plus cher qu'il ne rapporte.
  */
 const UNIVERS: Record<string, string[]> = {
-  nourriture: ['salade', 'fruit', 'legume', 'plat', 'assiette', 'cuisine', 'chef', 'restaurant', 'menu', 'dish', 'food', 'meal', 'dining', 'salad', 'plate', 'kitchen', 'bouchee', 'mid-bite', 'reservation book', 'carnet de reservation', 'salle a manger', 'table dressee', 'pourboire', 'tip'],
-  cheveux: ['cheveu', 'coiffure', 'coupe', 'brushing', 'coloration', 'salon de coiffure', 'hair', 'haircut', 'barber', 'shampoing'],
-  soin: ['soin', 'massage', 'peau', 'ongle', 'manucure', 'esthetique', 'spa', 'skincare', 'facial', 'nail'],
-  chantier: ['chantier', 'travaux', 'outil', 'perceuse', 'tuyau', 'toiture', 'peinture murale', 'carrelage', 'construction', 'plumbing', 'renovation'],
-  auto: ['voiture', 'moteur', 'pneu', 'garage', 'atelier mecanique', 'car', 'engine', 'vehicle'],
+  /**
+   * Vocabulaire élargi le 2026-08-10.
+   *
+   * Le carrousel fleur → cupcake → fleur signalé par le fondateur était bien
+   * retenu, mais par accident : c'est le mot « plate » de « on a plate » qui
+   * déclenchait l'univers, pas « cupcake » — absent de la liste, comme toute la
+   * pâtisserie et toute la boisson. Un contrôle qui ne fonctionne que si la
+   * phrase mentionne une assiette ne fonctionne pas.
+   */
+  nourriture: [
+    'salade', 'fruit', 'legume', 'plat', 'assiette', 'cuisine', 'chef', 'restaurant',
+    'menu', 'dish', 'food', 'meal', 'dining', 'salad', 'plate', 'kitchen', 'bouchee',
+    'mid-bite', 'reservation book', 'carnet de reservation', 'salle a manger',
+    'table dressee', 'pourboire', 'tip', 'assiettes', 'plats',
+    // pâtisserie et boulangerie
+    'cupcake', 'gateau', 'patisserie', 'boulangerie', 'macaron', 'croissant', 'pain',
+    'tarte', 'eclair', 'brioche', 'viennoiserie', 'biscuit', 'cookie', 'cake',
+    'pastry', 'bakery', 'bread', 'dessert', 'chocolat', 'chocolate', 'glacage',
+    'frosting', 'icing', 'four', 'oven', 'petrin',
+    // boissons
+    'cafe', 'coffee', 'espresso', 'cappuccino', 'the', 'tea', 'cocktail', 'biere',
+    'beer', 'vin', 'wine', 'verre', 'tasse', 'mug', 'barista', 'comptoir de bar',
+    // produits bruts et service
+    'viande', 'poisson', 'fromage', 'charcuterie', 'epices', 'ingredient',
+    'serveur', 'serveuse', 'waiter', 'terrasse de restaurant', 'brunch',
+  ],
+  cheveux: ['cheveu', 'cheveux', 'coiffure', 'coupe', 'brushing', 'coloration', 'salon de coiffure', 'hair', 'haircut', 'barber', 'barbier', 'shampoing', 'shampoo', 'meche', 'balayage', 'chignon', 'tondeuse', 'ciseaux de coiffure', 'fauteuil de coiffure', 'bac a shampoing', 'blow-dry', 'hairdresser', 'salon chair'],
+  soin: ['soin', 'massage', 'peau', 'ongle', 'ongles', 'manucure', 'pedicure', 'esthetique', 'spa', 'skincare', 'facial', 'nail', 'nails', 'epilation', 'waxing', 'serviette chaude', 'cabine de soin', 'table de massage', 'huile de massage', 'masque visage', 'sourcils', 'cils', 'tatouage', 'tattoo', 'aiguille de tatouage'],
+  chantier: ['chantier', 'travaux', 'outil', 'outils', 'perceuse', 'tuyau', 'toiture', 'peinture murale', 'carrelage', 'construction', 'plumbing', 'renovation', 'echafaudage', 'truelle', 'niveau a bulle', 'casque de chantier', 'plombier', 'electricien', 'menuisier', 'scie', 'planche', 'ciment', 'platre', 'cable electrique', 'tableau electrique'],
+  auto: ['voiture', 'moteur', 'pneu', 'pneus', 'garage', 'atelier mecanique', 'car', 'engine', 'vehicle', 'mecanicien', 'mechanic', 'pare-brise', 'carrosserie', 'pont elevateur', 'cle a molette', 'vidange'],
   bureau: ['bureau', 'reunion', 'ordinateur portable', 'graphique', 'tableur', 'meeting', 'laptop', 'office', 'whiteboard'],
-  animal: ['chien', 'chat', 'animal', 'veterinaire', 'pet', 'dog', 'cat'],
-  fleur: ['fleur', 'bouquet', 'floral', 'flower'],
-  sport: ['halteres', 'musculation', 'tapis de course', 'gym', 'workout', 'dumbbell', 'fitness'],
+  animal: ['chien', 'chat', 'animal', 'animaux', 'veterinaire', 'pet', 'dog', 'cat', 'puppy', 'chiot', 'chaton', 'toilettage', 'grooming', 'laisse', 'collier pour chien'],
+  fleur: ['fleur', 'fleurs', 'bouquet', 'floral', 'flower', 'flowers', 'petale', 'petal', 'rose', 'tulipe', 'pivoine', 'composition florale', 'fleuriste', 'florist', 'vase', 'tige', 'stem', 'greenery', 'feuillage'],
+  sport: ['haltere', 'halteres', 'musculation', 'tapis de course', 'gym', 'workout', 'dumbbell', 'fitness', 'salle de sport', 'coach sportif', 'entrainement', 'training', 'yoga', 'pilates', 'tapis de yoga', 'barre de traction', 'kettlebell'],
   // Ajoutés le 2026-08-10 : le carrousel signalé mêlait joaillerie et
   // restauration, et la joaillerie n'était dans aucun univers — donc la
   // diapositive passait pour neutre, compatible avec n'importe quoi.

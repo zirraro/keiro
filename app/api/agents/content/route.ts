@@ -1174,142 +1174,36 @@ async function publishToInstagram(
 
       // Use slides[1..N].visual for slides 2..N+1 (slide 1 = base image already there).
       // Cap at 9 extra slides (IG max = 10).
-      const slidesToUse = slides.slice(1, 10);
-      if (slidesToUse.length > 0) {
-        console.log(`[Content] Carousel: using ${slidesToUse.length} per-slide visual_description from LLM`);
-        const { verifierDiapo, verifierSerieDiapos, contratDeScene, briefDiapoAncre } =
-          await import('@/lib/visuals/carousel-coherence');
-
-        const briefs = slidesToUse.map((s) => (s.visual || '').trim()).filter(Boolean);
-
-        // ── 1. Les diapositives se tiennent-elles entre elles ? ──
-        //
-        // 2026-08-10, troisième signalement du fondateur : « un carrousel doit
-        // être dédié, et toujours les images qui se suivent ont un lien ». Le
-        // contrôle existant comparait chaque diapositive AU MÉTIER et s'arrêtait
-        // net quand le métier était inconnu — ce qui est le cas du compte
-        // KeiroAI lui-même. Les trois diapositives joaillerie / restaurant /
-        // dessin animé n'ont donc jamais été examinées.
-        //
-        // Ce contrôle-ci n'a pas besoin de connaître le métier : il demande
-        // seulement que les diapositives d'un même carrousel parlent du même
-        // univers. On écarte la fautive plutôt que d'abandonner le carrousel.
-        const serie = verifierSerieDiapos([baseDesc, ...briefs]);
-        const horsSerie = new Set(
-          serie.coherente ? [] : serie.diapoIncoherentes.map((i) => i - 1).filter((i) => i >= 0),
-        );
-        if (!serie.coherente) {
-          console.warn(`[Content] Carrousel — ${serie.motif}`);
-        }
-
-        // ── 2. L'ancre visuelle commune ──
-        //
-        // Chaque diapositive était générée à partir de son seul texte, donc
-        // avec sa propre lumière, son propre lieu et son propre style de rendu.
-        // C'est ce qui donnait « la 1ère photo correcte, la 2e animée, la 3e en
-        // mode robot ». Le contrat de scène impose le même monde à toutes.
-        const contrat = contratDeScene(baseDesc, businessTypeForVisuals);
-
-        for (let i = 0; i < slidesToUse.length; i++) {
-          const slideDesc = slidesToUse[i].visual?.trim();
-          if (!slideDesc) continue;
-
-          // Contrôle métier déterministe AVANT génération : une diapositive
-          // hors-sujet rejetée ici ne coûte rien, alors que la générer puis la
-          // publier coûte une image et la crédibilité du compte.
-          const verdict = verifierDiapo(slideDesc, businessTypeForVisuals);
-          if (!verdict.coherent) {
-            console.warn(`[Content] Diapositive écartée — ${verdict.motif} · brief: "${slideDesc.slice(0, 90)}"`);
-            continue;
-          }
-          if (horsSerie.has(i)) {
-            console.warn(`[Content] Diapositive ${i + 2} écartée — hors de l'univers « ${serie.universDominant} »`);
-            continue;
-          }
-
-          // ── 3. Chaque diapositive passe le contrôle qualité, pas seulement
-          // la première ──
-          //
-          // Le contrôle vision ne tournait que sur l'image principale. Les
-          // diapositives 2 et suivantes partaient sans qu'aucun œil ne les
-          // regarde — d'où « la 1ère photo est bonne, la 2e est animée, la 3e
-          // en mode robot ». Le fondateur : « ne laisse jamais passer de la
-          // mauvaise qualité, mais toujours publier pour livrer le client ».
-          //
-          // On tient les deux : une diapositive ratée est REFAITE une fois,
-          // avec le défaut nommé dans le brief. Si elle rate encore, elle est
-          // écartée — un carrousel de trois bonnes images vaut mieux qu'un de
-          // quatre dont une gâche l'ensemble — et le post part quand même.
-          try {
-            const brief = briefDiapoAncre(slideDesc, contrat, i + 2);
-            let varUrl = await generateVisual(diapoRealiste(brief), 'carrousel');
-
-            if (varUrl) {
-              try {
-                const { reviewGeneratedImage } = await import('@/lib/visuals/image-qa');
-                const qa = await reviewGeneratedImage({
-                  imageUrl: varUrl,
-                  visualBrief: brief,
-                  businessType: businessTypeForVisuals || undefined,
-                });
-                // Le contrôle n'a pas pu avoir lieu : on livre quand même —
-                // une panne de notre côté ne suspend pas la publication d'un
-                // client — mais on l'ÉCRIT. Avant, cette branche renvoyait
-                // « pass » et une clé sans crédit produisait un flot d'images
-                // « validées » que personne n'avait regardées.
-                if (qa.verdict === 'indisponible') {
-                  console.warn(`[Content] contrôle qualité indisponible (${qa.raisonIndisponible}) — diapositive ${i + 2} publiée sans vérification`);
-                  try {
-                    await supabase.from('agent_logs').insert({
-                      agent: 'content',
-                      action: 'qc_image_indisponible',
-                      status: 'error',
-                      user_id: (post as any)?.user_id || undefined,
-                      data: { raison: qa.raisonIndisponible, post_id: post.id, diapositive: i + 2 },
-                      created_at: new Date().toISOString(),
-                    });
-                  } catch { /* la trace ne doit jamais bloquer */ }
-                }
-                if (qa.verdict === 'hard_fail') {
-                  console.warn(`[Content] Diapositive ${i + 2} refusée (${qa.issue}) — seconde tentative`);
-                  const correctif = `${brief} À CORRIGER ABSOLUMENT : ${qa.issue || 'rendu non photographique'}. Vraie photographie prise à l'appareil, aucun rendu illustré ni 3D.`;
-                  const secondEssai = await generateVisual(diapoRealiste(correctif), 'carrousel');
-                  if (secondEssai) {
-                    const qa2 = await reviewGeneratedImage({
-                      imageUrl: secondEssai,
-                      visualBrief: correctif,
-                      businessType: businessTypeForVisuals || undefined,
-                    });
-                    varUrl = qa2.verdict === 'hard_fail' ? null : secondEssai;
-                    if (!varUrl) console.warn(`[Content] Diapositive ${i + 2} écartée après 2 tentatives — ${qa2.issue}`);
-                  } else {
-                    varUrl = null;
-                  }
-                }
-              } catch { /* contrôle indisponible : on ne bloque pas la livraison */ }
-            }
-
-            if (varUrl) carouselUrls.push(varUrl);
-          } catch { /* skip slide on error */ }
-        }
-      }
-
-      // Fallback when slides[] is missing — produce 2 SEMANTICALLY distinct
-      // variations (not just angles). The variations describe a narrative
-      // arc (before vs after, problem vs solution, wide vs detail) so the
-      // carousel feels like a story even without explicit slide briefs.
-      if (carouselUrls.length === 1) {
-        // Le repli était écrit EN DUR pour un restaurant (« carnet de
-        // réservations, client en pleine bouchée, salle à manger ») et
-        // s'appliquait à tous les métiers : c'est lui qui a glissé une image
-        // de cuisine dans le carrousel d'un salon de coiffure.
-        const { repliNarratif } = await import('@/lib/visuals/carousel-coherence');
-        const narrativeVariations = repliNarratif(baseDesc, businessTypeForVisuals, sceneSignature);
-        for (const variation of narrativeVariations) {
-          try {
-            const varUrl = await generateVisual(diapoRealiste(variation), 'carrousel');
-            if (varUrl) carouselUrls.push(varUrl);
-          } catch { /* skip variation on error */ }
+      // Instagram passe par le MÊME module que TikTok — voir
+      // lib/visuals/construire-carrousel.ts. Deux implémentations séparées, et
+      // la règle de qualité posée le matin sur l'une manquait à l'autre
+      // l'après-midi : carrousel fleur → cupcake → fleur sur TikTok alors
+      // qu'Instagram était déjà corrigé. Une seule construction, donc.
+      {
+        const { construireCarrousel } = await import('@/lib/visuals/construire-carrousel');
+        const bati = await construireCarrousel({
+          descriptionDeBase: baseDesc,
+          diapositives: slides,
+          premiereImage: post.visual_url!,
+          businessType: businessTypeForVisuals,
+          sceneClient: sceneSignature,
+          maximum: 10,                       // Instagram plafonne à 10 images
+          genererVisuel: (b, f) => generateVisual(b, f),
+          signalerControleIndisponible: (raison, numero) => {
+            console.warn(`[Content] Instagram — contrôle qualité indisponible (${raison}) sur la diapositive ${numero}`);
+            supabase.from('agent_logs').insert({
+              agent: 'content', action: 'qc_image_indisponible', status: 'error',
+              user_id: effectivePostOwnerId || undefined,
+              data: { raison, post_id: post.id, diapositive: numero, reseau: 'instagram' },
+              created_at: new Date().toISOString(),
+            }).then(() => {}, () => {});
+          },
+        });
+        carouselUrls.length = 0;
+        carouselUrls.push(...bati.images);
+        if (bati.ecartees.length) {
+          console.warn('[Content] Instagram carrousel — diapositives écartées : ' +
+            bati.ecartees.map(e => `${e.numero} (${e.motif})`).join(', '));
         }
       }
 
@@ -2011,6 +1905,42 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
 // ──────────────────────────────────────
 // Publish to TikTok (ALWAYS as video — photo API not supported)
 // ──────────────────────────────────────
+/**
+ * Le métier du client et la scène qu'il a décrite — indispensables pour qu'un
+ * carrousel reste dans son univers.
+ *
+ * Extrait ici parce que les deux réseaux en ont besoin. La version Instagram
+ * chargeait ces informations en ligne ; le chemin TikTok, lui, ne les chargeait
+ * pas du tout, ce qui explique qu'aucun de ses contrôles ne pouvait fonctionner.
+ */
+async function chargerProfilVisuel(
+  supabase: any,
+  postId?: string,
+): Promise<{ businessType: string | null; sceneClient: string | null; userId: string | null }> {
+  try {
+    if (!postId) return { businessType: null, sceneClient: null, userId: null };
+    const { data: ligne } = await supabase
+      .from('content_calendar').select('user_id').eq('id', postId).maybeSingle();
+    const proprietaire = ligne?.user_id || null;
+    if (!proprietaire) return { businessType: null, sceneClient: null, userId: null };
+
+    const { data: profil } = await supabase
+      .from('profiles').select('business_type, company_description').eq('id', proprietaire).maybeSingle();
+    const { data: dossier } = await supabase
+      .from('business_dossiers').select('custom_fields').eq('user_id', proprietaire).maybeSingle();
+
+    return {
+      businessType: profil?.business_type || profil?.company_description || null,
+      sceneClient: (dossier?.custom_fields || {}).scene_signature || null,
+      userId: proprietaire,
+    };
+  } catch {
+    // Métier inconnu : les contrôles qui en dépendent laissent passer, celui
+    // sur la cohérence de série fonctionne quand même.
+    return { businessType: null, sceneClient: null, userId: null };
+  }
+}
+
 async function publishToTikTok(
   // `hook` sert de titre de repli quand la légende est vide : une
   // publication est partie sans aucun texte le 2026-08-04, et un post sans
@@ -2384,31 +2314,46 @@ async function publishToTikTok(
       const baseDescTT = (post as any).visual_description || (post as any).hook || (post as any).caption || 'premium product';
       const ttSlides: Array<{ visual?: string; text?: string; style?: string }> = Array.isArray((post as any).slides) ? (post as any).slides : [];
       const ttSlidesToUse = ttSlides.slice(1, 5); // TikTok feels best with 2-5 photos
-      if (ttSlidesToUse.length > 0) {
-        console.log(`[Content] TikTok carousel: using ${ttSlidesToUse.length} per-slide visuals from LLM`);
-        for (const s of ttSlidesToUse) {
-          const slideDesc = s.visual?.trim();
-          if (!slideDesc) continue;
-          try {
-            const varUrl = await generateVisual(diapoRealiste(slideDesc), 'carrousel');
-            if (varUrl) tiktokPhotoUrls.push(varUrl);
-          } catch { /* skip slide on error */ }
-        }
-      }
-      if (tiktokPhotoUrls.length === 1) {
-        // No usable LLM slides → build 2 narrative companions so the carousel
-        // has 3 images (a real swipe, not a lonely 2-photo post the founder
-        // flagged). Both stay in the SAME universe as slide 1 (same business,
-        // same light, same palette) — only the framing/energy changes.
-        const companions = [
-          `${baseDescTT}. CARROUSEL SLIDE 2 — MÊME commerce et MÊME univers que slide 1, nouveau cadrage: un détail serré (close-up sur un geste, une texture, une expression authentique). Même lumière naturelle, même palette. Photographie éditoriale, peau réelle, NO AI tells.`,
-          `${baseDescTT}. CARROUSEL SLIDE 3 — MÊME commerce que slide 1: le moment où le client en profite OU une preuve tangible liée à CE commerce (cadrage large vivant ou macro d'un objet du lieu). Énergie chaude, golden hour. Personnes différentes de slide 2. Photographie éditoriale, NO AI tells, NO repeated framing.`,
-        ];
-        for (const companion of companions) {
-          try {
-            const varUrl = await generateVisual(companion, 'carrousel');
-            if (varUrl) tiktokPhotoUrls.push(varUrl);
-          } catch { /* skip on error */ }
+      // ── Un seul chemin de construction pour tous les réseaux ──
+      //
+      // 2026-08-10 — La cohérence des carrousels avait été corrigée le matin,
+      // et le fondateur signale l'après-midi un carrousel TikTok
+      // fleur → cupcake → fleur. La correction était réelle mais posée
+      // uniquement sur le chemin Instagram : la publication TikTok en mode
+      // photo construisait ses diapositives dans son coin, SANS le moindre
+      // contrôle — ni cohérence de série, ni ancre visuelle, ni contrôle
+      // qualité par image.
+      //
+      // La leçon compte plus que le défaut : tant que deux endroits fabriquent
+      // des carrousels, la prochaine règle de qualité en oubliera un. Les deux
+      // réseaux passent désormais par construireCarrousel, donc une règle
+      // ajoutée là s'applique partout par construction.
+      {
+        const { construireCarrousel } = await import('@/lib/visuals/construire-carrousel');
+        const profilVisuel = await chargerProfilVisuel(supabase, post.id);
+        const bati = await construireCarrousel({
+          descriptionDeBase: baseDescTT,
+          diapositives: ttSlides,
+          premiereImage: visualUrl!,
+          businessType: profilVisuel.businessType,
+          sceneClient: profilVisuel.sceneClient,
+          maximum: 5,                       // TikTok respire mieux entre 2 et 5 photos
+          genererVisuel: (b, f) => generateVisual(b, f),
+          signalerControleIndisponible: (raison, numero) => {
+            console.warn(`[Content] TikTok — contrôle qualité indisponible (${raison}) sur la diapositive ${numero}`);
+            supabase.from('agent_logs').insert({
+              agent: 'content', action: 'qc_image_indisponible', status: 'error',
+              user_id: profilVisuel.userId || undefined,
+              data: { raison, post_id: post.id, diapositive: numero, reseau: 'tiktok' },
+              created_at: new Date().toISOString(),
+            }).then(() => {}, () => {});
+          },
+        });
+        tiktokPhotoUrls.length = 0;
+        tiktokPhotoUrls.push(...bati.images);
+        if (bati.ecartees.length) {
+          console.warn('[Content] TikTok carrousel — diapositives écartées : ' +
+            bati.ecartees.map(e => `${e.numero} (${e.motif})`).join(', '));
         }
       }
       console.log(`[Content] TikTok PHOTO carousel: publishing ${tiktokPhotoUrls.length} image(s)`);

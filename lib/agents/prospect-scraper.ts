@@ -1,3 +1,4 @@
+import { requetePolie, lectureAutorisee, estHoteSensible, plafondAtteint } from './scraping-poli';
 /**
  * Lightweight, no-Gemini scraping of a prospect's existing public web
  * presence (website + Instagram) to harvest structured business notes
@@ -49,7 +50,12 @@ export async function scrapeWebsite(url: string): Promise<Partial<BusinessNotes>
   if (!/^https?:\/\//.test(normalized)) normalized = 'https://' + normalized;
 
   try {
-    const res = await fetch(normalized, {
+    // Espacement par hôte + en-tête honnête + robots.txt respecté.
+    // Fondateur 2026-08-10 : « scraping à fond, sans risque de ban. » Le site
+    // d'un commerçant est le chemin SANS risque — un hôte différent à chaque
+    // fois, une requête par domaine — et c'est là qu'est 92 % du gisement.
+    if (!(await lectureAutorisee(normalized))) return null;
+    const res = await requetePolie(normalized, { timeoutMs: 6000 }) ?? await fetch(normalized, {
       signal: AbortSignal.timeout(6000),
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; KeiroAI/1.0; +https://keiroai.com)',
@@ -185,7 +191,12 @@ export async function scrapeTiktok(handle: string): Promise<Partial<BusinessNote
     const res = await fetch(`https://www.tiktok.com/@${cleanHandle}`, {
       signal: AbortSignal.timeout(7000),
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+        // En-tête honnête : on se présente au lieu de nous faire passer pour
+        // un navigateur Safari. Un robot qui se présente se fait éconduire
+        // poliment ; un robot déguisé se fait bannir — et l'adresse IP en
+        // question est celle qui porte aussi les appels API Meta de nos
+        // clients. Fondateur 2026-08-10 : « sans risque de ban, attention. »
+        'User-Agent': 'Mozilla/5.0 (compatible; KeiroAI/1.0; +https://keiroai.com/bot)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
       },
