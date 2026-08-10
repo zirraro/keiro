@@ -63,6 +63,13 @@ npm run build
 # les nouveaux font foi, les anciens ne servent qu'aux sessions déjà ouvertes.
 # Purge au-delà de 7 jours — passé ce délai plus aucune session ne les réclame,
 # et le disque n'a pas à porter l'historique complet.
+#
+# ⚠ CETTE ÉTAPE DOIT RESTER AVANT LE `pm2 reload`. Vérifié en production le
+# 10 août : Next.js recense les fichiers de .next/static UNE SEULE FOIS, au
+# démarrage du serveur. Un fichier déposé après le reload renvoie 404 même
+# s'il est bien sur le disque (testé : 404 avant reload, 200 après). Déplacer
+# cette restauration après le reload rendrait tout ce dispositif inopérant,
+# sans le moindre message d'erreur.
 if [ -d "$ANCIENS" ]; then
   echo "▶ conservation des fichiers des versions précédentes"
   cp -rn "$ANCIENS/." .next/static/ 2>/dev/null || true
