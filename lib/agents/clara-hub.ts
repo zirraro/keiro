@@ -114,8 +114,18 @@ export async function enregistrerInfo(
   // répondu à la question et rien n'aurait changé — la panne muette classique.
   if (info.cle === 'preference_generation') {
     try {
-      const v = valeur.toLowerCase();
-      const mode = /sans retouche|uniquement mes|brut/.test(v) ? 'raw'
+      const v = valeur.toLowerCase().trim();
+
+      // Le client répond souvent par le NUMÉRO de l'option — Clara les présente
+      // numérotées. Sans ce cas, « 1 » ne matchait aucun mot-clé et tombait
+      // dans le repli « light » : la préférence la plus stricte du client
+      // (« uniquement mes vraies photos ») aurait été enregistrée à l'inverse,
+      // en silence. C'est exactement le genre d'erreur qu'on ne voit jamais.
+      const numero = v.match(/^([123])\b/)?.[1];
+      const mode = numero === '1' ? 'raw'
+        : numero === '3' ? 'free'
+        : numero === '2' ? 'light'
+        : /sans retouche|uniquement mes|brut/.test(v) ? 'raw'
         : /mélange|melange|composée|composee|scènes|scenes/.test(v) ? 'free'
         : 'light';
       // « Uniquement mes vraies photos » vaut 100 % de brut ; le mélange en
@@ -308,6 +318,12 @@ export async function prochaineQuestion(
     formulation: [
       meilleur.question + ' ?',
       `→ ${meilleur.aQuoiCaSert}`,
+      // Une question à choix sans ses choix est une devinette : le client
+      // répond à côté, et Clara doit relancer. Les options sont numérotées
+      // pour qu'il puisse répondre « 2 » aussi bien qu'en toutes lettres.
+      meilleur.options?.length
+        ? meilleur.options.map((o, i) => `${i + 1}. ${o}`).join('\n')
+        : '',
       meilleur.exemple ? `Par exemple : ${meilleur.exemple}` : '',
       meilleur.priorite === 'optionnel' ? "C'est facultatif — tu peux passer, et le déposer plus tard si tu veux." : '',
     ].filter(Boolean).join('\n'),
