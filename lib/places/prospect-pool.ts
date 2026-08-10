@@ -179,7 +179,22 @@ export async function incrementDailySpend(
 export async function isUnderDailyBudget(
   supabase: SupabaseClient,
 ): Promise<{ ok: boolean; spent: number; budget: number }> {
-  const budget = Number(process.env.DAILY_PLACES_BUDGET_EUR || '5');
+  /**
+   * Plafond quotidien Google Places, ramené de 5 € à 0,30 €.
+   *
+   * Décision du fondateur (2026-08-10) : « trop cher, on veut maîtriser nos
+   * coûts, tu peux mettre quelques euros par MOIS mais pas plus sur Google —
+   * sinon booste le scraping si c'est gratuit. »
+   *
+   * 5 €/jour, c'était 150 €/mois. À 0,30 €/jour on tient dans une dizaine
+   * d'euros mensuels, et le volume passe au scraping — gratuit, et dont le
+   * gisement est de 6 666 prospects sans email mais avec un site web ou un
+   * Instagram public.
+   *
+   * Le plafond reste souple : Léo cesse de scanner pour la journée et reprend
+   * le lendemain. Aucun risque de coupure de service.
+   */
+  const budget = Number(process.env.DAILY_PLACES_BUDGET_EUR || '0.30');
   try {
     const today = new Date().toISOString().slice(0, 10);
     const { data } = await supabase

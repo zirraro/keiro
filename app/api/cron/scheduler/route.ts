@@ -457,6 +457,16 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'midday_batch':
+      // Scraping gratuit — passage midi.
+      // Aucune API facturée : on récolte site web et Instagram publics. Le
+      // gisement est de 6 666 prospects sans email, et un seul passage
+      // quotidien mettait des années à en venir à bout.
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('commercial')) {
+          await callEndpoint(`Léo Scrape Enrich midi [${uid.substring(0, 8)}]`, `/api/agents/commercial/scrape-enrich?user_id=${uid}`, 'POST', { user_id: uid });
+          await delay(2_000);
+        }
+      });
       // 10:00 UTC — Email #2 + Community + GMaps + Retention + Onboarding
       // Retention
       for (const uid of getClientsWithAgent('email')) {
@@ -525,6 +535,16 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening_batch':
+      // Scraping gratuit — passage soir.
+      // Aucune API facturée : on récolte site web et Instagram publics. Le
+      // gisement est de 6 666 prospects sans email, et un seul passage
+      // quotidien mettait des années à en venir à bout.
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('commercial')) {
+          await callEndpoint(`Léo Scrape Enrich soir [${uid.substring(0, 8)}]`, `/api/agents/commercial/scrape-enrich?user_id=${uid}`, 'POST', { user_id: uid });
+          await delay(2_000);
+        }
+      });
       // 17:00 UTC — DM soir + Content #3 + Email #4 + Recap
       fireBackground(async () => {
         // DM evening

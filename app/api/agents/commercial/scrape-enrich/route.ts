@@ -48,8 +48,29 @@ export async function POST(req: NextRequest) {
     .or('website.not.is.null,instagram.not.is.null,tiktok_handle.not.is.null')
     .not('status', 'in', '("client","perdu","sprint","lost")')
     .not('temperature', 'eq', 'dead')
-    .order('score', { ascending: false, nullsFirst: false })
-    .limit(60); // 60 / run keeps wall-time bounded under maxDuration
+    /**
+     * ── On balaie la base, on ne repasse plus sur les mêmes ──
+     *
+     * Le tri par score renvoyait à chaque passage les 60 mêmes prospects, ceux
+     * du haut du classement. Une fois enrichis, ils étaient réexaminés puis
+     * écartés le lendemain, et le lendemain encore — le scraper tournait sans
+     * jamais descendre dans la base. Résultat mesuré le 2026-08-10 : 56
+     * prospects scrapés au total, pour 6 666 qui ont un site web ou un
+     * Instagram et pas d'email.
+     *
+     * En triant par date d'enrichissement, les jamais-traités passent en
+     * premier et le balayage progresse réellement.
+     *
+     * ── Pourquoi 200 et pas 60 ──
+     *
+     * Le fondateur (2026-08-10) : « trop cher sur Google, on veut maîtriser nos
+     * coûts — sinon booste le scraping si c'est gratuit. » Ça l'est : ce sont
+     * des requêtes HTTP vers des sites publics, aucune API facturée. La seule
+     * contrainte est le temps mural, borné à 300 s. À 200 prospects par
+     * passage, le gisement se traite en un mois au lieu de plusieurs années.
+     */
+    .order('last_enriched_at', { ascending: true, nullsFirst: true })
+    .limit(200);
 
   if (userId) q = q.eq('user_id', userId);
 
