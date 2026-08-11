@@ -152,7 +152,14 @@ export async function controlerAvantPublication(
           publiable: false,
           code: 'coherence',
           diagnostic: `qc_coherence_bloque: ${coh.reasons[0] || 'incohérent'}`.slice(0, 500),
-          details: { score: coh.score, reasons: coh.reasons, hookScore: coh.hookScore, flags: coh.flags },
+          // `imageUsable` et la description de l'image sont remontées pour que
+          // l'appelant puisse RÉPARER au lieu de jeter : « une bonne image avec
+          // une mauvaise légende n'est pas un post à jeter, c'est une légende à
+          // réécrire ». Sans ces deux champs, la seule issue était le rebut.
+          details: {
+            score: coh.score, reasons: coh.reasons, hookScore: coh.hookScore, flags: coh.flags,
+            imageUsable: coh.imageUsable, imageDescription: coh.imageDescription,
+          },
         };
       }
     } catch { /* contrôle indisponible : la publication continue */ }

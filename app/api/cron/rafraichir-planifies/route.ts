@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { reperesPerissables, rafraichirPublication } from '@/lib/agents/fraicheur';
+import { callLlmWithFallback } from '@/lib/agents/llm-fallback';
+import { blocExigence } from '@/lib/visuals/exigences-reseau';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -64,6 +66,62 @@ const MARQUE_STANDARD = '[qc 2026-08-11]';
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+}
+
+/**
+ * Réécrit une légende à partir de CE QUE LE CONTRÔLE A VU sur l'image.
+ *
+ * La description vient du contrôle de cohérence, qui décrit toujours l'image
+ * avant de juger — précisément parce qu'un jugement rendu sans description se
+ * contente trop souvent de valider. On réutilise ce travail déjà payé : le
+ * nouveau texte parle du bon sujet par construction.
+ *
+ * Haiku : c'est de la réécriture courte, en volume. Renvoie null en cas
+ * d'échec, et l'appelant retombe alors sur la mise en brouillon.
+ */
+async function reecrireLegende(input: {
+  descriptionImage: string;
+  motifs: string;
+  plateforme: string;
+  ancienneLegende: string;
+}): Promise<{ hook: string; caption: string } | null> {
+  const exigence = blocExigence(input.plateforme, { avecTexte: true });
+  const system = `Tu es rédacteur en chef d'un compte de marque. Une publication a été REFUSÉE par le contrôle qualité, mais son IMAGE est bonne. Tu réécris le texte pour qu'il colle à l'image et respecte les règles.
+
+${exigence}
+
+RÈGLES ABSOLUES :
+· Parle de CE QUI EST RÉELLEMENT SUR L'IMAGE, décrite ci-dessous. C'est le motif de refus le plus fréquent.
+· N'invente JAMAIS un client, un prénom, un nom de commerce, une ville, un témoignage.
+· Aucun chiffre de résultat invraisemblable. Un ordre de grandeur crédible passe, « +300 % » non.
+· Pas de hashtag dans la légende.
+· Première ligne = l'accroche, elle doit retenir selon le registre du réseau ci-dessus.
+
+Réponds UNIQUEMENT par un objet JSON, sans texte autour :
+{"hook":"la première ligne","caption":"la légende complète, accroche comprise"}`;
+
+  const message = [
+    `CE QUE MONTRE L'IMAGE : ${input.descriptionImage}`,
+    '',
+    `POURQUOI LE POST A ÉTÉ REFUSÉ : ${input.motifs}`,
+    '',
+    `ANCIENNE LÉGENDE (à ne PAS reprendre si elle est la cause du refus) :`,
+    input.ancienneLegende.slice(0, 1200) || '(vide)',
+  ].join('\n');
+
+  try {
+    const res = await callLlmWithFallback({
+      system, message, claudeModel: 'claude-haiku-4-5-20251001',
+      maxTokens: 900, callTag: 'qc_reecriture_legende',
+    });
+    const json = (res.text || '').replace(/^[\s\S]*?\{/, '{').replace(/\}[^}]*$/, '}');
+    const v = JSON.parse(json);
+    const caption = String(v?.caption || '').trim();
+    if (caption.length < 40) return null;
+    return { hook: String(v?.hook || '').trim(), caption };
+  } catch {
+    return null;
+  }
 }
 
 /** Déjà relu pour CETTE date de parution ? Si la date bouge, on relit. */
@@ -207,7 +265,7 @@ export async function GET(req: NextRequest) {
   // Même fenêtre et même balayage que la relecture de fraîcheur : un post prévu
   // dans deux mois n'a pas à être payé aujourd'hui, sa date bougera. Plafond
   // séparé, parce que ce contrôle-ci coûte un appel de vision par publication.
-  let requalifies = 0, requalifiesEcartes = 0;
+  let requalifies = 0, requalifiesEcartes = 0, requalifiesReecrits = 0;
   const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
   for (const p of posts) {
     if (requalifies >= PLAFOND_REQUALIFICATION) break;
@@ -240,6 +298,56 @@ export async function GET(req: NextRequest) {
     // résultats — elle partirait sans avoir jamais été contrôlée.
     if (!verdict.publiable && verdict.code === 'qc_indisponible') continue;
 
+    // ── Réparer avant de jeter ──
+    //
+    // Premier passage réel : 19 publications écartées sur 25. À ce rythme le
+    // calendrier se vide en une semaine, et « toujours publier pour livrer le
+    // client » ne tient plus.
+    //
+    // Or le contrôle rend DEUX jugements séparés, précisément pour ça : le post
+    // est-il publiable en l'état, et l'image mérite-t-elle une autre légende ?
+    // La quasi-totalité des motifs relevés — client inventé, chiffre aberrant,
+    // image hors-sujet — se corrigent en réécrivant le TEXTE. Jeter un visuel
+    // réussi parce que sa légende ment serait payer deux fois la même erreur.
+    //
+    // On réécrit donc la légende À PARTIR DE CE QUE LE CONTRÔLE A VU sur
+    // l'image : le nouveau texte parle du bon sujet par construction. Pas de
+    // second appel de vision — le contrôle au moment de publier reste le juge
+    // final, et il ne coûte rien de plus puisqu'il a lieu de toute façon.
+    const d = verdict.details || {};
+    if (!verdict.publiable && d.imageUsable && d.imageDescription
+        && (verdict.code === 'coherence' || verdict.code === 'claim_invente')) {
+      const nouvelle = await reecrireLegende({
+        descriptionImage: String(d.imageDescription),
+        motifs: (d.reasons || [verdict.diagnostic]).slice(0, 3).join(' · '),
+        plateforme: frais.platform,
+        ancienneLegende: frais.caption || '',
+      });
+      if (nouvelle?.caption) {
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content', action: 'qc_legende_reecrite', status: 'ok', user_id: frais.user_id || undefined,
+            data: {
+              post_id: frais.id, reseau: frais.platform, motif: verdict.diagnostic,
+              avant: { hook: frais.hook, caption: frais.caption },
+              apres: { hook: nouvelle.hook, caption: nouvelle.caption },
+            },
+            created_at: maintenant,
+          });
+        } catch { /* la trace ne bloque pas */ }
+        await supabase.from('content_calendar').update({
+          hook: nouvelle.hook || frais.hook,
+          caption: nouvelle.caption,
+          qa_notes: `${frais.qa_notes ? frais.qa_notes + '\n' : ''}${MARQUE_STANDARD} légende réécrite (${verdict.code})`.slice(0, 4000),
+          publish_diagnostic: `qc_legende_reecrite: ${verdict.diagnostic}`.slice(0, 500),
+          updated_at: maintenant,
+        }).eq('id', frais.id);
+        requalifiesReecrits++;
+        if (exemples.length < 10) exemples.push(`${p.scheduled_date} ${frais.platform} — légende réécrite sur l'image réelle`);
+        continue;
+      }
+    }
+
     const notes = `${frais.qa_notes ? frais.qa_notes + '\n' : ''}${MARQUE_STANDARD} ${verdict.publiable ? 'conforme' : verdict.code}`.slice(0, 4000);
     if (verdict.publiable) {
       await supabase.from('content_calendar').update({ qa_notes: notes }).eq('id', frais.id);
@@ -257,7 +365,7 @@ export async function GET(req: NextRequest) {
 
   const bilan = {
     examines, signales, reecrits, ecartes, faux_positifs: fauxPositifs, indisponibles,
-    requalifies, requalifies_ecartes: requalifiesEcartes, fenetre_jours: FENETRE_JOURS,
+    requalifies, requalifies_reecrits: requalifiesReecrits, requalifies_ecartes: requalifiesEcartes, fenetre_jours: FENETRE_JOURS,
   };
 
   try {
