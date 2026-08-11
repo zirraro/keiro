@@ -146,23 +146,83 @@ echo "  ✓ manifestes complets"
 #
 # C'est arrivé le 6 août : 57 minutes sans le moindre agent, découvertes par
 # hasard en regardant les journaux.
-echo "▶ pm2"
-pm2 reload keiro-app --update-env 2>/dev/null || pm2 start npm --name keiro-app -- start
+#
+# ── Et surtout : le site ne doit pas tomber pendant la mise à jour ──
+#
+# Fondateur, 2026-08-11 : « quand on met à jour, le site saute, donc pas
+# accessible au client, ou alors certaines fonctions non accessibles à ce
+# moment-là. » Constat exact.
+#
+# keiro-app tournait en mode « fork » : UN seul processus. Dans ce mode,
+# `pm2 reload` ne peut rien faire d'autre que l'arrêter puis le relancer, et
+# Next met plusieurs secondes à démarrer. Pendant tout ce temps, plus personne
+# n'est servi — le client tombe sur une erreur de passerelle.
+#
+# En mode « cluster », pm2 lance plusieurs processus qui se partagent le port
+# par le module cluster de Node, et `pm2 reload` les remplace UN PAR UN : il
+# reste toujours un processus pour répondre. C'est le principe qui permet à
+# Vercel de déployer sans coupure.
+#
+# Deux instances suffisent : le VPS a quatre cœurs et l'application attend
+# surtout des entrées-sorties. Vérifié avant d'oser : `next start` de Next 15
+# écoute DANS son processus (aucun enfant), et son unique reprise sur
+# EADDRINUSE est réservée au mode développement — rien ne s'oppose au partage
+# de port. On lance donc le binaire de Next directement, et non `npm start` :
+# le mode cluster a besoin d'un script Node, pas d'un script shell.
+INSTANCES=2
+
+mode_actuel="$(pm2 jlist 2>/dev/null | node -e "
+  let s = '';
+  process.stdin.on('data', d => s += d).on('end', () => {
+    try {
+      const app = JSON.parse(s).find(x => x.name === 'keiro-app');
+      process.stdout.write(app ? String(app.pm2_env.exec_mode || 'inconnu') : 'absent');
+    } catch { process.stdout.write('inconnu'); }
+  });
+" 2>/dev/null || echo inconnu)"
+
+echo "▶ pm2 (keiro-app en mode $mode_actuel)"
+if [ "$mode_actuel" = "cluster_mode" ]; then
+  # Déjà en cluster : le remplacement un par un, sans coupure.
+  pm2 reload keiro-app --update-env
+else
+  # Bascule unique. C'est le SEUL moment où le site se coupe encore quelques
+  # secondes — après, plus jamais.
+  echo "  ▶ bascule en mode cluster ($INSTANCES instances) — dernière coupure"
+  pm2 delete keiro-app >/dev/null 2>&1 || true
+  pm2 start ./node_modules/next/dist/bin/next --name keiro-app -i "$INSTANCES" --interpreter node -- start
+fi
 pm2 reload keiro-worker --update-env 2>/dev/null || pm2 start worker/ecosystem.config.cjs
 
 # Persiste la liste : sans ça, un redémarrage de la machine repart sur une pm2
 # vide et plus rien ne se relance tout seul.
 pm2 save --force >/dev/null 2>&1 || true
 
-# Contrôle explicite : les deux processus DOIVENT être en ligne. Un déploiement
+# Contrôle explicite : les deux services DOIVENT être en ligne. Un déploiement
 # qui laisse le worker éteint n'est pas un déploiement réussi.
-enligne=$(pm2 jlist 2>/dev/null | grep -o '"status":"online"' | wc -l)
-if [ "$enligne" -lt 2 ]; then
-  echo "✗ pm2 : $enligne processus en ligne sur 2 attendus"
+#
+# On compte par NOM, pas en additionnant les « online ». Depuis le passage en
+# cluster, keiro-app compte pour deux processus : un simple total de 2 serait
+# atteint par les deux instances de l'application seules, worker éteint — le
+# contrôle validerait exactement la panne qu'il est censé détecter (57 minutes
+# sans le moindre agent, le 6 août).
+etat="$(pm2 jlist 2>/dev/null | node -e "
+  let s = '';
+  process.stdin.on('data', d => s += d).on('end', () => {
+    try {
+      const l = JSON.parse(s);
+      const enLigne = n => l.filter(x => x.name === n && x.pm2_env.status === 'online').length;
+      process.stdout.write(enLigne('keiro-app') + ' ' + enLigne('keiro-worker'));
+    } catch { process.stdout.write('0 0'); }
+  });
+")"
+app_online="${etat% *}"; worker_online="${etat#* }"
+if [ "${app_online:-0}" -lt 1 ] || [ "${worker_online:-0}" -lt 1 ]; then
+  echo "✗ pm2 : keiro-app=$app_online instance(s), keiro-worker=$worker_online — les deux sont requis"
   pm2 list
   exit 1
 fi
-echo "  ✓ keiro-app et keiro-worker en ligne"
+echo "  ✓ keiro-app ($app_online instance(s)) et keiro-worker en ligne"
 
 # Give the app a moment to come up, then verify from the PUBLIC URL (apex + www).
 sleep 4

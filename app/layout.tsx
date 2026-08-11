@@ -10,6 +10,7 @@ import NewsPrefetcher from "@/components/NewsPrefetcher";
 import ChatbotWidget from "@/components/ChatbotWidget";
 import GlobalNotifBubble from "@/components/GlobalNotifBubble";
 import TaskDoneToast from "@/components/TaskDoneToast";
+import VersionWatcher from "@/components/VersionWatcher";
 import { VortexBackground } from "@/components/ui/vortex-bg";
 import { StickyCtaBar } from "@/components/ui/StickyCtaBar";
 
@@ -183,6 +184,11 @@ export default function RootLayout({
           <TaskDoneToast />
           <ChatbotWidget />
           <CookieConsent />
+          {/* Ramène l'onglet sur la version en ligne, à un moment où ça ne se
+              voit pas. Complément indispensable à la conservation des anciens
+              fichiers : celle-ci évite le plantage, celui-ci évite de rester
+              indéfiniment sur une version périmée. */}
+          <VersionWatcher />
         </LanguageProvider>
         </ThemeProvider>
       </body>
