@@ -186,7 +186,12 @@ mode_actuel="$(pm2 jlist 2>/dev/null | node -e "
       if (!app) return process.stdout.write('absent');
       const cluster = app.pm2_env.exec_mode === 'cluster_mode';
       const grace = Number(app.pm2_env.listen_timeout || 0) >= 20000;
-      process.stdout.write(cluster && grace ? 'cluster_mode' : cluster ? 'cluster_sans_grace' : 'fork');
+      // wait_ready attend un signal que Next n'envoie jamais : au rechargement,
+      // pm2 déclare les nouveaux processus défaillants et arrête tout. Un
+      // processus qui le porte encore doit être recréé, pas rechargé.
+      const piege = app.pm2_env.wait_ready === true;
+      const sain = app.pm2_env.status === 'online';
+      process.stdout.write(cluster && grace && !piege && sain ? 'cluster_mode' : cluster ? 'cluster_a_recreer' : 'fork');
     } catch { process.stdout.write('inconnu'); }
   });
 " 2>/dev/null || echo inconnu)"
@@ -196,12 +201,21 @@ mode_actuel="$(pm2 jlist 2>/dev/null | node -e "
 # vivent dans ecosystem.app.cjs, versionné avec le reste.
 echo "▶ pm2 (keiro-app en mode $mode_actuel)"
 if [ "$mode_actuel" = "cluster_mode" ]; then
-  # Déjà en cluster : remplacement un par un, en respectant le délai de grâce.
-  pm2 reload ecosystem.app.cjs --update-env
+  # Déjà en cluster et sain : remplacement un par un, délai de grâce respecté.
+  #
+  # Le repli n'est PAS décoratif. Le 11 août, un rechargement a échoué et a
+  # laissé le site indisponible sept minutes : `set -e` a arrêté le script
+  # juste après, donc personne n'a relancé l'application. Un déploiement qui
+  # échoue doit laisser le service DEBOUT — c'est toute la règle.
+  if ! pm2 reload ecosystem.app.cjs --update-env; then
+    echo "  ⚠ rechargement en échec — on recrée l'application pour ne pas laisser le site à terre"
+    pm2 delete keiro-app >/dev/null 2>&1 || true
+    pm2 start ecosystem.app.cjs
+  fi
 else
-  # Bascule unique. C'est le SEUL moment où le site se coupe encore quelques
-  # secondes — après, plus jamais.
-  echo "  ▶ bascule en mode cluster ($INSTANCES instances) — dernière coupure"
+  # Bascule ou remise d'aplomb. C'est le SEUL moment où le site se coupe
+  # quelques secondes.
+  echo "  ▶ (re)création en mode cluster ($INSTANCES instances)"
   pm2 delete keiro-app >/dev/null 2>&1 || true
   pm2 start ecosystem.app.cjs
 fi
@@ -230,6 +244,22 @@ etat="$(pm2 jlist 2>/dev/null | node -e "
   });
 ")"
 app_online="${etat% *}"; worker_online="${etat#* }"
+if [ "${app_online:-0}" -lt 1 ]; then
+  # Dernière chance avant d'abandonner : on recrée. Constater que le site est
+  # mort et s'arrêter là est la pire des sorties — c'est littéralement ce qui
+  # s'est passé le 11 août.
+  echo "  ⚠ aucune instance en ligne — tentative de remise en route"
+  pm2 delete keiro-app >/dev/null 2>&1 || true
+  pm2 start ecosystem.app.cjs || true
+  sleep 12
+  app_online=$(pm2 jlist 2>/dev/null | node -e "
+    let s = '';
+    process.stdin.on('data', d => s += d).on('end', () => {
+      try { process.stdout.write(String(JSON.parse(s).filter(x => x.name === 'keiro-app' && x.pm2_env.status === 'online').length)); }
+      catch { process.stdout.write('0'); }
+    });
+  ")
+fi
 if [ "${app_online:-0}" -lt 1 ] || [ "${worker_online:-0}" -lt 1 ]; then
   echo "✗ pm2 : keiro-app=$app_online instance(s), keiro-worker=$worker_online — les deux sont requis"
   pm2 list
