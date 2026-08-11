@@ -44,6 +44,26 @@ echo "▶ target commit: $EXPECTED_SHA"
 echo "▶ npm ci"
 npm ci --no-audit --no-fund
 
+# ── Migrations de base de données ──
+#
+# Le projet n'avait plus aucun moyen d'en appliquer une depuis des mois : jeton
+# Management révoqué, et connexion directe injoignable depuis le poste du
+# fondateur, dont le réseau ne route pas l'IPv6 exigée par le DNS de Supabase.
+# D'où des fonctionnalités repoussées faute de pouvoir créer une table.
+#
+# La contrainte était mal située : elle venait du réseau du poste, pas de
+# Supabase. Le VPS a une IPv6 et joint la base sans difficulté — le chemin
+# existait, personne ne l'avait essayé d'ici.
+#
+# Le script ne fait jamais échouer le déploiement sur une base injoignable : il
+# le dit et passe. Une migration CASSÉE, en revanche, arrête tout.
+#
+# `--env-file` : Node ne lit pas .env.local tout seul, et c'est là que vivent
+# les identifiants de la base. Sans ce drapeau, le script conclurait « pas de
+# connexion configurée » alors que tout est en place.
+echo "▶ migrations"
+node --env-file=.env.local scripts/migrer.mjs || node scripts/migrer.mjs
+
 # Build PROPRE, jamais incrémental.
 #
 # Incident 2026-08-05 : un build par-dessus un .next existant a laissé des
@@ -94,12 +114,30 @@ echo "▶ build propre (suppression de .next)"
 # Un échec de cette nature interrompt un déploiement légitime, et on cherche le
 # bug pendant vingt minutes dans du code qui n'a rien. Deux tentatives : si la
 # seconde échoue aussi, c'est un vrai problème et on s'arrête pour de bon.
-rm -rf .next
-if ! npm run build; then
+#
+# ── On construit À CÔTÉ, l'ancienne version continue de servir ──
+#
+# Rapport de santé du 2026-08-11 : « Cannot find module './chunks/70260.js' »,
+# deux échecs de l'agent contenu en douze heures. Cause exacte : on supprimait
+# .next AVANT de reconstruire, donc pendant les trois à quatre minutes du build
+# le serveur en cours tournait sans ses fichiers. Toute route chargée
+# paresseusement échouait. La panne durait tout le build, en silence.
+#
+# Le build va donc dans .next-build, et la bascule est un renommage : quelques
+# millisecondes au lieu de plusieurs minutes.
+rm -rf .next-build
+if ! NEXT_DIST_DIR=.next-build npm run build; then
   echo "⚠ build en échec — seconde tentative (le build est non déterministe par moments)"
-  rm -rf .next
-  npm run build
+  rm -rf .next-build
+  NEXT_DIST_DIR=.next-build npm run build
 fi
+
+# Bascule atomique de fait : le serveur ne voit jamais d'arborescence à moitié
+# écrite, contrairement à un build qui écrit directement dans .next.
+echo "▶ bascule vers la nouvelle version"
+rm -rf .next-precedent
+[ -d .next ] && mv .next .next-precedent
+mv .next-build .next
 
 # On remet les anciens fichiers À CÔTÉ des nouveaux, sans jamais écraser (-n) :
 # les nouveaux font foi, les anciens ne servent qu'aux sessions déjà ouvertes.

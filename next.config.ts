@@ -1,6 +1,23 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // ── Construire À CÔTÉ, puis basculer ──
+  //
+  // Incident du 2026-08-11, remonté par le rapport de santé : « Cannot find
+  // module './chunks/70260.js' », deux échecs de l'agent contenu en douze
+  // heures.
+  //
+  // Le déploiement supprimait .next AVANT de reconstruire. Pendant les trois à
+  // quatre minutes du build, le serveur en cours d'exécution tournait donc sans
+  // ses fichiers : toute route chargée paresseusement — c'est-à-dire la plupart
+  // — échouait sur un module introuvable. La fenêtre de panne durait tout le
+  // build, en silence, et ne se voyait que dans les journaux d'agents.
+  //
+  // On construit désormais dans un dossier séparé, et le déploiement bascule
+  // par un simple renommage : la fenêtre passe de plusieurs minutes à quelques
+  // millisecondes. Sans cette variable, le comportement reste celui par défaut,
+  // ce qui garde le développement local inchangé.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   eslint: { ignoreDuringBuilds: true },
   // Hide the X-Powered-By: Next.js header so enterprise security
   // scanners don't flag a tech-stack disclosure. Vercel did this

@@ -247,6 +247,14 @@ function LoginPageInner() {
 
       console.log('[Signup] User created:', data.user?.id);
 
+      // Rattache le compte à l'apporteur dont le prospect a suivi le lien,
+      // parfois plusieurs semaines plus tôt. Best-effort : une inscription ne
+      // doit jamais échouer à cause du programme d'apport.
+      if (data.user?.id) {
+        const { rattacherParrainage } = await import('@/components/ParrainageCapture');
+        void rattacherParrainage(data.user.id);
+      }
+
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')

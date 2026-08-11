@@ -10,6 +10,7 @@ import NewsPrefetcher from "@/components/NewsPrefetcher";
 import ChatbotWidget from "@/components/ChatbotWidget";
 import GlobalNotifBubble from "@/components/GlobalNotifBubble";
 import TaskDoneToast from "@/components/TaskDoneToast";
+import ParrainageCapture from "@/components/ParrainageCapture";
 import VersionWatcher from "@/components/VersionWatcher";
 import { VortexBackground } from "@/components/ui/vortex-bg";
 import { StickyCtaBar } from "@/components/ui/StickyCtaBar";
@@ -189,6 +190,10 @@ export default function RootLayout({
               fichiers : celle-ci évite le plantage, celui-ci évite de rester
               indéfiniment sur une version périmée. */}
           <VersionWatcher />
+          {/* Retient le code d'un apporteur d'affaires jusqu'à la création du
+              compte : le prospect revient souvent des jours plus tard, sans le
+              paramètre d'origine. */}
+          <ParrainageCapture />
         </LanguageProvider>
         </ThemeProvider>
       </body>

@@ -151,11 +151,29 @@ export async function GET(req: NextRequest) {
     const { data: corrections } = await supabase
       .from('agent_logs').select('created_at, data')
       .eq('action', 'fraicheur_reecriture').order('created_at', { ascending: false }).limit(15);
-    return NextResponse.json({ ok: true, passages, corrections });
+    // Les dernières publications RÉELLEMENT parties, pour vérifier de
+    // l'extérieur ce qui est sorti et sous quel contrôle.
+    const { data: publiees } = await supabase
+      .from('content_calendar')
+      .select('id, platform, format, published_at, hook, caption, visual_url, qa_notes, source')
+      .eq('status', 'published').order('published_at', { ascending: false }).limit(12);
+    return NextResponse.json({ ok: true, passages, corrections, publiees });
   }
 
+  // ── Balayage TOTAL, à la demande ──
+  //
+  // Fondateur, 2026-08-11, après avoir vu partir un post « restaurant » illustré
+  // par des fleurs : « vérifie les posts programmés, rapatriés, TOUS ». La
+  // fenêtre de sept jours et le plafond de vingt-cinq sont faits pour lisser la
+  // dépense au quotidien ; ils ne conviennent pas quand il faut purger le stock
+  // d'un coup. `?tout=1` ouvre l'horizon et lève le plafond — environ un euro
+  // pour l'ensemble du calendrier, une fois.
+  const balayageTotal = req.nextUrl.searchParams.get('tout') === '1';
+  const fenetre = balayageTotal ? 400 : FENETRE_JOURS;
+  const plafondRequalif = balayageTotal ? 600 : PLAFOND_REQUALIFICATION;
+
   const aujourdhui = maintenant.slice(0, 10);
-  const limite = new Date(Date.now() + FENETRE_JOURS * 86400000).toISOString().slice(0, 10);
+  const limite = new Date(Date.now() + fenetre * 86400000).toISOString().slice(0, 10);
 
   const { data: posts, error } = await supabase
     .from('content_calendar')
@@ -164,7 +182,7 @@ export async function GET(req: NextRequest) {
     .gte('scheduled_date', aujourdhui)
     .lte('scheduled_date', limite)
     .order('scheduled_date', { ascending: true })
-    .limit(500);
+    .limit(balayageTotal ? 2000 : 500);
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   if (!posts?.length) return NextResponse.json({ ok: true, message: 'Rien à relire dans la fenêtre' });
@@ -268,7 +286,7 @@ export async function GET(req: NextRequest) {
   let requalifies = 0, requalifiesEcartes = 0, requalifiesReecrits = 0;
   const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
   for (const p of posts) {
-    if (requalifies >= PLAFOND_REQUALIFICATION) break;
+    if (requalifies >= plafondRequalif) break;
     if (String(p.qa_notes || '').includes(MARQUE_STANDARD)) continue;
 
     // On relit la ligne : la relecture de fraîcheur a pu réécrire le texte, et
@@ -365,7 +383,7 @@ export async function GET(req: NextRequest) {
 
   const bilan = {
     examines, signales, reecrits, ecartes, faux_positifs: fauxPositifs, indisponibles,
-    requalifies, requalifies_reecrits: requalifiesReecrits, requalifies_ecartes: requalifiesEcartes, fenetre_jours: FENETRE_JOURS,
+    requalifies, requalifies_reecrits: requalifiesReecrits, requalifies_ecartes: requalifiesEcartes, fenetre_jours: fenetre, balayage_total: balayageTotal,
   };
 
   try {
