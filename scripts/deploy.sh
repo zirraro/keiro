@@ -69,8 +69,13 @@ npm ci --no-audit --no-fund
 # `--env-file` : Node ne lit pas .env.local tout seul, et c'est là que vivent
 # les identifiants de la base. Sans ce drapeau, le script conclurait « pas de
 # connexion configurée » alors que tout est en place.
+#
+# Le `|| true` final est délibéré : une migration en échec doit se VOIR dans le
+# journal, mais jamais bloquer la mise en ligne d'un correctif sans rapport.
+# Le 11 août, l'absence du module pg — dépendance de développement, donc
+# absente en production — a fait échouer tout un déploiement.
 echo "▶ migrations"
-node --env-file=.env.local scripts/migrer.mjs || node scripts/migrer.mjs
+node --env-file=.env.local scripts/migrer.mjs || node scripts/migrer.mjs || echo "⚠ migrations non appliquées — le déploiement continue"
 
 # Build PROPRE, jamais incrémental.
 #

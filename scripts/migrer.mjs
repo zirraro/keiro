@@ -32,7 +32,25 @@
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import pg from 'pg';
+
+/**
+ * `pg` est une dépendance de DÉVELOPPEMENT : `npm ci` ne l'installe pas en
+ * production. L'import statique faisait donc planter le script, et comme il
+ * tourne pendant le déploiement, il emportait tout le déploiement avec lui —
+ * un outil de migration cassé bloquait la mise en ligne de correctifs sans
+ * aucun rapport (constaté le 11 août).
+ *
+ * On l'importe donc au moment de s'en servir, et son absence est un simple
+ * « migrations ignorées ». Le déclarer en dépendance de production alourdirait
+ * l'image pour un besoin qui n'existe qu'au déploiement.
+ */
+let pg;
+try {
+  pg = (await import('pg')).default;
+} catch {
+  console.log('▶ migrations : module pg absent (dépendance de développement) — ignorées');
+  process.exit(0);
+}
 
 const DOSSIER = 'supabase/migrations';
 
