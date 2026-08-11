@@ -299,6 +299,26 @@ export async function GET(req: NextRequest) {
     defaut_principal: Object.entries(e.defauts).sort((a, b) => b[1] - a[1])[0]?.[0] || null,
   })).sort((a, b) => b.posts - a.posts);
 
+  // ── 3d quater. La marge EXHAUSTIVE, charges fixes comprises ──
+  //
+  // Fondateur, 2026-08-11 : « compte absolument toutes les dépenses dans les
+  // marges, internes et utilisation client donc externe. »
+  //
+  // Jusqu'ici la marge ne comptait que les appels d'API : elle ignorait le
+  // serveur, la base, l'envoi d'e-mails, le domaine et la commission Stripe —
+  // tout ce qui se paie même sans client. Une marge de 96 % annoncée sur
+  // 4,40 € d'API devient tout autre chose une fois les charges fixes réparties.
+  //
+  // Le coût variable retenu par plan est celui MESURÉ sur le compte de
+  // référence (client actif simulé), et non une estimation : c'est le seul
+  // chiffre qu'on observe vraiment. Il est projeté sur le mois entier.
+  const { margeExhaustive, CHARGES_FIXES, TOTAL_CHARGES_FIXES_EUR } = await import('@/lib/admin/charges-fixes');
+  const coutVariableObserve = referenceProjCost > 0 ? referenceProjCost : 0;
+  // Les clients qui se partagent les charges fixes : les VRAIS payants.
+  const margesExhaustives = ['createur', 'pro', 'business'].map(p =>
+    margeExhaustive(p, PLAN_REV[p] || 0, coutVariableObserve, realClientCount));
+  const chargesFixesNonConfirmees = CHARGES_FIXES.filter(c => !c.confirme).map(c => c.nom);
+
   // 3e. Coût PAR POST : coût MÉDIA (image/vidéo/voix) attribué au contenu, /
   //     posts publiés MTD. On s'appuie sur `provider` (fiable) et non sur
   //     `agent`. Un coût/post ~0€ = les posts ont réutilisé des visuels de la
@@ -413,6 +433,15 @@ export async function GET(req: NextRequest) {
     // Le taux de réussite du premier coup, par réseau : la mesure qui dit si
     // améliorer le prompt sert à quelque chose, en qualité comme en coût.
     premiere_generation: premierCoupRows,
+    // Marge tout compris : API + frais Stripe + charges fixes réparties.
+    marges_exhaustives: {
+      charges_fixes_total_eur: TOTAL_CHARGES_FIXES_EUR,
+      charges_fixes: CHARGES_FIXES,
+      a_confirmer: chargesFixesNonConfirmees,
+      cout_variable_observe_eur: Math.round(coutVariableObserve * 100) / 100,
+      clients_payants: realClientCount,
+      par_plan: margesExhaustives,
+    },
     cost_by_agent: agentRows,
     posts_published_mtd: posts,
     media_cost_mtd_eur: Math.round(mediaCostMtd * 100) / 100,
