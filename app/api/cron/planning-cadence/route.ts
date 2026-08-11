@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PLAN_CREDITS, CREDIT_COSTS } from '@/lib/credits/constants';
+import { fraisStripeEur } from '@/lib/admin/charges-fixes';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -138,6 +139,50 @@ const COUT_PUBLICATION: Record<string, number> = {
 };
 
 /**
+ * ── La marge de 80 % est une CONTRAINTE, pas un espoir ──
+ *
+ * Fondateur, 2026-08-11 : « garde en tête qu'on veut autour de 80 % de marges à
+ * chaque fois », « en comptant nos charges internes et externes », « coûts
+ * fixes et variables ».
+ *
+ * Le pool de crédits borne déjà la cadence, mais il ne dit rien de la marge :
+ * un pool généreux sur un plan bon marché resterait déficitaire. On ajoute donc
+ * une seconde borne, en EUROS cette fois, et on retient la plus stricte des
+ * deux.
+ *
+ * Ce que cette borne couvre : les coûts VARIABLES, ceux que la cadence pilote
+ * réellement — génération d'images, de vidéos, et les appels de modèle qui vont
+ * avec. La commission Stripe est retirée du budget parce qu'elle se prélève sur
+ * chaque mensualité et qu'aucune cadence ne la fait bouger.
+ *
+ * Les charges FIXES (serveur, base, domaine) ne sont volontairement PAS dans
+ * cette borne : elles ne dépendent pas de la cadence mais du nombre de clients.
+ * Les y inclure rendrait le calcul absurde au démarrage — à un seul client,
+ * 37,50 € de charges fixes sur un plan à 49 € interdiraient toute publication,
+ * et le produit ne délivrerait rien précisément quand il doit convaincre. Elles
+ * sont suivies à part, avec le nombre de clients nécessaire pour les absorber.
+ */
+const MARGE_CIBLE = 0.80;
+
+/** Prix mensuel par plan — doit rester aligné sur PLAN_REV du rapport de coûts. */
+const PRIX_PLAN: Record<string, number> = {
+  createur: 49, pro: 99, fondateurs: 79, business: 149, elite: 299, agence: 499,
+};
+
+/**
+ * Coût réel d'une publication en euros, média + appels de modèle.
+ *
+ * La part « modèle » couvre l'écriture de la légende, l'optimisation du prompt
+ * visuel et les contrôles qualité. Elle est modeste mais pas nulle, et
+ * l'oublier ferait sous-estimer la cadence soutenable.
+ */
+const COUT_EUR_PUBLICATION: Record<string, number> = {
+  tiktok: 0.31 + 0.02,      // vidéo 5 s + modèle
+  instagram: 0.045 + 0.02,  // image + modèle
+  linkedin: 0.045 + 0.02,
+};
+
+/**
  * ── Pourquoi PAS un prorata ──
  *
  * Premier essai : répartir le budget au prorata de la cadence visée. Résultat
@@ -180,9 +225,21 @@ function cadenceFinancable(plan: string, reseau: string, illimite = false): numb
     .reduce((s, [r, parJour]) => s + parJour * 30 * (COUT_PUBLICATION[r] ?? 4), 0);
 
   const budget = pool * PART_POOL_POUR_PLANNING;
-  if (coutCibleMensuel <= budget) return cible;   // le plan finance la cadence visée
+  const facteurCredits = coutCibleMensuel > 0 ? budget / coutCibleMensuel : 1;
 
-  // Sinon on réduit TOUT LE MIX du même facteur.
+  // Seconde borne, en euros : la marge de 80 % doit tenir.
+  const prix = PRIX_PLAN[String(plan || 'createur').toLowerCase()] ?? PRIX_PLAN.createur;
+  const budgetEur = Math.max(0, prix * (1 - MARGE_CIBLE) - fraisStripeEur(prix));
+  const coutEurCible = Object.entries(CADENCE_PAR_RESEAU)
+    .reduce((s, [r, parJour]) => s + parJour * 30 * (COUT_EUR_PUBLICATION[r] ?? 0.065), 0);
+  const facteurMarge = coutEurCible > 0 ? budgetEur / coutEurCible : 1;
+
+  // La plus stricte des deux bornes fait loi : dépasser l'une ou l'autre finit
+  // au même endroit — un client à sec, ou une marge qui n'y est pas.
+  const facteur = Math.min(1, facteurCredits, facteurMarge);
+  if (facteur >= 1) return cible;
+
+  // On réduit TOUT LE MIX du même facteur.
   //
   // Premier essai : répartir le budget entre réseaux au prorata du NOMBRE de
   // publications. Résultat absurde — 0,1 TikTok par jour sur Créateur, pendant
@@ -190,7 +247,6 @@ function cadenceFinancable(plan: string, reseau: string, illimite = false): numb
   // réseau bon marché pour financer le cher. Réduire le mix d'un facteur
   // unique préserve les proportions voulues et tient le budget par
   // construction.
-  const facteur = budget / coutCibleMensuel;
   // Plancher : une publication tous les trois jours. En dessous, le compte
   // paraît abandonné, et la portée perdue coûte plus cher que la génération
   // épargnée.
