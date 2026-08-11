@@ -299,4 +299,23 @@ if [ "$fail" = "1" ]; then
   echo "🚨 DEPLOY NOT LIVE on the public URL. Investigate cache/proxy/DNS before declaring done."
   exit 1
 fi
+
+# ── Un déploiement n'est pas réussi parce qu'il s'est terminé ──
+#
+# Fondateur, 2026-08-11 : « il ne faut surtout pas faire sauter une fonction en
+# mettant à jour une autre. » Jusqu'ici on ne vérifiait qu'UNE route —
+# /api/version — et on en concluait que tout allait bien. Le 5 août, des
+# manifestes manquants avaient rendu plusieurs routes 500 : le client voyait sa
+# galerie et ses brouillons vides, et le déploiement s'était déclaré réussi.
+#
+# Le back-test appelle le site comme un client : pages publiques, espace
+# client, API protégées (401 attendu, jamais 500), crons. Il échoue le
+# déploiement si une fonction est tombée.
+echo "▶ back-test des fonctions"
+if ! node scripts/back-test.mjs "https://keiroai.com" "$EXPECTED_SHA"; then
+  echo "🚨 Le commit est bien en ligne, mais des FONCTIONS sont cassées."
+  echo "   L'application tourne : ne pas la redémarrer à l'aveugle, corriger le code."
+  exit 1
+fi
+
 echo "🎉 Deploy verified live on public URL ($EXPECTED_SHA)."
