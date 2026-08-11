@@ -3138,6 +3138,22 @@ async function GETInterne(request: NextRequest) {
               const isBad = (s: any) => ((s.amateur_flags || []).some((f: string) => fatalFlags.includes(f)) || s.score < QUALITY_FLOOR);
               let sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post', undefined, fullPost.platform);
               console.log(`[Content] pre-publish visual QA: score=${sqa.score}/10 — flags=${(sqa.amateur_flags || []).join(',')}`);
+
+              // ── Mesurer la réussite DU PREMIER COUP ──
+              //
+              // Fondateur : « sortir le plus vite possible, de préférence dès
+              // la 1re génération, une top image ». Impossible à vérifier
+              // jusqu'ici : seuls les ÉCHECS étaient journalisés
+              // (`qa_visual_block`). Sans les réussites, on connaît le nombre
+              // de rejets mais jamais le taux — donc on ne peut pas dire si
+              // une amélioration du prompt a servi à quelque chose.
+              //
+              // On note donc chaque tentative. C'est la mesure qui relie la
+              // qualité au coût : une image acceptée du premier coup, c'est
+              // une génération payée une fois au lieu de trois.
+              const tentatives: Array<{ n: number; score: number; flags: string[]; accepte: boolean }> = [
+                { n: 1, score: sqa.score, flags: sqa.amateur_flags || [], accepte: !isBad(sqa) },
+              ];
               // Cost-bounded quality ladder (quality first, margin controlled):
               //   1. up to 2 regenerations to reach the ≥7 floor (bounded cost)
               //   2. still below floor → REUSE a proven top library visual
@@ -3154,7 +3170,24 @@ async function GETInterne(request: NextRequest) {
                 await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
                 sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post', undefined, fullPost.platform);
                 console.log(`[Content] re-QA after regen ${regenAttempts}: score=${sqa.score}/10`);
+                tentatives.push({ n: regenAttempts + 1, score: sqa.score, flags: sqa.amateur_flags || [], accepte: !isBad(sqa) });
               }
+
+              // Une seule écriture pour tout le parcours, réussite comprise.
+              try {
+                await supabase.from('agent_logs').insert({
+                  agent: 'content', action: 'qa_visual_tentatives', status: 'ok', user_id: userId || undefined,
+                  data: {
+                    post_id: post.id, reseau: fullPost.platform, format: fullPost.format,
+                    nb_tentatives: tentatives.length,
+                    premier_coup: tentatives[0].accepte,
+                    accepte_final: tentatives[tentatives.length - 1].accepte,
+                    scores: tentatives.map(t => t.score),
+                    defauts_premier: tentatives[0].flags,
+                  },
+                  created_at: new Date().toISOString(),
+                });
+              } catch { /* la mesure ne bloque jamais une publication */ }
               if (isBad(sqa) && userId) {
                 let reused = false;
                 try {

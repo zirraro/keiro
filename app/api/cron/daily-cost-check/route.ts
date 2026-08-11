@@ -256,6 +256,49 @@ export async function GET(req: NextRequest) {
   const coutProduction = totalMtd - coutControle;
   const partControlePct = totalMtd > 0 ? Math.round((coutControle / totalMtd) * 100) : 0;
 
+  // ── 3d ter. Le taux de réussite À LA PREMIÈRE GÉNÉRATION ──
+  //
+  // Fondateur : « sortir le plus vite possible, de préférence dès la 1re
+  // génération, une top image ou un top reel. »
+  //
+  // C'est la mesure qui relie la qualité au coût, et la seule qui permette de
+  // dire si une amélioration du prompt a servi à quelque chose. Une image
+  // acceptée du premier coup est payée une fois ; refusée, elle est régénérée
+  // jusqu'à deux fois — même contrôle repayé à chaque tour.
+  //
+  // Jusqu'au 11 août seuls les ÉCHECS étaient journalisés : on connaissait le
+  // nombre de rejets, jamais le taux. Le dénominateur manquait.
+  //
+  // Par RÉSEAU, parce que les exigences diffèrent : un chiffre global
+  // mélangerait un TikTok jugé sur son intention cinéma et un LinkedIn jugé
+  // sur sa sobriété, et masquerait le réseau qui décroche.
+  const { data: tentativesLogs } = await supabase
+    .from('agent_logs')
+    .select('data, created_at')
+    .eq('action', 'qa_visual_tentatives')
+    .gte('created_at', monthStart.toISOString())
+    .limit(5000);
+
+  const parReseau: Record<string, { total: number; premierCoup: number; tentatives: number; defauts: Record<string, number> }> = {};
+  for (const l of (tentativesLogs || []) as any[]) {
+    const d = l.data || {};
+    const r = String(d.reseau || 'inconnu');
+    const e = (parReseau[r] ||= { total: 0, premierCoup: 0, tentatives: 0, defauts: {} });
+    e.total++;
+    if (d.premier_coup) e.premierCoup++;
+    e.tentatives += Number(d.nb_tentatives) || 1;
+    // Les défauts du PREMIER essai : ce sont eux qu'il faut faire disparaître
+    // du prompt de génération, les suivants ne sont que des conséquences.
+    if (!d.premier_coup) for (const f of (d.defauts_premier || [])) e.defauts[String(f)] = (e.defauts[String(f)] || 0) + 1;
+  }
+  const premierCoupRows = Object.entries(parReseau).map(([reseau, e]) => ({
+    reseau,
+    posts: e.total,
+    taux_premier_coup: e.total > 0 ? Math.round((e.premierCoup / e.total) * 100) : 0,
+    tentatives_moyennes: e.total > 0 ? Math.round((e.tentatives / e.total) * 100) / 100 : 0,
+    defaut_principal: Object.entries(e.defauts).sort((a, b) => b[1] - a[1])[0]?.[0] || null,
+  })).sort((a, b) => b.posts - a.posts);
+
   // 3e. Coût PAR POST : coût MÉDIA (image/vidéo/voix) attribué au contenu, /
   //     posts publiés MTD. On s'appuie sur `provider` (fiable) et non sur
   //     `agent`. Un coût/post ~0€ = les posts ont réutilisé des visuels de la
@@ -306,7 +349,7 @@ export async function GET(req: NextRequest) {
         referenceRows, supervisionRows, referenceProjCost, supervisionProjCost, supervisionOverBudget, supervisionBudget: SUPERVISION_BUDGET_EUR,
         attributedMtd, unattributedMtd, unattributedPct, prospectionMtd, prospectionPct, systemTestsMtd, systemTestsPct, watchMargin: WATCH_MARGIN,
         posts, costPerPost, mediaCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
-        coutControle, coutProduction, partControlePct, controleRows,
+        coutControle, coutProduction, partControlePct, controleRows, premierCoupRows,
       });
       const brevoKey = process.env.BREVO_API_KEY;
       if (brevoKey) {
@@ -367,6 +410,9 @@ export async function GET(req: NextRequest) {
       part_controle_pct: partControlePct,
       detail: controleRows,
     },
+    // Le taux de réussite du premier coup, par réseau : la mesure qui dit si
+    // améliorer le prompt sert à quelque chose, en qualité comme en coût.
+    premiere_generation: premierCoupRows,
     cost_by_agent: agentRows,
     posts_published_mtd: posts,
     media_cost_mtd_eur: Math.round(mediaCostMtd * 100) / 100,
@@ -460,6 +506,27 @@ function renderAlertEmail(d: any): string {
       et des publications ratées, qui coûtent un client. Au-delà de 25 % de la dépense, il faut regarder — en dessous,
       la qualité reste prioritaire.
     </p>
+
+    ${(d.premierCoupRows || []).length > 0 ? `
+    <h2 style="margin-top: 24px;">🎯 Bon du premier coup, par réseau</h2>
+    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+      <thead><tr style="background:#f3f4f6;"><th style="padding:8px; text-align:left;">Réseau</th><th style="padding:8px; text-align:right;">Visuels</th><th style="padding:8px; text-align:right;">1er coup</th><th style="padding:8px; text-align:right;">Essais/visuel</th><th style="padding:8px; text-align:left;">Défaut n°1</th></tr></thead>
+      <tbody>
+        ${d.premierCoupRows.map((r: any) => `<tr style="border-top:1px solid #e5e7eb;">
+          <td style="padding:6px 8px; text-transform:capitalize;">${r.reseau}</td>
+          <td style="text-align:right; padding:6px 8px;">${r.posts}</td>
+          <td style="text-align:right; padding:6px 8px; font-weight:bold; color:${r.taux_premier_coup >= 70 ? '#059669' : r.taux_premier_coup >= 50 ? '#d97706' : '#dc2626'};">${r.taux_premier_coup} %</td>
+          <td style="text-align:right; padding:6px 8px;">${r.tentatives_moyennes}</td>
+          <td style="padding:6px 8px; color:#6b7280; font-size:12px;">${r.defaut_principal || '—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="font-size:11px;color:#94a3b8;margin-top:6px;">
+      Une image acceptée du premier coup est payée une fois ; refusée, elle est régénérée jusqu'à deux fois — même
+      contrôle repayé à chaque tour. C'est donc ici que qualité et coût vont dans le même sens.
+      Le « défaut n°1 » est ce qu'il faut faire disparaître du prompt de génération : c'est exactement ce que
+      l'apprentissage des rejets réinjecte automatiquement.
+    </p>` : ''}
 
     ${d.spikes.length > 0 ? `
     <h2 style="margin-top: 24px;">⚡ Clients en spike (top 10)</h2>
