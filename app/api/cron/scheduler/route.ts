@@ -363,6 +363,12 @@ export async function GET(request: NextRequest) {
         // voulait rien dire pour le client, des générations payées pour rien,
         // et un stock de contenus voisins d'où sortaient les doublons.
         await callEndpoint('Planning — remise à la cadence', '/api/cron/planning-cadence', 'GET');
+        // Puis la relecture de ce qui part dans les sept jours. APRÈS la
+        // cadence, jamais avant : celle-ci déplace les publications, et
+        // corriger un texte pour une date qui change dans la seconde n'a
+        // aucun sens. « Les soldes commencent aujourd'hui » était programmé
+        // le 18 août, deux semaines après la fin des soldes.
+        await callEndpoint('Fraîcheur — relecture avant parution', '/api/cron/rafraichir-planifies', 'GET');
         await callEndpoint('Admin Morning Digest', '/api/cron/admin-morning-digest', 'GET');
         // Contrôle de sécurité automatique quotidien — toute régression (headers,
         // chiffrement, divulgation…) remonte en erreur dans le digest admin.

@@ -2993,6 +2993,38 @@ async function GETInterne(request: NextRequest) {
             continue;
           }
 
+          // ── L'événement dont parle ce post est-il encore d'actualité ? ──
+          //
+          // Déterministe, gratuit, et placé ici parce que c'est le point par
+          // lequel toute publication automatique passe. La relecture de
+          // fraîcheur (cron rafraichir-planifies) traite déjà les sept jours à
+          // venir avec un modèle ; ce filet-ci rattrape ce qui a échappé à la
+          // fenêtre — un post créé et publié le jour même, une date déplacée
+          // après la relecture.
+          //
+          // On ne retient QUE sur un événement daté hors de sa fenêtre, jamais
+          // sur une tournure comme « aujourd'hui » : « Aujourd'hui, 80 % des
+          // clients cherchent en ligne » est une généralité parfaitement
+          // publiable, et bloquer là-dessus arrêterait des posts sains en
+          // silence. Juger la nuance demande un modèle, c'est le travail du
+          // cron ; ici on ne tranche que ce qui est certain.
+          try {
+            const { reperesPerissables } = await import('@/lib/agents/fraicheur');
+            const perimes = reperesPerissables(
+              [fullPost.hook, fullPost.caption].filter(Boolean).join('\n'),
+              new Date().toISOString().slice(0, 10),
+            ).filter(r => r.famille === 'evenement_passe');
+            if (perimes.length) {
+              await supabase.from('content_calendar').update({
+                status: 'draft',
+                publish_diagnostic: `perime: ${perimes[0].aVerifier}`.slice(0, 500),
+                updated_at: new Date().toISOString(),
+              }).eq('id', post.id);
+              console.warn(`[Content] publication retenue ${post.id} — ${perimes[0].aVerifier}`);
+              continue;
+            }
+          } catch { /* un garde-fou en panne ne bloque pas la publication */ }
+
           // 2026-06-07 — Pre-publish QA gate (ALL platforms IG/TT/LI).
           // Founder ask: "le control qualite doit etre sur tout les posts
           // insta et tiktok et linkedin pour s'assurer de ce qui est posté".
