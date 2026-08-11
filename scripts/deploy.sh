@@ -56,8 +56,22 @@ if [ -d .next/static ]; then
 fi
 
 echo "▶ build propre (suppression de .next)"
+# Une seconde tentative, parce que le build échoue parfois sans raison.
+#
+# 2026-08-11 : « Build error occurred / SyntaxError: Unexpected end of JSON
+# input » pendant la collecte des pages. Le même commit, relancé sans changer
+# une ligne, est passé. Le code compilait, les types étaient bons — la collecte
+# lit un fichier que le build vient d'écrire, et elle l'a lu vide.
+#
+# Un échec de cette nature interrompt un déploiement légitime, et on cherche le
+# bug pendant vingt minutes dans du code qui n'a rien. Deux tentatives : si la
+# seconde échoue aussi, c'est un vrai problème et on s'arrête pour de bon.
 rm -rf .next
-npm run build
+if ! npm run build; then
+  echo "⚠ build en échec — seconde tentative (le build est non déterministe par moments)"
+  rm -rf .next
+  npm run build
+fi
 
 # On remet les anciens fichiers À CÔTÉ des nouveaux, sans jamais écraser (-n) :
 # les nouveaux font foi, les anciens ne servent qu'aux sessions déjà ouvertes.
