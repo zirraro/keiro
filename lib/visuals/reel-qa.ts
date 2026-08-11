@@ -172,6 +172,10 @@ JSON only. No preamble.`;
         system,
         messages: [{ role: 'user', content: messageContent }],
       }),
+    }, {
+      // Étiquette de coût — convention `qc_` : ce qu'on paie pour VÉRIFIER,
+      // séparé de ce qu'on paie pour PRODUIRE. Voir le rapport quotidien.
+      etiquette: 'qc_reel', agent: 'content',
     });
     if (!visionRes.ok) return { verdict: 'pass' };
     const data = await visionRes.json();

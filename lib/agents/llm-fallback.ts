@@ -110,7 +110,11 @@ export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCall
         const costEur = anthropicCostEur(data.usage || {}, modelKind as any);
         logApiCost({
           provider: 'anthropic',
-          kind: `${modelKind}_${(data.usage?.cache_read_input_tokens || 0) > 0 ? 'cached' : 'fresh'}`,
+          // L'étiquette de l'appelant fait foi quand elle existe : sans elle,
+          // tout se rangeait sous « haiku_fresh » et on ne pouvait plus dire
+          // ce qui relevait de la PRODUCTION et ce qui relevait du CONTRÔLE.
+          // Le modèle reste dans les métadonnées, on ne perd rien.
+          kind: opts.callTag || `${modelKind}_${(data.usage?.cache_read_input_tokens || 0) > 0 ? 'cached' : 'fresh'}`,
           units: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
           cost_eur: costEur,
           metadata: { model: claudeModel, usage: data.usage },

@@ -221,6 +221,41 @@ export async function GET(req: NextRequest) {
     .map(([agent, cost]) => ({ agent, cost: Math.round(cost * 100) / 100, pct: totalMtd > 0 ? Math.round((cost / totalMtd) * 100) : 0 }))
     .sort((a, b) => b.cost - a.cost);
 
+  // ── 3d bis. Ce qu'on paie pour VÉRIFIER, séparé de ce qu'on paie pour
+  //     PRODUIRE ──
+  //
+  // Fondateur, 2026-08-11 : « monitore les coûts qu'on doit pouvoir maîtriser,
+  // ça nous coûte aussi de vérifier la qualité de tout cela en plus des
+  // générations » — et, dans la même phrase, « attention, toujours prioriser
+  // la qualité ».
+  //
+  // Les deux ne s'opposent que si on ne sait pas les distinguer. Le contrôle
+  // était noyé dans le total : impossible de dire si un mois cher venait d'une
+  // production intense ou d'un contrôle devenu gourmand, donc impossible de
+  // décider quoi que ce soit sans risquer de couper dans la qualité.
+  //
+  // Convention : toute étiquette commençant par `qc_` est du contrôle.
+  //
+  // Le ratio est l'indicateur à suivre. Un contrôle qui reste une petite part
+  // de la production est un contrôle rentable : il évite des régénérations qui
+  // coûtent bien plus cher que lui, et il empêche des publications ratées qui,
+  // elles, coûtent un client.
+  const CONTROLE = /^(qc_|fraicheur)/;
+  let coutControle = 0;
+  const parControle: Record<string, number> = {};
+  for (const e of (events || []) as any[]) {
+    const k = String(e.kind || '');
+    if (!CONTROLE.test(k)) continue;
+    const cost = parseFloat(e.cost_eur) || 0;
+    coutControle += cost;
+    parControle[k] = (parControle[k] || 0) + cost;
+  }
+  const controleRows = Object.entries(parControle)
+    .map(([kind, cost]) => ({ kind, cost: Math.round(cost * 1000) / 1000 }))
+    .sort((a, b) => b.cost - a.cost);
+  const coutProduction = totalMtd - coutControle;
+  const partControlePct = totalMtd > 0 ? Math.round((coutControle / totalMtd) * 100) : 0;
+
   // 3e. Coût PAR POST : coût MÉDIA (image/vidéo/voix) attribué au contenu, /
   //     posts publiés MTD. On s'appuie sur `provider` (fiable) et non sur
   //     `agent`. Un coût/post ~0€ = les posts ont réutilisé des visuels de la
@@ -271,6 +306,7 @@ export async function GET(req: NextRequest) {
         referenceRows, supervisionRows, referenceProjCost, supervisionProjCost, supervisionOverBudget, supervisionBudget: SUPERVISION_BUDGET_EUR,
         attributedMtd, unattributedMtd, unattributedPct, prospectionMtd, prospectionPct, systemTestsMtd, systemTestsPct, watchMargin: WATCH_MARGIN,
         posts, costPerPost, mediaCostMtd, targetCostPerPost: TARGET_COST_PER_POST,
+        coutControle, coutProduction, partControlePct, controleRows,
       });
       const brevoKey = process.env.BREVO_API_KEY;
       if (brevoKey) {
@@ -323,6 +359,14 @@ export async function GET(req: NextRequest) {
     system_tests_pct: systemTestsPct,
     plans: planRows,
     cost_by_provider: providerRows,
+    // Produire / vérifier : la seule façon de savoir si la qualité mange la
+    // marge, ou si elle la protège en évitant des régénérations.
+    controle: {
+      cout_controle_mtd: Math.round(coutControle * 1000) / 1000,
+      cout_production_mtd: Math.round(coutProduction * 100) / 100,
+      part_controle_pct: partControlePct,
+      detail: controleRows,
+    },
     cost_by_agent: agentRows,
     posts_published_mtd: posts,
     media_cost_mtd_eur: Math.round(mediaCostMtd * 100) / 100,
@@ -402,6 +446,20 @@ function renderAlertEmail(d: any): string {
       </tbody>
     </table>
     <p style="font-size:11px;color:#94a3b8;margin-top:6px;">Coût média (image/vidéo/voix) ce mois : ${d.mediaCostMtd.toFixed(2)} € · ${d.posts} posts publiés.</p>` : ''}
+
+    <h2 style="margin-top: 24px;">🔍 Produire, et vérifier</h2>
+    <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+      <tbody>
+        <tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px;">Production (générations)</td><td style="text-align:right; padding:6px 8px; font-weight:bold;">${(d.coutProduction || 0).toFixed(2)} €</td></tr>
+        <tr style="border-top: 1px solid #e5e7eb;"><td style="padding: 6px 8px;">Contrôle qualité</td><td style="text-align:right; padding:6px 8px; font-weight:bold; color:${(d.partControlePct || 0) > 25 ? '#d97706' : '#059669'};">${(d.coutControle || 0).toFixed(2)} € <span style="font-weight:normal;color:#666;">(${d.partControlePct || 0} %)</span></td></tr>
+        ${(d.controleRows || []).slice(0, 6).map((c: any) => `<tr><td style="padding: 3px 8px 3px 24px; color:#6b7280; font-size:12px;">${c.kind}</td><td style="text-align:right; padding:3px 8px; color:#6b7280; font-size:12px;">${c.cost.toFixed(3)} €</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="font-size:11px;color:#94a3b8;margin-top:6px;">
+      Le contrôle protège la marge autant qu'il la consomme : il évite des régénérations, qui coûtent plus cher que lui,
+      et des publications ratées, qui coûtent un client. Au-delà de 25 % de la dépense, il faut regarder — en dessous,
+      la qualité reste prioritaire.
+    </p>
 
     ${d.spikes.length > 0 ? `
     <h2 style="margin-top: 24px;">⚡ Clients en spike (top 10)</h2>

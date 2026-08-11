@@ -104,6 +104,13 @@ Reply with JSON only, no preamble.`;
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       }),
+    }, {
+      // Étiquette de COÛT. Sans elle, cet appel se noyait dans le total et on
+      // ne pouvait pas répondre à la question du fondateur : « ça nous coûte
+      // aussi de vérifier la qualité, on doit pouvoir le maîtriser ». Le
+      // préfixe `qc_` est la convention qui permet au rapport de séparer ce
+      // qu'on paie pour PRODUIRE de ce qu'on paie pour VÉRIFIER.
+      etiquette: 'qc_image', agent: 'content',
     });
 
     if (!res.ok) {
