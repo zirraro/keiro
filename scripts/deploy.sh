@@ -171,26 +171,39 @@ echo "  ✓ manifestes complets"
 # le mode cluster a besoin d'un script Node, pas d'un script shell.
 INSTANCES=2
 
+# On ne regarde pas seulement le mode, mais aussi le DÉLAI DE GRÂCE.
+#
+# Le processus en place a pu être lancé en cluster sans ces réglages — c'était
+# le cas après la première bascule. Un `pm2 reload` ne les lui appliquerait
+# pas : pm2 recharge le code, pas les options d'un processus déjà démarré. On
+# resterait donc en cluster, avec la seconde de coupure qu'on cherche à
+# supprimer, et rien ne le signalerait.
 mode_actuel="$(pm2 jlist 2>/dev/null | node -e "
   let s = '';
   process.stdin.on('data', d => s += d).on('end', () => {
     try {
       const app = JSON.parse(s).find(x => x.name === 'keiro-app');
-      process.stdout.write(app ? String(app.pm2_env.exec_mode || 'inconnu') : 'absent');
+      if (!app) return process.stdout.write('absent');
+      const cluster = app.pm2_env.exec_mode === 'cluster_mode';
+      const grace = Number(app.pm2_env.listen_timeout || 0) >= 20000;
+      process.stdout.write(cluster && grace ? 'cluster_mode' : cluster ? 'cluster_sans_grace' : 'fork');
     } catch { process.stdout.write('inconnu'); }
   });
 " 2>/dev/null || echo inconnu)"
 
+# Les réglages qui suppriment la dernière seconde de coupure (wait_ready,
+# listen_timeout, kill_timeout) ne s'expriment pas en ligne de commande : ils
+# vivent dans ecosystem.app.cjs, versionné avec le reste.
 echo "▶ pm2 (keiro-app en mode $mode_actuel)"
 if [ "$mode_actuel" = "cluster_mode" ]; then
-  # Déjà en cluster : le remplacement un par un, sans coupure.
-  pm2 reload keiro-app --update-env
+  # Déjà en cluster : remplacement un par un, en respectant le délai de grâce.
+  pm2 reload ecosystem.app.cjs --update-env
 else
   # Bascule unique. C'est le SEUL moment où le site se coupe encore quelques
   # secondes — après, plus jamais.
   echo "  ▶ bascule en mode cluster ($INSTANCES instances) — dernière coupure"
   pm2 delete keiro-app >/dev/null 2>&1 || true
-  pm2 start ./node_modules/next/dist/bin/next --name keiro-app -i "$INSTANCES" --interpreter node -- start
+  pm2 start ecosystem.app.cjs
 fi
 pm2 reload keiro-worker --update-env 2>/dev/null || pm2 start worker/ecosystem.config.cjs
 

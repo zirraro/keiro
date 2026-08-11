@@ -3040,6 +3040,50 @@ async function GETInterne(request: NextRequest) {
             }
           } catch { /* un garde-fou en panne ne bloque pas la publication */ }
 
+          // ── Les contrôles ÉDITORIAUX, enfin sur ce chemin-ci ──
+          //
+          // 2026-08-11. Client inventé, doublon et cohérence image ↔ légende
+          // n'étaient posés que sur le chemin MANUEL (`action: 'publish'`).
+          // Le chemin automatique — par lequel part la quasi-totalité du
+          // contenu, et le SEUL qu'emprunte LinkedIn — ne faisait que le
+          // contrôle technique de l'image juste en dessous.
+          //
+          // La règle « on ne publie jamais deux fois le même contenu » et le
+          // garde-fou contre les clientes inventées ne s'appliquaient donc pas
+          // là où tout passe. Une seule porte désormais, pour les deux chemins.
+          try {
+            const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
+            const verdict = await controlerAvantPublication(supabase, {
+              id: post.id,
+              user_id: fullPost.user_id,
+              hook: fullPost.hook,
+              caption: fullPost.caption,
+              hashtags: fullPost.hashtags as any,
+              visual_url: visualUrl,
+              video_url: videoUrl,
+              platform: fullPost.platform,
+              format: fullPost.format,
+            });
+            if (!verdict.publiable) {
+              await supabase.from('content_calendar').update({
+                status: 'draft',
+                publish_diagnostic: verdict.diagnostic,
+                updated_at: new Date().toISOString(),
+              }).eq('id', post.id);
+              console.warn(`[Content] publication retenue ${post.id} (${verdict.code}) — ${verdict.diagnostic}`);
+              try {
+                await supabase.from('agent_logs').insert({
+                  agent: 'content', action: 'qc_portail_retenu', status: 'warn', user_id: fullPost.user_id || undefined,
+                  data: { post_id: post.id, reseau: fullPost.platform, code: verdict.code, diagnostic: verdict.diagnostic, details: verdict.details },
+                  created_at: new Date().toISOString(),
+                });
+              } catch { /* la trace ne bloque pas */ }
+              continue;
+            }
+          } catch (e: any) {
+            console.warn('[Content] portail de publication indisponible, publication maintenue:', e?.message);
+          }
+
           // 2026-06-07 — Pre-publish QA gate (ALL platforms IG/TT/LI).
           // Founder ask: "le control qualite doit etre sur tout les posts
           // insta et tiktok et linkedin pour s'assurer de ce qui est posté".
@@ -3883,19 +3927,53 @@ async function POSTInterne(request: NextRequest) {
         // C'est par là qu'est partie « Marie, gérante de sa boutique de créateurs »,
         // une cliente qui n'existe pas. Déterministe, donc il tourne même quand le
         // crédit d'IA est épuisé.
+        // Les trois contrôles éditoriaux vivent désormais dans une porte unique,
+        // partagée avec le chemin automatique : client inventé, doublon,
+        // cohérence image ↔ légende. Ils étaient écrits ICI seulement, donc le
+        // chemin automatique — par lequel part la quasi-totalité du contenu, et
+        // le seul qu'emprunte LinkedIn — ne les exécutait jamais.
+        // Voir lib/visuals/portail-publication.ts.
         try {
-          const { detectInventedClaim } = await import('@/lib/visuals/caption-claim-guard');
-          const claim = detectInventedClaim([pubPost.caption, pubPost.hook].filter(Boolean).join(' — '));
-          if (claim.blocked) {
+          const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
+          const verdict = await controlerAvantPublication(supabase, {
+            id: pubPost.id,
+            user_id: pubPost.user_id,
+            hook: pubPost.hook,
+            caption: pubPost.caption,
+            hashtags: pubPost.hashtags as any,
+            visual_url: pubPost.visual_url,
+            video_url: pubPost.video_url,
+            platform: targetPlatform,
+            format: pubPost.format,
+          });
+          if (!verdict.publiable) {
             await supabase.from('content_calendar').update({
               status: 'draft',
-              publish_diagnostic: ('qc_claim_bloque: ' + claim.reason + ' — « ' + claim.excerpt + ' »').slice(0, 500),
+              publish_diagnostic: verdict.diagnostic,
               updated_at: new Date().toISOString(),
             }).eq('id', body.postId);
-            console.warn('[Content] publication retenue ' + body.postId + ' — ' + claim.reason);
-            return NextResponse.json({ ok: false, held: true, reason: claim.reason, excerpt: claim.excerpt });
+            console.warn(`[Content] publication retenue ${body.postId} (${verdict.code}) — ${verdict.diagnostic}`);
+            const d = verdict.details || {};
+            if (verdict.code === 'doublon') {
+              return NextResponse.json({ ok: false, held: true, doublon: true, reason: d.reason, publie_le: d.publie_le, post_origine: d.post_origine });
+            }
+            if (verdict.code === 'claim_invente') {
+              return NextResponse.json({ ok: false, held: true, reason: d.reason, excerpt: d.excerpt });
+            }
+            if (verdict.code === 'qc_indisponible') {
+              return NextResponse.json({
+                ok: false, held: true, reason: 'qc_unavailable_billing',
+                message: "Contrôle qualité indisponible — le post est retenu au lieu d'être publié sans vérification.",
+              });
+            }
+            return NextResponse.json({
+              ok: false, held: true, score: d.score, reasons: d.reasons,
+              message: 'Post retenu par le contrôle qualité — il repasse en brouillon.',
+            });
           }
-        } catch (e) { /* un garde-fou en panne ne bloque pas la publication */ }
+        } catch (e: any) {
+          console.warn('[Content] portail de publication indisponible, publication maintenue:', e?.message);
+        }
 
         // ── Anti-doublon : on ne republie jamais le même contenu ──
         //
@@ -3915,82 +3993,6 @@ async function POSTInterne(request: NextRequest) {
         // Le post repasse en brouillon avec le motif en clair : on ne supprime
         // rien, le client peut le réécrire. Retenir un doublon protège la
         // portée du compte, ça n'est pas un échec de livraison.
-        try {
-          const { dejaPublie, diagnostiquerDoublon } = await import('@/lib/visuals/doublon-guard');
-          const verdict = await dejaPublie(supabase, {
-            id: pubPost.id,
-            hook: pubPost.hook,
-            caption: pubPost.caption,
-            video_url: pubPost.video_url,
-            visual_url: pubPost.visual_url,
-            platform: targetPlatform,
-            user_id: pubPost.user_id,
-          });
-          if (verdict.doublon) {
-            const diagnostic = diagnostiquerDoublon(verdict);
-            await supabase.from('content_calendar').update({
-              status: 'draft',
-              publish_diagnostic: diagnostic.slice(0, 500),
-              updated_at: new Date().toISOString(),
-            }).eq('id', body.postId);
-            console.warn('[Content] publication retenue ' + body.postId + ' — ' + diagnostic);
-            return NextResponse.json({
-              ok: false,
-              held: true,
-              doublon: true,
-              reason: verdict.motif,
-              publie_le: verdict.publieLe,
-              post_origine: verdict.postOrigine,
-            });
-          }
-        } catch (e) { /* un garde-fou en panne ne bloque pas la publication */ }
-
-        if (pubPost.visual_url && !pubPost.video_url && process.env.SKIP_COHERENCE_QC !== '1') {
-          try {
-            const { assessPostCoherence } = await import('@/lib/visuals/post-coherence-qc');
-            const coh = await assessPostCoherence({
-              visualUrl: pubPost.visual_url,
-              caption: pubPost.caption || '',
-              hashtags: pubPost.hashtags as any,
-              platform: targetPlatform,
-              format: pubPost.format,
-            });
-            // Panne de facturation : le contrôle est hors service tant que
-            // personne ne recharge. On retient plutôt que de publier à
-            // l'aveugle — sinon le garde-fou se désactive tout seul, en
-            // silence, et pour plusieurs jours.
-            if (coh && (coh as any).unavailableReason) {
-              await supabase.from('content_calendar').update({
-                status: 'draft',
-                publish_diagnostic: 'qc_indisponible: contrôle qualité hors service (Anthropic ET Gemini en échec)',
-                updated_at: new Date().toISOString(),
-              }).eq('id', body.postId);
-              console.error('[Content] contrôle qualité HORS SERVICE (les deux fournisseurs) — publication retenue');
-              return NextResponse.json({
-                ok: false, held: true, reason: 'qc_unavailable_billing',
-                message: "Contrôle qualité indisponible — le post est retenu au lieu d'être publié sans vérification.",
-              });
-            }
-            if (coh && 'pass' in coh && !coh.pass) {
-              await supabase.from('content_calendar').update({
-                status: 'draft',
-                publish_diagnostic: `qc_coherence_bloque: ${coh.reasons[0] || 'incohérent'}`.slice(0, 500),
-                updated_at: new Date().toISOString(),
-              }).eq('id', body.postId);
-              console.warn(`[Content] publication retenue ${body.postId} (${(coh as any).score}/10): ${(coh as any).reasons[0] || ''}`);
-              return NextResponse.json({
-                ok: false,
-                held: true,
-                score: coh.score,
-                reasons: coh.reasons,
-                message: 'Post retenu par le contrôle qualité — il repasse en brouillon.',
-              });
-            }
-          } catch (e: any) {
-            console.warn('[Content] contrôle de cohérence indisponible, publication maintenue:', e?.message);
-          }
-        }
-
         pubUpdate.published_at = new Date().toISOString();
 
         let pubPermalink: string | undefined;

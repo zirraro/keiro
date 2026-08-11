@@ -51,5 +51,15 @@ function readVersion() {
 }
 
 export async function GET() {
-  return NextResponse.json(readVersion());
+  // Le numéro d'instance permet de vérifier de l'EXTÉRIEUR que l'application
+  // tourne bien en plusieurs processus — c'est ce qui rend un déploiement
+  // sans coupure possible. pm2 ne renseigne NODE_APP_INSTANCE qu'en mode
+  // cluster : absent, on est repassé en processus unique, et la prochaine mise
+  // à jour coupera le site sans que personne ne s'en aperçoive avant le client.
+  // Ajouté le 2026-08-11, faute de pouvoir lire l'état de pm2 autrement.
+  return NextResponse.json({
+    ...readVersion(),
+    instance: process.env.NODE_APP_INSTANCE ?? null,
+    modeCluster: process.env.NODE_APP_INSTANCE != null,
+  });
 }
