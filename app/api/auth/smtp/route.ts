@@ -62,6 +62,27 @@ export async function POST(req: NextRequest) {
     smtp_verified_at: new Date().toISOString(),
   }).eq('id', user.id);
 
+  // ── Relever la boîte TOUT DE SUITE ──
+  //
+  // Fondateur, 2026-08-11 : « ça doit tourner direct à la connexion, et ensuite
+  // très régulièrement, pour identifier chaque réception et répondre le plus
+  // naturellement possible. »
+  //
+  // Il connecte son domaine, demande à Hugo quel prospect s'est désabonné, et
+  // Hugo ne sait rien : la relève ne passait que toutes les deux heures, donc
+  // rien n'avait encore été lu. Le client juge le produit sur cette première
+  // minute — une boîte connectée doit se remplir sous ses yeux.
+  //
+  // Lancé sans attendre la réponse : la connexion est déjà un succès, et la
+  // relève ne doit pas la faire patienter.
+  try {
+    const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
+    void fetch(`${base}/api/agents/email/poll-inbound?user_id=${user.id}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${process.env.CRON_SECRET || ''}` },
+    }).catch(() => {});
+  } catch { /* la relève immédiate est un confort, pas une condition */ }
+
   return NextResponse.json({ ok: true, connected: true, from_email: from_email || smtpUser });
 }
 

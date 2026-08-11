@@ -61,7 +61,17 @@ const GLOBAL_SCHEDULE = [
   // Inbound email poll every 2h (8 fires/day) so prospect replies get
   // classified and auto-responded within ~2h instead of waiting for the
   // morning batch. Hugo triggers auto-dead on STOP / unsubscribe / refus.
-  { cron: '0 */2 * * *',  slot: 'email_inbound_poll', label: 'Inbound Email Poll (Gmail/Outlook/IMAP)' },
+  // Toutes les 20 minutes, et non plus toutes les 2 heures.
+  //
+  // Fondateur 2026-08-11 : « ça doit tourner très régulièrement pour identifier
+  // chaque réception et répondre le plus naturellement possible. » Une réponse
+  // qui arrive deux heures après le message ne passe plus pour naturelle, et un
+  // désabonnement resté deux heures sans effet, c'est un mail de trop envoyé à
+  // quelqu'un qui a demandé l'arrêt.
+  //
+  // Le coût suit le nombre de mails REÇUS, pas la fréquence : seuls les
+  // nouveaux messages sont classés. Relever à vide ne coûte qu'une connexion.
+  { cron: '*/20 * * * *', slot: 'email_inbound_poll', label: 'Inbound Email Poll (Gmail/Outlook/IMAP)' },
   // Instagram comments auto-reply hourly (client-side cadence too strict
   // would trip Meta; hourly is comfortable on all plans).
   // 2026-06-09 — Cadence 2h au lieu de 1h. IG accepte largement
