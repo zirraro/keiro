@@ -2,83 +2,68 @@ name: Secours — remettre l'application en route
 
 # ── Pourquoi ce workflow existe ──
 #
-# 2026-08-11. Le site est tombé, l'accès SSH depuis le poste du fondateur était
-# banni par le VPS (trop de connexions dans la journée), et le déploiement
-# normal échouait à répétition. Plus aucun moyen d'agir : la seule main
-# distante qui fonctionne encore est le runner GitHub.
+# 2026-08-11. Le site est tombé, l'accès SSH depuis le poste était banni par le
+# VPS, et le déploiement échouait sans dire pourquoi : les journaux d'exécution
+# GitHub exigent des droits d'administration du dépôt, que l'outillage local
+# n'a pas. On réparait à l'aveugle.
 #
-# Ce workflow ne construit RIEN et ne tire RIEN. Il ne fait qu'une chose :
-# remettre pm2 d'aplomb à partir de ce qui est déjà sur le disque. C'est
-# précisément ce qu'on veut quand un déploiement a laissé le service à terre —
-# séparer « remettre en ligne » de « mettre à jour », parce que mélanger les
-# deux, c'est dépendre d'un build pour éteindre un incendie.
+# Ce workflow fait deux choses que le déploiement normal ne fait pas :
+#   · il RAPATRIE un diagnostic dans le dépôt, donc lisible sans droits ;
+#   · il remet l'application en route SANS dépendre d'un déploiement réussi.
+#
+# Séparer « remettre en ligne » de « mettre à jour » est l'enseignement de
+# cette panne : mélanger les deux, c'est dépendre d'un build pour éteindre un
+# incendie.
 #
 # ── Sécurité ──
 #
-# Le dépôt est PUBLIC, donc les journaux d'exécution le sont aussi. On
-# n'affiche donc JAMAIS `pm2 describe` ni `pm2 logs` : le premier imprime les
-# variables d'environnement, le second peut recracher une clé dans une trace
-# d'erreur. On se limite à des constats sans secret.
+# Le dépôt est PUBLIC. Le script exécuté (scripts/secours.sh) n'imprime jamais
+# de variables d'environnement, et masque toute suite de 24 caractères ou plus
+# dans les journaux d'erreur — une clé d'API y ressemble, une phrase non.
 #
 # ── Déclenchement ──
 #
 # Un commit dont le message contient [secours]. Le déploiement normal s'efface
-# devant lui pour éviter qu'un `rm -rf .next` ne parte pendant qu'on relance.
+# devant lui : un « rm -rf .next » pendant qu'on relance rallongerait la panne.
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      # Le workflow réécrit ce fichier : sans cette exclusion, il se
+      # redéclencherait lui-même en boucle.
+      - 'diagnostic-vps.txt'
 
 jobs:
   secours:
     if: contains(github.event.head_commit.message, '[secours]')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    permissions:
+      contents: write
 
     steps:
-      - name: Remettre l'application en route
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 51.68.226.25
-          username: root
-          key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 8m
-          script: |
-            cd /opt/keiro
+      - uses: actions/checkout@v4
 
-            echo "═══ état avant ═══"
-            pm2 list || true
-            echo "build présent ?"
-            if [ -f .next/BUILD_ID ]; then
-              echo "  ✓ .next/BUILD_ID présent ($(cat .next/BUILD_ID))"
-            else
-              echo "  ✗ .next/BUILD_ID ABSENT — le dernier build est incomplet"
-            fi
+      - name: Diagnostic et remise en route
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/cle
+          chmod 600 ~/.ssh/cle
+          # `|| true` : un diagnostic qui échoue reste un diagnostic à publier.
+          # C'est précisément quand ça se passe mal qu'on en a besoin.
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -i ~/.ssh/cle \
+            root@51.68.226.25 'bash -s' < scripts/secours.sh > diagnostic-vps.txt 2>&1 || true
+          rm -f ~/.ssh/cle
+          echo "───────── diagnostic ─────────"
+          cat diagnostic-vps.txt
 
-            # Si le build sur le disque est inutilisable, aucune relance ne
-            # peut réussir : on le reconstruit ici, c'est le seul cas où ce
-            # workflow compile.
-            if [ ! -f .next/BUILD_ID ]; then
-              echo "═══ reconstruction (le disque ne porte pas de build utilisable) ═══"
-              npm ci --no-audit --no-fund
-              rm -rf .next
-              npm run build
-            fi
-
-            echo "═══ relance ═══"
-            pm2 delete keiro-app >/dev/null 2>&1 || true
-            pm2 start ecosystem.app.cjs
-            pm2 reload keiro-worker --update-env 2>/dev/null || pm2 start worker/ecosystem.config.cjs
-            pm2 save --force >/dev/null 2>&1 || true
-
-            echo "═══ on laisse Next démarrer ═══"
-            for i in $(seq 1 20); do
-              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:3000/api/version || echo 000)
-              echo "  tentative $i : $code"
-              [ "$code" = "200" ] && break
-              sleep 5
-            done
-
-            echo "═══ état après ═══"
-            pm2 list || true
-            curl -s -o /dev/null -w "public keiroai.com : %{http_code}\n" --max-time 15 https://keiroai.com/api/version || true
+      - name: Rapatrier le diagnostic dans le dépôt
+        run: |
+          git config user.name  "keiro-secours"
+          git config user.email "contact@keiroai.com"
+          git add diagnostic-vps.txt
+          # Message SANS [secours] : sinon ce workflow se rappellerait lui-même.
+          git commit -m "Diagnostic VPS du $(date -u +%Y-%m-%d\ %H:%M) UTC" || echo "rien à publier"
+          git pull --rebase --autostash origin main || true
+          git push origin main || echo "publication impossible"
