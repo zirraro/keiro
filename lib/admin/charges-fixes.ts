@@ -51,10 +51,20 @@ export interface ChargeFixe {
  * ici ferait porter aux clients le coût de la conquête.
  */
 export const CHARGES_FIXES: ChargeFixe[] = [
-  { nom: 'VPS OVH (app + worker)', eurParMois: 13, confirme: false, note: 'VPS-1 4 vCore / 8 Go — à relever sur la facture OVH' },
-  { nom: 'Supabase', eurParMois: 23, confirme: false, note: 'plan Pro ~25 $ — mettre 0 si encore sur le plan gratuit' },
-  { nom: 'Brevo (e-mails)', eurParMois: 0, confirme: false, note: 'gratuit jusqu\'à 300 envois/jour — à passer au tarif réel si plan payant' },
+  // Montants donnés par le fondateur le 2026-08-11.
+  { nom: 'VPS OVH (app + worker)', eurParMois: 5, confirme: true },
+  { nom: 'Supabase', eurParMois: 25, confirme: true },
+  { nom: 'Brevo (e-mails)', eurParMois: 0, confirme: true, note: 'plan gratuit' },
   { nom: 'Nom de domaine', eurParMois: 1.5, confirme: false, note: 'amorti sur 12 mois' },
+
+  // ── Les charges de SOCIÉTÉ, que l'infrastructure fait oublier ──
+  //
+  // Fondateur : « coûts de sociétés et charges fixes/variables ». Elles ne
+  // passent par aucune API, donc aucun compteur ne les voit — et elles pèsent
+  // plus lourd que le serveur. L'expert-comptable seul coûte vingt fois le VPS.
+  { nom: 'Expert-comptable', eurParMois: 100, confirme: false, note: 'ordre de grandeur pour une petite structure — à remplacer par le devis réel' },
+  { nom: 'Compte bancaire pro', eurParMois: 10, confirme: false },
+  { nom: 'Assurance RC professionnelle', eurParMois: 15, confirme: false },
 ];
 
 /**
