@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { PLAN_CREDITS, CREDIT_COSTS } from '@/lib/credits/constants';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -103,14 +104,114 @@ const CADENCE_PAR_RESEAU: Record<string, number> = {
 /** En dessous, une variation ne veut rien dire. */
 const ECHANTILLON_MINIMUM = 6;
 
+/**
+ * La cadence que le POOL DE CRÉDITS du plan peut réellement financer.
+ *
+ * ── Ce qu'on a trouvé (2026-08-11) ──
+ *
+ * En calculant les marges exhaustives, la contradiction saute aux yeux :
+ *
+ *   cadence configurée : 2 TikTok/jour = 60 vidéos/mois × 40 crédits = 2 400
+ *   plus 3 Instagram/jour                = 90 posts × 4 crédits      =   360
+ *   pool du plan Créateur                                             = 1 000
+ *
+ * Près de trois fois le pool. Le client serait à sec vers le 11 du mois, et
+ * son calendrier s'arrêterait net — après onze jours de publications, plus
+ * rien pendant vingt. C'est la pire expérience possible : il a vu que ça
+ * marchait, et ça s'arrête sans explication.
+ *
+ * Côté marge, le même écart : 60 vidéos à 0,31 € font 18,60 € de média par
+ * mois sur un abonnement à 49 €, avant même les charges fixes.
+ *
+ * La cadence ne peut donc pas être une constante universelle : elle est
+ * bornée par ce que le plan a payé. On garde une réserve pour les usages hors
+ * planning — studio, retouches, discussions avec les agents — qui puisent dans
+ * le même pool et qu'on ne veut pas assécher.
+ */
+const PART_POOL_POUR_PLANNING = 0.75;
+
+/** Ce que coûte UNE publication, en crédits, selon le réseau. */
+const COUT_PUBLICATION: Record<string, number> = {
+  tiktok: CREDIT_COSTS.video_5s,   // une vidéo à chaque fois : 40 crédits
+  instagram: 4,                    // une image : 4 crédits, dix fois moins
+  linkedin: 4,
+};
+
+/**
+ * ── Pourquoi PAS un prorata ──
+ *
+ * Premier essai : répartir le budget au prorata de la cadence visée. Résultat
+ * absurde — 0,1 TikTok par jour sur Créateur, soit trois par mois, pendant
+ * qu'Instagram restait sous son plafond. Le prorata pénalise le réseau bon
+ * marché pour financer le cher : Instagram perdait des publications à 4
+ * crédits pour préserver la part d'un réseau qui en coûte 40.
+ *
+ * La règle retenue réduit TOUT LE MIX du même facteur : les proportions
+ * voulues entre réseaux sont préservées, et le budget est tenu par
+ * construction. Aucun réseau n'est sacrifié pour un autre.
+ *
+ * Ce n'est pas une décision de produit déguisée : la contrainte vient du prix
+ * du plan, pas de nous. À 0,31 € la vidéo de 5 secondes, deux par jour font
+ * 18,60 € par mois sur un abonnement à 49 €. Arbitrer entre monter le prix,
+ * raccourcir les vidéos ou assumer moins de TikTok appartient au fondateur ;
+ * ce que le code doit garantir, c'est qu'on ne PROMETTE pas au calendrier ce
+ * que le plan ne paie pas.
+ */
+function cadenceFinancable(plan: string, reseau: string, illimite = false): number {
+  const cible = CADENCE_PAR_RESEAU[reseau] ?? 1;
+
+  // ── Le compte de référence n'est pas bridé ──
+  //
+  // Fondateur, 2026-08-11 : « le compte mrzirraro peut dépasser, mais les
+  // clients doivent être à 1000 crédits », et « je veux monitorer mrzirraro qui
+  // est en illimité et les clients qui sont limités ».
+  //
+  // C'est le compte qui sert de vitrine et de banc d'essai : le brider
+  // fausserait à la fois la démonstration et la mesure du coût d'un client très
+  // actif. Sa dépense est suivie à part dans le rapport quotidien (rôle
+  // « référence »), justement pour rester visible au lieu d'être diluée.
+  if (illimite) return cible;
+
+  const pool = PLAN_CREDITS[String(plan || 'createur').toLowerCase()] ?? PLAN_CREDITS.createur;
+  if (!Number.isFinite(pool) || pool > 100000) return cible; // admin, agence
+
+  // Ce que coûterait la cadence visée, tous réseaux confondus, par mois.
+  const coutCibleMensuel = Object.entries(CADENCE_PAR_RESEAU)
+    .reduce((s, [r, parJour]) => s + parJour * 30 * (COUT_PUBLICATION[r] ?? 4), 0);
+
+  const budget = pool * PART_POOL_POUR_PLANNING;
+  if (coutCibleMensuel <= budget) return cible;   // le plan finance la cadence visée
+
+  // Sinon on réduit TOUT LE MIX du même facteur.
+  //
+  // Premier essai : répartir le budget entre réseaux au prorata du NOMBRE de
+  // publications. Résultat absurde — 0,1 TikTok par jour sur Créateur, pendant
+  // qu'Instagram restait à son plafond : le prorata par nombre pénalise le
+  // réseau bon marché pour financer le cher. Réduire le mix d'un facteur
+  // unique préserve les proportions voulues et tient le budget par
+  // construction.
+  const facteur = budget / coutCibleMensuel;
+  // Plancher : une publication tous les trois jours. En dessous, le compte
+  // paraît abandonné, et la portée perdue coûte plus cher que la génération
+  // épargnée.
+  return Math.max(0.34, Math.floor(cible * facteur * 100) / 100);
+}
+
 async function cadenceDuReseau(
   supabase: any,
   userId: string,
   reseau: string,
   plafondClient: number,
+  plan = 'createur',
+  illimite = false,
 ): Promise<{ parJour: number; motif: string }> {
-  const base = Math.min(plafondClient, CADENCE_PAR_RESEAU[reseau] ?? 1);
+  const financable = cadenceFinancable(plan, reseau, illimite);
+  const base = Math.min(plafondClient, CADENCE_PAR_RESEAU[reseau] ?? 1, financable);
   if (base === 0) return { parJour: 0, motif: 'réseau coupé par le client' };
+  if (financable < (CADENCE_PAR_RESEAU[reseau] ?? 1)) {
+    // On le DIT : une cadence rabotée sans explication ressemble à une panne.
+    return { parJour: base, motif: `cadence ajustée au pool du plan ${plan} (${financable}/jour finançables) — au-delà, le client serait à sec avant la fin du mois` };
+  }
 
   const { data: publies } = await supabase
     .from('content_calendar')
@@ -197,6 +298,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, message: 'Rien de programmé' });
   }
 
+  // Le plan de chaque client : c'est lui qui borne la cadence finançable.
+  // Sans cette lecture, la correction du 11 août ne s'appliquerait à personne —
+  // tout le monde serait traité comme un Créateur, y compris un Business.
+  const { data: profils } = await supabase.from('profiles').select('id, subscription_plan, email, is_admin');
+  const plans: Record<string, string> = {};
+  const illimites = new Set<string>();
+  for (const p of (profils || []) as any[]) {
+    plans[p.id] = String(p.subscription_plan || 'createur').toLowerCase();
+    // Compte de référence et administrateurs : non bridés, mais suivis à part
+    // dans le rapport de coûts (fondateur 11/08).
+    if (p.is_admin || String(p.email || '').toLowerCase() === 'mrzirraro@gmail.com') illimites.add(p.id);
+  }
+
   // Cadence par client, telle qu'il l'a réglée.
   const { data: configs } = await supabase
     .from('org_agent_configs')
@@ -239,7 +353,7 @@ export async function GET(req: NextRequest) {
   for (const cle of Object.keys(groupes)) {
     const [userId, reseau] = cle.split('|');
     if (userId === 'sans') continue;
-    const { parJour, motif } = await cadenceDuReseau(supabase, userId, reseau, cadenceDe(userId, reseau));
+    const { parJour, motif } = await cadenceDuReseau(supabase, userId, reseau, cadenceDe(userId, reseau), plans[userId] || 'createur', illimites.has(userId));
     repartitions[cle] = parJour;
     motifs[cle] = motif;
   }
