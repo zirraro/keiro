@@ -65,6 +65,14 @@ const PHRASES: Record<string, (d: any) => string> = {
   review_replied: () => 'Réponse publiée sous un avis Google',
   qc_coherence_reecrit: () => 'Publication reprise avant mise en ligne (contrôle qualité)',
   qc_doublon: () => 'Publication écartée : contenu déjà publié',
+  // Une correction faite dans le dos du client doit apparaître dans son
+  // journal : il a le droit de savoir qu'on a touché à son texte, et pourquoi.
+  fraicheur_reecriture: (d) => d?.motif
+    ? `Publication remise à jour avant parution : ${String(d.motif).slice(0, 120)}`
+    : 'Publication remise à jour avant parution (une date avait vieilli)',
+  fraicheur_planifies: (d) => d?.reecrits || d?.ecartes
+    ? `Calendrier relu : ${d.reecrits || 0} publication${(d.reecrits || 0) > 1 ? 's' : ''} remise${(d.reecrits || 0) > 1 ? 's' : ''} à jour, ${d.ecartes || 0} écartée${(d.ecartes || 0) > 1 ? 's' : ''}`
+    : 'Calendrier relu : rien à corriger',
 };
 
 function nomReseau(p: string): string {

@@ -61,6 +61,23 @@ export async function GET(req: NextRequest) {
 
   const supabase = sb();
   const maintenant = new Date().toISOString();
+
+  // ── Mode consultation : que s'est-il passé aux derniers passages ? ──
+  //
+  // Ajouté le 2026-08-11 parce qu'on ne pouvait vérifier le travail de ce cron
+  // qu'en ouvrant la base depuis le VPS. Le jour où l'accès SSH est tombé, il
+  // n'y avait plus aucun moyen de savoir ce qu'il avait corrigé. Un traitement
+  // qui modifie le texte des clients doit pouvoir se relire de l'extérieur.
+  if (req.nextUrl.searchParams.get('bilan') === '1') {
+    const { data: passages } = await supabase
+      .from('agent_logs').select('created_at, data')
+      .eq('action', 'fraicheur_planifies').order('created_at', { ascending: false }).limit(7);
+    const { data: corrections } = await supabase
+      .from('agent_logs').select('created_at, data')
+      .eq('action', 'fraicheur_reecriture').order('created_at', { ascending: false }).limit(15);
+    return NextResponse.json({ ok: true, passages, corrections });
+  }
+
   const aujourdhui = maintenant.slice(0, 10);
   const limite = new Date(Date.now() + FENETRE_JOURS * 86400000).toISOString().slice(0, 10);
 
