@@ -34,6 +34,11 @@ concurrency:
 
 jobs:
   deployer:
+    # Un commit de secours ne déploie pas : il remet seulement l'application en
+    # route (voir secours-app.yml). Les deux ensemble se marcheraient dessus —
+    # un `rm -rf .next` pendant qu'on relance rallongerait la panne au lieu de
+    # l'éteindre.
+    if: "!contains(github.event.head_commit.message, '[secours]')"
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
