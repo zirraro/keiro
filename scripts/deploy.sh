@@ -6,6 +6,34 @@ set -euo pipefail
 
 cd /opt/keiro
 
+# ── Aucun build ne doit tourner quand celui-ci commence ──
+#
+# 2026-08-11. Deux déploiements de suite ont échoué de deux façons différentes :
+# « SyntaxError: Unexpected end of JSON input » pendant la collecte des pages,
+# puis « next: not found » après un npm ci criblé de TAR_ENTRY_ERROR.
+#
+# Même cause : un `next build` lancé la VEILLE tournait encore. Deux builds
+# écrivant dans le même .next produisent des fichiers lus à moitié, et un
+# npm ci qui remplace node_modules sous un processus qui le lit produit une
+# extraction trouée. Le second échec est le plus vicieux : node_modules restait
+# cassé, et l'application ne serait pas repartie au redémarrage suivant.
+#
+# On ne se contente pas de tuer : un build lancé il y a deux minutes est
+# probablement un autre déploiement en cours, et lui passer dessus ferait
+# exactement le dégât qu'on veut éviter.
+echo "▶ vérification qu'aucun build ne tourne déjà"
+for pid in $(pgrep -f 'next build' 2>/dev/null || true); do
+  age=$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ' || echo 0)
+  if [ -n "$age" ] && [ "$age" -gt 1800 ]; then
+    echo "  ⚠ build abandonné depuis $((age / 60)) min (pid $pid) — on le termine"
+    kill -9 "$pid" 2>/dev/null || true
+  else
+    echo "✗ un build tourne depuis $((age / 60)) min (pid $pid) : un autre déploiement est probablement en cours."
+    echo "  Attendre qu'il finisse. Passer par-dessus corromprait .next et node_modules."
+    exit 1
+  fi
+done
+
 echo "▶ git pull --rebase"
 git pull --rebase
 
