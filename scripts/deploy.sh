@@ -34,6 +34,14 @@ for pid in $(pgrep -f 'next build' 2>/dev/null || true); do
   fi
 done
 
+# Next réécrit ces deux fichiers À CHAQUE build, ce qui fait échouer le pull
+# suivant avec « cannot pull with rebase: You have unstaged changes ». Le
+# déploiement s'arrêtait alors avant tout, et le correctif restait hors ligne
+# sans rapport avec son contenu — constaté deux fois le 11 août.
+#
+# On les remet dans l'état du dépôt : le build les régénère de toute façon.
+git checkout -- next-env.d.ts tsconfig.json 2>/dev/null || true
+
 echo "▶ git pull --rebase"
 git pull --rebase
 
