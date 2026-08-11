@@ -354,7 +354,34 @@ export async function sendReplyForClient(params: {
   // KeiroAI as its own client, not a generic fallback for everyone.
   const isAdminAccount = clientEmail === 'mrzirraro@gmail.com' || clientEmail === 'contact@keiroai.com';
 
-  const htmlWrapped = textToSafeHtml(params.body);
+  // ── Contrôle qualité avant envoi ──
+  //
+  // Fondateur, 2026-08-11 : « il faut aussi des contrôles qualité sur les
+  // mails envoyés ». C'est le point par lequel passe TOUT ce que Hugo expédie,
+  // quel que soit le fournisseur — Gmail, Outlook, SMTP ou Brevo. Le poser ici
+  // plutôt que dans chaque branche est la seule façon de n'en oublier aucune.
+  //
+  // Un mail sous le seuil est RÉÉCRIT, pas bloqué : on ne prive pas un client
+  // de sa réponse parce que le premier jet manquait de justesse. On ne retient
+  // que si la réécriture elle-même échoue.
+  let corpsFinal = params.body;
+  try {
+    const { controlerSortie } = await import('@/lib/qualite/controle-sortie');
+    const q = await controlerSortie({
+      agent: 'email',
+      tache: params.inReplyTo ? 'email_reponse' : 'email_prospection',
+      contenu: corpsFinal,
+      userId: clientUserId,
+      contexte: `Destinataire : ${params.toName || params.toEmail}. Objet : ${params.subject}`,
+    });
+    if (!q.envoyable) {
+      return { sent: false, channel: 'none', reason: `qualite_insuffisante:${(q.defauts[0] || 'non conforme').slice(0, 80)}` };
+    }
+    corpsFinal = q.contenu;
+  } catch { /* contrôle indisponible : on envoie le texte d'origine */ }
+
+  params = { ...params, body: corpsFinal };
+  const htmlWrapped = textToSafeHtml(corpsFinal);
 
   // 1. Gmail (OAuth) — most common among SMBs
   if (clientUserId) {

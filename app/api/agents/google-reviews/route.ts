@@ -274,7 +274,36 @@ export async function GET(req: NextRequest) {
         const decision = await generateReviewReply(ctx, dossier || null, userId, supabase);
 
         if (decision.action === 'reply') {
-          const posted = await replyToReview(accessToken, r.name, decision.body).catch(() => false);
+          // ── Contrôle qualité avant publication ──
+          //
+          // Une réponse d'avis Google est PUBLIQUE et DÉFINITIVE : elle
+          // s'affiche sous la fiche du commerçant, lue par tous ses futurs
+          // clients, et elle ne se corrige pas. C'est la sortie la plus
+          // engageante du produit, et elle partait jusqu'ici sans relecture.
+          //
+          // Le contrôle réécrit si la note est sous le seuil (8, plus sévère
+          // qu'ailleurs) et retient s'il ne peut pas faire mieux : mieux vaut
+          // pas de réponse qu'une réponse qui dessert le commerce.
+          let corps = decision.body;
+          try {
+            const { controlerSortie } = await import('@/lib/qualite/controle-sortie');
+            const q = await controlerSortie({
+              agent: 'gmaps', tache: 'avis_google', contenu: corps, userId: user.id,
+              contexte: `Avis ${ctx.rating}/5 de ${ctx.author} : « ${String(ctx.text).slice(0, 600)} »`,
+            });
+            if (!q.envoyable) {
+              autoReport.details.push({ name: r.name, action: 'retenu_qualite', motif: q.defauts[0] } as any);
+              await supabase.from('agent_logs').insert({
+                agent: 'gmaps', action: 'review_reply_retenue', user_id: user.id, status: 'warn',
+                data: { review: r.name, note: q.note, defauts: q.defauts },
+                created_at: new Date().toISOString(),
+              });
+              continue;
+            }
+            corps = q.contenu;
+          } catch { /* contrôle indisponible : on publie la réponse d'origine */ }
+
+          const posted = await replyToReview(accessToken, r.name, corps).catch(() => false);
           if (posted) {
             autoReport.replied++;
             autoReport.details.push({ name: r.name, action: 'replied' });
