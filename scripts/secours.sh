@@ -107,7 +107,23 @@ echo "▶ pm2 : on recrée l'application"
 # toute relance.
 pm2 delete keiro-app >/dev/null 2>&1 || true
 pm2 delete ecosystem.app >/dev/null 2>&1 || true
-pm2 start app.config.cjs 2>&1 | tail -6
+
+# Le fichier de configuration doit exister SUR LE VPS. Deuxième tentative de
+# secours perdue là-dessus : ce script ne tirait rien par principe — pour ne
+# pas dépendre d'un build — mais il dépendait quand même d'un fichier arrivé
+# par git. On tire donc les sources (sans reconstruire : le build sur le
+# disque reste celui qui sert).
+git pull --rebase --autostash 2>&1 | tail -2 || echo "git pull impossible — on continue avec ce qui est là"
+
+if [ -f app.config.cjs ]; then
+  pm2 start app.config.cjs 2>&1 | tail -6
+else
+  # Repli qui ne dépend d'AUCUN fichier du dépôt. C'est la commande qui a
+  # fonctionné le 11 août avant qu'on introduise la configuration : pendant une
+  # panne, mieux vaut un cluster sans réglage fin qu'un site éteint.
+  echo "⚠ app.config.cjs absent — démarrage de repli en ligne de commande"
+  pm2 start ./node_modules/next/dist/bin/next --name keiro-app -i 2 --interpreter node -- start 2>&1 | tail -6
+fi
 
 # On vérifie que pm2 a bien créé ce qu'on croit : le bon nom, le bon mode.
 # Sans ce contrôle, la panne d'aujourd'hui se rejouerait à l'identique — pm2
@@ -123,6 +139,13 @@ pm2 jlist 2>/dev/null | node -e "
     } catch { console.log('✗ état pm2 illisible'); }
   });
 "
+
+# Dernier filet : si RIEN ne porte le nom attendu, on relance en ligne de
+# commande. Sortir d'une panne ne doit jamais dépendre d'un seul chemin.
+if ! pm2 jlist 2>/dev/null | grep -q '"name":"keiro-app"'; then
+  echo "⚠ toujours pas de keiro-app — démarrage de repli en ligne de commande"
+  pm2 start ./node_modules/next/dist/bin/next --name keiro-app -i 2 --interpreter node -- start 2>&1 | tail -6
+fi
 pm2 reload keiro-worker --update-env >/dev/null 2>&1 || pm2 start worker/ecosystem.config.cjs >/dev/null 2>&1 || true
 pm2 save --force >/dev/null 2>&1 || true
 
