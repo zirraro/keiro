@@ -84,10 +84,48 @@ try {
   const deja = new Set(rows.map(r => r.nom));
 
   const fichiers = readdirSync(DOSSIER).filter(f => f.endsWith('.sql')).sort();
-  const aPasser = fichiers.filter(f => f >= DEBUT && !deja.has(f));
 
-  // Le passé est marqué comme acquis, une fois pour toutes.
-  const anciennes = fichiers.filter(f => f < DEBUT && !deja.has(f));
+  /**
+   * SEULS les fichiers datés sont jouables.
+   *
+   * ── L'incident du 2026-08-11, à ne jamais reproduire ──
+   *
+   * Le tri se faisait sur `f >= DEBUT`, une comparaison de CHAÎNES. Or en
+   * ASCII les majuscules passent après les chiffres : « FIX_AND_EXECUTE.sql »
+   * est supérieur à « 20260811 ». Tous les vieux fichiers nommés à la main —
+   * FIX_*, EXECUTE_*, create_* — ont donc été considérés comme récents et
+   * rejoués.
+   *
+   * L'un d'eux, FIX_AND_EXECUTE.sql, commence par « nettoie les erreurs
+   * précédentes et recommence proprement » et contient
+   * `DROP TABLE IF EXISTS my_videos CASCADE`. La table a été vidée.
+   *
+   * Deux règles en tirent la leçon :
+   *   1. un fichier n'est jouable que s'il porte le préfixe de date de la
+   *      convention (AAAAMMJJ_) — tout le reste est du legacy appliqué à la
+   *      main, et le rejouer ne peut que casser ;
+   *   2. on refuse un fichier contenant une instruction destructive non
+   *      gardée, parce qu'une migration ne doit jamais détruire sans qu'on
+   *      l'ait décidé explicitement.
+   */
+  const DATEE = /^\d{8}_/;
+  const DESTRUCTIF = /^\s*(drop\s+table|truncate|delete\s+from)\b/im;
+
+  const jouables = fichiers.filter(f => DATEE.test(f));
+  const aPasser = jouables.filter(f => f >= DEBUT && !deja.has(f)).filter(f => {
+    const sql = readFileSync(join(DOSSIER, f), 'utf8');
+    if (DESTRUCTIF.test(sql)) {
+      console.log(`▶ migration ${f} REFUSÉE : elle contient une instruction destructive (DROP TABLE / TRUNCATE / DELETE).`);
+      console.log('  À appliquer à la main, en connaissance de cause.');
+      return false;
+    }
+    return true;
+  });
+
+  // Tout le reste est marqué comme acquis, une fois pour toutes : les fichiers
+  // antérieurs, ET les fichiers non datés qui n'ont jamais eu vocation à être
+  // rejoués automatiquement.
+  const anciennes = fichiers.filter(f => !aPasser.includes(f) && !deja.has(f));
   if (anciennes.length) {
     for (const f of anciennes) {
       await client.query('insert into _migrations (nom) values ($1) on conflict do nothing', [f]);
