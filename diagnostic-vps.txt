@@ -1,0 +1,72 @@
+Warning: Permanently added '51.68.226.25' (ED25519) to the list of known hosts.
+═══════════ DIAGNOSTIC VPS 2026-08-11T09:43:19Z ═══════════
+
+── version du code sur le disque ──
+4412ebb3 Remise en ligne : wait_ready mettait le site à terre au rechargement
+b7c5edbf Le générateur apprend enfin de ses propres refus
+
+── build présent ? ──
+✓ .next/BUILD_ID = cDsWy3Fy7TXPDdfhOCBou
+  routes serveur : 370
+  fichiers statiques : 912
+
+── pm2 (sans variables d'environnement) ──
+keiro-worker status=online mode=fork_mode restarts=91 unstable=0 listen_timeout=- wait_ready=-
+ecosystem.app status=online mode=fork_mode restarts=0 unstable=0 listen_timeout=- wait_ready=-
+
+── qui écoute le port 3000 ──
+personne sur 3000
+
+── réponse locale ──
+127.0.0.1:3000/api/version → 000injoignable
+
+── ce qui sert le HTTPS ──
+nginx: active
+caddy: inactive
+absent
+apache2: inactive
+absent
+
+── ressources ──
+/dev/sda1        73G   31G   42G  43% /
+Mem:            7747        1185        2385           7        4176        6248
+
+── 40 dernières lignes d'erreur (secrets masqués) ──
+
+═══════════ REMISE EN ROUTE ═══════════
+▶ pm2 : on recrée l'application
+[PM2][ERROR] Script already launched, add -f option to force re-execution
+▶ on laisse Next démarrer
+  tentative 1 : 000000
+  tentative 2 : 000000
+  tentative 3 : 000000
+  tentative 4 : 000000
+  tentative 5 : 000000
+  tentative 6 : 000000
+  tentative 7 : 000000
+  tentative 8 : 000000
+  tentative 9 : 000000
+  tentative 10 : 000000
+  tentative 11 : 000000
+  tentative 12 : 000000
+  tentative 13 : 000000
+  tentative 14 : 000000
+  tentative 15 : 000000
+  tentative 16 : 000000
+  tentative 17 : 000000
+  tentative 18 : 000000
+  tentative 19 : 000000
+  tentative 20 : 000000
+  tentative 21 : 000000
+  tentative 22 : 000000
+  tentative 23 : 000000
+  tentative 24 : 000000
+
+── état final ──
+keiro-worker online restarts=92
+ecosystem.app online restarts=0
+local  → 000000
+public → 502
+
+── elle ne démarre pas : dernières erreurs (masquées) ──
+[TAILING] Tailing last 25 lines for [keiro-app] process (change the value with --lines option)
