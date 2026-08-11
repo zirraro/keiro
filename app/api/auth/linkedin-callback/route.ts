@@ -118,6 +118,49 @@ export async function GET(req: NextRequest) {
 
     console.log('[LinkedInCallback] Profile updated successfully');
 
+    // ── Connecter un compte doit ALLUMER l'agent ──
+    //
+    // 2026-08-11. Le fondateur : « aucun compte n'est connecté, mais ça doit
+    // être prêt et super quali dès qu'un compte se connecte. » En vérifiant la
+    // chaîne de bout en bout, on trouve qu'elle était rompue ici même.
+    //
+    // Le jeton était bien enregistré, mais RIEN d'autre. Or le planificateur
+    // choisit les clients par `getClientsWithAgent('linkedin')`, qui exige une
+    // ligne `org_agent_configs` avec `agent_id = 'linkedin'` et l'agent marqué
+    // actif. Cette ligne n'était créée nulle part : il n'en existe aucune en
+    // production. Le premier client à connecter LinkedIn n'aurait donc JAMAIS
+    // vu la moindre publication — sans erreur, sans alerte, rien.
+    //
+    // Vérifié : zéro publication LinkedIn en 45 jours, alors que le code de
+    // génération, le planning et la publication existent tous.
+    //
+    // La connexion vaut activation : personne ne connecte son compte pour que
+    // rien ne se passe. `is_enabled` reste le vrai interrupteur si le client
+    // veut couper ensuite.
+    try {
+      const { data: existant } = await supabase
+        .from('org_agent_configs')
+        .select('id, config')
+        .eq('user_id', userId)
+        .eq('agent_id', 'linkedin')
+        .maybeSingle();
+
+      const config = { ...(existant?.config || {}), setup_completed: true, connected_at: new Date().toISOString() };
+
+      if (existant?.id) {
+        await supabase.from('org_agent_configs').update({ config }).eq('id', existant.id);
+      } else {
+        await supabase.from('org_agent_configs').insert({ user_id: userId, agent_id: 'linkedin', is_enabled: true, config });
+      }
+      console.log('[LinkedInCallback] Agent LinkedIn activé pour', userId);
+    } catch (activationError: any) {
+      // Le compte est connecté : on ne renvoie pas le client sur une erreur
+      // pour autant. Le repli côté planificateur (présence d'un jeton valide)
+      // rattrape ce cas, précisément pour que l'activation ne repose pas sur
+      // une seule écriture.
+      console.error('[LinkedInCallback] activation agent échouée (non bloquant):', activationError?.message);
+    }
+
     return NextResponse.redirect(
       `${baseUrl}/linkedin-callback?success=true&username=${encodeURIComponent(userInfo.name)}`
     );

@@ -44,6 +44,24 @@ const FENETRE_JOURS = 7;
  */
 const PLAFOND_APPELS = 40;
 
+/**
+ * Plafond distinct pour la requalification au standard actuel : ce contrôle-ci
+ * coûte un appel de VISION par publication (~0,003 €), là où la relecture de
+ * fraîcheur ne coûte qu'un petit appel de texte. Vingt-cinq par jour balaient
+ * le calendrier en une semaine pour quelques centimes, et le rythme se règle
+ * ici plutôt que de se découvrir sur la facture.
+ */
+const PLAFOND_REQUALIFICATION = 25;
+
+/**
+ * Marque du standard de contrôle appliqué. À CHANGER quand on relève le
+ * niveau : tout le stock déjà marqué repassera alors devant le nouveau
+ * barème, ce qui est exactement ce qu'on veut — sinon un contrôle renforcé ne
+ * s'appliquerait qu'aux publications futures, et le stock resterait à
+ * l'ancienne norme sans que personne ne s'en aperçoive.
+ */
+const MARQUE_STANDARD = '[qc 2026-08-11]';
+
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
@@ -172,7 +190,75 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const bilan = { examines, signales, reecrits, ecartes, faux_positifs: fauxPositifs, indisponibles, fenetre_jours: FENETRE_JOURS };
+  // ── Le stock déjà programmé doit passer le contrôle qualité ACTUEL ──
+  //
+  // Fondateur, 2026-08-11 : « on est sûr que les prochaines générations
+  // passeront notre contrôle qualité qu'on a augmenté, et que les publications
+  // déjà programmées pour les semaines à venir ont été revérifiées et mises à
+  // jour avec notre contrôle qualité ? »
+  //
+  // Pour les futures : oui, le contrôle tourne à la publication. Pour le
+  // stock : non, il a été produit et validé sous l'ANCIEN standard.
+  //
+  // Le contrôle finirait par les attraper au moment de publier — mais un post
+  // retenu à cet instant, c'est un créneau perdu. Le rattraper quelques jours
+  // avant laisse le temps de le remplacer.
+  //
+  // Même fenêtre et même balayage que la relecture de fraîcheur : un post prévu
+  // dans deux mois n'a pas à être payé aujourd'hui, sa date bougera. Plafond
+  // séparé, parce que ce contrôle-ci coûte un appel de vision par publication.
+  let requalifies = 0, requalifiesEcartes = 0;
+  const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
+  for (const p of posts) {
+    if (requalifies >= PLAFOND_REQUALIFICATION) break;
+    if (String(p.qa_notes || '').includes(MARQUE_STANDARD)) continue;
+
+    // On relit la ligne : la relecture de fraîcheur a pu réécrire le texte, et
+    // c'est le texte FINAL qu'il faut juger.
+    const { data: frais } = await supabase
+      .from('content_calendar')
+      .select('id, user_id, platform, format, hook, caption, hashtags, visual_url, video_url, status, qa_notes')
+      .eq('id', p.id)
+      .maybeSingle();
+    if (!frais || !['approved', 'scheduled', 'pending'].includes(frais.status)) continue;
+
+    requalifies++;
+    const verdict = await controlerAvantPublication(supabase, {
+      id: frais.id,
+      user_id: frais.user_id,
+      hook: frais.hook,
+      caption: frais.caption,
+      hashtags: frais.hashtags as any,
+      visual_url: frais.visual_url,
+      video_url: frais.video_url,
+      platform: frais.platform,
+      format: frais.format,
+    });
+
+    // Contrôle indisponible : on ne marque pas, on repassera. Marquer une
+    // publication « vérifiée » sur une panne de notre côté serait le pire des
+    // résultats — elle partirait sans avoir jamais été contrôlée.
+    if (!verdict.publiable && verdict.code === 'qc_indisponible') continue;
+
+    const notes = `${frais.qa_notes ? frais.qa_notes + '\n' : ''}${MARQUE_STANDARD} ${verdict.publiable ? 'conforme' : verdict.code}`.slice(0, 4000);
+    if (verdict.publiable) {
+      await supabase.from('content_calendar').update({ qa_notes: notes }).eq('id', frais.id);
+    } else {
+      await supabase.from('content_calendar').update({
+        status: 'draft',
+        qa_notes: notes,
+        publish_diagnostic: verdict.diagnostic,
+        updated_at: maintenant,
+      }).eq('id', frais.id);
+      requalifiesEcartes++;
+      if (exemples.length < 10) exemples.push(`${p.scheduled_date} ${frais.platform} — écarté au nouveau standard : ${verdict.diagnostic}`);
+    }
+  }
+
+  const bilan = {
+    examines, signales, reecrits, ecartes, faux_positifs: fauxPositifs, indisponibles,
+    requalifies, requalifies_ecartes: requalifiesEcartes, fenetre_jours: FENETRE_JOURS,
+  };
 
   try {
     await supabase.from('agent_logs').insert({

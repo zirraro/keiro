@@ -117,6 +117,24 @@ export async function generateAudioWithElevenLabs(
     throw new Error('ELEVENLABS_API_KEY is not configured');
   }
 
+  // ── Contrôle de ce qui va être PRONONCÉ ──
+  //
+  // Placé ici parce que c'est le point par lequel passe toute voix du produit.
+  // Déterministe, donc gratuit — et posé AVANT l'appel, qui est facturé au
+  // caractère : nettoyer fait baisser la facture en même temps que ça monte la
+  // qualité. Voir lib/audio/controle-voix.ts.
+  const { controlerVoix } = await import('./controle-voix');
+  const verdict = controlerVoix({ texte: text, langue: languageCode });
+  if (verdict.motifs.length) {
+    console.warn('[ElevenLabs TTS] narration corrigée :', verdict.motifs.join(' · '));
+  }
+  if (!verdict.utilisable) {
+    // On renonce à la VOIX, jamais au reel : avec sa musique il reste bon,
+    // alors qu'une voix dans la mauvaise langue est éliminatoire.
+    throw new Error(`narration refusée par le contrôle voix : ${verdict.motifs.join(' · ')}`);
+  }
+  text = verdict.texte;
+
   console.log('[ElevenLabs TTS] Generating audio for text:', text.substring(0, 50) + '...');
   console.log('[ElevenLabs TTS] Voice ID:', voiceId);
 

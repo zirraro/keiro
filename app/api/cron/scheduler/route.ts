@@ -128,6 +128,8 @@ export async function GET(request: NextRequest) {
   let clientUserIds: string[] = [];
   const clientAgentConfigs: Record<string, Record<string, any>> = {};
   const clientPlans: Record<string, string> = {}; // userId → plan name
+  /** Clients dont le jeton LinkedIn est présent et valide — voir getClientsLinkedIn. */
+  const clientsAvecLinkedIn = new Set<string>();
 
   // ── Plan-based throttle: which slots are allowed per plan ──────────
   // Créateur (49€): minimal crons → 80%+ margin
@@ -175,7 +177,10 @@ export async function GET(request: NextRequest) {
     const supabaseForClients = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { data: clients } = await supabaseForClients
       .from('profiles')
-      .select('id, email, subscription_plan')
+      // Les champs LinkedIn servent au repli d'activation plus bas : la
+      // présence d'un jeton valide prouve la connexion mieux qu'une ligne de
+      // configuration qui peut ne jamais avoir été écrite.
+      .select('id, email, subscription_plan, linkedin_access_token, linkedin_token_expiry')
       .or('is_admin.is.null,is_admin.eq.false')
       .not('subscription_plan', 'is', null)
       .not('subscription_plan', 'eq', 'free');
@@ -193,7 +198,14 @@ export async function GET(request: NextRequest) {
     } catch { /* trial_ends_at column might not exist yet */ }
 
     const allClientIds = new Set<string>();
-    (clients || []).forEach(c => { allClientIds.add(c.id); clientPlans[c.id] = (c.subscription_plan || 'créateur').toLowerCase(); });
+    (clients || []).forEach(c => {
+      allClientIds.add(c.id);
+      clientPlans[c.id] = (c.subscription_plan || 'créateur').toLowerCase();
+      const exp = (c as any).linkedin_token_expiry;
+      if ((c as any).linkedin_access_token && (!exp || new Date(exp).getTime() > Date.now())) {
+        clientsAvecLinkedIn.add(c.id);
+      }
+    });
     (trialClients || []).forEach(c => { allClientIds.add(c.id); if (!clientPlans[c.id]) clientPlans[c.id] = 'trial'; });
     clientUserIds = [...allClientIds];
 
@@ -238,6 +250,25 @@ export async function GET(request: NextRequest) {
       }
       return true;
     });
+  }
+
+  /**
+   * Les clients pour qui on doit produire du LinkedIn.
+   *
+   * 2026-08-11 — Ce créneau appelait `getClientsWithAgent('linkedin')`, qui
+   * exige une ligne `org_agent_configs` avec `agent_id = 'linkedin'`. Aucune
+   * n'existait en production, et rien ne la créait : la connexion d'un compte
+   * n'enregistrait que le jeton. Résultat, zéro publication LinkedIn en
+   * 45 jours alors que la génération, le planning et la publication existent.
+   *
+   * La source de vérité de « ce compte est connecté » est le JETON, pas une
+   * ligne de configuration. On accepte donc les deux, et le contenu LinkedIn
+   * étant produit par l'agent Léna, on exige aussi que celui-ci soit actif.
+   */
+  function getClientsLinkedIn(): string[] {
+    const parConfig = new Set(getClientsWithAgent('linkedin'));
+    const parJeton = getClientsWithAgent('content').filter(uid => clientsAvecLinkedIn.has(uid));
+    return [...new Set([...parConfig, ...parJeton])];
   }
 
   // ── Helper: check if agent is active for a specific network ──────────
@@ -528,7 +559,7 @@ export async function GET(request: NextRequest) {
           }
         }
         // LinkedIn content (if connected)
-        for (const uid of getClientsWithAgent('linkedin')) {
+        for (const uid of getClientsLinkedIn()) {
           await callEndpoint(`Content LinkedIn [${uid.substring(0, 8)}]`, `/api/agents/content?slot=linkedin_1&user_id=${uid}`);
         }
         // Email cold #3 + warm
@@ -810,7 +841,7 @@ export async function GET(request: NextRequest) {
         }
       }
       // LinkedIn content — only for clients with LinkedIn connected
-      for (const uid of getClientsWithAgent('linkedin')) {
+      for (const uid of getClientsLinkedIn()) {
         await callEndpoint(`Content LinkedIn [${uid.substring(0, 8)}]`, `/api/agents/content?slot=linkedin_1&user_id=${uid}`);
       }
       // TikTok DM — only for clients with TikTok DM active
