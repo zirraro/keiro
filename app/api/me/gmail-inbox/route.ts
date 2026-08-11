@@ -18,14 +18,53 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  if (!(await mailboxEnabled(user.id))) return NextResponse.json({ ok: true, enabled: false, messages: [], labels: [] });
-  // ?labels=1 → liste des libellés (pour "déplacer vers…" / organiser).
-  if (req.nextUrl.searchParams.get('labels') === '1') {
-    const { enabled, labels } = await listGmailLabels(user.id);
-    return NextResponse.json({ ok: true, enabled, labels });
+
+  const dossier = req.nextUrl.searchParams.get('dossier') || 'INBOX';
+  const veutDossiers = req.nextUrl.searchParams.get('labels') === '1';
+
+  // ── Gmail d'abord, s'il est activé ──
+  if (await mailboxEnabled(user.id)) {
+    if (veutDossiers) {
+      const { enabled, labels } = await listGmailLabels(user.id);
+      return NextResponse.json({ ok: true, provider: 'gmail', enabled, labels });
+    }
+    const { enabled, messages } = await listRecentGmail(user.id, { max: 15 });
+    return NextResponse.json({ ok: true, provider: 'gmail', enabled, messages });
   }
-  const { enabled, messages } = await listRecentGmail(user.id, { max: 15 });
-  return NextResponse.json({ ok: true, enabled, messages });
+
+  // ── Sinon le domaine personnalisé, par IMAP ──
+  //
+  // Fondateur, 2026-08-11 : « on ne voit pas les mails reçus, ni les
+  // brouillons, ni la corbeille, ni les dossiers — que ce soit en domaine
+  // personnalisé ou Gmail, on doit voir tout ça ».
+  //
+  // Cet endpoint ne connaissait QUE Gmail, et seulement derrière le drapeau
+  // Option B. Un client sur son propre domaine n'avait donc AUCUNE vue de sa
+  // boîte : l'écran affichait le CRM (`/api/me/inbox`), c'est-à-dire les
+  // échanges enregistrés par les agents, pas sa messagerie.
+  //
+  // Les briques IMAP existaient déjà et servaient au tri automatique. Elles
+  // n'avaient simplement jamais été branchées sur l'affichage.
+  try {
+    const { listImapInbox, listImapFolders } = await import('@/lib/agents/imap-mailbox');
+    if (veutDossiers) {
+      const { enabled, folders } = await listImapFolders(user.id);
+      return NextResponse.json({
+        ok: true, provider: 'imap', enabled,
+        labels: (folders || []).map((f: string) => ({ id: f, name: f })),
+      });
+    }
+    const { enabled, messages } = await listImapInbox(user.id, 25, dossier);
+    return NextResponse.json({
+      ok: true, provider: 'imap', enabled, dossier,
+      messages: (messages || []).map((m: any) => ({
+        id: String(m.uid), from: m.from, subject: m.subject,
+        snippet: m.snippet || '', date: m.date,
+      })),
+    });
+  } catch {
+    return NextResponse.json({ ok: true, provider: 'aucun', enabled: false, messages: [], labels: [] });
+  }
 }
 
 // PATCH → gestion de la boîte (corbeille/archive/lu/déplacer). Gaté Option B.

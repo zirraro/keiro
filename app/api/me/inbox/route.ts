@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
   const direction = (req.nextUrl.searchParams.get('direction') || 'all').toLowerCase();
   const limit = Math.min(200, Math.max(10, parseInt(req.nextUrl.searchParams.get('limit') || '60')));
 
-  const items: Array<{
+  let items: Array<{
     id: string;
-    direction: 'inbox' | 'sent';
+    direction: 'inbox' | 'sent' | 'draft' | 'trash';
     date: string;
     from_email?: string;
     from_name?: string;
@@ -185,14 +185,65 @@ export async function GET(req: NextRequest) {
     canReadInbox = !!(prof?.smtp_host || prof?.outlook_refresh_token);
   } catch { /* best-effort */ }
 
+  // ── La VRAIE boîte, pas seulement ce que le CRM a enregistré ──
+  //
+  // Fondateur, 2026-08-11, après avoir connecté son domaine OVH : « on ne voit
+  // pas les mails reçus, ni les brouillons, ni la corbeille, ni les dossiers ».
+  //
+  // Ce que cet endpoint renvoyait venait entièrement du CRM : les messages
+  // entrants captés par les agents, et les envois tracés dans l'historique
+  // prospect. Autrement dit une VUE MÉTIER, pas une messagerie. Les onglets
+  // « Brouillons » et « Corbeille » ne pouvaient donc jamais rien afficher —
+  // aucune ligne du CRM ne porte ces états, et personne n'allait les chercher
+  // dans la boîte.
+  //
+  // On lit maintenant la messagerie elle-même quand elle est joignable. Le
+  // format de sortie ne bouge pas : l'écran continue de filtrer par
+  // `direction`, il reçoit simplement de vrais brouillons et une vraie
+  // corbeille.
+  let lectureReelle = false;
+  try {
+    const { listImapInbox } = await import('@/lib/agents/imap-mailbox');
+    // Un seul aller-retour par dossier, en parallèle : la connexion IMAP est
+    // le coût, pas le nombre de messages.
+    const [recus, brouillons, corbeille] = await Promise.all([
+      listImapInbox(user.id, 40, 'INBOX').catch(() => ({ enabled: false, messages: [] })),
+      listImapInbox(user.id, 25, 'Drafts').catch(() => ({ enabled: false, messages: [] })),
+      listImapInbox(user.id, 25, 'Trash').catch(() => ({ enabled: false, messages: [] })),
+    ]);
+
+    if (recus.enabled || brouillons.enabled || corbeille.enabled) {
+      lectureReelle = true;
+      // Les messages réels REMPLACENT la vue CRM des reçus : afficher les deux
+      // ferait apparaître deux fois le même mail, une fois vu par l'agent et
+      // une fois vu par la boîte.
+      items = items.filter(i => i.direction !== 'inbox');
+      const versItem = (m: any, direction: 'inbox' | 'draft' | 'trash') => ({
+        id: `imap-${direction}-${m.uid}`,
+        direction,
+        date: m.date || new Date().toISOString(),
+        from_email: m.from || '',
+        subject: m.subject || '(sans objet)',
+        body: m.snippet || '',
+      });
+      for (const m of recus.messages || []) items.push(versItem(m, 'inbox'));
+      for (const m of brouillons.messages || []) items.push(versItem(m, 'draft'));
+      for (const m of corbeille.messages || []) items.push(versItem(m, 'trash'));
+      items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+  } catch { /* boîte injoignable : on garde la vue CRM plutôt que rien */ }
+
   return NextResponse.json({
     ok: true,
     mailboxConnected,
-    canReadInbox,
+    canReadInbox: canReadInbox || lectureReelle,
+    lecture_reelle: lectureReelle,
     items: items.slice(0, limit),
     counts: {
       inbox: items.filter(i => i.direction === 'inbox').length,
       sent: items.filter(i => i.direction === 'sent').length,
+      draft: items.filter(i => i.direction === 'draft').length,
+      trash: items.filter(i => i.direction === 'trash').length,
     },
   });
 }

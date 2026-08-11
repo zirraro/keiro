@@ -44,17 +44,43 @@ const archivePath = (c: ImapFlow) => findSpecial(c, '\\Archive', /^(archive|arch
 
 export interface ImapMsgLite { uid: number; from: string; subject: string; snippet: string; date?: string }
 
-/** Liste les mails récents de l'INBOX (best-effort, connexion courte). */
-export async function listImapInbox(userId: string, max = 25): Promise<{ enabled: boolean; messages: ImapMsgLite[] }> {
+/**
+ * Liste les mails récents d'un dossier (best-effort, connexion courte).
+ *
+ * Le paramètre `dossier` a été ajouté le 2026-08-11 : le fondateur connecte son
+ * domaine et ne voit « ni les mails reçus, ni les brouillons, ni la corbeille,
+ * ni les dossiers ». Cette fonction ne savait lire QUE la boîte de réception —
+ * il n'existait donc aucun moyen d'afficher le reste, quel que soit l'écran.
+ *
+ * Les noms spéciaux (Drafts, Trash, Sent) sont résolus par les drapeaux IMAP
+ * plutôt que par leur nom : chez OVH ils s'appellent parfois « Corbeille » ou
+ * « Éléments supprimés », et coder le nom en dur ne marche que sur un serveur.
+ */
+export async function listImapInbox(
+  userId: string,
+  max = 25,
+  dossier: string = 'INBOX',
+): Promise<{ enabled: boolean; messages: ImapMsgLite[] }> {
   const cfg = await loadImapConfig(userId);
   if (!cfg) return { enabled: false, messages: [] };
   const client = newClient(cfg);
   const messages: ImapMsgLite[] = [];
   try {
     await client.connect();
-    const lock = await client.getMailboxLock('INBOX');
+
+    let cible = dossier || 'INBOX';
+    const demande = cible.toLowerCase();
+    if (demande === 'trash' || demande === 'corbeille') cible = await trashPath(client);
+    else if (demande === 'archive') cible = await archivePath(client);
+    else if (demande === 'drafts' || demande === 'brouillons') {
+      cible = await findSpecial(client, '\\Drafts', /^(drafts|brouillons|\[gmail\]\/drafts|inbox\.drafts)$/i, 'Drafts');
+    } else if (demande === 'sent' || demande === 'envoyes' || demande === 'envoyés') {
+      cible = await findSpecial(client, '\\Sent', /^(sent|sent items|envoy[ée]s|\[gmail\]\/sent mail|inbox\.sent)$/i, 'Sent');
+    }
+
+    const lock = await client.getMailboxLock(cible);
     try {
-      const status = await client.status('INBOX', { messages: true });
+      const status = await client.status(cible, { messages: true });
       const total = status.messages || 0;
       if (total === 0) return { enabled: true, messages: [] };
       const start = Math.max(1, total - max + 1);
