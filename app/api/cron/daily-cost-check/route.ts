@@ -35,14 +35,23 @@ export async function GET(req: NextRequest) {
   const supabase = sb();
 
   const now = new Date();
-  const monthStart = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  // ── Regarder plus loin que le mois en cours ──
+  //
+  // Fondateur, 2026-08-11 : « une fois j'ai mis 35 € et c'est parti en 72 h ».
+  // Impossible à instruire : le rapport ne lisait que le mois courant, et
+  // l'épisode était derrière. `?jours=N` ouvre la fenêtre — sans quoi on ne
+  // peut qu'émettre des hypothèses sur une facture qu'on n'a jamais vue.
+  const joursParam = Number(req.nextUrl.searchParams.get('jours') || 0);
+  const monthStart = joursParam > 0
+    ? new Date(now.getTime() - joursParam * 86400000)
+    : new Date(now.getUTCFullYear(), now.getUTCMonth(), 1);
   const daysElapsed = Math.max(1, Math.ceil((now.getTime() - monthStart.getTime()) / (24 * 3600 * 1000)));
   const daysInMonth = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0).getDate();
 
   // 1. MTD cost
   const { data: events } = await supabase
     .from('api_cost_events')
-    .select('cost_eur, provider, user_id')
+    .select('cost_eur, provider, user_id, kind, agent, created_at')
     .gte('created_at', monthStart.toISOString())
     .limit(100000);
 

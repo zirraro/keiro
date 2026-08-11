@@ -123,12 +123,26 @@ export async function controlerAvantPublication(
     }
   } catch { /* un garde-fou en panne ne bloque pas la publication */ }
 
-  // ── 3. L'image raconte-t-elle la même chose que la légende ? ──
+  // ── 3. Le visuel raconte-t-il la même chose que la légende ? ──
   //
-  // Seul contrôle qui coûte un appel de vision, donc placé en dernier, et
-  // seulement quand il y a une image fixe à regarder. Les vidéos ont leur
-  // propre contrôle, sur trois images extraites du montage.
-  if (post.visual_url && !post.video_url && process.env.SKIP_COHERENCE_QC !== '1') {
+  // Seul contrôle qui coûte un appel de vision, donc placé en dernier.
+  //
+  // ── Le trou trouvé le 2026-08-11 ──
+  //
+  // Le fondateur voit partir un reel « Vitrine Restaurant » illustré par des
+  // FLEURS. Vérification faite : ce contrôle ne s'exécutait que si
+  // `visual_url && !video_url` — autrement dit, les REELS ET LES VIDÉOS en
+  // étaient exclus. Leur contrôle dédié examine trois images du montage, mais
+  // il juge la continuité, la netteté et les artefacts : à aucun moment il ne
+  // compare ce qu'on VOIT à ce qu'on LIT. La note laissée sur ce post le dit
+  // mot pour mot — « continuité imparfaite, vapeur discontinue » — sans un mot
+  // sur le sujet.
+  //
+  // Or c'est précisément le format le plus exposé : un reel s'ouvre en plein
+  // écran. On juge donc aussi les vidéos, sur leur image de couverture — celle
+  // que le lecteur voit en premier, et qui est déjà produite, donc gratuite à
+  // récupérer.
+  if (post.visual_url && process.env.SKIP_COHERENCE_QC !== '1') {
     try {
       const { assessPostCoherence } = await import('./post-coherence-qc');
       const coh = await assessPostCoherence({
@@ -136,7 +150,11 @@ export async function controlerAvantPublication(
         caption: post.caption || '',
         hashtags: post.hashtags as any,
         platform: post.platform,
-        format: post.format || undefined,
+        // Le juge doit savoir qu'il regarde une couverture de vidéo et non une
+        // image fixe : ce qu'il voit est le premier plan du montage, pas
+        // l'intégralité du propos. Sans cette précision il sanctionnerait des
+        // cadrages parfaitement normaux pour une ouverture de reel.
+        format: post.video_url ? `${post.format || 'reel'} (image de couverture)` : (post.format || undefined),
       });
 
       if (coh && (coh as any).unavailableReason) {

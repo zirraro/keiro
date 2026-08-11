@@ -141,10 +141,20 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // ── Ce que le client n'a pas à savoir ──
+  //
+  // Fondateur, 2026-08-11 : « quand je déconnecte, tu dis que ça va basculer
+  // sur contact@keiroai.com ou sur mon SMTP — le client doit pas voir ça, juste
+  // déconnexion réussie. »
+  //
+  // Il a raison : nommer notre adresse d'envoi expose une plomberie interne, et
+  // laisse croire que ses mails partiront d'une adresse qui n'est pas la
+  // sienne. On dit ce qui le concerne — ses envois continuent — sans détailler
+  // par où.
   const handleDisconnectGmail = useCallback(async () => {
     const msg = en
-      ? 'Disconnect Gmail? Emails will fall back to your SMTP or contact@keiroai.com.'
-      : 'Déconnecter Gmail ? Les emails basculeront sur ton SMTP ou contact@keiroai.com.';
+      ? 'Disconnect Gmail? Hugo will keep sending your emails.'
+      : 'Déconnecter Gmail ? Hugo continuera d\'envoyer tes emails.';
     if (typeof window !== 'undefined' && !window.confirm(msg)) return;
     try {
       await fetch('/api/agents/email/check-connection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'disconnect_gmail' }) });
@@ -154,8 +164,8 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
 
   const handleDisconnectSmtp = useCallback(async () => {
     const msg = en
-      ? 'Disconnect your custom domain? Hugo will fall back to Gmail or contact@keiroai.com.'
-      : 'Déconnecter ton domaine personnalisé ? Hugo basculera sur Gmail ou contact@keiroai.com.';
+      ? 'Disconnect your custom domain? Hugo will keep sending your emails.'
+      : 'Déconnecter ton domaine personnalisé ? Hugo continuera d\'envoyer tes emails.';
     if (typeof window !== 'undefined' && !window.confirm(msg)) return;
     try {
       await fetch('/api/auth/smtp', { method: 'DELETE', credentials: 'include' });
