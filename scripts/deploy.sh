@@ -356,4 +356,21 @@ if ! node scripts/back-test.mjs "https://keiroai.com" "$EXPECTED_SHA"; then
   exit 1
 fi
 
+# ── Hygiène du disque ──
+#
+# 2026-08-11 : après une quinzaine de déploiements dans la journée, le VPS a
+# cessé d'accepter SSH tout en continuant de servir le site en HTTP — la
+# signature d'un disque plein (sshd ne peut plus écrire ses journaux ni ouvrir
+# de session, nginx et node déjà chargés continuent).
+#
+# Chaque déploiement manipule trois arborescences de plus d'un gigaoctet
+# (.next, .next-build, .next-precedent) et le cache npm grossit à chaque
+# npm ci. On nettoie ici, une fois la mise en ligne VÉRIFIÉE — garder la
+# version précédente jusque-là est ce qui permet un retour arrière.
+echo "▶ nettoyage"
+rm -rf .next-precedent .next-build 2>/dev/null || true
+npm cache clean --force >/dev/null 2>&1 || true
+pm2 flush >/dev/null 2>&1 || true
+df -h / | tail -1
+
 echo "🎉 Deploy verified live on public URL ($EXPECTED_SHA)."
