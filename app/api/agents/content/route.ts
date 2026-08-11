@@ -22,6 +22,7 @@ import { diagnosePublishFailure, sendPublishAlert, isTransientPublishError, next
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
 import { diapoRealiste, REALISME_VIDEO, registreVisuelPour, nuanceRegistre, estTourPublicitaire, REGISTRE_AFFICHE } from '@/lib/visuals/realisme-photo';
+import { directiveGeneration } from '@/lib/visuals/exigences-reseau';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -533,6 +534,20 @@ async function generateVisual(
     const registreMetier = estTourPublicitaire(userIdForReuse)
       ? REGISTRE_AFFICHE
       : nuanceRegistre(registreVisuelPour(businessTypePourVisuel));
+
+    // ── Le générateur reçoit le barème du juge, réseau par réseau ──
+    //
+    // Fondateur 2026-08-11 : « sortir le plus vite possible, de préférence dès
+    // la 1re génération, une top image ou un top reel » — et « la qualité
+    // photographe pro sur Insta, pareil sur TikTok avec un peu plus de cinéma,
+    // professionnel sur LinkedIn ».
+    //
+    // Jusqu'ici cette consigne était la même pour les trois réseaux : seul le
+    // FORMAT changeait (carré, vertical, 16:9). Or le contrôle qualité, lui,
+    // juge sur des attentes différentes. On demandait donc au générateur une
+    // chose et on en notait une autre — et chaque écart se payait en
+    // régénération, jusqu'à deux par publication.
+    const directiveReseau = directiveGeneration(platformForReuse);
     const t2iSystem = `You are an elite prompt engineer for Seedream (text-to-image AI). The output must look like an AUTHENTIC PHOTOGRAPH a real person shot — NOT a branded graphic, NOT a 3D render, NOT an illustration.
 
 ⛔ ZERO AI/brand colours: NO violet, purple, lilac, magenta, electric blue, neon, or synthetic gradient — EVER (unless the real-world subject is naturally that colour, e.g. lavender, an eggplant). Use grounded photographic palettes: natural daylight, warm amber, terracotta, soft cream, charcoal, sage, wood tones, linen. Light is a colour: golden hour, north-window soft light, tungsten warm.
@@ -548,7 +563,7 @@ Output ONLY the optimized English prompt — pure visual description, no jargon,
     void SEEDREAM_STYLE_GUIDE;
     const optimizedText = await callClaude({
       system: t2iSystem,
-      message: `Build the image prompt for this ${format}.\n\nVisual brief: ${visualDescription}\n\nFormat: ${format === 'carrousel' || format === 'post' ? 'Square 1:1. It has to hold up as a thumbnail in the Instagram grid.' : format === 'story' ? 'Vertical 9:16. First thing people see — it has to feel like something real is happening.' : format === 'reel' || format === 'video' ? 'Vertical 9:16 video still.' : 'Horizontal 16:9 for LinkedIn.'}\n\n━━━ IT MUST BE A REAL PHOTOGRAPH ━━━\nA real photographer, on a real assignment, in a real place. Never a brand campaign,\nnever a studio product shot, never a rendered image.\n- One identifiable light source (window, shopfront, lamp, sun) with direction and\n  consequence: real shadows, one side darker than the other. Never lit evenly from nowhere.\n- Visible texture: skin with pores, flour dust, steam, condensation, fingerprints, wear.\n  Fine grain in the shadows. Nothing airbrushed, nothing plastic.\n- Slightly imperfect framing, as someone working fast would get it. Off-centre is good.\n- The place looks used: a cloth left out, a chair not aligned, a hand entering frame.\n  That untidiness is what makes it credible — do not clean it away.\n- Natural, restrained colour. No boosted saturation, no orange-and-teal, no glow, no flare.\n\n━━━ AND IT MUST NOT BE EMPTY ━━━\nA flat, generic shot fails too. Depth (foreground / midground / background), a real gesture\ncaught mid-action — hands working, someone mid-laugh, a pour — and details the eye can\nexplore. Rich and alive, but through what is actually happening, not through polish.\n\nNEVER: 3D render, CGI, illustration, cartoon, digital painting, airbrushed skin,\nmodel-agency faces, showroom perfection, stock-photo staging (people laughing at salad,\nthumbs-up, fake eye contact), text or logos.\n\nNo hex codes, no aspect ratios, no numbers, no technical jargon. Colours by name.\nOutput ONE pure visual description in English: subject, light, depth, texture, mood.\n\n${registreMetier}`,
+      message: `Build the image prompt for this ${format}.\n\nVisual brief: ${visualDescription}\n\nFormat: ${format === 'carrousel' || format === 'post' ? 'Square 1:1. It has to hold up as a thumbnail in the Instagram grid.' : format === 'story' ? 'Vertical 9:16. First thing people see — it has to feel like something real is happening.' : format === 'reel' || format === 'video' ? 'Vertical 9:16 video still.' : 'Horizontal 16:9 for LinkedIn.'}\n\n━━━ IT MUST BE A REAL PHOTOGRAPH ━━━\nA real photographer, on a real assignment, in a real place. Never a brand campaign,\nnever a studio product shot, never a rendered image.\n- One identifiable light source (window, shopfront, lamp, sun) with direction and\n  consequence: real shadows, one side darker than the other. Never lit evenly from nowhere.\n- Visible texture: skin with pores, flour dust, steam, condensation, fingerprints, wear.\n  Fine grain in the shadows. Nothing airbrushed, nothing plastic.\n- Slightly imperfect framing, as someone working fast would get it. Off-centre is good.\n- The place looks used: a cloth left out, a chair not aligned, a hand entering frame.\n  That untidiness is what makes it credible — do not clean it away.\n- Natural, restrained colour. No boosted saturation, no orange-and-teal, no glow, no flare.\n\n━━━ AND IT MUST NOT BE EMPTY ━━━\nA flat, generic shot fails too. Depth (foreground / midground / background), a real gesture\ncaught mid-action — hands working, someone mid-laugh, a pour — and details the eye can\nexplore. Rich and alive, but through what is actually happening, not through polish.\n\nNEVER: 3D render, CGI, illustration, cartoon, digital painting, airbrushed skin,\nmodel-agency faces, showroom perfection, stock-photo staging (people laughing at salad,\nthumbs-up, fake eye contact), text or logos.\n\nNo hex codes, no aspect ratios, no numbers, no technical jargon. Colours by name.\nOutput ONE pure visual description in English: subject, light, depth, texture, mood.\n\n${directiveReseau}\n\n${registreMetier}`,
       maxTokens: 500,
     });
 
@@ -3054,13 +3069,18 @@ async function GETInterne(request: NextRequest) {
             } else if (visualUrl) {
               const { scoreVisualQuality } = await import('@/lib/visuals/qa-check');
               const qaDesc = fullPost.visual_description || fullPost.hook || '';
-              const fatalFlags = ['blurry_subject', 'out_of_focus'];
+              // `looks_generated` rejoint les défauts éliminatoires : fondateur
+              // 2026-08-11, « pas d'image ou de reel qui ressemble à de l'IA,
+              // robot, cartoon ou animé, sauf si demandé expressément par le
+              // client ». Une image qui se voit comme générée coûte la
+              // crédibilité du commerçant — au même titre qu'un sujet flou.
+              const fatalFlags = ['blurry_subject', 'out_of_focus', 'looks_generated'];
               // Founder quality rule (2026-06-15): ship only visuals that score
               // at least QUALITY_FLOOR/10. "On accepte moins de 8 mais pas trop
               // bas" → floor = 7. Below that (or any fatal flag) we regenerate.
               const QUALITY_FLOOR = 7;
               const isBad = (s: any) => ((s.amateur_flags || []).some((f: string) => fatalFlags.includes(f)) || s.score < QUALITY_FLOOR);
-              let sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post');
+              let sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post', undefined, fullPost.platform);
               console.log(`[Content] pre-publish visual QA: score=${sqa.score}/10 — flags=${(sqa.amateur_flags || []).join(',')}`);
               // Cost-bounded quality ladder (quality first, margin controlled):
               //   1. up to 2 regenerations to reach the ≥7 floor (bounded cost)
@@ -3076,7 +3096,7 @@ async function GETInterne(request: NextRequest) {
                 const cachedRegen = await cacheImageToStorage(regen, post.id);
                 visualUrl = cachedRegen || regen;
                 await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
-                sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post');
+                sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post', undefined, fullPost.platform);
                 console.log(`[Content] re-QA after regen ${regenAttempts}: score=${sqa.score}/10`);
               }
               if (isBad(sqa) && userId) {

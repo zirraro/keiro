@@ -1,4 +1,5 @@
 import { logApiCost } from '@/lib/admin/api-cost-logger';
+import { blocExigence } from './exigences-reseau';
 /**
  * Contrôle éditorial d'un post AVANT publication : l'image, la légende et les
  * hashtags racontent-ils la même chose ?
@@ -156,7 +157,7 @@ Puis évalue quatre points :
    Ne coche ce défaut QUE si le post invoque réellement une actualité. Un post intemporel n'est pas concerné.
 
 7. FORCE DE L'ACCROCHE
-   La PREMIÈRE ligne décide de tout : sur Instagram elle est seule visible avant « plus », sur TikTok elle joue dans les 3 premières secondes.
+   La PREMIÈRE ligne décide de tout. Ce qu'elle doit faire dépend du réseau — applique le registre donné en tête de message : accroche qui pose une tension sur Instagram, entrée immédiate dans le sujet sur TikTok, constat d'expertise sur LinkedIn (où un appât fait l'effet inverse de celui recherché).
    ✅ Une accroche forte pose une tension, une surprise, un chiffre concret, une question qui pique, ou nomme le problème du lecteur.
    ⛔ Une accroche faible commence par une généralité (« Le marketing digital est essentiel »), se présente (« Chez nous, nous... »), ou annonce ce que le post va dire au lieu de le dire.
    Note-la à part, sur 10.
@@ -381,8 +382,15 @@ export async function assessPostCoherence(input: {
   if (!img) return null;
 
   const tags = (input.hashtags || []).join(' ') || '(aucun)';
+  // Le réseau ne se réduit pas à son nom. Jusqu'au 2026-08-11 le contrôle
+  // recevait « Réseau : linkedin » et jugeait pourtant avec les critères
+  // d'Instagram : la note de l'accroche parlait explicitement d'Instagram et
+  // de TikTok, LinkedIn n'existait nulle part. On lui donne l'exigence du
+  // réseau, la même que celle donnée au générateur.
   const contexte = [
-    `Réseau : ${input.platform || 'instagram'} · format : ${input.format || 'post'}`,
+    blocExigence(input.platform, { avecTexte: true }),
+    '',
+    `Format : ${input.format || 'post'}`,
     '',
     'LÉGENDE :',
     (input.caption || '(vide)').slice(0, 2000),

@@ -1,4 +1,5 @@
 import { fetchModele } from '../agents/anthropic-avec-repli';
+import { blocExigence } from './exigences-reseau';
 /**
  * Post-generation visual QA via Claude Vision.
  *
@@ -28,19 +29,35 @@ export async function scoreVisualQuality(
   brief: string,
   expectedSubject: string,
   referenceImageUrl?: string,
+  /**
+   * Le réseau de destination. Ajouté le 2026-08-11 : ce contrôle jugeait TOUT
+   * comme un visuel Instagram — son prompt commençait littéralement par « You
+   * audit Instagram visuals » — y compris quand la publication partait sur
+   * TikTok ou LinkedIn. Trois audiences, trois attentes, un seul barème.
+   */
+  plateforme?: string | null,
+  /** Le client a demandé un rendu illustré : ce n'est plus un défaut. */
+  renduNonPhotoDemande?: boolean,
 ): Promise<QAScore> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { score: 7, notes: 'no-api-key', amateur_flags: [] };
 
   try {
-    const systemPrompt = `You audit Instagram visuals that will be published for small businesses. Reject amateur outputs AND brand-direction violations. Return STRICT JSON:
+    const exigence = blocExigence(plateforme, { renduNonPhotoDemande });
+    const systemPrompt = `You audit social visuals that will be published for small businesses. Reject amateur outputs AND brand-direction violations.
+
+${exigence}
+
+Return STRICT JSON:
 {
   "score": 0-10,              // 10 = magazine-quality, 6 = publishable, <6 = retry
   "notes": "one-line reason",
-  "amateur_flags": ["2d_paste", "lighting_mismatch", "invented_props", "wrong_subject", "low_detail", "uncanny_composition", "venue_changed", "proportions_unrealistic", "blurry_subject", "out_of_focus"]
+  "amateur_flags": ["looks_generated", "2d_paste", "lighting_mismatch", "invented_props", "wrong_subject", "low_detail", "uncanny_composition", "venue_changed", "proportions_unrealistic", "blurry_subject", "out_of_focus", "off_network_register"]
 }
 
 CRITICAL FLAGS:
+- looks_generated: the image reads as AI-generated, 3D, cartoon, illustrated or synthetic rather than photographed — unless the client explicitly asked for that rendering (stated above). This is ELIMINATORY: score MUST be ≤ 3. Check hands and fingers, embedded text, background faces, objects melting into one another, impossible reflections, plastic skin, light coming from nowhere.
+- off_network_register: technically fine, but wrong for THIS network — an advertising-looking shot on LinkedIn, a flat static frame for TikTok, a careless snapshot on Instagram. Score ≤ 5.
 - blurry_subject: the HERO subject (dish / product / face / hands) is soft, smudged, or out-of-focus where it should be tack sharp. Even minor softness on the focal point = HARD FAIL — score MUST be ≤ 3 and we regenerate. Background bokeh is fine, but the subject must be crisp. NO publishable post has a fuzzy hero.
 - out_of_focus: composition is overall soft (wrong focal point, focus missed, motion blur where there shouldn't be any). Score ≤ 4.
 - 2d_paste: subject looks layered on top of background (floating circle, feathered edges, no contact shadow, perspective-free).
