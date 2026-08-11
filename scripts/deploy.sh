@@ -120,6 +120,15 @@ if [ -d "$ANCIENS" ]; then
 fi
 
 
+# Le commit RÉELLEMENT construit, écrit à côté du build.
+#
+# /api/version lisait `git rev-parse HEAD`, donc le code source. Le 11 août,
+# une remise en route avait tiré les sources sans reconstruire : l'endpoint
+# annonçait le dernier commit alors que l'application servie datait de deux
+# commits plus tôt. On croit un correctif en ligne quand il n'est pas compilé,
+# et pendant une panne c'est le seul signal dont on dispose de l'extérieur.
+echo "$EXPECTED_SHA" > .next/SHA-DEPLOYE
+
 # Filet de sécurité : si un manifeste manque malgré tout, on arrête AVANT le
 # reload plutôt que de mettre en ligne une application aux routes mortes.
 echo "▶ vérification des manifestes de routes"
