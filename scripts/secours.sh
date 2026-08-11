@@ -92,8 +92,37 @@ if [ ! -f .next/BUILD_ID ]; then
 fi
 
 echo "▶ pm2 : on recrée l'application"
+# ── Le processus parasite « ecosystem.app » ──
+#
+# Cause de la panne du 11 août, lue dans ce diagnostic même. pm2 ne reconnaît
+# un fichier de configuration qu'au suffixe `.config.js` / `.config.cjs`. Le
+# fichier s'appelait `ecosystem.app.cjs` : pm2 ne l'a pas lu comme une
+# configuration, il l'a lancé comme un SCRIPT ordinaire, en mode fork, sous le
+# nom `ecosystem.app`. Ce script n'est qu'un module qui exporte un objet — il
+# ne sert rien. pm2 l'affichait « online », personne n'écoutait le port 3000,
+# et `pm2 delete keiro-app` ne trouvait rien à supprimer.
+#
+# Le fichier s'appelle maintenant `app.config.cjs`. On nettoie l'ancien nom,
+# sans quoi il resterait à traîner et « Script already launched » bloquerait
+# toute relance.
 pm2 delete keiro-app >/dev/null 2>&1 || true
-pm2 start ecosystem.app.cjs 2>&1 | tail -6
+pm2 delete ecosystem.app >/dev/null 2>&1 || true
+pm2 start app.config.cjs 2>&1 | tail -6
+
+# On vérifie que pm2 a bien créé ce qu'on croit : le bon nom, le bon mode.
+# Sans ce contrôle, la panne d'aujourd'hui se rejouerait à l'identique — pm2
+# annonçait un succès en ayant lancé tout autre chose.
+pm2 jlist 2>/dev/null | node -e "
+  let s = '';
+  process.stdin.on('data', d => s += d).on('end', () => {
+    try {
+      const l = JSON.parse(s).filter(x => x.name === 'keiro-app');
+      if (!l.length) { console.log('✗ ALERTE : aucun processus nommé keiro-app — pm2 n\'a pas lu la configuration'); return; }
+      const cluster = l.every(x => x.pm2_env.exec_mode === 'cluster_mode');
+      console.log((cluster ? '✓' : '✗ ALERTE :') + ' keiro-app × ' + l.length + ' en mode ' + l[0].pm2_env.exec_mode);
+    } catch { console.log('✗ état pm2 illisible'); }
+  });
+"
 pm2 reload keiro-worker --update-env >/dev/null 2>&1 || pm2 start worker/ecosystem.config.cjs >/dev/null 2>&1 || true
 pm2 save --force >/dev/null 2>&1 || true
 

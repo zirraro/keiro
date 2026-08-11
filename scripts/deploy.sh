@@ -198,7 +198,7 @@ mode_actuel="$(pm2 jlist 2>/dev/null | node -e "
 
 # Les réglages qui suppriment la dernière seconde de coupure (wait_ready,
 # listen_timeout, kill_timeout) ne s'expriment pas en ligne de commande : ils
-# vivent dans ecosystem.app.cjs, versionné avec le reste.
+# vivent dans app.config.cjs, versionné avec le reste.
 echo "▶ pm2 (keiro-app en mode $mode_actuel)"
 if [ "$mode_actuel" = "cluster_mode" ]; then
   # Déjà en cluster et sain : remplacement un par un, délai de grâce respecté.
@@ -207,17 +207,22 @@ if [ "$mode_actuel" = "cluster_mode" ]; then
   # laissé le site indisponible sept minutes : `set -e` a arrêté le script
   # juste après, donc personne n'a relancé l'application. Un déploiement qui
   # échoue doit laisser le service DEBOUT — c'est toute la règle.
-  if ! pm2 reload ecosystem.app.cjs --update-env; then
+  if ! pm2 reload app.config.cjs --update-env; then
     echo "  ⚠ rechargement en échec — on recrée l'application pour ne pas laisser le site à terre"
     pm2 delete keiro-app >/dev/null 2>&1 || true
-    pm2 start ecosystem.app.cjs
+    pm2 start app.config.cjs
   fi
 else
   # Bascule ou remise d'aplomb. C'est le SEUL moment où le site se coupe
   # quelques secondes.
   echo "  ▶ (re)création en mode cluster ($INSTANCES instances)"
   pm2 delete keiro-app >/dev/null 2>&1 || true
-  pm2 start ecosystem.app.cjs
+  # Vestige de la panne du 11 août : le fichier s'appelait `ecosystem.app.cjs`,
+  # or pm2 ne reconnaît une configuration qu'au suffixe `.config.cjs`. Il l'a
+  # donc lancée comme un script ordinaire, sous le nom `ecosystem.app`, en mode
+  # fork — rien n'écoutait le port, et `pm2 delete keiro-app` ne trouvait rien.
+  pm2 delete ecosystem.app >/dev/null 2>&1 || true
+  pm2 start app.config.cjs
 fi
 pm2 reload keiro-worker --update-env 2>/dev/null || pm2 start worker/ecosystem.config.cjs
 
@@ -250,7 +255,7 @@ if [ "${app_online:-0}" -lt 1 ]; then
   # s'est passé le 11 août.
   echo "  ⚠ aucune instance en ligne — tentative de remise en route"
   pm2 delete keiro-app >/dev/null 2>&1 || true
-  pm2 start ecosystem.app.cjs || true
+  pm2 start app.config.cjs || true
   sleep 12
   app_online=$(pm2 jlist 2>/dev/null | node -e "
     let s = '';
