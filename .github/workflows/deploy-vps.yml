@@ -78,8 +78,42 @@ jobs:
             cd /opt/keiro
             bash scripts/deploy.sh
 
-      - name: Nouvelle tentative après un refus de connexion
+      # ── Attendre AVANT de réessayer ──
+      #
+      # 2026-08-11 : un déploiement a échoué avec ses deux tentatives en trois
+      # secondes. Ce n'était pas le build — c'était le VPS qui refusait la
+      # connexion, et les deux essais se sont heurtés au même refus, à deux
+      # secondes d'intervalle. Réessayer immédiatement contre un blocage
+      # temporaire ne sert à rien : on attend que la fenêtre se rouvre.
+      - name: Laisser retomber le blocage de connexion
         if: steps.deploiement.outcome == 'failure'
+        run: sleep 90
+
+      - name: Nouvelle tentative après un refus de connexion
+        id: deuxieme
+        continue-on-error: true
+        if: steps.deploiement.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 51.68.226.25
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 18m
+          script: |
+            set -e
+            cd /opt/keiro
+            bash scripts/deploy.sh
+
+      - name: Dernière attente
+        if: steps.deploiement.outcome == 'failure' && steps.deuxieme.outcome == 'failure'
+        run: sleep 240
+
+      # Troisième et dernière tentative. Le script étant idempotent, un essai
+      # de plus ne peut pas laisser d'état à moitié déployé — et un déploiement
+      # perdu, lui, laisse un correctif hors ligne sans que personne ne le voie.
+      - name: Dernière tentative
+        if: steps.deploiement.outcome == 'failure' && steps.deuxieme.outcome == 'failure'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 51.68.226.25
