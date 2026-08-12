@@ -299,6 +299,44 @@ export async function GET(req: NextRequest) {
     if (!frais || !['approved', 'scheduled', 'pending'].includes(frais.status)) continue;
 
     requalifies++;
+
+    // ── La note TECHNIQUE du visuel, pas seulement sa cohérence ──
+    //
+    // Constaté le 12 août sur les mesures réelles : des visuels du stock
+    // recyclé sortent à 3/10 au contrôle technique, sont régénérés trois fois,
+    // et le créneau finit vide. La requalification ne regardait que la
+    // cohérence entre l'image et la légende — un visuel parfaitement cohérent
+    // mais flou, plat ou marqué « généré » passait donc ici, pour être refusé
+    // au moment de publier. Trop tard : à cet instant, le créneau est perdu.
+    //
+    // On juge donc aussi la qualité de l'image, quelques jours à l'avance, ce
+    // qui laisse le temps de régénérer plutôt que de renoncer.
+    if (frais.visual_url && !frais.video_url) {
+      try {
+        const { scoreVisualQuality } = await import('@/lib/visuals/qa-check');
+        const note = await scoreVisualQuality(
+          frais.visual_url, frais.hook || '', 'the intended subject of this post',
+          undefined, frais.platform,
+        );
+        const eliminatoire = (note.amateur_flags || []).some((f: string) =>
+          ['blurry_subject', 'out_of_focus', 'looks_generated'].includes(f));
+        if (note.score < 7 || eliminatoire) {
+          // On met de côté SANS supprimer : le texte reste bon, seule l'image
+          // ne l'est plus. La génération courante peut reprendre le sujet, et
+          // le client retrouve le brouillon.
+          await supabase.from('content_calendar').update({
+            status: 'draft',
+            qa_notes: `${frais.qa_notes ? frais.qa_notes + '\n' : ''}${MARQUE_STANDARD} visuel insuffisant (${note.score}/10${eliminatoire ? ', défaut éliminatoire' : ''})`.slice(0, 4000),
+            publish_diagnostic: `qc_visuel_insuffisant: ${note.score}/10 — ${(note.amateur_flags || []).join(', ') || note.notes}`.slice(0, 500),
+            updated_at: maintenant,
+          }).eq('id', frais.id);
+          requalifiesEcartes++;
+          if (exemples.length < 10) exemples.push(`${p.scheduled_date} ${frais.platform} — visuel ${note.score}/10 : ${(note.amateur_flags || []).join(', ') || 'sous la barre'}`);
+          continue;
+        }
+      } catch { /* contrôle indisponible : on laisse passer au contrôle suivant */ }
+    }
+
     const verdict = await controlerAvantPublication(supabase, {
       id: frais.id,
       user_id: frais.user_id,
