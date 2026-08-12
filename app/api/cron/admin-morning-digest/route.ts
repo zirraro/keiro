@@ -480,7 +480,20 @@ export async function GET(req: NextRequest) {
   const silenceIssues: SilenceIssue[] = [];
   try {
     const CORE_AGENTS = ['content', 'email', 'dm_instagram', 'commercial', 'gmaps'];
-    const clientIds = (clients || []).filter(c => !c.scheduling_paused_at).map(c => c.id);
+    // ── Les comptes internes ne sont pas des clients ──
+    //
+    // 2026-08-12 : « Agent content SILENCIEUX » sur contact@keiroai.com. C'est
+    // le compte de supervision : il ne DOIT rien produire, par décision — les
+    // comptes internes ne génèrent pas de contenu. Le signaler chaque matin
+    // comme une régression apprend à ignorer le bloc, et le jour où un vrai
+    // client se tait, l'alerte ne sera plus lue.
+    //
+    // Même exclusion que pour le silence de publication, où elle avait déjà
+    // supprimé 287 fausses alertes sur le compte metareview.
+    const COMPTES_INTERNES = new Set(['contact@keiroai.com', 'admin@keiroai.com', 'metareview@keiroai.com', 'mrzirraro+metareview@gmail.com']);
+    const clientIds = (clients || [])
+      .filter(c => !c.scheduling_paused_at && !COMPTES_INTERNES.has(String(c.email || '').toLowerCase().trim()))
+      .map(c => c.id);
     if (clientIds.length) {
       const recentFrom = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
       const baseFrom = new Date(Date.now() - 9 * 86400000).toISOString();

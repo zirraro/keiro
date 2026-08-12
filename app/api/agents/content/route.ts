@@ -2674,7 +2674,28 @@ async function GETInterne(request: NextRequest) {
       console.log(`[Content] ${unpublished.length} unpublished posts for today — mode=${publishMode}, max ${maxPublishPerSlot} for slot: ${slot || 'default'}`);
       let published = 0;
       let notified = 0;
-      for (const post of unpublished.slice(0, maxPublishPerSlot)) {
+      // ── Un post retenu coûte un CANDIDAT, pas un créneau ──
+      //
+      // Rapport de santé du 2026-08-12 : « 8 publications RETENUES par le
+      // contrôle qualité — le client n'a rien reçu sur ce créneau ».
+      //
+      // La boucle ne prenait qu'un seul candidat (`slice(0, maxPublishPerSlot)`).
+      // Si le contrôle le retenait — doublon, incohérence image/texte, client
+      // inventé — le créneau ne livrait RIEN, alors que vingt publications
+      // prêtes attendaient juste derrière.
+      //
+      // C'est exactement ce que la règle du fondateur interdit : « ne jamais
+      // laisser passer de la mauvaise qualité, MAIS toujours publier pour
+      // livrer le client. » Les deux ne tiennent ensemble que si un refus fait
+      // passer au suivant.
+      //
+      // On examine donc plusieurs candidats et on s'arrête quand le nombre de
+      // publications RÉELLEMENT parties atteint la cadence. La marge de cinq
+      // suffit largement — au-delà, c'est que le stock entier est mauvais, et
+      // c'est un problème de génération, pas de publication.
+      let publieesCeSlot = 0;
+      for (const post of unpublished.slice(0, maxPublishPerSlot + 5)) {
+        if (publieesCeSlot >= maxPublishPerSlot) break;
         try {
           // Spacing guard — skip if another post on the same platform
           // was published within the last 4h. Prevents the double-shot
@@ -3579,6 +3600,8 @@ async function GETInterne(request: NextRequest) {
             updateFields.status = 'published';
             updateFields.published_at = new Date().toISOString();
             published++;
+            // Seule une publication RÉELLEMENT partie consomme la cadence.
+            publieesCeSlot++;
             // Cap-60: count this as an AUTO publication only when it shipped
             // without manual validation (post was a draft + toggle was 'auto').
             // Manually-approved posts (status='approved') don't count.
