@@ -182,6 +182,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, passages, corrections, publiees });
   }
 
+  // ── Ce qu'on a jeté, et à quoi ça ressemblait ──
+  //
+  // Fondateur, 2026-08-12, devant 229 abandons sur 232 : « vérifie si on n'est
+  // pas trop dur sur le contrôle qualité. »
+  //
+  // Question légitime, et à laquelle on ne pouvait pas répondre : le journal
+  // donnait la note et le motif, jamais l'IMAGE. Or un contrôle sévère et un
+  // contrôle déréglé produisent exactement le même journal. La seule façon de
+  // trancher est de regarder ce qui a été écarté.
+  //
+  // Un portillon qui rejette en masse doit rendre ses rejets consultables,
+  // sinon personne ne peut le contredire — et un juge que personne ne peut
+  // contredire finit par avoir raison tout seul.
+  if (req.nextUrl.searchParams.get('abandons') === '1') {
+    const { data: abandons } = await supabase
+      .from('content_calendar')
+      .select('id, platform, format, scheduled_date, hook, visual_url, publish_diagnostic, source, updated_at')
+      .eq('status', STATUT_ABANDON)
+      .order('updated_at', { ascending: false })
+      .limit(Number(req.nextUrl.searchParams.get('n') || 40));
+    const motifs: Record<string, number> = {};
+    for (const a of abandons || []) {
+      const m = String(a.publish_diagnostic || 'sans motif').split(':')[0].trim();
+      motifs[m] = (motifs[m] || 0) + 1;
+    }
+    return NextResponse.json({ ok: true, total: (abandons || []).length, motifs, abandons });
+  }
+
   // ── Balayage TOTAL, à la demande ──
   //
   // Fondateur, 2026-08-11, après avoir vu partir un post « restaurant » illustré
