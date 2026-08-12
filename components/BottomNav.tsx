@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/lib/i18n/context";
 import { useTheme } from "@/lib/theme/context";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -13,6 +14,24 @@ export default function BottomNav() {
   const isLight = theme === 'light';
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  // ── Connecté ou non : la destination d'« Agents » n'est pas la même ──
+  //
+  // Déconnecté, la barre menait à /assistant, donc à l'écran de connexion. Sur
+  // mobile c'est l'onglet le plus large du pouce et le plus tentant pour un
+  // visiteur qui hésite encore : il l'envoyait exactement là où il ne veut pas
+  // aller. Déconnecté → la vitrine publique /agents ; connecté → son espace.
+  //
+  // La barre d'en-tête arbitrait déjà ainsi ; la barre du bas l'ignorait, et
+  // c'est elle que voit le commerçant, qui vit sur son téléphone.
+  const supabase = useMemo(() => supabaseBrowser(), []);
+  const [connecte, setConnecte] = useState(false);
+  useEffect(() => {
+    let vivant = true;
+    supabase.auth.getUser().then(({ data }) => { if (vivant) setConnecte(!!data?.user); }).catch(() => {});
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setConnecte(!!session?.user));
+    return () => { vivant = false; sub?.subscription?.unsubscribe(); };
+  }, [supabase]);
 
   const toggleLocale = () => {
     setLocale(locale === 'fr' ? 'en' : 'fr');
@@ -36,6 +55,22 @@ export default function BottomNav() {
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    // ── « Agents » en deuxième position, ici aussi ──
+    //
+    // Fondateur, 2026-08-12 : « tu as déplacé la page agents sur la version web
+    // mais pas mobile. » Exact — l'en-tête avait été réordonné, la barre du bas
+    // non. C'est la page où le client passe sa journée : son équipe, son CRM,
+    // ses réservations. Et sur mobile, la deuxième place est celle que le pouce
+    // atteint sans regarder.
+    {
+      href: connecte ? "/assistant" : "/agents",
+      label: t.nav.assistant,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
       )
     },
@@ -63,15 +98,6 @@ export default function BottomNav() {
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-      )
-    },
-    {
-      href: "/assistant",
-      label: t.nav.assistant,
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
       )
     },
@@ -157,7 +183,13 @@ export default function BottomNav() {
 
       <div className="flex justify-around items-center px-2 py-2 pb-[env(safe-area-inset-bottom,0.5rem)]">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          // Un sous-écran reste dans son onglet : sur /assistant/crm, c'est
+          // toujours « Agents » qui est allumé. Sans ce préfixe, la barre
+          // s'éteint dès qu'on entre dans une section et on ne sait plus où on
+          // est — exactement là où le repère compte le plus, sur un écran étroit.
+          const isActive = item.href === '/'
+            ? pathname === '/'
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isHighlight = (item as any).highlight;
 
           return (
