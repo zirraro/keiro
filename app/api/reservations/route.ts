@@ -26,6 +26,31 @@ function tableAbsente(e: any): boolean {
   return /relation .* does not exist|could not find the table/i.test(String(e?.message || ''));
 }
 
+/**
+ * Le métier du commerçant, cherché là où il se trouve VRAIMENT.
+ *
+ * `profiles.business_type` est vide sur des comptes pourtant complets — c'est
+ * le cas du compte de référence, constaté le 2026-08-12 : le carnet affichait
+ * « rendez-vous » à un restaurant. Le dossier d'entreprise, lui, est renseigné
+ * à l'onboarding et sert déjà de source à tous les autres agents. On le lit
+ * en priorité, et le profil ne sert plus que de repli.
+ */
+async function typeActivite(supabase: any, userId: string): Promise<string | null> {
+  try {
+    const { data: dossier } = await supabase.from('business_dossiers')
+      .select('business_type, business_description').eq('user_id', userId).maybeSingle();
+    if (dossier?.business_type) return dossier.business_type;
+    // La description suffit souvent à reconnaître le métier : « brasserie
+    // traditionnelle à Lyon » n'a pas besoin d'un champ dédié.
+    if (dossier?.business_description) return dossier.business_description;
+  } catch { /* pas de dossier : on retombe sur le profil */ }
+  try {
+    const { data: prof } = await supabase.from('profiles')
+      .select('business_type').eq('id', userId).maybeSingle();
+    return prof?.business_type || null;
+  } catch { return null; }
+}
+
 /** Session du commerçant, ou appel d'agent avec le secret et un client désigné. */
 async function identifier(req: NextRequest): Promise<string | null> {
   const secret = process.env.CRON_SECRET;
@@ -43,9 +68,7 @@ export async function GET(req: NextRequest) {
 
   const supabase = sb();
   try {
-    const { data: prof } = await supabase.from('profiles')
-      .select('business_type').eq('id', userId).maybeSingle();
-    const profil = profilPour(prof?.business_type);
+    const profil = profilPour(await typeActivite(supabase, userId));
 
     // Les passées récentes restent visibles : un gérant vérifie souvent la
     // veille pour marquer les absents.
