@@ -124,9 +124,23 @@ async function rattraperClient(supabase: any, client: any) {
   const cadence = PLAN_DAILY_PUBLISH[plan] || PLAN_DAILY_PUBLISH.free;
   const heures = await meilleuresHeures(supabase, userId);
 
+  // ── Un plafond ABSOLU, en plus du triple de la cadence ──
+  //
+  // Fondateur, 2026-08-12, à propos de la reprise après une clé révoquée : « on
+  // doit publier ce qui était prévu, mais pas plus de 3 posts par jour si
+  // accumulés, et à des heures différentes, jamais en même temps. »
+  //
+  // Le triple de la cadence ne suffit pas à le garantir : un client à trois
+  // publications par jour se retrouverait à NEUF pendant le rattrapage. Or ce
+  // qui fait chuter la portée d'un compte, ce n'est pas le retard, c'est la
+  // salve — et un compte qui vient de se reconnecter est justement celui qu'il
+  // faut ménager.
+  //
+  // On retient donc la plus stricte des deux bornes.
+  const PLAFOND_ABSOLU_JOUR = 3;
   const plafondJour = (plateforme: string) => {
     const base = plateforme === 'instagram' ? cadence.ig : plateforme === 'tiktok' ? cadence.tt : cadence.li;
-    return base * FACTEUR_RATTRAPAGE;
+    return Math.min(base * FACTEUR_RATTRAPAGE, PLAFOND_ABSOLU_JOUR);
   };
 
   // Ce qui est DÉJÀ programmé sur les jours à venir compte dans le plafond :
