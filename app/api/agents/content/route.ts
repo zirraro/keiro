@@ -2168,12 +2168,16 @@ async function publishToTikTok(
               tiktok_refresh_token: refreshed.refresh_token,
               tiktok_token_expiry: new Date(Date.now() + (refreshed.expires_in || 86400) * 1000).toISOString(),
             }).eq('id', ownerId)
-          : supabase.from('profiles').update({
-              tiktok_access_token: refreshed.access_token,
-              tiktok_refresh_token: refreshed.refresh_token,
-              tiktok_token_expiry: new Date(Date.now() + (refreshed.expires_in || 86400) * 1000).toISOString(),
-            }).eq('is_admin', true);
-        await updateQuery;
+          // Sans propriétaire identifié, on n'écrit RIEN : inscrire le jeton
+          // rafraîchi d'un client sur le profil administrateur mélangerait
+          // deux comptes TikTok, et la publication suivante partirait chez le
+          // mauvais. Séparation stricte par client (fondateur, 12/08).
+          : null;
+        if (!updateQuery) {
+          console.error('[Content] jeton TikTok rafraîchi SANS propriétaire identifié — non enregistré (jamais sur le compte admin)');
+        } else {
+          await updateQuery;
+        }
         console.log(`[Content] TikTok token refreshed successfully for ${ownerId || 'admin'}`);
       } catch (refreshError: any) {
         console.error('[Content] TikTok token refresh failed:', refreshError.message);
@@ -4022,13 +4026,73 @@ async function POSTInterne(request: NextRequest) {
             format: pubPost.format,
           });
           if (!verdict.publiable) {
+            const d = verdict.details || {};
+
+            // ── Réparer TOUT DE SUITE, pas mettre de côté ──
+            //
+            // Fondateur, 2026-08-12 : « si le client décide de publier le jour
+            // même et que ça ne passe pas le contrôle, on doit quand même lui
+            // délivrer du top qualité, il ne doit pas attendre et ne rien
+            // avoir. »
+            //
+            // La relecture anticipée corrige le calendrier des jours à
+            // l'avance, mais elle ne peut rien pour quelqu'un qui clique
+            // « publier » à l'instant. Refuser sans réparer, c'est protéger la
+            // qualité en sacrifiant la livraison — les deux moitiés de la
+            // règle ne tiennent que si un refus déclenche une correction.
+            //
+            // Quelques secondes de réécriture, puis on repasse le contrôle une
+            // fois. S'il passe, on publie ; sinon on répond au client, mais
+            // seulement après avoir vraiment essayé.
+            let repareEtValide = false;
+            if (d.imageUsable && d.imageDescription && (verdict.code === 'coherence' || verdict.code === 'claim_invente')) {
+              try {
+                const { reparerLegende } = await import('@/lib/qualite/reparation');
+                const repare = await reparerLegende({
+                  descriptionImage: String(d.imageDescription),
+                  motifs: (d.reasons || [verdict.diagnostic]).slice(0, 3).join(' · '),
+                  plateforme: targetPlatform,
+                  ancienneLegende: pubPost.caption || '',
+                });
+                if (repare?.caption) {
+                  // Un SEUL second avis : deux contrôles de vision coûtent le
+                  // double et n'apprennent rien de plus.
+                  const secondAvis = await controlerAvantPublication(supabase, {
+                    id: pubPost.id, user_id: pubPost.user_id,
+                    hook: repare.hook || pubPost.hook, caption: repare.caption,
+                    hashtags: pubPost.hashtags as any,
+                    visual_url: pubPost.visual_url, video_url: pubPost.video_url,
+                    platform: targetPlatform, format: pubPost.format,
+                  });
+                  if (secondAvis.publiable) {
+                    await supabase.from('content_calendar').update({
+                      hook: repare.hook || pubPost.hook,
+                      caption: repare.caption,
+                      publish_diagnostic: `qc_repare_avant_publication: ${verdict.diagnostic}`.slice(0, 500),
+                      updated_at: new Date().toISOString(),
+                    }).eq('id', body.postId);
+                    // La suite du traitement publie la version corrigée.
+                    pubPost.hook = repare.hook || pubPost.hook;
+                    pubPost.caption = repare.caption;
+                    repareEtValide = true;
+                    console.log(`[Content] ${body.postId} réparé avant publication (${verdict.code}) — on publie la version corrigée`);
+                  } else {
+                    console.warn(`[Content] réparation insuffisante pour ${body.postId} : ${secondAvis.diagnostic}`);
+                  }
+                }
+              } catch (e: any) {
+                console.warn('[Content] réparation immédiate indisponible:', e?.message);
+              }
+            }
+
+            // Réparation impossible ou insuffisante : là seulement, on retient.
+            if (!repareEtValide) {
             await supabase.from('content_calendar').update({
               status: 'draft',
               publish_diagnostic: verdict.diagnostic,
               updated_at: new Date().toISOString(),
             }).eq('id', body.postId);
             console.warn(`[Content] publication retenue ${body.postId} (${verdict.code}) — ${verdict.diagnostic}`);
-            const d = verdict.details || {};
             if (verdict.code === 'doublon') {
               return NextResponse.json({ ok: false, held: true, doublon: true, reason: d.reason, publie_le: d.publie_le, post_origine: d.post_origine });
             }
@@ -4045,29 +4109,12 @@ async function POSTInterne(request: NextRequest) {
               ok: false, held: true, score: d.score, reasons: d.reasons,
               message: 'Post retenu par le contrôle qualité — il repasse en brouillon.',
             });
+            }
           }
         } catch (e: any) {
           console.warn('[Content] portail de publication indisponible, publication maintenue:', e?.message);
         }
 
-        // ── Anti-doublon : on ne republie jamais le même contenu ──
-        //
-        // 2026-08-10 — Le fondateur signale un TikTok identique à un post déjà
-        // sorti. Confirmé : la même accroche est partie les 26 et 27 juillet,
-        // puis le 10 août. Les deux premières ont fait ~250 vues, la troisième
-        // ZÉRO — la plateforme reconnaît le contenu et cesse de le pousser.
-        //
-        // Ce n'était pas isolé : 35 posts programmés reprenaient une accroche
-        // déjà publiée, 231 faisaient doublon entre eux, et « Le Tour de France
-        // débute » était programmé cinq fois le même jour.
-        //
-        // Règle posée : « on poste 1 fois un reel ou une image générée par IA,
-        // JAMAIS 2 fois, pour le même client » — d'où un contrôle du média tous
-        // réseaux confondus, et de l'accroche réseau par réseau.
-        //
-        // Le post repasse en brouillon avec le motif en clair : on ne supprime
-        // rien, le client peut le réécrire. Retenir un doublon protège la
-        // portée du compte, ça n'est pas un échec de livraison.
         pubUpdate.published_at = new Date().toISOString();
 
         let pubPermalink: string | undefined;
@@ -4559,13 +4606,29 @@ async function POSTInterne(request: NextRequest) {
       case 'execute_publication': {
         // ── Pre-publication Instagram token diagnostic ──
         // Verify token validity before wasting API calls on publish attempts
-        // Use client profile if userId is set, otherwise fallback to admin.
-        // Also pulls the IGAA token — if FB page token is missing/expired we
-        // can fall back to the permanent IGAA for publishing via graph.instagram.com.
-        const profileQuery = userId
-          ? supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token, instagram_igaa_token').eq('id', userId).single()
-          : supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token, instagram_igaa_token').eq('is_admin', true).limit(1).single();
-        const { data: publishProfile } = await profileQuery;
+        // ── JAMAIS le compte d'un autre ──
+        //
+        // Fondateur, 2026-08-12 : « il ne faut surtout pas se tromper sur la
+        // répartition des jetons Instagram, TikTok et LinkedIn : chaque client
+        // doit être séparé, surtout pour la stratégie et les analyses. »
+        //
+        // Ce chemin retombait sur le profil ADMINISTRATEUR quand l'identifiant
+        // client était absent. Autrement dit : la publication d'un client
+        // pouvait partir sur le compte Instagram de quelqu'un d'autre — en
+        // l'occurrence contact@keiroai.com, le compte de supervision, qui ne
+        // doit précisément rien publier. Et les statistiques qui en découlent
+        // seraient attribuées au mauvais compte.
+        //
+        // Sans client identifié, on ne publie pas. C'est une anomalie à voir
+        // dans les journaux, pas un repli acceptable.
+        if (!userId) {
+          console.error('[Content] publication Instagram SANS client identifié — refusée (jamais de repli sur le compte admin)');
+          return NextResponse.json({ ok: false, error: 'client_non_identifie', message: "Publication refusée : aucun client identifié. On ne publie jamais sur le compte d'un autre." }, { status: 400 });
+        }
+        const { data: publishProfile } = await supabase
+          .from('profiles')
+          .select('instagram_business_account_id, facebook_page_access_token, instagram_igaa_token')
+          .eq('id', userId).single();
 
         // Prefer IGAA when present — it doesn't expire like FB page tokens
         const publishToken = publishProfile?.instagram_igaa_token || publishProfile?.facebook_page_access_token;

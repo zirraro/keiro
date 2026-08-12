@@ -90,22 +90,34 @@ async function POSTInterne(req: NextRequest) {
     pageId = profile?.facebook_page_id;
   }
 
-  // Fallback to admin
+  // ── Le repli sur le compte administrateur est SUPPRIMÉ ──
+  //
+  // Fondateur, 2026-08-12 : « il ne faut surtout pas se tromper sur la
+  // répartition des jetons : chaque client doit être séparé, surtout pour la
+  // stratégie et les analyses. »
+  //
+  // Quand un client demandé par `user_id` n'avait pas de compte Instagram, ce
+  // bloc reprenait celui de l'ADMINISTRATEUR — et Jade répondait alors aux
+  // messages privés d'un autre compte, en croyant travailler pour ce client.
+  // Les conversations, les statistiques et les prospects s'en trouvaient
+  // mélangés, ce qui est le pire défaut possible dans un produit multi-client.
+  //
+  // Le repli n'avait de sens qu'au temps où KeiroAI n'avait qu'un compte. Il
+  // n'en a plus aucun, et il ne se voit pas : tout paraît fonctionner.
+  //
+  // Sans compte connecté pour CE client, on ne fait rien, et on le dit.
   if (!igUserId && !igaaToken) {
-    const { data: admin } = await supabase
-      .from('profiles')
-      .select('id, instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id')
-      .eq('is_admin', true)
-      .limit(1)
-      .maybeSingle();
-    if (admin) {
-      igToken = admin.instagram_access_token;
-      igaaToken = admin.instagram_igaa_token;
-      fbToken = admin.facebook_page_access_token;
-      igUserId = admin.instagram_business_account_id;
-      pageId = admin.facebook_page_id;
-      ownerUserId = admin.id;
+    if (userId) {
+      return NextResponse.json({
+        ok: true, skipped_reason: 'instagram_non_connecte', replied: 0, skipped: 0, total_conversations: 0,
+        message: "Ce client n'a pas de compte Instagram connecté — aucune réponse envoyée.",
+      });
     }
+    // Appel sans client désigné : on ne devine pas de qui il s'agit.
+    return NextResponse.json({
+      ok: false, error: 'client_non_identifie',
+      message: "Aucun client identifié — on ne répond jamais depuis le compte d'un autre.",
+    }, { status: 400 });
   }
 
   if (!igUserId && !igaaToken) {

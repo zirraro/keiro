@@ -188,14 +188,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── 4. TikTok checks ──
-    const hasTiktok = !!admin.tiktok_access_token;
+    // ── 4. TikTok — chez les CLIENTS, pas seulement l'administrateur ──
+    //
+    // Fondateur, 2026-08-12 : « TikTok a bien un token, on a publié hier ».
+    // Il avait raison, et l'alerte était trompeuse : elle ne regardait que le
+    // profil ADMINISTRATEUR, lequel n'a pas de compte TikTok à lui. Un client
+    // parfaitement connecté déclenchait donc un avertissement tous les matins.
+    //
+    // Une alerte fausse répétée apprend à ignorer le bloc entier — c'est le
+    // jour où un vrai client se déconnecte qu'on ne le verra pas.
+    let hasTiktok = !!admin.tiktok_access_token;
+    if (!hasTiktok) {
+      const { count } = await supabase
+        .from('profiles').select('id', { count: 'exact', head: true })
+        .not('tiktok_access_token', 'is', null);
+      hasTiktok = (count || 0) > 0;
+    }
     if (!hasTiktok) {
       checks.push({
         check: 'tiktok_token',
         platform: 'tiktok',
         status: 'warning',
-        detail: 'No tiktok_access_token on admin profile.',
+        detail: 'Aucun compte TikTok connecté — ni administrateur, ni client.',
       });
     } else {
       checks.push({

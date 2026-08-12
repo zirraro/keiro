@@ -99,8 +99,25 @@ export async function POST(req: NextRequest) {
         followed: 0,
       }, { status: 200 });
     }
-    resolvedIgId = admin.instagram_business_account_id;
-    resolvedToken = admin.facebook_page_access_token;
+    // ── On ne suit JAMAIS depuis le compte d'un autre ──
+    //
+    // Fondateur, 2026-08-12 : « chaque client doit être séparé, surtout pour
+    // la stratégie et les analyses. »
+    //
+    // Reprendre le compte administrateur ici ferait suivre des prospects
+    // depuis un compte Instagram qui n'est pas celui du client : ses cibles
+    // atterriraient dans les abonnements de quelqu'un d'autre, et l'audience
+    // ainsi construite ne lui appartiendrait pas. C'est irréversible côté
+    // Instagram, et invisible côté produit.
+    //
+    // Sans compte connecté pour CE client, on ne suit personne.
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      skip_reason: 'compte_client_non_connecte',
+      message: "Ce client n'a pas de compte Instagram connecté — aucun suivi effectué. On ne suit jamais depuis le compte d'un autre.",
+      followed: 0,
+    }, { status: 200 });
   }
   // Narrow for the rest of the function (checked above — guaranteed non-null)
   if (!resolvedIgId || !resolvedToken) {
