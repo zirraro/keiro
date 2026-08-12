@@ -502,7 +502,15 @@ GRANDS ÉVÉNEMENTS — FENÊTRES DATÉES (founder rule 2026-07-29 — REMPLACE 
   réel du commerce dans le cadre. Ex boulangerie + match des Bleus : "Ce soir France-X ⚽
   → plateau de viennoiseries aux couleurs bleu-blanc-rouge à partager devant le match".
   Ex salon de coiffure + Roland-Garros : "Ambiance tennis → coupe fraîche avant le
-  tournoi". JAMAIS l'actu plaquée sans lien, JAMAIS le business sans accroche d'actu.
+  tournoi". JAMAIS l'actu plaquée sans lien.
+- ET SI AUCUN LIEN VRAI N'EXISTE, ON N'EN FAIT PAS. Cette section ne s'applique QUE
+  lorsqu'un événement change réellement quelque chose pour ce commerce. Le reste du
+  temps, un post evergreen — conseil, démonstration, preuve — est le BON choix, pas un
+  repli. Un post utile sans actualité vaut mieux qu'un post d'actualité sans utilité.
+  (Cette ligne disait l'inverse jusqu'au 2026-08-13 : « jamais le business sans accroche
+  d'actu ». Elle imposait un lien même quand il n'y en avait pas, et le contrôle
+  refusait ensuite ce qu'elle avait exigé — éclipse solaire plaquée sur du marketing,
+  Tom Cruise sur un post de commerçant.)
 - TIMING : dans la fenêtre fournie uniquement (3 semaines avant → 3 jours après la fin).
   Au-delà, l'événement est mort : on n'en parle plus, même pour "faire un bilan".
 - Les feeds Sport (l'Équipe, RMC) et Culture sont dans ta source de news : PIOCHE dedans,
@@ -946,7 +954,11 @@ RÈGLES VISUELLES CAPTION :
 COHÉRENCE VISUEL ↔ CAPTION (ULTRA IMPORTANT) :
 - La caption DOIT décrire/commenter ce que l'image MONTRE
 - Si le visuel montre un restaurant → la caption parle de restaurant
-- Si le visuel montre un smartphone avec des stats → la caption parle de résultats
+- L'IMAGE PRINCIPALE N'EST JAMAIS UN ÉCRAN. Ni smartphone, ni tablette, ni tableau de
+  bord, ni capture : c'est le réflexe le plus fréquent et le plus mort. On montre le
+  COMMERCE — le geste, le produit, le lieu, les gens. Un écran ne peut apparaître qu'en
+  élément de preuve à l'intérieur d'un carrousel (une notification sur un comptoir, un
+  avis 5★), jamais comme sujet de la première image.
 - JAMAIS de décalage entre ce qu'on voit et ce qu'on lit
 - Le hook doit donner envie de REGARDER l'image, et l'image doit ILLUSTRER le hook
 - Le prospect doit se dire "je veux ce résultat pour MON commerce"

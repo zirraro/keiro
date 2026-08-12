@@ -194,7 +194,7 @@ const TOOL = {
       hashtag_mismatch: { type: 'boolean', description: 'Les hashtags annoncent un sujet absent' },
       forced_news_link: { type: 'boolean', description: "Le post s'accroche à une actualité ou un événement sans lien réel avec le métier" },
       hook_score: { type: 'number', description: "Force de la première ligne sur 10 : retient-elle le lecteur ?" },
-      reasons: { type: 'array', items: { type: 'string' }, description: 'Motifs de rejet en français, du plus grave au moins grave. Vide si le post est bon.' },
+      reasons: { type: 'array', items: { type: 'string' }, description: "Motifs de rejet en français, du plus grave au moins grave. Vide UNIQUEMENT si le post est bon. Dès que la note est sous le seuil ou qu'un défaut est signalé, ce tableau DOIT contenir au moins un motif : un refus sans motif ne peut être ni expliqué au client ni corrigé, et il ne nous apprend rien." },
     },
     required: ['image_description', 'score', 'invented_client', 'implausible_claim', 'image_usable', 'off_topic', 'empty_visual', 'hashtag_mismatch', 'forced_news_link', 'hook_score', 'reasons'],
   },

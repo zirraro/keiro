@@ -166,16 +166,34 @@ export async function controlerAvantPublication(
         };
       }
       if (coh && 'pass' in coh && !coh.pass) {
+        // ── Un refus muet n'est pas un refus utilisable ──
+        //
+        // 2026-08-13 : une publication retenue avec « score 6, reasons: [] ».
+        // Le juge avait refusé sans dire pourquoi. Trois conséquences : le
+        // client lit « retenu par le contrôle » sans savoir quoi corriger, la
+        // réparation automatique n'a rien sur quoi travailler, et le générateur
+        // n'apprend rien de ce refus puisque l'apprentissage se nourrit des
+        // motifs. Un jugement sans motif coûte le même prix qu'un jugement
+        // motivé et ne sert à rien.
+        //
+        // On ne peut pas inventer le motif à sa place, mais on peut refuser de
+        // le laisser passer silencieusement : la note devient le motif, et
+        // l'anomalie est tracée pour qu'on la voie plutôt que de la subir.
+        const motifs = Array.isArray(coh.reasons) ? coh.reasons.filter(Boolean) : [];
+        if (motifs.length === 0) {
+          motifs.push(`Le contrôle a refusé sans motif explicite (note ${coh.score}/10 — sous le seuil). Défaut de jugement signalé.`);
+          console.warn(`[Portail] refus SANS MOTIF sur ${post.id} (note ${coh.score}) — le juge doit toujours dire pourquoi`);
+        }
         return {
           publiable: false,
           code: 'coherence',
-          diagnostic: `qc_coherence_bloque: ${coh.reasons[0] || 'incohérent'}`.slice(0, 500),
+          diagnostic: `qc_coherence_bloque: ${motifs[0]}`.slice(0, 500),
           // `imageUsable` et la description de l'image sont remontées pour que
           // l'appelant puisse RÉPARER au lieu de jeter : « une bonne image avec
           // une mauvaise légende n'est pas un post à jeter, c'est une légende à
           // réécrire ». Sans ces deux champs, la seule issue était le rebut.
           details: {
-            score: coh.score, reasons: coh.reasons, hookScore: coh.hookScore, flags: coh.flags,
+            score: coh.score, reasons: motifs, hookScore: coh.hookScore, flags: coh.flags,
             imageUsable: coh.imageUsable, imageDescription: coh.imageDescription,
           },
         };

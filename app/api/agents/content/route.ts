@@ -1045,9 +1045,29 @@ async function publishToInstagram(
     }
 
     if (!publishProfile) {
-      console.warn('[Content] No client IG profile found for publishing — skipping');
+      // ── Deux pannes très différentes disaient la même phrase ──
+      //
+      // 2026-08-13 : « Client Instagram non connecté » sur un compte dont
+      // Instagram était parfaitement connecté (@keiro_ai, diagnostic au vert).
+      // Le vrai problème était que la publication n'avait PAS DE PROPRIÉTAIRE :
+      // créée sans user_id, elle n'appartenait à personne, donc aucun jeton
+      // n'était trouvable. J'ai cherché un problème de jeton pendant vingt
+      // minutes à cause de ce message.
+      //
+      // Un diagnostic qui confond « ce client n'a pas connecté son compte » et
+      // « cette publication n'a pas de client » envoie chercher au mauvais
+      // endroit. On les sépare, et on nomme l'orpheline : elle est en base,
+      // approuvée, et rien ne la publiera jamais.
       await releaseClaimOnFailure();
-      return { success: false, error: 'Client Instagram non connecte. Aucune publication.' };
+      if (!effectiveUserId) {
+        console.warn(`[Content] publication ${post.id} SANS PROPRIÉTAIRE — aucun jeton ne peut être résolu`);
+        return {
+          success: false,
+          error: "Publication sans propriétaire : elle n'est rattachée à aucun client, aucun compte ne peut donc la publier. Elle restera bloquée tant qu'un client ne lui est pas rattaché.",
+        };
+      }
+      console.warn(`[Content] client ${effectiveUserId} sans compte Instagram connecté`);
+      return { success: false, error: 'Ce client n\'a pas de compte Instagram connecté. Aucune publication.' };
     }
 
     const igUserId = publishProfile.instagram_business_account_id;
