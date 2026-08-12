@@ -6597,7 +6597,23 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // The schedule below uses dayOfWeek + slot to pick pillar/format
   // via rotation that respects these percentages over a 7-day cycle.
 
-  const PILLAR_ROTATION = ['trends', 'tips', 'trends', 'demo', 'trends', 'social_proof', 'trends'];
+  // ── Pourquoi « trends » est passé de 4 jours sur 7 à 2 ──
+  //
+  // Fondateur, 2026-08-12, sur trois générations de test bloquées par le
+  // contrôle : le motif était le même chaque fois — « lien avec l'actualité
+  // forcé ». Une éclipse solaire plaquée sur du marketing, des croissants sur
+  // un post KeiroAI.
+  //
+  // Le prompt en était une cause ; celle-ci en est l'autre, plus profonde. Avec
+  // « trends » quatre jours sur sept, le modèle DEVAIT trouver une actualité 57
+  // fois sur 100, y compris les jours où rien ne concernait le métier du
+  // client. Il en fabriquait une. On ne corrige pas ça en demandant mieux : on
+  // le corrige en cessant d'exiger l'impossible.
+  //
+  // Deux jours sur sept, l'actualité redevient une occasion qu'on saisit quand
+  // elle se présente. Les cinq autres vont aux publications qui vendent
+  // réellement : conseils, démonstrations, preuves.
+  const PILLAR_ROTATION = ['trends', 'tips', 'demo', 'trends', 'social_proof', 'tips', 'demo'];
   // New rotation strategy (2026-04):
   //   - Morning = visibility/reach (posts + carousels, rarely a story)
   //   - Midday = engagement peak (reels for algorithmic lift)
@@ -7140,21 +7156,34 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
       if (trendItems.length > 0) trendsContext += `Trends Google/TikTok : ${trendItems.join(' | ')}\n`;
       if (newsItems.length > 0) trendsContext += `Actualites France : ${newsItems.join(' | ')}\n`;
       trendsContext += `
-REGLE ABSOLUE : 50% de tes posts DOIVENT faire un lien FORT entre une tendance/actualite et le business du client.
-Ce n'est PAS optionnel — 1 post sur 2 doit surfer sur l'actu du jour.
+CETTE LISTE EST UNE RESSOURCE, PAS UN QUOTA.
+Aucune actualite n'est a caser. La plupart des jours, aucune ne concerne
+vraiment le metier du client, et c'est normal : un post tips ou demo classique
+est alors le BON choix, pas un repli. Un post utile sans actualite vaut mieux
+qu'un post d'actualite sans utilite.
 
-COMMENT CREER LE LIEN :
-1. Prends une tendance ou actualite CONCRETE du jour (pas generique)
-2. Fais le PONT avec le metier du client (comment ca l'impacte, comment il peut en profiter)
-3. Donne une ACTION concrete que le client peut faire AUJOURD'HUI
+N'utilise une actualite que si elle change QUELQUE CHOSE pour le client ou pour
+ses clients a lui. Avant de t'en servir, passe les deux tests :
 
-Exemples de liens FORTS :
-- Trend "IA generative" + agence contenu → "GPT-5 vient de sortir. Voila pourquoi tes visuels sont deja obsoletes — et comment passer devant"
-- Actu "inflation en hausse" + restaurant → "Les prix montent. 3 restos qui ont AUGMENTE leur CA en automatisant leur marketing (gratuit)"
-- Trend "TikTok ban" + boutique → "TikTok menace de fermer. Les boutiques malins diversifient MAINTENANT. Voici les 3 alternatives"
-- Actu "Euro de foot" + coiffeur → "Finale de l'Euro ce soir. Le coiffeur qui a publie un post a mi-temps a eu 200 likes en 1h"
+TEST 1 — La substitution du metier. Remplace le metier du client par un autre
+dans ta phrase. Si elle marche encore, le lien est faux. « L'eclipse te rappelle
+qu'on peut vite devenir invisible » marche pour un plombier, un avocat, un
+fleuriste : ce n'est pas un lien, c'est une metaphore plaquee.
 
-Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au business du client, fais un post tips/demo classique.
+TEST 2 — La substitution de l'actualite. Remplace l'actualite par une autre. Si
+la phrase tient toujours, l'actualite ne sert a rien : elle decore.
+
+Un lien VRAI : l'actualite modifie la demande, les couts, les regles ou les
+habitudes du client. Canicule annoncee + restaurant avec terrasse → ce qui va
+reellement se passer en salle ce week-end. Greve des transports + commerce de
+centre-ville → l'affluence de demain matin.
+
+Un lien FAUX, meme s'il sonne bien : un evenement spectaculaire (eclipse,
+finale, sortie de film, celebrite) utilise comme accroche pour parler d'autre
+chose. C'est le defaut le plus frequent et le controle le refuse.
+
+Et l'IMAGE suit le meme test : si le post parle d'actualite, elle doit montrer
+la scene concrete du metier, jamais l'evenement lui-meme.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     }
   } catch (e: any) {
