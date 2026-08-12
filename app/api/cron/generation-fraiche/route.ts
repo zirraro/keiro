@@ -76,9 +76,15 @@ export async function GET(req: NextRequest) {
     (configs || []).filter((c: any) => c.config?.generation_fraiche === true).map((c: any) => c.user_id),
   );
 
+  // Les comptes internes ne génèrent RIEN, par décision (contact@, metareview).
+  // Les inclure ferait dire à ce rapport « génération lancée » pour un compte
+  // que le serveur écarte aussitôt — un système qui s'annonce en bonne santé
+  // sans avoir travaillé, exactement ce que cette sonde doit détecter.
+  const { isNoContentAccount } = await import('@/lib/agents/internal-accounts');
   const REFERENCE = new Set(['mrzirraro@gmail.com']);
   const cibles = (profils || []).filter((p: any) =>
-    p.is_admin || REFERENCE.has(String(p.email || '').toLowerCase().trim()) || aDemande.has(p.id));
+    !isNoContentAccount({ email: p.email, userId: p.id })
+    && (p.is_admin || REFERENCE.has(String(p.email || '').toLowerCase().trim()) || aDemande.has(p.id)));
 
   if (!cibles.length) return NextResponse.json({ ok: true, reseau, message: 'aucun compte éligible' });
 
