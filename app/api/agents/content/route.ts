@@ -4085,6 +4085,67 @@ async function POSTInterne(request: NextRequest) {
               }
             }
 
+            // ── Quand c'est l'IMAGE qui manque le sujet, on refait l'image ──
+            //
+            // Fondateur, 2026-08-12, après trois générations de test refusées :
+            // le motif n'était plus le texte mais l'illustration — un café
+            // glacé sur une publication KeiroAI, un cocktail sur des conseils
+            // marketing. Le texte était juste ; l'image parlait d'autre chose.
+            //
+            // Réécrire la légende pour qu'elle parle du café glacé serait
+            // absurde : on détruirait le seul élément valable pour sauver le
+            // mauvais. On écrit donc un brief photographique À PARTIR DE LA
+            // LÉGENDE et on régénère.
+            //
+            // Uniquement sur ce chemin — le client vient de cliquer
+            // « publier ». Une image coûte environ trois centimes : c'est cher
+            // pour un traitement de fond qui tourne toute la nuit, et dérisoire
+            // pour ne pas laisser quelqu'un devant un écran qui dit non.
+            // Un seul essai, un seul second avis : si ça ne suffit pas, on
+            // répond franchement plutôt que d'empiler les générations.
+            if (!repareEtValide && verdict.code === 'coherence' && !pubPost.video_url) {
+              try {
+                const { briefVisuelDepuisLegende } = await import('@/lib/qualite/reparation');
+                const brief = await briefVisuelDepuisLegende({
+                  legende: pubPost.caption || pubPost.hook || '',
+                  motifs: (d.reasons || [verdict.diagnostic]).slice(0, 3).join(' · '),
+                  metier: pubPost.business_type || null,
+                });
+                if (brief) {
+                  const nouvelleImage = await generateVisual(
+                    brief, pubPost.format || 'post',
+                    pubPost.user_id || undefined, targetPlatform,
+                    pubPost.business_type || null,
+                  );
+                  if (nouvelleImage) {
+                    const secondAvis = await controlerAvantPublication(supabase, {
+                      id: pubPost.id, user_id: pubPost.user_id,
+                      hook: pubPost.hook, caption: pubPost.caption,
+                      hashtags: pubPost.hashtags as any,
+                      visual_url: nouvelleImage, video_url: pubPost.video_url,
+                      platform: targetPlatform, format: pubPost.format,
+                    });
+                    if (secondAvis.publiable) {
+                      await supabase.from('content_calendar').update({
+                        visual_url: nouvelleImage,
+                        visual_description: brief.slice(0, 900),
+                        publish_diagnostic: `qc_image_regeneree: ${verdict.diagnostic}`.slice(0, 500),
+                        updated_at: new Date().toISOString(),
+                      }).eq('id', body.postId);
+                      pubPost.visual_url = nouvelleImage;
+                      pubPost.visual_description = brief;
+                      repareEtValide = true;
+                      console.log(`[Content] ${body.postId} image régénérée depuis la légende — on publie`);
+                    } else {
+                      console.warn(`[Content] image régénérée insuffisante pour ${body.postId} : ${secondAvis.diagnostic}`);
+                    }
+                  }
+                }
+              } catch (e: any) {
+                console.warn('[Content] régénération d\'image indisponible:', e?.message);
+              }
+            }
+
             // Réparation impossible ou insuffisante : là seulement, on retient.
             if (!repareEtValide) {
             await supabase.from('content_calendar').update({

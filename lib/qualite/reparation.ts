@@ -88,3 +88,60 @@ Réponds UNIQUEMENT par un objet JSON, sans texte autour :
     return null;
   }
 }
+
+/**
+ * Écrit un brief photographique à partir de la LÉGENDE, pour régénérer l'image.
+ *
+ * ── Pourquoi l'inverse de la fonction ci-dessus ──
+ *
+ * On savait réparer un texte qui ne colle pas à l'image. On ne savait pas
+ * réparer une image qui ne colle pas au texte — et c'est devenu le défaut
+ * dominant : un café glacé sur une publication KeiroAI, un cocktail sur des
+ * conseils marketing. Le texte était juste ; l'illustration parlait d'autre
+ * chose.
+ *
+ * Réécrire la légende pour qu'elle parle du café glacé serait absurde : on
+ * détruirait le seul élément valable pour sauver le mauvais. Quand c'est
+ * l'image qui manque le sujet, c'est l'image qu'il faut refaire.
+ *
+ * Le brief décrit une SCÈNE, pas un concept. Un générateur d'images ne sait pas
+ * illustrer « le gain de temps » ; il sait photographier une main qui repose un
+ * téléphone sur un comptoir pendant qu'un client attend. C'est la traduction que
+ * fait cette fonction, et c'est là que se joue la pertinence du visuel.
+ *
+ * Renvoie `null` en cas d'échec : l'appelant garde alors l'image d'origine et
+ * signale le refus, plutôt que de publier au hasard.
+ */
+export async function briefVisuelDepuisLegende(input: {
+  legende: string;
+  motifs: string;
+  metier?: string | null;
+}): Promise<string | null> {
+  const system = `You write photographic briefs for a brand's social media. A post was REJECTED because its image did not illustrate its text. The text is good. You describe the photograph that SHOULD accompany it.
+
+RULES:
+· Describe a SCENE that can be photographed: who, where, what object, what light, what moment. Never a concept — "efficiency" or "time saved" cannot be photographed, a hand setting a phone down on a counter while a customer waits can.
+· The scene must belong to the trade${input.metier ? ` (${input.metier})` : ''} and to what the text actually says. A viewer must understand, without reading, why this image sits above this text.
+· A real photograph: natural light, real materials, no 3D render, no illustration, no text or logo inside the image, no screens showing interfaces.
+· One or two sentences, in English, concrete and visual. No preamble.
+
+Reply with the brief only.`;
+
+  const message = [
+    `TEXT OF THE POST:\n${input.legende.slice(0, 900)}`,
+    '',
+    `WHY THE PREVIOUS IMAGE WAS REJECTED:\n${input.motifs.slice(0, 400)}`,
+  ].join('\n');
+
+  try {
+    const res = await callLlmWithFallback({
+      system, message, claudeModel: 'claude-haiku-4-5-20251001',
+      maxTokens: 300, callTag: 'qc_brief_visuel',
+    });
+    const brief = (res.text || '').trim().replace(/^["'`]+|["'`]+$/g, '');
+    if (brief.length < 25) return null;
+    return brief.slice(0, 600);
+  } catch {
+    return null;
+  }
+}
