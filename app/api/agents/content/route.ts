@@ -547,7 +547,23 @@ async function generateVisual(
     // juge sur des attentes différentes. On demandait donc au générateur une
     // chose et on en notait une autre — et chaque écart se payait en
     // régénération, jusqu'à deux par publication.
-    const directiveReseau = directiveGeneration(platformForReuse);
+    //
+    // ── Sauf si le client a demandé autre chose ──
+    //
+    // Fondateur, 2026-08-12 : « si le client demande via création, studio ou
+    // même via le chat une autre forme, on s'adapte. »
+    //
+    // Sa demande nous arrive sous forme de MOTS dans le brief — il a écrit
+    // « illustration », « dessin », « rendu 3D ». On lit donc le brief : s'il
+    // réclame un rendu non photographique, on cesse de lui imposer le réalisme
+    // et on juge sur l'exécution. Sans cela le générateur et le client se
+    // contrediraient, et la commande ne serait jamais honorée.
+    let renduDemande = false;
+    try {
+      const { estRenduNonPhoto } = await import('@/lib/visuals/carousel-coherence');
+      renduDemande = estRenduNonPhoto(visualDescription || '');
+    } catch { /* dans le doute, on garde la photo */ }
+    const directiveReseau = directiveGeneration(platformForReuse, renduDemande);
 
     // Et ce que le contrôle a réellement sanctionné sur ce compte récemment.
     // On refusait en boucle les mêmes défauts sans jamais le dire au
@@ -7743,6 +7759,22 @@ CLIENT QUI SERT PLUSIEURS MÉTIERS (logiciel, agence, conseil) — ÉCRIS DEPUIS
 - Test : la première moitié de la légende doit pouvoir être lue par ce
   commerçant en se disant « c'est exactement ma journée ». Si elle commence par
   ce que fait l'outil, recommence.
+
+REGISTRE — VARIE, C'EST LA SCÈNE QUI DÉCIDE :
+- Un compte qui prend toujours le même ton devient un bruit de fond. Alterne
+  d'une publication à l'autre : drôle, tendu, tendre, factuel, agacé, complice.
+- L'HUMOUR quand la situation est absurde ou universelle — la commande de
+  dernière minute, le client qui demande « c'est possible pour ce soir ? ». Rire
+  de la situation, JAMAIS du client ni du métier.
+- LE DRAMATIQUE quand il y a un vrai enjeu — le samedi qu'on rate, la saison qui
+  se joue en trois semaines. Une tension réelle, jamais de peur fabriquée ni de
+  compte à rebours inventé.
+- LA TENDRESSE quand la scène le porte : l'habitué qui revient, le geste appris
+  d'un parent, le premier jour. C'est ce qui fait commenter.
+- LE FACTUEL quand on a de la matière : un chiffre, une méthode, une erreur
+  constatée. Sobre, sans esbroufe.
+- Une seule règle en travers de tout : le registre doit correspondre à la scène.
+  Une blague sur une salle vide un lundi de janvier tombe à plat.
 
 ACCROCHE — UNE SITUATION, PAS UN CONSTAT :
 - Ouvre sur un moment précis ou une tension concrète, jamais sur une généralité.

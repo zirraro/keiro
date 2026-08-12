@@ -132,8 +132,61 @@ Le client vend à de vraies personnes : une image qui sent la machine lui coûte
  * En anglais : les moteurs d'image suivent nettement mieux une consigne en
  * anglais, et c'est déjà la langue des prompts du projet.
  */
-export function directiveGeneration(plateforme?: string | null): string {
+/**
+ * Ce qui fait qu'une image passe pour vraie.
+ *
+ * Fondateur, 2026-08-12 : « surtout pour les métiers clients et les produits,
+ * il faut du super naturel, on ne doit pas voir que c'est de l'IA. »
+ *
+ * Le défaut d'une image générée n'est presque jamais un défaut de qualité :
+ * c'est une PERFECTION de trop. Tout est rangé, centré, propre, personne n'a
+ * l'air surpris, aucune surface n'a servi. Une vraie photo porte les traces de
+ * ce qui s'est passé juste avant — une miette, un torchon jeté, un reflet mal
+ * placé. Ce sont ces accidents qui font qu'on ne se pose pas la question.
+ *
+ * Vaut pour les trois réseaux : c'est la base commune, le registre du réseau
+ * s'ajoute par-dessus.
+ */
+const BASE_NATUREL = `━━━ IT MUST PASS FOR A REAL PHOTOGRAPH ━━━
+What gives a generated image away is almost never poor quality — it is one
+perfection too many. Everything tidy, centred, spotless, nobody caught
+off-guard, no surface that has been used.
+- Leave the traces of what happened a minute earlier: crumbs, a cloth thrown
+  down, a fingerprint on the glass, a chair not pushed back in, stock that is
+  not perfectly aligned.
+- Real people, caught mid-gesture, not posing: eyes not always on the lens, a
+  half-finished movement, ordinary clothes with creases, skin with texture and
+  pores — never smooth, never waxen.
+- Imperfect light is credible light: a hard shadow, a blown-out corner, a
+  reflection where a photographer would not have wanted one.
+- Materials that have lived: worn wood, scratched metal, a slightly faded sign.
+- Never a symmetrical composition or a perfectly centred subject. A real
+  photographer moves, and it shows.
+This is the FIRST criterion — before beauty. A slightly imperfect photograph
+that reads as true beats a flawless image that reads as made.`;
+
+/**
+ * Ce qu'on dit au générateur quand le client a demandé AUTRE CHOSE qu'une photo.
+ *
+ * Fondateur, 2026-08-12 : « si le client demande via création, studio ou même
+ * via le chat une autre forme, on s'adapte. »
+ *
+ * Sans cette porte, le bloc ci-dessus se retournerait contre lui : on lui
+ * imposerait du réalisme là où il a explicitement commandé une illustration.
+ * Le contrôle sait déjà lever la règle anti-rendu ; le générateur doit savoir
+ * en faire autant, sinon les deux se contredisent et le client n'obtient jamais
+ * ce qu'il a demandé.
+ */
+const RENDU_DEMANDE = `━━━ THE CLIENT ASKED FOR THIS RENDERING ━━━
+An illustrated, drawn, 3D or stylised rendering is what was ORDERED here — it
+is not a defect. Do not force photorealism onto it.
+Execute it well instead: a clear subject, deliberate composition, a coherent
+palette, clean lines, readable at thumbnail size. Craft, in the register asked
+for.`;
+
+export function directiveGeneration(plateforme?: string | null, renduDemandeParLeClient = false): string {
   const cle = String(plateforme || '').toLowerCase();
+  const NATUREL = renduDemandeParLeClient ? RENDU_DEMANDE : BASE_NATUREL;
 
   if (cle === 'tiktok') {
     return `━━━ NETWORK: TIKTOK ━━━
@@ -146,7 +199,9 @@ Same photographic realism as always, with a CINEMATIC intent on top.
   A dead still frame has no place in a TikTok feed.
 - The first instant decides everything: the subject is identifiable immediately, no
   establishing shot, no build-up.
-Cinematic NEVER means unreal — a cinema CAMERA, never a render engine.`;
+Cinematic NEVER means unreal — a cinema CAMERA, never a render engine.
+
+${NATUREL}`;
   }
 
   if (cle === 'linkedin') {
@@ -161,7 +216,9 @@ Documentary / reportage register — this is a workplace, photographed as it is.
   rising graphs, suited people pointing at a whiteboard, generic open-plan offices.
 Sober does NOT mean careless: same professional-photographer standard of light, sharpness
 and texture. A reader of LinkedIn judges seriousness first — an over-polished image reads
-as an advert, and they scroll past.`;
+as an advert, and they scroll past.
+
+${NATUREL}`;
   }
 
   return `━━━ NETWORK: INSTAGRAM ━━━
@@ -173,7 +230,9 @@ Editorial lifestyle photography, at the level of a professional photographer on 
 - Decided framing, never centred by default — a foreground, a background, somewhere for
   the eye to land.
 It must hold up as a thumbnail in the grid: the feed is a shop window, and a lukewarm
-image costs a follower.`;
+image costs a follower.
+
+${NATUREL}`;
 }
 
 /**
