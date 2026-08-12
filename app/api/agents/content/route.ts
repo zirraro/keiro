@@ -7731,6 +7731,26 @@ COHÉRENCE VISUEL ↔ CAPTION (CRITIQUE) :
 - Le prospect doit voir l'image ET lire la caption comme une seule histoire cohérente
 - Le visuel ILLUSTRE le message, le message DÉCRIT ce que le visuel évoque
 
+CLIENT QUI SERT PLUSIEURS MÉTIERS (logiciel, agence, conseil) — ÉCRIS DEPUIS LA SCÈNE :
+- Son image montre forcément le commerce de QUELQU'UN D'AUTRE : une librairie,
+  un salon, une terrasse. Si la légende parle pendant ce temps du produit et de
+  ses fonctions, l'image et le texte racontent deux choses différentes, et le
+  contrôle le refuse — à raison.
+- Choisis donc UN métier et UNE situation concrète, décris-la dans le visuel, et
+  ÉCRIS LA LÉGENDE SUR CETTE SITUATION : ce que vit ce commerçant à ce
+  moment-là, ce qui lui coûte, ce qu'il aimerait. Le produit n'apparaît qu'à la
+  fin, comme la sortie du problème — une ligne, pas un catalogue.
+- Test : la première moitié de la légende doit pouvoir être lue par ce
+  commerçant en se disant « c'est exactement ma journée ». Si elle commence par
+  ce que fait l'outil, recommence.
+
+ACCROCHE — UNE SITUATION, PAS UN CONSTAT :
+- Ouvre sur un moment précis ou une tension concrète, jamais sur une généralité.
+- « La rentrée, c'est ton sprint le plus important » est un constat : tout le
+  monde le sait, personne ne s'arrête. « Lundi 8 h, ta vitrine est prête et
+  ton compte n'a rien posté depuis dix jours » est une situation.
+- Pas de question rhétorique en ouverture si sa réponse est évidente.
+
 CARROUSEL — LES DIAPOSITIVES SONT UNE SÉRIE, PAS TROIS IMAGES SÉPARÉES :
 - Si le format est "carrousel", le champ "slides" est OBLIGATOIRE : un tableau de
   3 à 5 objets { "visual": "...", "text": "..." }. Sans lui, les diapositives
