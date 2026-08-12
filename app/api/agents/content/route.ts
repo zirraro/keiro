@@ -7691,11 +7691,23 @@ RÈGLES :
 - INTERDIT : téléphone, smartphone, écran, mockup, device dans le visuel (sauf 1 post sur 10 max)
 - À ÉVITER (qualité) : visuels abstraits 3D / cubes glowing / cyberpunk / sci-fi visualisations / waveforms / hologrammes / split-screen abstrait — ce sont des visuels AMATEURS de stock photo. Acceptable seulement si le business est genuinely tech/3D/IA. Pour un resto, un coiffeur, un fleuriste, un coach, etc. → préfère ÉDITORIAL photo réelle, lifestyle, monde tangible.
 - À ÉVITER (qualité) : split-screen "concept A vs concept B" avec une moitié abstraite et l'autre réelle. C'est un cliché de designer paresseux. Si tu veux contraster deux idées, fais-le plutôt avec UNE scène réelle qui contient le contraste (ex : une assiette à moitié vide, deux coiffures côte-à-côte, une boutique avant/après).
-- Exemples de BONS visual_description :
-  * "Isometric 3D scene of a cozy French bakery with fresh croissants on display, warm golden lighting, deep violet accents, miniature people walking by, clean render, no text no letters"
-  * "Cinematic photo of a florist arranging a vibrant bouquet in a sunlit workshop, shallow depth of field, warm amber tones with violet shadows, editorial style, no text"
-  * "Bold flat design composition with abstract geometric shapes in violet and amber, a stylized chef hat as central element, asymmetric layout, studio lighting, no text no letters no words"
-  * "3D clay render of a small boutique storefront with pastel colors, soft rounded objects, warm lighting, miniature scene, premium feel, no text"
+- UNE SCÈNE, JAMAIS UN CONCEPT. Un générateur d'images ne sait pas illustrer
+  « le gain de temps » ni « la visibilité » : il sait photographier une main qui
+  repose un téléphone sur un comptoir pendant qu'un client attend. Traduis
+  toujours l'idée du post en un moment concret, qu'on pourrait photographier.
+- TEST AVANT D'ÉCRIRE LE BRIEF : quelqu'un qui voit l'image SANS lire le texte
+  doit comprendre de quoi parle le post. Si l'image pourrait accompagner
+  n'importe quelle autre légende, recommence.
+- Exemples de BONS visual_description (photographie réelle, toujours) :
+  * "A baker's flour-dusted hands lifting a tray of croissants out of the oven at dawn, steam catching the light from the shop window, warm natural light, shallow depth of field, no text"
+  * "A florist wrapping a bouquet at her worktable, kraft paper and cut stems around her, late afternoon light through the shopfront, candid moment, no text"
+  * "A café counter mid-service seen from behind the till: a coffee being handed over, a queue blurred in the background, hard morning light, documentary style, no text"
+  * "Two chairs and a small table on a restaurant terrace just before opening, folded napkins, long shadows on the pavement, quiet moment before the rush, no text"
+- Exemples de MAUVAIS visual_description (à ne JAMAIS produire) :
+  * "Isometric 3D scene of a bakery, clean render, miniature people" → rendu, pas photo
+  * "Bold flat design composition with abstract geometric shapes, stylized chef hat" → illustration
+  * "3D clay render of a boutique storefront, soft rounded objects" → cartoon
+  * "A cozy summer atmosphere with warm colors" → aucune scène, aucun sujet
 - AUCUN texte/lettre/mot dans les visuels (Seedream ne gère pas le texte)
 - Le champ "hashtags" DOIT contenir 5-10 hashtags pertinents dont #keiroai en premier (NE PAS les mettre dans caption)
 - Pense à la MINIATURE dans la grille (carrée, lisible en petit)
@@ -7719,8 +7731,23 @@ COHÉRENCE VISUEL ↔ CAPTION (CRITIQUE) :
 - Le prospect doit voir l'image ET lire la caption comme une seule histoire cohérente
 - Le visuel ILLUSTRE le message, le message DÉCRIT ce que le visuel évoque
 
+CARROUSEL — LES DIAPOSITIVES SONT UNE SÉRIE, PAS TROIS IMAGES SÉPARÉES :
+- Si le format est "carrousel", le champ "slides" est OBLIGATOIRE : un tableau de
+  3 à 5 objets { "visual": "...", "text": "..." }. Sans lui, les diapositives
+  suivantes sont bricolées à partir de la première et n'ont aucun lien entre
+  elles — c'est le défaut le plus visible d'un carrousel raté.
+- Toutes les diapositives se passent DANS LE MÊME LIEU, à la même heure, avec la
+  même lumière et les mêmes personnes. Seuls le cadrage et le moment changent :
+  large, puis le geste, puis le détail, puis le résultat.
+- Chaque diapositive FAIT AVANCER l'histoire. Trois angles du même plan ne sont
+  pas un carrousel. Si on peut permuter deux diapositives sans rien perdre,
+  c'est qu'elles ne racontent rien.
+- "visual" décrit la scène (en anglais, photographique) ; "text" est la phrase
+  courte incrustée, s'il y en a une.
+
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
-Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description, best_time, grid_color, content_angle`;
+Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description, best_time, grid_color, content_angle
+Champ obligatoire SI format = carrousel : slides`;
 
   let rawText: string;
   try {
