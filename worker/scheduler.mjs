@@ -57,6 +57,19 @@ const GLOBAL_SCHEDULE = [
   { cron: '30 14 * * *',  slot: 'pre_recap_catchup', label: 'Mid-Day Quota Catch-up (16:30 Paris)' },
   { cron: '30 16 * * *',  slot: 'pre_recap_catchup', label: 'Pre-Recap Quota Catch-up (H-2 Paris)' },
   { cron: '30 18 * * *',  slot: 'ceo_daily',         label: 'CEO Daily + Ops Health + Client Evening Brief' },
+  // ── Sonde qualité : une génération NEUVE par réseau, chaque jour ──
+  //
+  // Fondateur 2026-08-12 : « lance tous les jours de nouvelles générations, au
+  // moins une pour chaque réseau, pour que je voie le niveau. » Le calendrier
+  // étant servi par un stock déjà produit, la chaîne de génération ne tournait
+  // plus et on ne pouvait rien affirmer sur la qualité du prompting.
+  //
+  // Trois passages ESPACÉS, jamais simultanés : une salve fait chuter la
+  // portée, et c'est précisément ce qu'on mesure.
+  { cron: '20 8 * * *',   path: '/api/cron/generation-fraiche?reseau=instagram', label: 'Génération fraîche — Instagram' },
+  { cron: '20 14 * * *',  path: '/api/cron/generation-fraiche?reseau=tiktok',    label: 'Génération fraîche — TikTok' },
+  { cron: '20 19 * * *',  path: '/api/cron/generation-fraiche?reseau=linkedin',  label: 'Génération fraîche — LinkedIn' },
+
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   // Inbound email poll every 2h (8 fires/day) so prospect replies get
   // classified and auto-responded within ~2h instead of waiting for the

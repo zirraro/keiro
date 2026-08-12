@@ -3205,6 +3205,13 @@ async function GETInterne(request: NextRequest) {
                     accepte_final: tentatives[tentatives.length - 1].accepte,
                     scores: tentatives.map(t => t.score),
                     defauts_premier: tentatives[0].flags,
+                    // Un visuel RÉUTILISÉ n'apprend rien sur la qualité du
+                    // prompting : il a déjà été validé, parfois il y a des
+                    // semaines. Le mélanger aux générations neuves gonflerait
+                    // artificiellement le taux de réussite du premier coup —
+                    // exactement le chiffre qu'on veut pouvoir croire.
+                    recycle: String(fullPost.source || '').includes('recycl')
+                      || (fullPost.visual_reused_count ?? 0) > 0,
                   },
                   created_at: new Date().toISOString(),
                 });

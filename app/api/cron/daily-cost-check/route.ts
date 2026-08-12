@@ -289,8 +289,14 @@ export async function GET(req: NextRequest) {
     .limit(5000);
 
   const parReseau: Record<string, { total: number; premierCoup: number; tentatives: number; defauts: Record<string, number> }> = {};
+  let recyclesIgnores = 0;
   for (const l of (tentativesLogs || []) as any[]) {
     const d = l.data || {};
+    // Un visuel réutilisé n'apprend rien sur le prompting : il a été validé
+    // ailleurs, parfois des semaines plus tôt. L'inclure gonflerait le taux de
+    // réussite du premier coup, c'est-à-dire précisément le chiffre sur lequel
+    // on veut pouvoir s'appuyer.
+    if (d.recycle) { recyclesIgnores++; continue; }
     const r = String(d.reseau || 'inconnu');
     const e = (parReseau[r] ||= { total: 0, premierCoup: 0, tentatives: 0, defauts: {} });
     e.total++;
@@ -442,6 +448,9 @@ export async function GET(req: NextRequest) {
     // Le taux de réussite du premier coup, par réseau : la mesure qui dit si
     // améliorer le prompt sert à quelque chose, en qualité comme en coût.
     premiere_generation: premierCoupRows,
+    // Nombre de visuels recyclés écartés de la mesure : sans ce chiffre, un
+    // tableau vide passerait pour « rien produit » alors qu'on a publié.
+    premiere_generation_recycles_ignores: recyclesIgnores,
     // Marge tout compris : API + frais Stripe + charges fixes réparties.
     marges_exhaustives: {
       charges_fixes_total_eur: TOTAL_CHARGES_FIXES_EUR,
