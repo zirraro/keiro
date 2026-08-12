@@ -62,7 +62,29 @@ const PLAFOND_REQUALIFICATION = 25;
  * s'appliquerait qu'aux publications futures, et le stock resterait à
  * l'ancienne norme sans que personne ne s'en aperçoive.
  */
-const MARQUE_STANDARD = '[qc 2026-08-11]';
+const MARQUE_STANDARD = '[qc 2026-08-12]';   // relevé : la note TECHNIQUE du visuel est désormais jugée
+
+/**
+ * Où atterrit une publication que le contrôle refuse et qu'on ne sait pas
+ * réparer.
+ *
+ * Fondateur, 2026-08-12 : « pour les posts programmés déjà contrôlés, s'ils ne
+ * passent pas le contrôle et ne sont pas réparables, abandonne-les dès
+ * maintenant. »
+ *
+ * Jusqu'ici ils repassaient en `draft`, c'est-à-dire au même endroit que le
+ * travail en cours du client. Le brouillon est un état de TRAVAIL : y déposer
+ * des publications condamnées les mélange à ce que le client est en train
+ * d'écrire, et laisse croire qu'elles attendent une décision. Elles n'en
+ * attendent pas — l'image est mauvaise ou le texte ment, et aucune réécriture
+ * n'y change rien.
+ *
+ * `skipped` est l'état d'abandon déjà prévu par le schéma. La ligne reste, avec
+ * son motif en clair : on n'efface jamais le travail d'un client, on cesse
+ * seulement de le programmer. Le créneau libéré est repris par la génération
+ * du jour, qui produit au standard actuel plutôt que de rafistoler l'ancien.
+ */
+const STATUT_ABANDON = 'skipped';
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -253,7 +275,7 @@ export async function GET(req: NextRequest) {
       if (exemples.length < 6) exemples.push(`${p.scheduled_date} ${p.platform} — ${verdict.motif}`);
     } else if (verdict.action === 'irrecuperable') {
       await supabase.from('content_calendar').update({
-        status: 'draft',
+        status: STATUT_ABANDON,
         qa_notes: qaNotes,
         publish_diagnostic: `perime: ${verdict.motif}`.slice(0, 500),
         updated_at: maintenant,
@@ -321,11 +343,12 @@ export async function GET(req: NextRequest) {
         const eliminatoire = (note.amateur_flags || []).some((f: string) =>
           ['blurry_subject', 'out_of_focus', 'looks_generated'].includes(f));
         if (note.score < 7 || eliminatoire) {
-          // On met de côté SANS supprimer : le texte reste bon, seule l'image
-          // ne l'est plus. La génération courante peut reprendre le sujet, et
-          // le client retrouve le brouillon.
+          // Une image insuffisante ne se répare pas par le texte : il faudrait
+          // la regénérer, c'est-à-dire payer une génération neuve pour sauver un
+          // sujet ancien. Autant la laisser à la génération du jour, qui part
+          // du standard actuel. On abandonne donc, motif en clair.
           await supabase.from('content_calendar').update({
-            status: 'draft',
+            status: STATUT_ABANDON,
             qa_notes: `${frais.qa_notes ? frais.qa_notes + '\n' : ''}${MARQUE_STANDARD} visuel insuffisant (${note.score}/10${eliminatoire ? ', défaut éliminatoire' : ''})`.slice(0, 4000),
             publish_diagnostic: `qc_visuel_insuffisant: ${note.score}/10 — ${(note.amateur_flags || []).join(', ') || note.notes}`.slice(0, 500),
             updated_at: maintenant,
@@ -408,14 +431,15 @@ export async function GET(req: NextRequest) {
     if (verdict.publiable) {
       await supabase.from('content_calendar').update({ qa_notes: notes }).eq('id', frais.id);
     } else {
+      // Refusé, et la réécriture ci-dessus n'a rien pu en tirer : abandon.
       await supabase.from('content_calendar').update({
-        status: 'draft',
+        status: STATUT_ABANDON,
         qa_notes: notes,
         publish_diagnostic: verdict.diagnostic,
         updated_at: maintenant,
       }).eq('id', frais.id);
       requalifiesEcartes++;
-      if (exemples.length < 10) exemples.push(`${p.scheduled_date} ${frais.platform} — écarté au nouveau standard : ${verdict.diagnostic}`);
+      if (exemples.length < 10) exemples.push(`${p.scheduled_date} ${frais.platform} — abandonné au nouveau standard : ${verdict.diagnostic}`);
     }
   }
 
