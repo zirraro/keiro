@@ -55,10 +55,30 @@ Return STRICT JSON:
   "amateur_flags": ["looks_generated", "2d_paste", "lighting_mismatch", "invented_props", "wrong_subject", "low_detail", "uncanny_composition", "venue_changed", "proportions_unrealistic", "blurry_subject", "out_of_focus", "off_network_register"]
 }
 
+CALIBRATION — read this before scoring:
+Every image you audit was produced by an image model. That is expected and is
+NOT a defect: a clean photorealistic render is exactly the goal. You are not
+asked "was this generated?" — you would answer yes every time and the answer
+would be worthless. You are asked: "scrolling past this at normal speed, would
+a person stop and think 'that's fake'?"
+Anchor your scale: a competent, unremarkable photo that does its job is a 7.
+An image with real craft — light, composition, a moment — is an 8 or 9.
+Reserve 4 and below for images a business owner would be embarrassed to
+publish. Do not cluster your scores at the bottom.
+
 CRITICAL FLAGS:
-- looks_generated: the image reads as AI-generated, 3D, cartoon, illustrated or synthetic rather than photographed — unless the client explicitly asked for that rendering (stated above). This is ELIMINATORY: score MUST be ≤ 3. Check hands and fingers, embedded text, background faces, objects melting into one another, impossible reflections, plastic skin, light coming from nowhere.
+- looks_generated: fires ONLY when you can NAME a specific visible defect and
+  say where it is. Valid tells: deformed hands or wrong finger count, garbled
+  or nonsensical lettering, cartoon / 3D-render / illustrated look when a photo
+  was asked for, waxy plastic skin, objects fusing into one another, duplicated
+  or melted faces, physically impossible reflections or shadows. You MUST state
+  the tell and its location in "notes" — "generated look" or "AI feel" is not
+  an answer. If you cannot point to the defect in one short sentence, DO NOT
+  raise this flag. Score ≤ 3 when it does fire.
+  (Unless the client explicitly asked for that rendering, stated above — then
+  it is not a defect at all.)
 - off_network_register: technically fine, but wrong for THIS network — an advertising-looking shot on LinkedIn, a flat static frame for TikTok, a careless snapshot on Instagram. Score ≤ 5.
-- blurry_subject: the HERO subject (dish / product / face / hands) is soft, smudged, or out-of-focus where it should be tack sharp. Even minor softness on the focal point = HARD FAIL — score MUST be ≤ 3 and we regenerate. Background bokeh is fine, but the subject must be crisp. NO publishable post has a fuzzy hero.
+- blurry_subject: the HERO subject (dish / product / face / hands) is visibly soft or smudged where it should be sharp — softness a viewer would NOTICE, not softness you find by pixel-peeping. Shallow depth of field is a photographic choice, not a defect: a sharp dish against a melted background is correct. Score ≤ 3 when the hero itself is genuinely mushy.
 - out_of_focus: composition is overall soft (wrong focal point, focus missed, motion blur where there shouldn't be any). Score ≤ 4.
 - 2d_paste: subject looks layered on top of background (floating circle, feathered edges, no contact shadow, perspective-free).
 - lighting_mismatch: hero and background have incompatible light sources.

@@ -62,7 +62,7 @@ const PLAFOND_REQUALIFICATION = 25;
  * s'appliquerait qu'aux publications futures, et le stock resterait à
  * l'ancienne norme sans que personne ne s'en aperçoive.
  */
-const MARQUE_STANDARD = '[qc 2026-08-12]';   // relevé : la note TECHNIQUE du visuel est désormais jugée
+const MARQUE_STANDARD = '[qc 2026-08-12b]';  // juge visuel recalibre : le soupcon "genere" ne suffit plus, il faut un defaut nommable
 
 /**
  * Où atterrit une publication que le contrôle refuse et qu'on ne sait pas
@@ -208,6 +208,46 @@ export async function GET(req: NextRequest) {
       motifs[m] = (motifs[m] || 0) + 1;
     }
     return NextResponse.json({ ok: true, total: (abandons || []).length, motifs, abandons });
+  }
+
+  // ── Réparer un abandon en masse dû à un juge déréglé ──
+  //
+  // 2026-08-12 : le contrôle technique a écarté 229 publications sur 232. En
+  // ouvrant les images, trois sur quatre étaient de bonnes photographies —
+  // pivoines à la lumière rasante, fleuriste en contre-jour, verres en
+  // terrasse. Le juge ne répondait pas à la bonne question : on lui demandait
+  // si l'image « lit comme générée par IA », or elles le sont toutes. Il
+  // détectait la signature du générateur, pas le défaut visible, et la règle
+  // « éliminatoire » transformait ce soupçon en 3/10 automatique.
+  //
+  // Le juge est corrigé. Reste à rendre leur place aux publications qu'il a
+  // condamnées à tort : on les repasse en `approved` et on retire la marque du
+  // standard, ce qui les fait rejuger au prochain passage. Celles écartées pour
+  // un autre motif — incohérence avec le sujet, par exemple — ne bougent pas :
+  // ces verdicts-là ont été vérifiés et ils tiennent.
+  //
+  // Une correction de juge doit toujours s'accompagner de la révision de ses
+  // jugements passés, sinon on garde la sanction en ayant retiré la faute.
+  if (req.nextUrl.searchParams.get('restaurer') === 'visuel') {
+    const { data: candidats } = await supabase
+      .from('content_calendar')
+      .select('id, qa_notes')
+      .eq('status', STATUT_ABANDON)
+      .like('publish_diagnostic', 'qc_visuel_insuffisant%')
+      .limit(500);
+    let remis = 0;
+    for (const c of candidats || []) {
+      const notes = String(c.qa_notes || '')
+        .split('\n').filter(l => !l.includes(MARQUE_STANDARD)).join('\n');
+      const { error } = await supabase.from('content_calendar').update({
+        status: 'approved',
+        qa_notes: notes.slice(0, 4000),
+        publish_diagnostic: 'restaure: juge visuel recalibre le 2026-08-12',
+        updated_at: maintenant,
+      }).eq('id', c.id);
+      if (!error) remis++;
+    }
+    return NextResponse.json({ ok: true, candidats: (candidats || []).length, remis });
   }
 
   // ── Balayage TOTAL, à la demande ──
@@ -370,7 +410,12 @@ export async function GET(req: NextRequest) {
         );
         const eliminatoire = (note.amateur_flags || []).some((f: string) =>
           ['blurry_subject', 'out_of_focus', 'looks_generated'].includes(f));
-        if (note.score < 7 || eliminatoire) {
+        // 6 = publiable selon le barème du juge lui-même. Exiger 7 sur du stock
+        // déjà écrit revenait à jeter des photos correctes pour n'en garder que
+        // les remarquables — et à vider le calendrier. La barre haute est à sa
+        // place à la GÉNÉRATION, où recommencer coûte une image ; ici,
+        // recommencer coûte un créneau.
+        if (note.score < 6 || eliminatoire) {
           // Une image insuffisante ne se répare pas par le texte : il faudrait
           // la regénérer, c'est-à-dire payer une génération neuve pour sauver un
           // sujet ancien. Autant la laisser à la génération du jour, qui part
