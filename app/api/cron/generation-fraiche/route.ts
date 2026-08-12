@@ -39,11 +39,19 @@ export const maxDuration = 300;
  * l'activer explicitement (`generation_fraiche: true`).
  */
 
-const RESEAU_VERS_SLOT: Record<string, string> = {
-  instagram: 'morning',
-  tiktok: 'tiktok',
-  linkedin: 'linkedin_1',
-};
+/**
+ * On appelle la génération DIRECTEMENT, pas par un créneau.
+ *
+ * Premier essai, corrigé le jour même : la sonde passait par les créneaux
+ * habituels (`?slot=tiktok`), qui refusent de générer dès qu'une publication
+ * existe déjà pour la journée — « 21 post(s) for today ». Or le calendrier est
+ * précisément plein du stock recyclé : la sonde ne générait donc jamais rien,
+ * tout en répondant « OK ».
+ *
+ * `generate_post` avec une plateforme forcée court-circuite ces gardes : c'est
+ * le seul chemin qui produit vraiment une génération neuve.
+ */
+const RESEAUX = new Set(['instagram', 'tiktok', 'linkedin']);
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -52,8 +60,7 @@ export async function GET(req: NextRequest) {
   }
 
   const reseau = (req.nextUrl.searchParams.get('reseau') || 'instagram').toLowerCase();
-  const slot = RESEAU_VERS_SLOT[reseau];
-  if (!slot) return NextResponse.json({ ok: false, error: 'réseau inconnu' }, { status: 400 });
+  if (!RESEAUX.has(reseau)) return NextResponse.json({ ok: false, error: 'réseau inconnu' }, { status: 400 });
 
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
@@ -78,12 +85,17 @@ export async function GET(req: NextRequest) {
   const resultats: Array<{ email: string; ok: boolean; detail?: string }> = [];
   for (const c of cibles) {
     try {
-      const r = await fetch(`${base}/api/agents/content?slot=${slot}&user_id=${c.id}`, {
-        headers: { authorization: `Bearer ${secret}` },
-        signal: AbortSignal.timeout(240_000),
-      });
-      const j = await r.json().catch(() => ({}));
-      resultats.push({ email: c.email, ok: r.ok, detail: j?.skipped || j?.message || (r.ok ? 'généré' : `HTTP ${r.status}`) });
+      // Générer une image, et surtout une vidéo, prend du temps. On lance et on
+      // ne bloque pas : le travail se poursuit côté serveur même si on cesse
+      // d'attendre, et la publication suit son cours normal. Attendre la
+      // réponse ferait échouer la sonde sur un simple délai — c'est ce qui
+      // s'est produit au premier essai sur Instagram.
+      void fetch(`${base}/api/agents/content?user_id=${c.id}`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'generate_post', platform: reseau }),
+      }).catch(() => {});
+      resultats.push({ email: c.email, ok: true, detail: 'génération lancée' });
     } catch (e: any) {
       resultats.push({ email: c.email, ok: false, detail: e?.message?.slice(0, 100) });
     }
