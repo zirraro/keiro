@@ -46,6 +46,7 @@ const AgentSetupGuide = dynamic(() => import('../../components/AgentSetupGuide')
 const AgentTutorial = dynamic(() => import('./components/AgentTutorial'), { ssr: false });
 const CampaignWizard = dynamic(() => import('./components/CampaignWizard'), { ssr: false });
 const AgentDocuments = dynamic(() => import('./components/AgentDocuments'), { ssr: false });
+const ReservationsPanel = dynamic(() => import('./components/ReservationsPanel'), { ssr: false });
 const DocumentEditor = dynamic(() => import('./components/DocumentEditor'), { ssr: false });
 const SpreadsheetEditor = dynamic(() => import('./components/SpreadsheetEditor'), { ssr: false });
 
@@ -1417,7 +1418,7 @@ export default function AgentWorkspacePage() {
   // Tabs — support ?tab=history from notification links
   const searchParams = useSearchParams();
   const initialTab = (['dashboard', 'prospection', 'planning', 'history', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'prospection' | 'planning' | 'history' | 'settings' | 'profile' | 'documents' | 'editor'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'prospection' | 'planning' | 'history' | 'settings' | 'profile' | 'documents' | 'editor' | 'reservations'>(initialTab);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   // Le spotlight peut demander de basculer d'onglet pour montrer le VRAI endroit
@@ -2243,6 +2244,20 @@ export default function AgentWorkspacePage() {
               // Campaigns tab removed (empty/redundant — Launch button + agent inline lists do the job)
               ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: isEn ? 'Planning' : 'Planning', icon: '\uD83D\uDCC5' }] : []),
               ...(['rh', 'comptable'].includes(agentId) ? [{ key: 'editor' as const, label: isEn ? 'Editor' : 'Éditeur', icon: '\u270D\uFE0F' }] : []),
+              // \u2500\u2500 Onglet R\u00E9servations \u2500\u2500
+              //
+              // Fondateur 2026-08-12 : \u00AB dans la page agent on a un onglet CRM,
+              // on aura maintenant un onglet r\u00E9servations \u00BB. Le CRM suit des
+              // PROSPECTS dans un cycle de vente ; le carnet suit des clients
+              // d\u00E9j\u00E0 acquis qui ont pris un engagement dat\u00E9. Deux questions
+              // diff\u00E9rentes, donc deux onglets \u2014 les m\u00EAler donnerait un objet
+              // qui r\u00E9pond mal aux deux.
+              //
+              // R\u00E9serv\u00E9 aux agents en contact avec la client\u00E8le : un carnet vide
+              // sur l'agent comptable n'encombrerait que l'\u00E9cran.
+              ...(['dm_instagram', 'whatsapp', 'email', 'chatbot', 'content'].includes(agentId)
+                ? [{ key: 'reservations' as const, label: isEn ? 'Bookings' : 'R\u00E9servations', icon: '\uD83D\uDCD2' }]
+                : []),
               { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
               // History tab removed: was leaking system-level logs (user_id IS NULL)
               // across accounts, and live agent stats already show activity.
@@ -2502,6 +2517,9 @@ export default function AgentWorkspacePage() {
         {activeTab === 'editor' && agentId === 'comptable' && (
           <SpreadsheetEditor agentId={agentId} agentName="Louis" />
         )}
+
+        {/* ═══ TAB: RÉSERVATIONS — le carnet du commerçant ═══ */}
+        {activeTab === 'reservations' && <ReservationsPanel />}
 
         {/* ═══ TAB: DOCUMENTS — Fichiers generes par l'agent ═══ */}
         {activeTab === 'documents' && (

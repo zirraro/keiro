@@ -570,6 +570,31 @@ ${ragContext}`;
 
         if (!aiReply) continue;
 
+        // ── Contrôle qualité avant envoi ──
+        //
+        // Fondateur 2026-08-11 : « des contrôles qualité sur les DM préparés ou
+        // pris en charge en réponse auto ». C'est ici que part le message : une
+        // réponse envoyée dans la fenêtre de 24 h ne se rattrape pas, et elle
+        // sort au nom du commerçant, dans une conversation privée où le ton
+        // compte plus qu'ailleurs.
+        //
+        // Le barème « dm_reponse » exige du court, de l'humain, aucun lien au
+        // premier message, pas de vente. Sous le seuil, le contrôle réécrit ;
+        // s'il ne peut pas faire mieux, on n'envoie pas — un DM raté coûte plus
+        // qu'un DM absent.
+        try {
+          const { controlerSortie } = await import('@/lib/qualite/controle-sortie');
+          const q = await controlerSortie({
+            agent: 'dm_instagram', tache: 'dm_reponse', contenu: aiReply, userId: ownerUserId,
+            contexte: `Conversation Instagram avec ${senderName}. Dernier message reçu : « ${String(lastMsgText || '').slice(0, 500)} »`,
+          });
+          if (!q.envoyable) {
+            console.warn(`[DM-AutoReply] réponse retenue par le contrôle qualité (${q.note}/10) : ${q.defauts[0] || ''}`);
+            continue;
+          }
+          aiReply = q.contenu;
+        } catch { /* contrôle indisponible : on envoie la réponse d'origine */ }
+
         // Send reply — graph.instagram.com when using IGAA, else FB graph.
         try {
           const sendHost = useIgaa ? 'graph.instagram.com' : 'graph.facebook.com';

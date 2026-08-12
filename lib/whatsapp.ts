@@ -30,7 +30,41 @@ function getAccessToken(): string {
 export async function sendWhatsAppMessage(
   to: string,
   text: string,
+  /**
+   * Le client au nom de qui on écrit. Sert au contrôle qualité : sans lui, la
+   * mémoire des défauts ne peut pas distinguer ce qui a été reproché sur ce
+   * compte de ce qui l'a été ailleurs. Facultatif — un envoi technique
+   * (notification interne) n'en a pas besoin.
+   */
+  opts?: { userId?: string | null; contexte?: string; sansControle?: boolean },
 ): Promise<{ success: boolean; messageId?: string }> {
+  // ── Contrôle qualité avant envoi ──
+  //
+  // Fondateur 2026-08-11 : « on veut du contrôle sur Stella aussi ». C'est le
+  // point de passage de tout ce qui part en WhatsApp, donc le seul endroit où
+  // le poser sans en oublier une branche.
+  //
+  // WhatsApp est le canal le plus intime du produit : le message arrive sur le
+  // téléphone personnel du client du commerçant, dans le même fil que sa
+  // famille. Un ton robotique s'y remarque immédiatement.
+  //
+  // `sansControle` existe pour les messages TECHNIQUES qu'on s'envoie à
+  // soi-même — une alerte au gérant n'a pas à être jugée sur son style.
+  if (!opts?.sansControle) {
+    try {
+      const { controlerSortie } = await import('@/lib/qualite/controle-sortie');
+      const q = await controlerSortie({
+        agent: 'whatsapp', tache: 'whatsapp_reponse', contenu: text,
+        userId: opts?.userId, contexte: opts?.contexte,
+      });
+      if (!q.envoyable) {
+        console.warn(`[WhatsApp] message retenu par le contrôle qualité (${q.note}/10) : ${q.defauts[0] || ''}`);
+        return { success: false };
+      }
+      text = q.contenu;
+    } catch { /* contrôle indisponible : on envoie le texte d'origine */ }
+  }
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);

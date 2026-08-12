@@ -28,12 +28,18 @@ export default function Header() {
   //
   // Déconnecté, il va vers la vitrine publique /agents ; connecté, il retrouve
   // son espace. Défini après `user` pour que l'arbitrage soit possible.
+  // ── « Agents » en deuxième position ──
+  //
+  // Demande du fondateur, 2026-08-12. C'est la page où le client passe sa
+  // journée : son équipe, son CRM, bientôt ses réservations. La reléguer après
+  // Création, Édition et Galerie la faisait passer pour une annexe, alors que
+  // c'est le produit.
   const navItems = [
     { href: "/", label: t.nav.home },
+    { href: user ? "/assistant" : "/agents", label: t.nav.assistant },
     { href: "/generate", label: t.nav.generate },
     { href: "/studio", label: t.nav.studio },
     { href: "/library", label: t.nav.gallery },
-    { href: user ? "/assistant" : "/agents", label: t.nav.assistant },
     { href: "/blog", label: "Blog" },
     { href: "/pricing", label: t.nav.pricing, highlight: true },
   ];

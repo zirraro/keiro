@@ -1238,10 +1238,38 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
       } catch { return null; }
     })() : null;
 
+    // ── Contrôle qualité des DOCUMENTS produits par Sara et Louis ──
+    //
+    // Fondateur 2026-08-11 : « des contrôles qualité sur les documents émis
+    // dans Sara et dans Louis ». Un contrat, une attestation, une rupture
+    // conventionnelle engagent vraiment le commerçant — une mention manquante
+    // ou une donnée inventée l'exposent.
+    //
+    // Le contrôle ne se déclenche QUE sur une réponse assez longue pour être un
+    // document. Juger chaque message conversationnel doublerait le coût du chat
+    // pour rien : « oui, je m'en occupe » n'a pas besoin d'un relecteur.
+    let reponse = reply;
+    if ((agent_id === 'rh' || agent_id === 'comptable') && String(reply || '').length > 800) {
+      try {
+        const { controlerSortie } = await import('@/lib/qualite/controle-sortie');
+        const q = await controlerSortie({
+          agent: agent_id, tache: 'document_juridique', contenu: reponse, userId: user.id,
+          contexte: `Document demandé par le client dans le chat de ${agentName}.`,
+        });
+        // On ne bloque jamais une réponse de chat : le client attend devant son
+        // écran. On lui donne la version corrigée, et on l'avertit si le
+        // contrôle a des réserves qu'il n'a pas pu lever.
+        reponse = q.contenu;
+        if (!q.envoyable && q.defauts.length) {
+          reponse += `\n\n⚠️ À vérifier avant usage : ${q.defauts.slice(0, 2).join(' · ')}`;
+        }
+      } catch { /* contrôle indisponible : on rend la réponse d'origine */ }
+    }
+
     return NextResponse.json({
       ok: true,
-      reply,
-      message: reply, // alias for compatibility
+      reply: reponse,
+      message: reponse, // alias for compatibility
       agent_name: agentName,
       newBalance,
       ...(settingUpdate ? { setting_update: settingUpdate } : {}),
