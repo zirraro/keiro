@@ -7797,9 +7797,15 @@ CARROUSEL — LES DIAPOSITIVES SONT UNE SÉRIE, PAS TROIS IMAGES SÉPARÉES :
 - "visual" décrit la scène (en anglais, photographique) ; "text" est la phrase
   courte incrustée, s'il y en a une.
 
+ORDRE D'ÉCRITURE — LA SCÈNE D'ABORD, LE TEXTE ENSUITE :
+Écris "visual_description" AVANT "hook" et "caption", et écris ensuite le texte
+EN REGARDANT cette scène. C'est le sens naturel : la scène produit le texte.
+L'inverse — écrire la légende puis chercher une image qui l'illustre — donne un
+visuel rattrapé après coup, et c'est exactement ce que le contrôle refuse.
+
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
-Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description, best_time, grid_color, content_angle
-Champ obligatoire SI format = carrousel : slides`;
+Champs obligatoires, DANS CET ORDRE : platform, format, pillar, visual_description, hook, caption, hashtags, best_time, grid_color, content_angle
+Champ obligatoire SI format = carrousel : slides (juste après visual_description)`;
 
   let rawText: string;
   try {

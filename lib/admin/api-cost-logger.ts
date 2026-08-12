@@ -35,6 +35,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { contexteCoutActuel } from '@/lib/admin/contexte-cout';
 
 const USD_TO_EUR = 0.92; // taux indicatif 2026-06
 
@@ -66,14 +67,38 @@ export interface ApiCostEvent {
 export async function logApiCost(event: ApiCostEvent): Promise<void> {
   try {
     const supabase = getAdmin();
+
+    // ── Une dépense sans nom ne se pilote pas ──
+    //
+    // Fondateur, 2026-08-13, devant une alerte de dérive : « comment ça,
+    // inconnu ? On doit toujours identifier les dépenses et les vérifier. »
+    // Il avait raison, et le poste « inconnu » était le PREMIER du classement :
+    // 6,94 € sur 24 h, 5 210 appels, aucune étiquette.
+    //
+    // La cause : ce journal n'a jamais lu le contexte ambiant. Le contexte
+    // existe pourtant — chaque route d'agent le pose — mais il fallait que
+    // l'appelant repasse l'agent à la main, et la plupart l'oubliaient. Une
+    // information disponible qu'on ne va pas chercher, c'est une information
+    // perdue.
+    //
+    // On la récupère donc ici, une fois, pour tous les appelants. Et si même le
+    // contexte est vide, on retombe sur la NATURE de l'appel plutôt que sur
+    // « inconnu » : « hors_agent:qc_reecriture_legende » se cherche, « inconnu »
+    // ne se cherche pas.
+    const ambiant = contexteCoutActuel();
+    const agent = event.agent ?? ambiant.agent ?? (event.kind ? `hors_agent:${event.kind}` : 'hors_agent');
+    const userId = event.user_id ?? ambiant.userId ?? null;
+
     await supabase.from('api_cost_events').insert([{
       provider: event.provider,
       kind: event.kind,
       units: event.units,
       cost_eur: event.cost_eur,
-      user_id: event.user_id ?? null,
-      agent: event.agent ?? null,
-      metadata: event.metadata ?? null,
+      user_id: userId,
+      agent,
+      metadata: ambiant.origine
+        ? { ...(event.metadata ?? {}), origine: ambiant.origine }
+        : (event.metadata ?? null),
     }] as any);
   } catch (e) {
     // Never throw — logging cost shouldn't break user-facing routes
