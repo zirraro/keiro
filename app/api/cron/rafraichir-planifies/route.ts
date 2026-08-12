@@ -229,12 +229,17 @@ export async function GET(req: NextRequest) {
   // Une correction de juge doit toujours s'accompagner de la révision de ses
   // jugements passés, sinon on garde la sanction en ayant retiré la faute.
   if (req.nextUrl.searchParams.get('restaurer') === 'visuel') {
-    const { data: candidats } = await supabase
+    // Le filtre sur le motif se fait ici, pas dans la requête : un `like` avec
+    // `%` n'a rien remonté côté PostgREST alors que les lignes existaient, et
+    // une restauration qui ne restaure rien en répondant « ok » est pire qu'une
+    // erreur. On lit les abandons et on trie en clair.
+    const { data: tous } = await supabase
       .from('content_calendar')
-      .select('id, qa_notes')
+      .select('id, qa_notes, publish_diagnostic')
       .eq('status', STATUT_ABANDON)
-      .like('publish_diagnostic', 'qc_visuel_insuffisant%')
-      .limit(500);
+      .limit(1000);
+    const candidats = (tous || []).filter(c =>
+      String(c.publish_diagnostic || '').startsWith('qc_visuel_insuffisant'));
     let remis = 0;
     for (const c of candidats || []) {
       const notes = String(c.qa_notes || '')
