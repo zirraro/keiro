@@ -7245,6 +7245,13 @@ chose. C'est le defaut le plus frequent et le controle le refuse.
 
 Et l'IMAGE suit le meme test : si le post parle d'actualite, elle doit montrer
 la scene concrete du metier, jamais l'evenement lui-meme.
+
+CAS PARTICULIER — le client sert PLUSIEURS metiers (logiciel, agence, conseil,
+prestataire). Alors le test 1 echoue par construction : ses clients a lui sont
+justement tous les metiers, donc aucune phrase ne resistera a la substitution.
+Pour ce client, n'utilise l'actualite QUE si elle touche son propre metier a
+lui (son secteur, ses outils, ses regles). Sinon fais un post tips, demo ou
+preuve : c'est la le contenu qui le fait vendre, pas un evenement du jour.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     }
   } catch (e: any) {
