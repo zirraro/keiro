@@ -19,6 +19,14 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useLanguage } from '@/lib/i18n/context';
+import dynamic from 'next/dynamic';
+
+// Chargé à la demande : le carnet n'est ouvert que par les commerces qui
+// prennent des réservations, inutile de le peser dans le premier rendu.
+const PanneauReservations = dynamic(
+  () => import('@/app/assistant/agent/[id]/components/ReservationsPanel'),
+  { ssr: false },
+);
 import InfoTooltip from '@/components/InfoTooltip';
 
 // Translation key per agent id — falls back to the client-context `title`
@@ -446,7 +454,7 @@ export default function AssistantPage() {
   const [streak, setStreak] = useState(0);
 
   // View tab
-  const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'campagnes' | 'pipeline' | 'offre' | 'planning'>('suivi');
+  const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'campagnes' | 'pipeline' | 'reservations' | 'offre' | 'planning'>('suivi');
 
   // Team agent ordering (per team) — initialized from localStorage via useEffect
   const [teamOrders, setTeamOrders] = useState<Record<string, string[]>>({});
@@ -1204,6 +1212,17 @@ export default function AssistantPage() {
             { key: 'agent' as const, label: `\uD83E\uDD16 ${nt.tabAgent || 'By agent'}`, shortLabel: nt.tabAgentShort || 'Agents' },
             { key: 'campagnes' as const, label: `\u{1F3AF} ${nt.tabCampaigns || 'Campaigns'}`, shortLabel: nt.tabCampaignsShort || 'Campaigns' },
             { key: 'pipeline' as const, label: `\uD83D\uDCCA ${nt.tabCrm || 'My CRM'}`, shortLabel: nt.tabCrmShort || 'CRM' },
+            // \u2500\u2500 R\u00E9servations, coll\u00E9 au CRM \u2500\u2500
+            //
+            // Fondateur 2026-08-12 : \u00AB dans la page agent on a un onglet CRM,
+            // on aura maintenant un onglet r\u00E9servations \u00BB. Je l'avais pos\u00E9 dans
+            // l'espace de chaque agent, pas ici \u2014 donc pas l\u00E0 o\u00F9 il l'attendait.
+            //
+            // Sa place est bien celle-ci : le CRM suit des PROSPECTS dans un
+            // cycle de vente, le carnet suit des clients ACQUIS qui ont pris un
+            // engagement dat\u00E9. Deux questions voisines, deux onglets c\u00F4te \u00E0
+            // c\u00F4te \u2014 et les m\u00EAler donnerait un objet qui r\u00E9pond mal aux deux.
+            { key: 'reservations' as const, label: `\uD83D\uDCD2 ${en ? 'Bookings' : 'R\u00E9servations'}`, shortLabel: en ? 'Bookings' : 'R\u00E9sa' },
             { key: 'offre' as const, label: `\uD83D\uDCB0 ${nt.tabOffer || 'By offer'}`, shortLabel: nt.tabOfferShort || 'Offers' },
           ]).map((tab) => (
             <button
@@ -1385,6 +1404,9 @@ export default function AssistantPage() {
         )}
 
         {viewTab === 'pipeline' && typeof window !== 'undefined' && (() => { window.location.href = '/assistant/crm'; return null; })()}
+
+        {/* ═══ ONGLET : Réservations — le carnet, à côté du CRM ═══ */}
+        {viewTab === 'reservations' && <PanneauReservations />}
 
         {/* ═══ TAB: Par equipe (avec dashboards + CRM) ═══ */}
         {viewTab === 'equipe' && (

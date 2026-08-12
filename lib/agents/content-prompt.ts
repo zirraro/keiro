@@ -1,4 +1,5 @@
 import { blocReferences } from './culture-references';
+import { doctrineContenu } from './doctrine-contenu';
 import { getLinkedInPlaybook } from '@/lib/agents/linkedin-expertise';
 
 export function getContentSystemPrompt(businessType?: string | null): string {
@@ -8,7 +9,9 @@ export function getContentSystemPrompt(businessType?: string | null): string {
   const dayIndex = now.getDay();
   const dowFR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][dayIndex];
 
-  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  return `${doctrineContenu()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATE / CALENDRIER (NON-NÉGOCIABLE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
