@@ -446,9 +446,23 @@ function PerNetworkStats({ stats }: { stats: any }) {
 
   // Show ALL networks now (connected or not) so the user always sees data
   // — real when connected, sample (with badge + Connect CTA) when not.
-  const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>(
-    (NETWORKS.find(n => n.data?.connected)?.key as any) || 'instagram',
-  );
+  // ── Le réseau demandé par l'URL passe devant ──
+  //
+  // Fondateur, 2026-08-12 : « une fois connecté ou même refusé sur nos 3
+  // réseaux, on doit toujours être redirigé sur Léna et sur le réseau
+  // correspondant, si le client veut refaire. »
+  //
+  // Le retour d'une connexion atterrissait dans la bibliothèque : le client
+  // devait retrouver seul où reprendre, et en cas de refus il n'avait aucun
+  // moyen évident de réessayer. On le ramène là où l'action a du sens, sur le
+  // bon onglet, prêt à recommencer.
+  const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>(() => {
+    if (typeof window !== 'undefined') {
+      const demande = new URLSearchParams(window.location.search).get('reseau');
+      if (demande === 'instagram' || demande === 'tiktok' || demande === 'linkedin') return demande;
+    }
+    return (NETWORKS.find(n => n.data?.connected)?.key as any) || 'instagram';
+  });
 
   const cur = NETWORKS.find(n => n.key === active) || NETWORKS[0];
   const curConnected = !!cur.data?.connected;

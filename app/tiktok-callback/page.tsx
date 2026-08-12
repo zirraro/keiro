@@ -36,7 +36,7 @@ function TikTokCallbackContent() {
         }
         // Redirect to library after 2 seconds
         setTimeout(() => {
-          window.location.href = '/library';
+          window.location.href = '/assistant/agent/content?reseau=tiktok&connexion=ok';
         }, 2000);
       } else if (error) {
         setStatus('error');
@@ -87,7 +87,7 @@ function TikTokCallbackContent() {
               {errorMessage || 'Une erreur est survenue lors de la connexion à TikTok.'}
             </p>
             <button
-              onClick={() => router.push('/library')}
+              onClick={() => router.push('/assistant/agent/content?reseau=tiktok')}
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all"
             >
               Retour à la galerie

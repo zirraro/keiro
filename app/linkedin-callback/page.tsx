@@ -33,7 +33,7 @@ function LinkedInCallbackContent() {
           setUsername(decodeURIComponent(usernameParam));
         }
         setTimeout(() => {
-          window.location.href = '/library';
+          window.location.href = '/assistant/agent/content?reseau=linkedin&connexion=ok';
         }, 2000);
       } else if (error) {
         setStatus('error');
@@ -91,7 +91,7 @@ function LinkedInCallbackContent() {
               {errorMessage || 'Une erreur est survenue lors de la connexion à LinkedIn.'}
             </p>
             <button
-              onClick={() => router.push('/library')}
+              onClick={() => router.push('/assistant/agent/content?reseau=linkedin')}
               className="px-6 py-3 bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white font-semibold rounded-xl hover:from-[#005f8f] hover:to-[#1e3a5f] transition-all"
             >
               Retour à la galerie

@@ -21,7 +21,7 @@ function InstagramCallbackContent() {
           console.error('[InstagramCallback] OAuth error:', error, errorDescription);
           setStatus('error');
           setMessage(errorDescription || 'Connexion refusée');
-          setTimeout(() => { window.location.href = '/library'; }, 3000);
+          setTimeout(() => { window.location.href = '/assistant/agent/content?reseau=instagram'; }, 3000);
           return;
         }
 
@@ -29,14 +29,20 @@ function InstagramCallbackContent() {
         if (!code) {
           setStatus('error');
           setMessage('Code d\'autorisation manquant');
-          setTimeout(() => { window.location.href = '/library'; }, 3000);
+          setTimeout(() => { window.location.href = '/assistant/agent/content?reseau=instagram'; }, 3000);
           return;
         }
 
         // Extract userId from state parameter (set during OAuth initiation)
         const stateParam = searchParams.get('state');
         let userId: string | null = null;
-        let returnTo: string = '/assistant';
+        // Retour par défaut : Léna, sur l'onglet Instagram.
+        //
+        // Fondateur 2026-08-12 : « une fois connecté ou même refusé sur nos 3
+        // réseaux, on doit toujours être redirigé sur Léna et sur le réseau
+        // correspondant, si le client veut refaire. » Atterrir sur l'accueil de
+        // l'espace agents laissait le client chercher où reprendre.
+        let returnTo: string = '/assistant/agent/content?reseau=instagram';
         if (stateParam) {
           try {
             const decoded = JSON.parse(atob(stateParam));
