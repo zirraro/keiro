@@ -121,6 +121,90 @@ export async function GET(req: NextRequest) {
     // reliquat qui contient une valeur périmée. Lire le mauvais faisait échouer
     // le renouvellement à chaque passage, et partir un email pour rien.
     const jetonIgVivant = (c.instagram_igaa_token || c.instagram_access_token) as string | null;
+
+    // ── Un jeton RÉVOQUÉ n'est pas un jeton expiré ──
+    //
+    // Fondateur, 2026-08-12, après avoir reçu un mail de révocation : « si
+    // c'est bien le cas, on doit couper la connexion, forcer la déconnexion du
+    // client, comme ça il va sur Keiro et se reconnecte. »
+    //
+    // Tout ce qui suit ne regardait que la DATE D'EXPIRATION. Or une révocation
+    // — le client retire l'application depuis Instagram, ou Meta invalide le
+    // jeton — laisse une date d'expiration parfaitement valide dans le futur.
+    // Le jeton mort restait donc en base, l'interface affichait « connecté », et
+    // on continuait de programmer des publications qui ne partiraient jamais.
+    // Constaté aujourd'hui : 22 posts Instagram en attente, aucun compte
+    // réellement connecté.
+    //
+    // On INTERROGE donc le jeton au lieu de faire confiance à sa date.
+    //
+    // Deux échecs consécutifs avant de couper : déconnecter un compte qui
+    // marche à cause d'une panne réseau ou d'une limitation temporaire serait
+    // pire que le bug qu'on corrige.
+    if (jetonIgVivant) {
+      let revoque = false;
+      try {
+        const sonde = await fetch(
+          `https://graph.instagram.com/v21.0/me?fields=id&access_token=${jetonIgVivant}`,
+          { signal: AbortSignal.timeout(8000) },
+        );
+        if (!sonde.ok) {
+          const corps = await sonde.text().catch(() => '');
+          // Seule une erreur d'AUTHENTIFICATION compte. Une limitation de débit
+          // ou une panne de Meta ne dit rien de la validité du jeton.
+          revoque = sonde.status === 401
+            || /OAuthException|"code":\s*190|invalid[_ ]?(access[_ ]?)?token|session has been invalidated|revoked/i.test(corps);
+          if (revoque) {
+            console.warn(`[token-lifecycle] jeton IG refusé pour ${c.email} : ${corps.slice(0, 140)}`);
+          }
+        }
+      } catch { /* réseau : on ne conclut rien */ }
+
+      if (revoque) {
+        const { data: echecsPrecedents } = await sb
+          .from('agent_logs').select('id')
+          .eq('action', 'ig_token_sonde_echec').eq('user_id', c.id)
+          .gte('created_at', new Date(now - 24 * 3600000).toISOString()).limit(2);
+
+        await sb.from('agent_logs').insert({
+          agent: 'content', action: 'ig_token_sonde_echec', status: 'warn', user_id: c.id,
+          data: { email: c.email }, created_at: new Date().toISOString(),
+        });
+
+        if ((echecsPrecedents?.length || 0) >= 1) {
+          // Deuxième échec : on coupe pour de bon. Effacer le jeton est ce qui
+          // fait basculer l'interface sur « reconnecter » — tant qu'il reste en
+          // base, le client croit son compte relié et ne fait rien.
+          await sb.from('profiles').update({
+            instagram_access_token: null,
+            instagram_igaa_token: null,
+            instagram_token_expiry: null,
+          }).eq('id', c.id);
+
+          events.push({ user_id: c.id, network: 'instagram', action: 'connexion_coupee_revocation' });
+          await sb.from('agent_logs').insert({
+            agent: 'content', action: 'instagram_connexion_coupee', status: 'warn', user_id: c.id,
+            data: { email: c.email, motif: 'jeton révoqué — deux sondes en échec' },
+            created_at: new Date().toISOString(),
+          });
+
+          // Le client doit SAVOIR, sinon il découvre le silence de son compte.
+          try {
+            await sb.from('notifications').insert({
+              user_id: c.id, agent: 'content', type: 'action',
+              title: 'Reconnecte ton compte Instagram',
+              message: "L'accès à ton compte Instagram a été révoqué — tes publications sont en pause. Reconnecte-le en un clic depuis KeiroAI pour qu'elles repartent.",
+              created_at: new Date().toISOString(),
+            });
+          } catch { /* la notification est un confort */ }
+
+          try { await sendReconnectEmail({ ...c, _ig: true }, 'instagram', 0); emailed++; } catch { /* best-effort */ }
+
+          continue;   // inutile de tenter un renouvellement sur un jeton mort
+        }
+      }
+    }
+
     if (jetonIgVivant && c.instagram_token_expiry) {
       const expiry = new Date(c.instagram_token_expiry).getTime();
       const hoursLeft = (expiry - now) / 3600000;
