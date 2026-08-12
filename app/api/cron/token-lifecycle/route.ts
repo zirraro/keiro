@@ -350,21 +350,83 @@ async function sendReconnectEmail(client: any, network: 'tiktok' | 'linkedin' | 
     // arrive, c'est que le renouvellement automatique a échoué (révocation
     // côté plateforme, login ailleurs, scope changé) — il faut une action
     // humaine, ce n'est pas un cycle routine.
-    const html = `
-<!DOCTYPE html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f172a;">
-  <h2 style="color:#0c1a3a;margin:0 0 16px;">Salut ${firstName} 👋</h2>
-  <p style="line-height:1.6;">L'autorisation que tu avais donnée à KeiroAI sur ton compte ${platformLabel} ${delai}.</p>
-  <p style="line-height:1.6;">C'est normal et prévu : ${platformLabel} limite dans le temps les accès qu'on accorde à une application. C'est une sécurité pour toi — tu gardes la main, et rien ne se prolonge tout seul sans que tu le décides.</p>
-  <p style="line-height:1.6;">${dejaCoupe
-    ? `En attendant, ton agent contenu ne peut plus publier sur ${platformLabel}. <strong>Tes publications programmées sont conservées</strong> et repartent dès que l'accès est rétabli — rien n'est perdu.`
-    : `Tant que tu la renouvelles avant l'échéance, <strong>rien ne s'arrête</strong> : la publication continue sans interruption.`}</p>
-  <p style="line-height:1.6;"><strong>30 secondes suffisent :</strong> un clic ci-dessous, tu réautorises chez ${platformLabel}, et c'est reparti.</p>
-  <div style="text-align:center;margin:28px 0;">
-    <a href="${reconnectUrl}" style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:12px;">Reconnecter mon ${platformLabel} →</a>
+    // ── La couleur du réseau concerné ──
+    //
+    // Le client reconnaît le message avant de l'avoir lu. Un mail « Instagram »
+    // en violet Keiro ressemble à une relance commerciale ; aux couleurs du
+    // réseau, il ressemble à ce qu'il est — une formalité technique sur SON
+    // compte. Couleurs pleines, jamais de dégradé : Outlook les ignore et
+    // afficherait du texte blanc sur fond blanc.
+    const teinte = network === 'instagram' ? '#C13584'
+      : network === 'tiktok' ? '#0f172a'
+      : '#0A66C2';
+    const teinteDouce = network === 'instagram' ? '#FDF2F8'
+      : network === 'tiktok' ? '#F1F5F9'
+      : '#EFF6FF';
+
+    const titre = dejaCoupe
+      ? `Ton ${platformLabel} s'est déconnecté`
+      : `Ton accès ${platformLabel} arrive à échéance`;
+
+    // Mise en page en TABLEAUX et styles en ligne : c'est la seule chose que
+    // tous les clients de messagerie rendent correctement. Ni flexbox, ni
+    // grille, ni feuille de style externe.
+    const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${titre}</title></head>
+<body style="margin:0;padding:0;background:#eef1f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${dejaCoupe ? `Tes publications ${platformLabel} sont en pause — 30 secondes pour les relancer.` : `30 secondes pour renouveler ton accès ${platformLabel} et ne rien interrompre.`}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f6;padding:32px 16px;">
+<tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.08);">
+
+    <tr><td style="background:${teinte};padding:26px 32px;">
+      <div style="font-size:28px;line-height:1;margin-bottom:10px;">${platformEmoji}</div>
+      <div style="color:#ffffff;font-size:20px;font-weight:700;line-height:1.3;">${titre}</div>
+    </td></tr>
+
+    <tr><td style="padding:30px 32px 8px;">
+      <p style="margin:0 0 18px;font-size:16px;line-height:1.6;color:#0f172a;">Salut ${firstName},</p>
+      <p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:#334155;">
+        L'autorisation que tu avais donnée à KeiroAI sur ton compte <strong>${platformLabel}</strong> ${delai}.
+      </p>
+      <p style="margin:0 0 22px;font-size:15px;line-height:1.65;color:#334155;">
+        C'est normal, et c'est même une bonne chose : ${platformLabel} limite dans le temps
+        les accès accordés aux applications. Tu gardes la main, rien ne se prolonge sans toi.
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:0 32px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${teinteDouce};border-radius:12px;">
+        <tr><td style="padding:16px 18px;font-size:14px;line-height:1.6;color:#334155;">
+          ${dejaCoupe
+            ? `<strong style="color:#0f172a;">Tes publications sont en pause</strong>, mais rien n'est perdu : tout ce qui était programmé est conservé et repart dès que l'accès est rétabli.`
+            : `<strong style="color:#0f172a;">Rien ne s'arrête</strong> tant que tu renouvelles avant l'échéance. La publication continue sans interruption.`}
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td align="center" style="padding:28px 32px 8px;">
+      <a href="${reconnectUrl}" style="display:inline-block;background:${teinte};color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 34px;border-radius:12px;">
+        Reconnecter mon ${platformLabel}
+      </a>
+      <div style="margin-top:12px;font-size:13px;color:#64748b;">Un clic, tu réautorises, c'est reparti — 30 secondes.</div>
+    </td></tr>
+
+    <tr><td style="padding:26px 32px 30px;">
+      <div style="border-top:1px solid #e8edf4;padding-top:18px;font-size:13px;line-height:1.6;color:#64748b;">
+        On renouvelle ces accès en silence chaque fois qu'on le peut. On ne t'écrit
+        que lorsque ${platformLabel} exige que ce soit <em>toi</em> qui valides — c'est le cas ici.
+      </div>
+    </td></tr>
+
+  </table>
+  <div style="max-width:560px;margin:18px auto 0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
+    KeiroAI — ton équipe marketing, tous les jours.<br>
+    Une question ? Réponds simplement à ce message.
   </div>
-  <p style="font-size:13px;color:#64748b;line-height:1.6;">On renouvelle ces accès en silence chaque fois qu'on le peut. On ne t'écrit que lorsque ${platformLabel} exige que ce soit toi qui valides — c'est le cas ici.</p>
-  <p style="font-size:12px;color:#94a3b8;margin-top:24px;">— L'équipe KeiroAI</p>
+</td></tr>
+</table>
 </body></html>`;
     const text = [
       `Salut ${firstName},`,
