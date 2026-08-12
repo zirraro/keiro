@@ -28,8 +28,8 @@ export default function BottomNav() {
   const [connecte, setConnecte] = useState(false);
   useEffect(() => {
     let vivant = true;
-    supabase.auth.getUser().then(({ data }) => { if (vivant) setConnecte(!!data?.user); }).catch(() => {});
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setConnecte(!!session?.user));
+    supabase.auth.getUser().then((res: any) => { if (vivant) setConnecte(!!res?.data?.user); }).catch(() => {});
+    const { data: sub } = supabase.auth.onAuthStateChange((_e: any, session: any) => setConnecte(!!session?.user));
     return () => { vivant = false; sub?.subscription?.unsubscribe(); };
   }, [supabase]);
 
