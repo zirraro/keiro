@@ -128,11 +128,37 @@ const UNIVERS_UNIVERSELS: Univers[] = ['meteo', 'local', 'economie', 'famille'];
 /** Les univers pertinents pour ce métier, avec un repli raisonnable. */
 export function universPour(metier?: string | null): Univers[] {
   const cle = String(metier || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  if (!cle) return ['local', 'meteo', 'famille', 'economie'];
   if (UNIVERS_PAR_METIER[cle]) return UNIVERS_PAR_METIER[cle];
-  // Correspondance partielle : « restaurant italien » → restaurant.
+
+  // ── Le sous-type l'emporte sur le type ──
+  //
+  // Fondateur, 2026-08-13 : « la finesse par sous-type — fast-food ≠ brunch —
+  // doit remonter du dossier client. »
+  //
+  // L'appelant nous passe donc une SIGNATURE : le type déclaré, la description
+  // de l'entreprise et ses produits, concaténés. « restaurant — brunch et
+  // pâtisseries maison » contient « restaurant » ET « brunch » ; prendre le
+  // premier trouvé donnerait le générique et perdrait la finesse.
+  //
+  // On garde donc la clé la PLUS LONGUE qui apparaît : « brunch » (6) ne bat
+  // pas « restaurant » (10) sur la longueur, mais elle est plus spécifique —
+  // on classe donc par spécificité déclarée, les sous-types en premier.
+  const SOUS_TYPES = ['brunch', 'fastfood', 'fast_food', 'pizzeria', 'brasserie', 'barbier',
+    'onglerie', 'patisserie', 'traiteur', 'salle_sport', 'coach_sportif', 'pretaporter',
+    'institut_beaute', 'auto_ecole'];
+  for (const st of SOUS_TYPES) {
+    if (cle.includes(st)) {
+      const v = UNIVERS_PAR_METIER[st] || UNIVERS_PAR_METIER[st.replace('_', '')];
+      if (v) return v;
+    }
+  }
+
+  // Puis le type générique, par correspondance partielle.
   for (const [k, v] of Object.entries(UNIVERS_PAR_METIER)) {
     if (cle.includes(k) || k.includes(cle)) return v;
   }
+
   // Métier inconnu : ce qui touche presque tous les commerces de proximité.
   return ['local', 'meteo', 'famille', 'economie'];
 }

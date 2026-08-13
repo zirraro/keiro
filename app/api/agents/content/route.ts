@@ -6723,15 +6723,28 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // Léna's prompt for THIS generation.
   let naturalismBlock = '';
   let detectedBusinessType: string | null = null;
+  // Séparée du type : le type sert au registre visuel et au prompt système, qui
+  // attendent un mot court. La signature ne sert qu'au tri des actualités, où
+  // le sous-type compte. Les mélanger ferait recevoir 300 caractères de
+  // description à des fonctions qui attendent « restaurant » — le genre d'effet
+  // de bord qui casse une fonction en en réparant une autre.
+  let signatureMetier: string | null = null;
   if (userId) {
     try {
       const { data: dossier } = await supabase
         .from('business_dossiers')
-        .select('business_type')
+        .select('business_type, company_description, main_products')
         .eq('user_id', userId)
         .maybeSingle();
       if (dossier?.business_type) {
+        // Signature du métier : le type déclaré, plus ce que le client a écrit
+        // de son commerce. C'est là que vit le sous-type — « restaurant » dans
+        // le champ type, « brunch et pâtisseries maison » dans la description.
+        // Sans elle, un salon de brunch et un fast-food recevaient les mêmes
+        // actualités, alors que leurs clientèles n'ont rien en commun.
         detectedBusinessType = dossier.business_type;
+        signatureMetier = [dossier.business_type, dossier.company_description, dossier.main_products]
+          .filter(Boolean).join(' — ').slice(0, 300);
         const { naturalismProfileFor, naturalismToPromptBlock } = await import('@/lib/agents/business-naturalism');
         const profile = naturalismProfileFor(dossier.business_type);
         naturalismBlock = naturalismToPromptBlock(profile);
@@ -7339,7 +7352,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     //
     // On remet donc l'accès, avec le tri qui manquait : chaque métier a des
     // univers qui touchent SA clientèle, et on ne lui donne que ceux-là.
-    const metierPourActu = detectedBusinessType || (clientSettings as any)?.business_type;
+    const metierPourActu = signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type;
     trendsTrendItems = filtrerActualites(filteredTrends, metierPourActu);
     trendsNewsItems = filtrerActualites(newsItems, metierPourActu);
 
@@ -7435,7 +7448,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     // Même tri pour la liste affichée au modèle : ce qu'il voit est déjà
     // pertinent pour ce métier, donc il n'a plus à choisir entre du pertinent
     // et du bruit — il n'a que du pertinent.
-    const metierListe = detectedBusinessType || (clientSettings as any)?.business_type;
+    const metierListe = signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type;
     const trendsUtilisables = filtrerActualites(trendItems, metierListe);
     const newsUtilisables = filtrerActualites(newsItems, metierListe);
     if (trendsUtilisables.length > 0 || newsUtilisables.length > 0 || upcomingEvents.length > 0) {
@@ -7745,7 +7758,7 @@ preuve : c'est la le contenu qui le fait vendre, pas un evenement du jour.
   let blocSport = '';
   {
     const { universPour } = await import('@/lib/agents/pertinence-actualite');
-    const sportPertinent = universPour(detectedBusinessType || (clientSettings as any)?.business_type).includes('sport');
+    const sportPertinent = universPour(signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type).includes('sport');
     if (!sportPertinent) { /* pas ce métier */ } else
     try {
       const { blocCalendrierSportif } = await import('@/lib/marketing/calendrier-sportif');
