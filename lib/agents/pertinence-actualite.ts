@@ -1,0 +1,177 @@
+/**
+ * Quelle actualité concerne QUEL métier — et quelle audience.
+ *
+ * ── Pourquoi ce fichier existe ──
+ *
+ * Fondateur, 2026-08-13, après m'avoir vu couper l'actualité un peu partout :
+ * « on ne doit pas arrêter de publier sur l'actualité en faisant un lien fort
+ * visuel avec le business, c'est notre différenciant, notre valeur ajoutée.
+ * Idem calendrier sportif et événementiel. Mais les cibles d'un fleuriste,
+ * d'un coach sportif ou d'un restaurant ne sont pas les mêmes — un coiffeur
+ * qui prend des actus people aura plus de pertinence que le foot, qui en aura
+ * plus pour un bar. »
+ *
+ * Il a raison sur les deux points, et j'avais réglé le mauvais curseur. Le
+ * problème n'a jamais été que l'actualité soit présente : c'est qu'on prenait
+ * CELLE QUI PASSAIT, sans se demander si elle concernait ce commerce. Une
+ * éclipse solaire sur un post marketing, un match de foot pour un fleuriste :
+ * ce n'est pas de l'actualité en trop, c'est de l'actualité mal choisie.
+ *
+ * Couper l'accès était donc une réponse brutale à un vrai problème. On remet
+ * l'accès, avec le tri qui manquait.
+ *
+ * ── Le principe ──
+ *
+ * Chaque métier a des univers d'actualité qui LUI parlent, parce qu'ils
+ * touchent sa clientèle ou son activité. Un bar vit du sport parce que ses
+ * clients viennent regarder les matchs. Un coiffeur vit du people parce que
+ * ses clientes arrivent avec une photo. Un fleuriste vit du calendrier
+ * affectif. Ce n'est pas une question de goût : c'est une question de qui
+ * pousse la porte.
+ */
+
+/** Les univers d'actualité, tels qu'on peut les reconnaître dans un titre. */
+export type Univers =
+  | 'sport' | 'people' | 'culture' | 'gastronomie' | 'meteo'
+  | 'local' | 'economie' | 'sante_bienetre' | 'mode' | 'famille' | 'tech';
+
+/**
+ * Ce qui fait entrer un client chez ce commerçant, exprimé en univers
+ * d'actualité, du plus au moins pertinent.
+ *
+ * La liste n'a pas à être exhaustive : elle a à être JUSTE. Mieux vaut deux
+ * univers vraiment liés que sept qui rendraient le filtre inopérant.
+ */
+const UNIVERS_PAR_METIER: Record<string, Univers[]> = {
+  // Un bar se remplit les soirs de match, et sa terrasse dépend du temps.
+  bar: ['sport', 'meteo', 'culture', 'local'],
+  brasserie: ['sport', 'meteo', 'local', 'gastronomie'],
+
+  // Le restaurant dépend d'abord de sa table et de la météo ; le sport ne
+  // compte que s'il diffuse. On reste sur ce qui est vrai pour tous.
+  restaurant: ['gastronomie', 'meteo', 'local', 'famille'],
+  pizzeria: ['gastronomie', 'sport', 'famille', 'local'],
+  fastfood: ['sport', 'culture', 'famille', 'local'],
+  brunch: ['gastronomie', 'mode', 'meteo', 'famille'],
+  boulangerie: ['gastronomie', 'famille', 'local', 'meteo'],
+  patisserie: ['gastronomie', 'famille', 'culture'],
+  traiteur: ['gastronomie', 'famille', 'local'],
+
+  // Le coiffeur et l'esthétique vivent de l'image : people et mode d'abord.
+  coiffeur: ['people', 'mode', 'culture', 'sante_bienetre'],
+  barbier: ['people', 'sport', 'mode'],
+  institut_beaute: ['people', 'mode', 'sante_bienetre'],
+  onglerie: ['people', 'mode'],
+  spa: ['sante_bienetre', 'meteo', 'people'],
+
+  // Le fleuriste vit du calendrier affectif et des saisons.
+  fleuriste: ['famille', 'meteo', 'culture', 'local'],
+
+  // Le sport et la santé suivent les saisons et les grands rendez-vous.
+  coach_sportif: ['sport', 'sante_bienetre', 'meteo'],
+  salle_sport: ['sport', 'sante_bienetre', 'famille'],
+  kine: ['sante_bienetre', 'sport'],
+
+  // Les métiers du bâtiment suivent la météo, la maison et les aides.
+  plombier: ['meteo', 'economie', 'local'],
+  electricien: ['meteo', 'economie', 'tech', 'local'],
+  menuisier: ['economie', 'local', 'meteo'],
+  paysagiste: ['meteo', 'famille', 'local'],
+
+  // Le commerce d'habillement suit la mode et la météo.
+  boutique: ['mode', 'meteo', 'people', 'culture'],
+  pretaporter: ['mode', 'people', 'meteo'],
+  bijouterie: ['famille', 'mode', 'people'],
+
+  // Les services professionnels suivent l'économie et leur secteur.
+  avocat: ['economie', 'local'],
+  comptable: ['economie'],
+  immobilier: ['economie', 'local', 'famille'],
+  garage: ['economie', 'tech', 'meteo'],
+  auto_ecole: ['economie', 'famille', 'local'],
+};
+
+/** Les mots qui trahissent l'univers d'un titre d'actualité, en français. */
+const INDICES: Record<Univers, RegExp> = {
+  sport: /\b(match|foot|football|rugby|tennis|basket|cyclisme|tour de france|jo|jeux olympiques|championnat|ligue|coupe|finale|marathon|roland[- ]garros|psg|équipe de france)\b/i,
+  people: /\b(star|célébrité|celebrite|acteur|actrice|chanteu|rappeu|influenceu|téléréalité|telerealite|festival de cannes|oscar|césar|people)\b/i,
+  culture: /\b(film|cinéma|cinema|série|serie|album|concert|festival|expo|exposition|livre|roman|théâtre|theatre|sortie|netflix)\b/i,
+  gastronomie: /\b(restaurant|chef|cuisine|recette|gastronomi|michelin|produit|marché|marche|saison|récolte|recolte|vin|fromage)\b/i,
+  meteo: /\b(canicule|chaleur|froid|neige|pluie|orage|tempête|tempete|vague de|météo|meteo|degré|degre|beau temps|ensoleill)\b/i,
+  local: /\b(ville|quartier|commune|mairie|travaux|circulation|grève|greve|transport|marché de|braderie|brocante)\b/i,
+  economie: /\b(inflation|prix|pouvoir d'achat|taxe|impôt|impot|aide|subvention|crédit|credit|taux|salaire|smic|réforme|reforme)\b/i,
+  sante_bienetre: /\b(santé|sante|bien[- ]être|bien[- ]etre|sommeil|stress|alimentation|sport santé|prévention|prevention|allergie)\b/i,
+  mode: /\b(mode|tendance|collection|défilé|defile|fashion|style|vêtement|vetement|coiffure|beauté|beaute)\b/i,
+  famille: /\b(rentrée|rentree|vacances|enfant|famille|école|ecole|fête des|fete des|noël|noel|anniversaire|mariage|saint[- ]valentin)\b/i,
+  tech: /\b(intelligence artificielle|\bia\b|application|réseaux sociaux|reseaux sociaux|tiktok|instagram|algorithme|smartphone|numérique|numerique)\b/i,
+};
+
+/** Les univers pertinents pour ce métier, avec un repli raisonnable. */
+export function universPour(metier?: string | null): Univers[] {
+  const cle = String(metier || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  if (UNIVERS_PAR_METIER[cle]) return UNIVERS_PAR_METIER[cle];
+  // Correspondance partielle : « restaurant italien » → restaurant.
+  for (const [k, v] of Object.entries(UNIVERS_PAR_METIER)) {
+    if (cle.includes(k) || k.includes(cle)) return v;
+  }
+  // Métier inconnu : ce qui touche presque tous les commerces de proximité.
+  return ['local', 'meteo', 'famille', 'economie'];
+}
+
+/** L'univers d'un titre, ou null si on ne le reconnaît pas. */
+export function universDuTitre(titre: string): Univers | null {
+  for (const [u, rx] of Object.entries(INDICES) as Array<[Univers, RegExp]>) {
+    if (rx.test(titre)) return u;
+  }
+  return null;
+}
+
+/**
+ * Ne garde que les actualités qui concernent CE métier, dans l'ordre de
+ * pertinence de ses univers.
+ *
+ * Une actualité dont on ne reconnaît pas l'univers est ÉCARTÉE. C'est un choix :
+ * dans le doute, le modèle fabriquera un lien, et c'est exactement ce qu'on
+ * cherche à éviter. Mieux vaut trois actualités qui parlent au commerçant que
+ * douze où il doit piocher.
+ */
+export function filtrerActualites(
+  items: string[],
+  metier?: string | null,
+  max = 6,
+): string[] {
+  const univers = universPour(metier);
+  const rang = new Map(univers.map((u, i) => [u, i]));
+  return (items || [])
+    .map(t => ({ t, u: universDuTitre(t) }))
+    .filter(x => x.u !== null && rang.has(x.u))
+    .sort((a, b) => (rang.get(a.u!) ?? 99) - (rang.get(b.u!) ?? 99))
+    .slice(0, max)
+    .map(x => x.t);
+}
+
+/**
+ * Le bloc qui explique au modèle POURQUOI ces actualités-là lui sont données.
+ *
+ * Sans cette phrase, il reçoit une liste filtrée sans savoir qu'elle l'est, et
+ * peut encore chercher ailleurs. En la lui disant, on lui donne le critère
+ * plutôt que la conclusion.
+ */
+export function blocPertinence(metier?: string | null): string {
+  const u = universPour(metier);
+  const noms: Record<Univers, string> = {
+    sport: 'le sport', people: "l'actualité des personnalités", culture: 'la culture et les sorties',
+    gastronomie: 'la gastronomie et les produits', meteo: 'la météo et les saisons',
+    local: 'la vie locale', economie: "l'économie et le pouvoir d'achat",
+    sante_bienetre: 'la santé et le bien-être', mode: 'la mode', famille: 'la famille et le calendrier',
+    tech: 'le numérique',
+  };
+  return [
+    '',
+    `POURQUOI CES ACTUALITÉS-LÀ : elles ont été retenues parce qu'elles touchent`,
+    `la clientèle de ce métier — ${u.map(x => noms[x]).join(', ')}.`,
+    `Ce sont les sujets qui font pousser sa porte. Une actualité d'un autre`,
+    `univers ne l'intéresse pas, même si elle fait beaucoup de bruit ailleurs.`,
+    '',
+  ].join('\n');
+}

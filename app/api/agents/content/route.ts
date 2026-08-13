@@ -36,6 +36,7 @@ import { directiveGeneration } from '@/lib/visuals/exigences-reseau';
 // consigne de sortie, là où le modèle la lit en dernier.
 import { doctrineContenu } from '@/lib/agents/doctrine-contenu';
 import { promptSpecialise } from '@/lib/agents/prompts-format';
+import { filtrerActualites, blocPertinence } from '@/lib/agents/pertinence-actualite';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -7303,8 +7304,24 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     // une règle, il faut chercher TOUS les chemins qu'elle doit couvrir. Un
     // seul oubli et la règle paraît ne pas fonctionner, ce qui envoie corriger
     // au mauvais endroit — j'y ai passé la journée.
-    trendsTrendItems = pillar === 'trends' ? filteredTrends : [];
-    trendsNewsItems = pillar === 'trends' ? newsItems : [];
+    // ── Trier plutôt que couper ──
+    //
+    // Fondateur, 2026-08-13, après m'avoir vu fermer l'accès : « on ne doit pas
+    // arrêter de publier sur l'actualité en faisant un lien fort visuel avec le
+    // business, c'est notre différenciant. Mais un coiffeur qui prend des actus
+    // people aura plus de pertinence que le foot, qui en aura plus pour un bar. »
+    //
+    // Il a raison, et j'avais réglé le mauvais curseur. Le problème n'a jamais
+    // été que l'actualité soit présente : c'est qu'on prenait CELLE QUI PASSAIT,
+    // sans se demander si elle concernait ce commerce. Une éclipse sur un post
+    // marketing, un match pour un fleuriste — ce n'est pas de l'actualité en
+    // trop, c'est de l'actualité mal choisie.
+    //
+    // On remet donc l'accès, avec le tri qui manquait : chaque métier a des
+    // univers qui touchent SA clientèle, et on ne lui donne que ceux-là.
+    const metierPourActu = detectedBusinessType || (clientSettings as any)?.business_type;
+    trendsTrendItems = filtrerActualites(filteredTrends, metierPourActu);
+    trendsNewsItems = filtrerActualites(newsItems, metierPourActu);
 
     // Event calendar — key dates to leverage in content
     const now = new Date();
@@ -7395,14 +7412,21 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     // Les journées thématiques restent, elles : une fête des mères concerne
     // vraiment un fleuriste, et le curseur « place de l'actualité » du client
     // en règle l'intensité.
-    const jourDActualite = pillar === 'trends';
-    const trendsUtilisables = jourDActualite ? trendItems : [];
-    const newsUtilisables = jourDActualite ? newsItems : [];
+    // Même tri pour la liste affichée au modèle : ce qu'il voit est déjà
+    // pertinent pour ce métier, donc il n'a plus à choisir entre du pertinent
+    // et du bruit — il n'a que du pertinent.
+    const metierListe = detectedBusinessType || (clientSettings as any)?.business_type;
+    const trendsUtilisables = filtrerActualites(trendItems, metierListe);
+    const newsUtilisables = filtrerActualites(newsItems, metierListe);
     if (trendsUtilisables.length > 0 || newsUtilisables.length > 0 || upcomingEvents.length > 0) {
       trendsContext = '\n━━━ TENDANCES & ACTUALITES DU JOUR — 50% DU CONTENU ━━━\n';
       if (eventContext) trendsContext += eventContext;
       if (trendsUtilisables.length > 0) trendsContext += `Trends Google/TikTok : ${trendsUtilisables.join(' | ')}\n`;
       if (newsUtilisables.length > 0) trendsContext += `Actualites France : ${newsUtilisables.join(' | ')}\n`;
+      // On donne le CRITÈRE, pas seulement la conclusion. Sans cette phrase, le
+      // modèle reçoit une liste déjà triée sans savoir qu'elle l'est — et rien
+      // ne l'empêche d'aller chercher ailleurs ce qu'on vient d'écarter.
+      trendsContext += blocPertinence(metierListe);
       trendsContext += `
 CETTE LISTE EST UNE RESSOURCE, PAS UN QUOTA.
 Aucune actualite n'est a caser. La plupart des jours, aucune ne concerne
@@ -7694,8 +7718,15 @@ preuve : c'est la le contenu qui le fait vendre, pas un evenement du jour.
   // Quatrième canal d'actualité, et le dernier trouvé. Il partait sans
   // condition : un calendrier de matchs sous les yeux du modèle tous les jours,
   // pour un fleuriste comme pour un plombier. Même porte que les trois autres.
+  // Le calendrier sportif ne part que vers les métiers dont la clientèle vient
+  // POUR le sport — un bar, une brasserie, une salle. Il n'a rien à faire chez
+  // un fleuriste, et c'est le module de pertinence qui le dit, pas une liste
+  // écrite ici en double.
   let blocSport = '';
-  if (pillar === 'trends') {
+  {
+    const { universPour } = await import('@/lib/agents/pertinence-actualite');
+    const sportPertinent = universPour(detectedBusinessType || (clientSettings as any)?.business_type).includes('sport');
+    if (!sportPertinent) { /* pas ce métier */ } else
     try {
       const { blocCalendrierSportif } = await import('@/lib/marketing/calendrier-sportif');
       blocSport = blocCalendrierSportif(detectedBusinessType || (clientSettings as any)?.business_type, 30);
@@ -7742,7 +7773,11 @@ preuve : c'est la le contenu qui le fait vendre, pas un evenement du jour.
     // trois semaines à venir, donc la condition était vraie en permanence et le
     // pilier ne servait à rien. Une journée thématique justifie qu'on en parle
     // — elle ne justifie pas d'aller chercher l'actualité du jour par-dessus.
-    const shouldPickAngle = !sujetImpose && pillar === 'trends';
+    // Rouvert : l'angle d'actualité est le cœur du différenciant. Il se
+    // déclenche dès qu'il RESTE une actualité pertinente après tri — donc
+    // jamais quand il n'y en a pas pour ce métier, ce qui était le vrai défaut.
+    const shouldPickAngle = !sujetImpose
+      && (pillar === 'trends' || trendsTrendItems.length > 0 || trendsNewsItems.length > 0);
     if (shouldPickAngle && (trendsTrendItems.length > 0 || trendsNewsItems.length > 0 || trendsUpcomingEvents.length > 0)) {
       let dossierForAngle: any = null;
       if (userId) {
