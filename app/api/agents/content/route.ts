@@ -1021,7 +1021,24 @@ async function publishToInstagram(
   post: { id?: string; format?: string; caption?: string; hook?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any,
   orgId?: string | null,
-  userId?: string | null
+  userId?: string | null,
+  /**
+   * Levée EXPLICITE du plafond journalier, pour une publication précise.
+   *
+   * Fondateur, 2026-08-13 : « lève le plafond bien sûr » — il veut voir les
+   * trois formats aujourd'hui, alors que mes tests du matin ont consommé les
+   * cinq publications Instagram de la journée.
+   *
+   * Pourquoi un paramètre et pas la variable d'environnement prévue : une
+   * variable se pose et s'oublie. Elle resterait active demain, après-demain,
+   * et le plafond serait levé pour tout le monde sans que personne s'en
+   * souvienne. Ici la levée vaut pour UN appel, elle est demandée
+   * explicitement, et elle est écrite dans le journal.
+   *
+   * L'espacement de 90 minutes, lui, n'est JAMAIS levé : c'est la garde qui
+   * empêche la rafale, et c'est la rafale qui coûte la portée.
+   */
+  leverPlafondJournalier?: boolean
 ): Promise<{ success: boolean; permalink?: string; error?: string }> {
   // Declared here so the catch block at the bottom can reference it for
   // the token-expiry auto-disconnect flow.
@@ -1137,7 +1154,18 @@ async function publishToInstagram(
         // IG_CAP_BYPASS=1 — founder-authorized one-day override (showcase batch).
         // Leave it OFF normally: the cap protects the account from the kind of
         // burst posting that likely throttled TikTok.
-        if ((publishedToday || 0) >= dailyLimit && process.env.IG_CAP_BYPASS !== '1') {
+        if (leverPlafondJournalier && (publishedToday || 0) >= dailyLimit) {
+          console.warn(`[Content] plafond journalier LEVÉ explicitement (${publishedToday}/${dailyLimit}) — demande directe, tracée`);
+          try {
+            await supabase.from('agent_logs').insert({
+              agent: 'content', action: 'plafond_journalier_leve', status: 'ok',
+              user_id: effectivePostOwnerId || undefined,
+              data: { publies_aujourdhui: publishedToday, plafond: dailyLimit, post_id: post.id },
+              created_at: new Date().toISOString(),
+            });
+          } catch { /* la trace ne bloque pas */ }
+        }
+        if ((publishedToday || 0) >= dailyLimit && !leverPlafondJournalier && process.env.IG_CAP_BYPASS !== '1') {
           console.warn(`[Content] Daily IG cap reached for user ${effectivePostOwnerId.slice(0, 8)}: ${publishedToday}/${dailyLimit} — postponing to tomorrow`);
           // Reschedule this post to tomorrow so the cron doesn't loop
           // on it every 30 min for the rest of the day. Keep status
@@ -4533,7 +4561,10 @@ async function POSTInterne(request: NextRequest) {
         // visual_url) — gate on EITHER so montage reels actually publish
         // instead of being silently marked 'published' with nothing sent.
         if ((targetPlatform === 'instagram' || targetPlatform === 'all') && (pubPost.visual_url || pubPost.video_url)) {
-          const igResult = await publishToInstagram(pubPost, supabase, orgId, userId);
+          // La levée n'est transmise QUE par ce chemin — celui qu'un humain
+          // déclenche sciemment. Les crons ne la reçoivent jamais : un plafond
+          // levé par une tâche de fond serait un plafond qui n'existe pas.
+          const igResult = await publishToInstagram(pubPost, supabase, orgId, userId, body.leverPlafond === true);
           if (igResult.success && igResult.permalink) {
             pubUpdate.instagram_permalink = igResult.permalink;
             pubPermalink = igResult.permalink;
