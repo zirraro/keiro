@@ -62,7 +62,7 @@ const PLAFOND_REQUALIFICATION = 25;
  * s'appliquerait qu'aux publications futures, et le stock resterait à
  * l'ancienne norme sans que personne ne s'en aperçoive.
  */
-const MARQUE_STANDARD = '[qc 2026-08-12b]';  // juge visuel recalibre : le soupcon "genere" ne suffit plus, il faut un defaut nommable
+const MARQUE_STANDARD = '[qc 2026-08-13]';   // actualite triee par metier, ecran ecarte, pilier sans matiere retire
 
 /**
  * Où atterrit une publication que le contrôle refuse et qu'on ne sait pas

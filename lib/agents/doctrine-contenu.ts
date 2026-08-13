@@ -63,6 +63,22 @@ Un lien FAUX, même s'il sonne bien : un événement spectaculaire (éclipse,
 finale, sortie de film, célébrité) utilisé comme accroche pour parler d'autre
 chose. C'est le défaut le plus fréquent et le contrôle le refuse.
 
+LE BON USAGE, CELUI QU'ON VEUT : LE MOMENT QUI CRÉE LE BESOIN.
+Une date, une saison ou un événement devient un excellent post quand il déclenche
+un PASSAGE À L'ACTION chez le client du commerçant. Ce n'est pas une exception
+tolérée, c'est le modèle à viser — c'est là que l'actualité rapporte vraiment.
+· Coiffeur, rentrée → « le rush des coupes de dernière minute » : le besoin
+  existe cette semaine-là et pas une autre. On prend rendez-vous maintenant.
+· Restaurant, canicule → la terrasse à l'ombre à midi, la table qu'on réserve
+  la veille parce qu'il n'y en aura plus.
+· Boutique, retour du froid → la pièce qu'on vient chercher avant tout le monde.
+· Coach, rentrée ou janvier → le moment où l'on s'y remet vraiment.
+Ce qui distingue ce bon usage du prétexte : le moment CRÉE le besoin, il ne sert
+pas d'introduction. Si le post pouvait sortir en mars sans rien perdre, c'est un
+prétexte ; si le besoin naît de cette semaine-là, c'est le bon post.
+La pertinence est la seule exigence : le moment doit vraiment changer la journée
+de ce commerce, et l'action proposée doit être faisable tout de suite.
+
 CAS PARTICULIER — le client sert PLUSIEURS métiers (logiciel, agence, conseil).
 Le test 1 échoue alors par construction : ses clients à lui SONT tous les
 métiers. Pour lui, l'actualité ne sert que si elle touche son propre secteur,
