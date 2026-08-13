@@ -4593,10 +4593,75 @@ async function POSTInterne(request: NextRequest) {
           let meilleurHook = pubPost.hook;
           let meilleureLegende = pubPost.caption;
 
-          if (verdict.publiable && meilleureNote > 0 && meilleureNote < VISE) {
+          // ── La boucle doit aussi tourner sur un REFUS ──
+          //
+          // Fondateur, 2026-08-13 : « il faut que ça passe plus souvent
+          // directement, et en plus il faut que ça finisse, après plusieurs
+          // essais, par passer le contrôle qualité — c'est primordial. »
+          //
+          // Ma boucle ne se déclenchait que sur un post DÉJÀ publiable, pour le
+          // faire monter de 6 à 8. Un post refusé n'y entrait jamais : il
+          // repartait en brouillon sans qu'on tente quoi que ce soit. La moitié
+          // la plus importante de la demande n'était pas couverte.
+          //
+          // Et elle ne réécrivait que le TEXTE. Or l'écrasante majorité des
+          // refus vient de l'IMAGE — « l'image n'illustre pas le propos ».
+          // Réécrire la légende d'un post dont l'image est hors-sujet ne pouvait
+          // pas converger : on corrigeait ce qui n'était pas cassé.
+          //
+          // La boucle choisit donc son outil selon le défaut constaté : image
+          // hors-sujet → on REFAIT L'IMAGE à partir de la légende ; texte en
+          // cause → on réécrit la légende. Refaire l'image depuis le texte
+          // converge presque toujours, parce que le texte est l'intention et que
+          // l'image doit s'y plier.
+          let verdictCourant: any = verdict;
+          if (meilleureNote >= 0 && meilleureNote < VISE) {
             for (let essai = 1; essai < MAX_TENTATIVES && meilleureNote < VISE; essai++) {
               try {
-                const dv = verdict.details || {};
+                const dv = verdictCourant.details || {};
+                const imageEnCause = (dv as any).imageUsable === false
+                  || ((dv as any).reasons || []).some((r: string) => /image/i.test(String(r)));
+
+                // ── Cas 1 : c'est l'image qui ne va pas. On la refait. ──
+                if (imageEnCause && !pubPost.video_url) {
+                  const { briefVisuelDepuisLegende } = await import('@/lib/qualite/reparation');
+                  const brief = await briefVisuelDepuisLegende({
+                    legende: meilleureLegende || meilleurHook || '',
+                    motifs: (((dv as any).reasons) || []).slice(0, 3).join(' · '),
+                    metier: (pubPost as any).business_type || null,
+                  });
+                  if (brief) {
+                    const nouvelle = await generateVisual(
+                      brief, pubPost.format || 'post',
+                      pubPost.user_id || undefined, targetPlatform, null, false, null,
+                      [meilleurHook, meilleureLegende].filter(Boolean).join(' — '),
+                    );
+                    if (nouvelle) {
+                      const apres = await controlerAvantPublication(supabase, {
+                        id: pubPost.id, user_id: pubPost.user_id,
+                        hook: meilleurHook, caption: meilleureLegende,
+                        hashtags: pubPost.hashtags as any,
+                        visual_url: nouvelle, video_url: pubPost.video_url,
+                        platform: targetPlatform, format: pubPost.format,
+                      });
+                      const noteImg = Number((apres.details as any)?.score ?? 0);
+                      if (noteImg > meilleureNote) {
+                        meilleureNote = noteImg;
+                        verdictCourant = apres;
+                        pubPost.visual_url = nouvelle;
+                        await supabase.from('content_calendar').update({
+                          visual_url: nouvelle, visual_description: brief.slice(0, 900),
+                          updated_at: new Date().toISOString(),
+                        }).eq('id', pubPost.id);
+                        console.log(`[Content] ${pubPost.id} essai ${essai} — image refaite depuis la légende : ${noteImg}/10`);
+                        continue;
+                      }
+                      console.log(`[Content] ${pubPost.id} essai ${essai} — image refaite sans gain (${noteImg}/10)`);
+                    }
+                  }
+                }
+
+                // ── Cas 2 : le texte. On le réécrit à partir de l'image. ──
                 const { reparerLegende } = await import('@/lib/qualite/reparation');
                 const mieux = await reparerLegende({
                   descriptionImage: String((dv as any).imageDescription || ''),
@@ -4645,6 +4710,22 @@ async function POSTInterne(request: NextRequest) {
             // quelque chose dans tous les cas ». Ne rien publier coûte un
             // créneau, une génération, et un client qui ne reçoit rien.
             console.log(`[Content] ${pubPost.id} publié à ${meilleureNote}/10 après ${MAX_TENTATIVES} tentative(s) max`);
+
+            // ── Le verdict qui compte est CELUI D APRÈS RÉPARATION ──
+            //
+            // Sans cette ligne, un post réparé restait retenu : le test en aval
+            // relisait le verdict d ORIGINE, celui d avant les tentatives. On
+            // aurait payé trois réparations pour rien, et le fondateur aurait vu
+            // un refus sur un post devenu bon.
+            //
+            // C est le défaut le plus sournois de la boucle : tout fonctionne,
+            // les journaux annoncent la réussite, et le résultat est un refus.
+            if (verdictCourant && verdictCourant !== verdict) {
+              (verdict as any).publiable = verdictCourant.publiable;
+              (verdict as any).details = verdictCourant.details;
+              (verdict as any).code = verdictCourant.code;
+              (verdict as any).diagnostic = verdictCourant.diagnostic;
+            }
           }
 
           if (!verdict.publiable) {
