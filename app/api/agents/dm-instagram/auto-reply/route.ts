@@ -333,7 +333,23 @@ async function POSTInterne(req: NextRequest) {
         const dmLangLock = dmDetectedLang !== 'fr' && dmDetectedLang !== 'unknown'
           ? `\n\n⚠️ HARD LANGUAGE LOCK — The prospect wrote in ${dmTargetLang}. YOUR ENTIRE REPLY MUST BE WRITTEN IN ${dmTargetLang.toUpperCase()}. Not a single French word. Mirror their language perfectly.\n`
           : '';
-        const systemPrompt = `${langDirective}${dmLangLock}
+        // ── Ce que le commerçant a annoncé, quel que soit l'agent à qui ──
+        //
+        // Fondateur, 2026-08-13 : « si une demande est faite dans un chat, par
+        // exemple Théo modifie mes horaires pour la semaine prochaine, Jade lors
+        // des DM entrants et Stella sur WhatsApp peuvent répondre aussi, car ils
+        // ont l'info. »
+        //
+        // Sans ce bloc, Jade répondait « à lundi ! » le soir où le commerçant
+        // venait d'annoncer sa fermeture du lundi à un autre agent. Ce n'était
+        // pas une faute de Jade : l'information n'existait nulle part pour elle.
+        let faitsDM = '';
+        try {
+          const { faitsPourPrompt } = await import('@/lib/agents/faits-client');
+          faitsDM = await faitsPourPrompt(supabase, ownerUserId);
+        } catch { /* jamais bloquant sur une réponse à un prospect */ }
+
+        const systemPrompt = `${langDirective}${dmLangLock}${faitsDM}
 
 Tu parles au nom du business owner. Tu es son assistant qui repond a ses DMs Instagram comme si c'etait lui.
 

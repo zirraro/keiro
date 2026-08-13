@@ -7874,10 +7874,21 @@ Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
 Champs obligatoires, DANS CET ORDRE : platform, format, pillar, visual_description, hook, caption, hashtags, best_time, grid_color, content_angle
 Champ obligatoire SI format = carrousel : slides (juste après visual_description)`;
 
+  // Ce que le client a annoncé dans ses échanges avec N'IMPORTE QUEL agent :
+  // nouveau plat, horaires, fermeture, promotion. Léna doit publier dessus sans
+  // qu'on ait à le lui redire, et surtout ne jamais écrire le contraire.
+  let faitsClient = '';
+  try {
+    const { faitsPourPrompt } = await import('@/lib/agents/faits-client');
+    faitsClient = await faitsPourPrompt(supabase, userId);
+  } catch { /* le partage indisponible ne bloque pas la génération */ }
+
   let rawText: string;
   try {
     rawText = await callClaude({
-      system: getContentSystemPrompt(detectedBusinessType || (clientSettings as any)?.business_type) + getAssetUsagePolicyRules((clientSettings as any)?.asset_usage_policy),
+      system: getContentSystemPrompt(detectedBusinessType || (clientSettings as any)?.business_type)
+        + getAssetUsagePolicyRules((clientSettings as any)?.asset_usage_policy)
+        + faitsClient,
       message: enhancedPrompt,
       maxTokens: 2000,
     });

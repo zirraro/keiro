@@ -1146,6 +1146,43 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
       });
     }
 
+    // ── 10.35 Les FAITS annoncés dans le chat, partagés à toute l'équipe ──
+    //
+    // Fondateur, 2026-08-13 : « le client doit pouvoir dire dans le chat
+    // "publie sur tel plat que je viens d'ajouter", ou décrire ses nouveaux
+    // horaires, une fermeture exceptionnelle, un rabais. Léna, Jade, Stella,
+    // Théo doivent tous reconnaître l'information et agir dessus. »
+    //
+    // Distinct de la directive extraite juste après : une directive est une
+    // RÈGLE de style, durable et discutable ; un fait est daté, il périme, et
+    // il doit être connu de tous en même temps. Annoncer sa fermeture du lundi
+    // à Théo pendant que Jade répond « à lundi ! » en message privé, c'est le
+    // genre de contradiction qui coûte un client — et aucun des deux agents
+    // n'est fautif : l'information n'était nulle part.
+    //
+    // Un repérage gratuit filtre en amont : la plupart des messages ne
+    // contiennent aucun fait, et les faire tous passer devant un modèle
+    // coûterait plus que le service ne rapporte.
+    try {
+      const { extraireFaits, consignerFaits, peutContenirUnFait } = await import('@/lib/agents/faits-client');
+      if (peutContenirUnFait(message)) {
+        const { data: dossierFaits } = await supabase
+          .from('business_dossiers').select('business_type').eq('user_id', user.id).maybeSingle();
+        const faits = await extraireFaits({
+          message,
+          agentId: agent_id,
+          aujourdhui: new Date().toISOString().slice(0, 10),
+          metier: dossierFaits?.business_type || null,
+        });
+        if (faits.length) {
+          const n = await consignerFaits(supabase, { userId: user.id, agentId: agent_id, message, faits });
+          console.log(`[ClientChat] ${n} fait(s) partagé(s) à toute l'équipe depuis ${agent_id}: ${faits.map(f => f.enonce.slice(0, 40)).join(' | ')}`);
+        }
+      }
+    } catch (e: any) {
+      console.warn('[ClientChat] partage des faits indisponible:', e?.message);
+    }
+
     // 10.4 Extract durable strategy directive from the user message
     // (e.g. "no red overlays", "always show people"). Persists to
     // org_agent_configs.config.<agent>_directives for THIS client,
