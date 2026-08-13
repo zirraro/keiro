@@ -4400,6 +4400,70 @@ async function POSTInterne(request: NextRequest) {
             platform: targetPlatform,
             format: pubPost.format,
           });
+
+          // ── Passer le contrôle ne suffit pas : on vise plus haut ──
+          //
+          // Fondateur, 2026-08-13 : « OK pour la note, mais tu laisses passer
+          // les 6 en DERNIER RECOURS. On vise au-dessus de 7, 8, 9 et plus si
+          // possible. Le but est d'avoir les objections et les améliorations
+          // pour que les générations s'améliorent dans le temps. On démarre
+          // avec du très bon et on va vers l'excellent. »
+          //
+          // Le plancher à 6 dit ce qu'on REFUSE de publier. Il ne dit pas ce
+          // qu'on vise — et j'avais confondu les deux. Un portillon qui accepte
+          // 6 sans rien tenter installe 6 comme la norme : on ne progresse
+          // jamais, on stagne juste au-dessus du minimum.
+          //
+          // Entre 6 et 7, on tente donc UNE amélioration avant de publier. Si
+          // elle gagne des points, on publie la meilleure version ; sinon on
+          // publie quand même l'originale — ne rien publier coûte un créneau et
+          // une génération, ce qui reste le pire résultat.
+          //
+          // Un seul essai : au-delà, le coût de la recherche dépasse le gain de
+          // qualité, et c'est la marge du fondateur qui paie.
+          const noteInitiale = Number((verdict.details as any)?.score ?? 0);
+          if (verdict.publiable && noteInitiale > 0 && noteInitiale < 8) {
+            const dv = verdict.details || {};
+            try {
+              const { reparerLegende } = await import('@/lib/qualite/reparation');
+              const mieux = await reparerLegende({
+                descriptionImage: String((dv as any).imageDescription || ''),
+                motifs: [
+                  `Le post est publiable (${noteInitiale}/10) mais on vise 8 ou plus.`,
+                  'Renforce l\'accroche et la précision, sans changer le sujet ni l\'image.',
+                  ...((dv as any).reasons || []).slice(0, 2),
+                ].join(' · '),
+                plateforme: targetPlatform,
+                ancienneLegende: pubPost.caption || '',
+              });
+              if (mieux?.caption) {
+                const second = await controlerAvantPublication(supabase, {
+                  id: pubPost.id, user_id: pubPost.user_id,
+                  hook: mieux.hook || pubPost.hook, caption: mieux.caption,
+                  hashtags: pubPost.hashtags as any,
+                  visual_url: pubPost.visual_url, video_url: pubPost.video_url,
+                  platform: targetPlatform, format: pubPost.format,
+                });
+                const noteApres = Number((second.details as any)?.score ?? 0);
+                if (second.publiable && noteApres > noteInitiale) {
+                  await supabase.from('content_calendar').update({
+                    hook: mieux.hook || pubPost.hook,
+                    caption: mieux.caption,
+                    publish_diagnostic: `qc_ameliore: ${noteInitiale}/10 → ${noteApres}/10`,
+                    updated_at: new Date().toISOString(),
+                  }).eq('id', pubPost.id);
+                  pubPost.hook = mieux.hook || pubPost.hook;
+                  pubPost.caption = mieux.caption;
+                  console.log(`[Content] ${pubPost.id} amélioré avant publication : ${noteInitiale} → ${noteApres}`);
+                } else {
+                  console.log(`[Content] ${pubPost.id} : amélioration sans gain (${noteInitiale} → ${noteApres || '?'}), on publie l'originale`);
+                }
+              }
+            } catch (e: any) {
+              console.warn('[Content] tentative d\'amélioration indisponible:', e?.message);
+            }
+          }
+
           if (!verdict.publiable) {
             const d = verdict.details || {};
 

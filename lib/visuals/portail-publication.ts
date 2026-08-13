@@ -187,6 +187,26 @@ export async function controlerAvantPublication(
           details: { reason: 'qc_unavailable_billing' },
         };
       }
+      // ── Consigner ce qui a coûté des points, même quand ça passe ──
+      //
+      // Fondateur, 2026-08-13 : « on démarre avec du très bon et on va vers
+      // l'excellent. » On ne progresse pas en ne regardant que les refus : un
+      // post accepté à 6 dit exactement ce qui manque pour atteindre 8. Sans
+      // cette trace, la même faiblesse se répète indéfiniment parce qu'elle ne
+      // franchit jamais le seuil du refus.
+      if (coh && 'pass' in coh && coh.pass && Number(coh.score) < 8) {
+        supabase.from('agent_logs').insert({
+          agent: 'content', action: 'qc_note_faible', status: 'ok',
+          user_id: post.user_id || undefined,
+          data: {
+            post_id: post.id, reseau: post.platform, note: coh.score,
+            motifs: (coh.reasons || []).slice(0, 3),
+            flags: Object.entries(coh.flags || {}).filter(([, v]) => v).map(([k]) => k),
+          },
+          created_at: new Date().toISOString(),
+        }).then(() => {}, () => {});
+      }
+
       if (coh && 'pass' in coh && !coh.pass) {
         // ── Un refus muet n'est pas un refus utilisable ──
         //

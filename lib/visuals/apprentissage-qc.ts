@@ -87,7 +87,18 @@ export async function consignesTireesDesRefus(
     let requete = supabase
       .from('agent_logs')
       .select('action, data')
-      .in('action', ['qa_visual_block', 'qc_portail_retenu'])
+            // ── On apprend aussi de ce qui PASSE de justesse ──
+      //
+      // Fondateur, 2026-08-13 : « on vise au-dessus de 7, 8, 9 et plus. Le but
+      // est d'avoir les objections et les améliorations pour que les générations
+      // s'améliorent dans le temps. »
+      //
+      // On ne lisait que les refus. Or un post accepté à 6 porte exactement la
+      // même information qu'un refus à 5 : il dit ce qui a coûté des points. Ne
+      // lire que les blocages, c'est apprendre uniquement de l'échec franc et
+      // rester aveugle à la médiocrité qui passe — celle qui, elle, finit
+      // publiée.
+      .in('action', ['qa_visual_block', 'qc_portail_retenu', 'qc_note_faible'])
       .gte('created_at', depuis)
       .limit(200);
     if (opts.userId) requete = requete.eq('user_id', opts.userId);
