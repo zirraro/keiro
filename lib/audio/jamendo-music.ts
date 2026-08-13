@@ -120,8 +120,46 @@ export async function pickJamendoMusic(opts: {
     const hits: any[] = data?.results || [];
     if (hits.length === 0) return null;
 
-    const eligible = hits.filter((t) => (t.duration || 0) >= minDur && !recentSet.has(String(t.id)));
-    const pool = eligible.length > 0 ? eligible : hits;
+    // ── La licence doit AUTORISER l'usage commercial. Sinon on ne prend rien. ──
+    //
+    // Fondateur, 2026-08-13 : « vérifie que l'ajout de musique n'échoue pas,
+    // mais qu'il respecte les droits TikTok pour continuer à faire des vues. »
+    //
+    // Le commentaire en tête de ce fichier affirmait que les pistes retenues
+    // sont « TikTok-safe ». Le code, lui, ne filtrait rien : on prenait la plus
+    // populaire, quelle que soit sa licence. Une piste en NC (non commercial)
+    // sur le compte d'un commerçant est un usage commercial non autorisé — et
+    // TikTok coupe le son ou limite la portée quand un ayant droit le signale.
+    //
+    // Une affirmation dans un commentaire n'est pas une garantie dans le code.
+    // C'est la troisième fois cette semaine que je trouve cet écart.
+    //
+    // On exclut donc :
+    //   · NC — non commercial : interdit pour un compte de commerce ;
+    //   · ND — pas de dérivés : monter la piste sur une vidéo EST un dérivé.
+    // On garde CC-BY et CC-BY-SA, qui autorisent les deux, et les pistes sans
+    // licence CC déclarée relèvent de l'abonnement Jamendo, commercialement
+    // couvert.
+    const licenceOk = (t: any) => {
+      const l = String(t?.license_ccurl || '').toLowerCase();
+      if (!l) return true;                       // abonnement Jamendo
+      return !/\/by-nc|\/by-nd|\/nc-|-nd\//.test(l) && !/(^|[/-])nc([/-]|$)/.test(l);
+    };
+
+    const commerciales = hits.filter(licenceOk);
+    const ecartees = hits.length - commerciales.length;
+    if (ecartees > 0) {
+      console.log(`[jamendo-music] ${ecartees}/${hits.length} pistes écartées : licence non commerciale`);
+    }
+    if (commerciales.length === 0) {
+      console.warn('[jamendo-music] aucune piste commercialement utilisable — on préfère le silence à un risque de droits');
+      return null;
+    }
+
+    const eligible = commerciales.filter((t) => (t.duration || 0) >= minDur && !recentSet.has(String(t.id)));
+    // Le repli reste DANS les pistes commerciales : on peut réutiliser une piste
+    // récente ou plus courte, jamais élargir à une licence qu'on s'interdit.
+    const pool = eligible.length > 0 ? eligible : commerciales;
     const picked = pool[Math.floor(Math.random() * pool.length)];
     if (!picked?.audio) return null;
     return {
