@@ -35,7 +35,7 @@ import { directiveGeneration } from '@/lib/visuals/exigences-reseau';
 // La source reste unique (le module), mais elle est rappelée juste avant la
 // consigne de sortie, là où le modèle la lit en dernier.
 import { doctrineContenu } from '@/lib/agents/doctrine-contenu';
-import { promptSpecialise } from '@/lib/agents/prompts-format';
+import { promptSpecialise, exempleAbouti } from '@/lib/agents/prompts-format';
 import { blocMetierEnScene } from '@/lib/agents/metier-mis-en-scene';
 import { filtrerActualites, blocPertinence } from '@/lib/agents/pertinence-actualite';
 
@@ -1693,6 +1693,28 @@ function extractSeedanceVideoUrl(data: any): string | null {
  * (We can't attach a TikTok CML trending sound via API — that stays a manual
  * in-app step; but a non-silent clip is far better than a silent one.)
  */
+/**
+ * Le modèle vidéo, et pourquoi ce n'est plus le 1.5 pro par défaut.
+ *
+ * Fondateur, 2026-08-13 : « si on utilise le 1.5 pro c'était pour le son ; faut
+ * utiliser un autre modèle aussi efficace et moins cher si on n'utilise pas le
+ * son du coup. »
+ *
+ * Raisonnement juste et immédiatement chiffrable. Le 1.5 pro génère une piste
+ * audio synchronisée — c'est ce qui le rend plus cher. Or on REMPLACE toujours
+ * cette piste : par une musique libre de droits quand on en trouve une, par du
+ * silence sinon. On payait donc un son pour le jeter.
+ *
+ * Le 1.0 lite produit la même image animée sans la partie audio. Sur des clips
+ * de dix secondes destinés à recevoir une musique par-dessus, la différence ne
+ * se voit pas — elle se lit seulement sur la facture.
+ *
+ * Réglable sans redéploiement : si la qualité d'image se dégrade sur un métier
+ * précis, on remonte au pro par la variable d'environnement plutôt que par un
+ * commit.
+ */
+const MODELE_VIDEO = process.env.SEEDANCE_MODEL || 'seedance-1-0-lite-t2v-250428';
+
 async function bakeMusicOnVideo(videoUrl: string): Promise<string> {
   try {
     const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
@@ -1816,7 +1838,7 @@ Output ONLY the video prompt, nothing else.`,
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'seedance-1-5-pro-251215',
+          model: MODELE_VIDEO,
           content: [{ type: 'text', text: formattedPrompt }],
         }),
       });
@@ -2010,7 +2032,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
         const seedanceRes = await fetch(SEEDANCE_T2V_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: 'seedance-1-5-pro-251215', content: [{ type: 'text', text: formattedPrompt }] }),
+          body: JSON.stringify({ model: MODELE_VIDEO, content: [{ type: 'text', text: formattedPrompt }] }),
         });
         if (!seedanceRes.ok) throw new Error(`Seedance HTTP ${seedanceRes.status}`);
         const seedanceData = await seedanceRes.json();
@@ -2195,7 +2217,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
             'Authorization': `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: 'seedance-1-5-pro-251215',
+            model: MODELE_VIDEO,
             content: [{ type: 'text', text: formattedPrompt }],
           }),
         });
@@ -8456,6 +8478,8 @@ ${doctrineContenu()}
 ${promptSpecialise(platform, format)}
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
+${exempleAbouti()}
+
 LE SUJET EST L'ANCRE — ÉCRIS-LE EN PREMIER, TOUT DÉCOULE DE LUI.
 Commence par le champ "sujet" : UNE phrase en français qui dit de quoi parle ce
 post, dans le monde du commerçant. Puis la scène MONTRE ce sujet, et le texte EN

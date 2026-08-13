@@ -150,3 +150,58 @@ export function promptSpecialise(reseau?: string | null, format?: string | null)
   const blocFormat = f === 'carrousel' ? CARROUSEL : f === 'reel' ? REEL : f === 'story' ? STORY : IMAGE_UNIQUE;
   return ['', RESEAU[r], '', blocFormat, ''].join('\n');
 }
+
+/**
+ * Un exemple ABOUTI, pour que le modèle voie ce qu'on attend au lieu de le
+ * déduire de vingt règles.
+ *
+ * ── Pourquoi ──
+ *
+ * Fondateur, 2026-08-13 : « ne durcis pas trop, j'ai dit ÉLÈVE LE NIVEAU pour
+ * que le modèle comprenne direct et au plus précis nos attentes, pour qu'on
+ * arrive à la qualité directement. »
+ *
+ * Il a raison et je faisais l'inverse : depuis trois jours j'empile des
+ * interdictions. La doctrine fait douze mille caractères, les prompts de format
+ * sept mille, et le prompt de la route bien davantage. Chaque règle ajoutée
+ * dilue les précédentes — à ce volume, le modèle ne lit plus une consigne, il
+ * navigue dans un règlement.
+ *
+ * Un exemple entièrement écrit montre en dix lignes ce que trente lignes de
+ * règles décrivent mal : le niveau de précision d'une scène, la longueur d'une
+ * accroche, le ton d'une légende, la façon dont le produit arrive à la fin.
+ * C'est la façon la plus dense de transmettre une attente.
+ *
+ * Un seul exemple, volontairement : deux inviteraient à choisir, et le modèle
+ * mélangerait les deux registres.
+ */
+const EXEMPLE_ABOUTI = `━━━ CE QU'ON ATTEND, EXEMPLE COMPLET ━━━
+(Métier mis en scène : boulangerie. Adapte au métier du jour, ne recopie pas.)
+
+"sujet": "Le coup de feu de 12h30 dans une boulangerie : la file s'allonge et le pain sort du four juste à temps."
+
+"visual_description": "A baker's hands sliding a tray of golden baguettes onto the shop rack at midday, flour still on his forearms, a queue of customers blurred behind the counter, hard summer light through the shopfront, one baguette slightly askew on the tray."
+
+"hook": "12h30, la file déborde et tu es seul derrière le comptoir."
+
+"caption": "12h30, la file déborde et tu es seul derrière le comptoir.\n\nTu sers, tu rends la monnaie, tu réponds à la dame qui demande si le pain aux graines est de ce matin.\n\nEt pendant ce temps, personne ne poste la photo du fournil de 6h — celle qui aurait fait venir trois clients de plus cet après-midi.\n\nC'est exactement ce qu'on prend en charge."
+
+POURQUOI C'EST BON, POINT PAR POINT :
+· Le sujet est UN moment précis, pas un thème. « Le coup de feu de 12h30 »,
+  pas « la gestion du temps ».
+· La scène est photographiable et SPÉCIFIQUE : la farine sur les avant-bras, la
+  baguette de travers. Ces détails-là font vraie ; « une boulangerie chaleureuse »
+  ne fait rien.
+· L'accroche est une SITUATION que le commerçant reconnaît, pas un constat.
+  Une heure, un lieu, une tension.
+· La légende parle de SA journée, à la deuxième personne, avec des détails qu'il
+  a vécus. Aucun client inventé, aucun chiffre.
+· Le produit arrive en UNE ligne, à la fin, comme la sortie du problème.
+· L'image et le texte racontent la même chose : on peut lire l'un sans l'autre
+  et comprendre.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+/** L'exemple abouti, à coller juste avant la consigne de sortie. */
+export function exempleAbouti(): string {
+  return EXEMPLE_ABOUTI;
+}

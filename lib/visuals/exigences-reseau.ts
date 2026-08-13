@@ -160,6 +160,13 @@ off-guard, no surface that has been used.
 - Imperfect light is credible light: a hard shadow, a blown-out corner, a
   reflection where a photographer would not have wanted one.
 - Materials that have lived: worn wood, scratched metal, a slightly faded sign.
+- NO ATMOSPHERIC EFFECT ADDED FOR ITS OWN SAKE. Steam, condensation, bubbles,
+  haze, sparkle, bokeh circles, dust in a light beam: keep them ONLY when the
+  scene genuinely produces them, and then keep them faint. A dish does not smoke
+  like a chimney, a window does not fog on a summer day, a glass carries a few
+  droplets and not a coat of pearls. Piled-on effects are the clearest signature
+  of a generated image — they are what makes a viewer say « c'est de l'IA »
+  even when everything else is right.
 - Never a symmetrical composition or a perfectly centred subject. A real
   photographer moves, and it shows.
 This is the FIRST criterion — before beauty. A slightly imperfect photograph
