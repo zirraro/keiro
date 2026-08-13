@@ -8408,14 +8408,42 @@ Champ obligatoire SI format = carrousel : slides (juste après visual_descriptio
         }
       }
 
+      // ── Le choix du client décide des proportions, pas un ratio figé ──
+      //
+      // Fondateur, 2026-08-13 : « si le client veut qu'on corrige
+      // principalement ses images déposées dans le dossier, ou du mixte, ou un
+      // peu de tout — chaque demande change notre façon de faire. »
+      //
+      // Les seuils étaient les mêmes pour tout le monde : 10 % de photo brute,
+      // 55 % de reprise de sa photo, 35 % de création. Un client qui a dit
+      // « uniquement mes vraies photos » recevait donc un tiers de scènes
+      // inventées, et un client sans photothèque voyait le pipeline s'obstiner
+      // sur un dossier vide. Le réglage existait, il ne servait à rien.
+      //
+      // Il pilote maintenant les seuils. Sans réglage, on garde exactement les
+      // proportions historiques — un client qui n'a rien demandé ne doit voir
+      // aucun changement.
+      const politiqueVisuels = (clientSettings as any)?.asset_usage_policy || {};
+      const provenance: string = politiqueVisuels.provenance_visuels || 'mixte';
+      const seuils = provenance === 'client_surtout'
+        // Ses photos d'abord : on ne crée que s'il n'y a rien d'utilisable.
+        ? { brut: 0.35, reprise: 1.00 }
+        : provenance === 'ambiances'
+          // Il ne veut pas montrer sa photothèque : on ne va pas la chercher.
+          ? { brut: 0, reprise: 0 }
+          : { brut: 0.10, reprise: 0.65 };
       const rng = Math.random();
       const hasVenuePair = !!(pickedUpload as any)?.venueContext;
+      if (provenance === 'ambiances' && pickedUpload) {
+        console.log('[Content] client en mode ambiances — ses fichiers ne sont pas repris');
+        pickedUpload = null;
+      }
       // When we have a product+venue pair available, SKIP the raw reuse
       // branch entirely — the whole point of the pairing is that we need
       // i2i to compose the dish into the real dining room. Raw reuse of
       // just the dish would miss the client's brand signature (their
       // actual space). Same for boutique product × shop interior.
-      if (pickedUpload && !hasVenuePair && rng < 0.10) {
+      if (pickedUpload && !hasVenuePair && rng < seuils.brut) {
         // 10% — raw reuse only when NO venue pair exists (no composition
         // opportunity). If venuePair exists, we always route through i2i
         // below so the dish lands in the real space.
@@ -8424,7 +8452,7 @@ Champ obligatoire SI format = carrousel : slides (juste après visual_descriptio
         await supabase.from('content_calendar').update({
           publish_diagnostic: `client_photo_raw:${pickedUpload.id}`,
         }).eq('id', inserted.id).throwOnError?.();
-      } else if (pickedUpload && (hasVenuePair || rng < 0.65)) {
+      } else if (pickedUpload && (hasVenuePair || rng < seuils.reprise)) {
         const venueCtx = (pickedUpload as any).venueContext;
 
         // ASSET-GROUNDED visual description: when Léna has concrete
