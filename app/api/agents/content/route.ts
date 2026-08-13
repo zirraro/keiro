@@ -547,18 +547,52 @@ Keep the light, the mood and the setting. One or two sentences, English, concret
     // scratch — sometimes GROUND the visual in a REAL royalty-free Pixabay photo
     // and re-render it (more natural, less "AI", free + ToS-safe). ~30% of
     // photo-format visuals. Any failure falls through to pure t2i below.
-    if (format !== 'reel' && format !== 'video' && format !== 'text' && Math.random() < 0.3) {
+    // ── Ce que faisait la route qui marchait ──
+    //
+    // Fondateur, 2026-08-13 : « il me semble qu'une route produisait de la super
+    // qualité. » C'était les reels — et j'ai trouvé pourquoi. Le montage vidéo
+    // ne GÉNÈRE pas ses images : il récupère de vraies photos et les fait
+    // TRIER PAR UN PASSAGE DE VISION, qui garde le sous-ensemble réellement
+    // cohérent avec le commerce. De vraies photos, donc zéro aspect « IA » —
+    // exactement ce qu'on cherche depuis deux jours à obtenir par le prompt.
+    //
+    // L'image fixe, elle, faisait deux choses plus faibles : elle ne tentait la
+    // photo réelle qu'UNE FOIS SUR TROIS, et elle en prenait une AU HASARD parmi
+    // les résultats. Une photo tirée au sort n'a aucune raison d'illustrer le
+    // sujet — d'où le café glacé sur un post marketing.
+    //
+    // On aligne donc l'image fixe sur la route qui marche : on tente la photo
+    // réelle à chaque fois, et c'est la vision qui choisit. Le passage coûte
+    // trois millièmes d'euro là où une image ratée en coûte trente, plus la
+    // régénération. Qualité et marge vont ici dans le même sens.
+    if (format !== 'reel' && format !== 'video' && format !== 'text') {
       try {
         const { searchPixabayImages } = await import('@/lib/stock/pixabay');
         const query = derivePixabayQuery(visualDescription);
         if (query) {
           const imgs = await searchPixabayImages({
             query,
-            count: 8,
+            count: 12,
             orientation: format === 'story' ? 'vertical' : 'all',
           });
           if (imgs.length > 0) {
-            const pick = imgs[Math.floor(Math.random() * Math.min(imgs.length, 8))];
+            // La vision choisit celle qui montre vraiment le sujet. Si elle
+            // n'est pas disponible, on retombe sur le premier résultat — le
+            // moteur de recherche le classe par pertinence, ce qui reste
+            // meilleur qu'un tirage au sort.
+            let pick = imgs[0];
+            try {
+              const { curateCoherentPhotos } = await import('@/lib/visuals/photo-curator');
+              const retenues = await curateCoherentPhotos(
+                imgs.slice(0, 12).map(i => ({ url: i.largeImageURL, thumb: i.previewURL || i.largeImageURL })),
+                { businessType: businessTypePourVisuel || query, want: 1 },
+              );
+              if (retenues[0]) {
+                const trouvee = imgs.find(i => i.largeImageURL === retenues[0]);
+                if (trouvee) pick = trouvee;
+                console.log('[Content] photo réelle choisie par vision, pas au hasard');
+              }
+            } catch { /* vision indisponible : on garde le premier résultat */ }
             if (pick?.largeImageURL) {
               // strength 0.5 = keep the real-photo realism, restyle to the brief.
               const grounded = await generateVisualFromReference(pick.largeImageURL, visualDescription, format, 0.5);
