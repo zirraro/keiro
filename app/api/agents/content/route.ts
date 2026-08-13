@@ -35,6 +35,7 @@ import { directiveGeneration } from '@/lib/visuals/exigences-reseau';
 // La source reste unique (le module), mais elle est rappelée juste avant la
 // consigne de sortie, là où le modèle la lit en dernier.
 import { doctrineContenu } from '@/lib/agents/doctrine-contenu';
+import { promptSpecialise } from '@/lib/agents/prompts-format';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -7885,6 +7886,7 @@ CLIENT QUI SERT PLUSIEURS MÉTIERS — ÉCRIS DEPUIS LA SCÈNE :
  prompts avaient fini par se contredire.)
 
 ${doctrineContenu()}
+${promptSpecialise(platform, format)}
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
 Champs obligatoires, DANS CET ORDRE : platform, format, pillar, visual_description, hook, caption, hashtags, best_time, grid_color, content_angle
