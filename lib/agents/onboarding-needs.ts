@@ -121,6 +121,34 @@ const SOCLE: BesoinAgent[] = [
     exemple: 'La plupart des commerces choisissent le deuxième : leurs vraies photos, en mieux.',
   },
   {
+    /**
+     * ── La place de l'actualité DANS l'image ──
+     *
+     * Fondateur, 2026-08-13 : « s'il ouvre la possibilité avec du mixte, on peut
+     * améliorer avec des touches d'événements et d'actualité très pertinentes,
+     * et selon son besoin on le mettra plus ou moins fort visuellement. »
+     *
+     * La question précédente dit d'OÙ viennent les visuels. Celle-ci dit ce
+     * qu'on a le droit d'y ajouter du calendrier. Ce sont deux réglages
+     * distincts : un commerce peut vouloir uniquement ses propres photos ET
+     * qu'on y voie la Saint-Valentin, comme il peut vouloir des ambiances
+     * composées SANS jamais une référence à une date.
+     *
+     * Le confondre avec la question précédente, c'est ce qui a produit des
+     * éclipses solaires sur des posts de commerçants : on décidait à sa place.
+     */
+    cle: 'place_actualite', agents: ['content'],
+    question: "Les moments de l'année, on les montre dans tes visuels ?",
+    aQuoiCaSert: "Fêtes, saisons, événements locaux : certains commerces en vivent, d'autres n'y touchent jamais. Ton choix règle la force avec laquelle ça se voit sur l'image — et on ne l'ajoute jamais si ça ne colle pas à ton métier.",
+    priorite: 'essentiel', type: 'choix',
+    options: [
+      'Jamais — mon commerce, mes produits, rien d\'autre',
+      'En touche discrète — un détail qui situe le moment',
+      'Bien visible — quand c\'est ma grosse saison, ça doit se voir',
+    ],
+    exemple: 'Un fleuriste vit de la Saint-Valentin et de la fête des mères ; un plombier, non.',
+  },
+  {
     cle: 'unique_selling_points', agents: ['content', 'email', 'dm', 'chatbot', 'commercial'],
     question: "Ce qui te distingue vraiment des autres, chez toi",
     aQuoiCaSert: "C'est l'argument qu'on répète partout. Sans lui, les agents écrivent des banalités vraies pour n'importe quel concurrent.",

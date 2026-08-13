@@ -1329,6 +1329,40 @@ export interface AssetUsagePolicy {
   mode?: 'raw' | 'light' | 'free'; // raw = brut only, light = retouche qualité only, free = création libre
   allow_mix?: boolean;             // mixer/composer plusieurs images du client
   allow_add_elements?: boolean;    // ajouter des personnes/objets/décor par IA
+
+  /**
+   * D'OÙ viennent les visuels — la question que le client se pose vraiment.
+   *
+   * Fondateur, 2026-08-13 : « si le client veut qu'on corrige principalement ses
+   * images déposées dans le dossier, ou s'il veut du mixte d'ambiance et
+   * d'images, ou un peu de tout — chaque demande dans ce sens change notre
+   * façon de faire. »
+   *
+   * Les trois champs ci-dessus disent ce qu'on a le DROIT de faire de ses
+   * fichiers. Celui-ci dit s'il faut s'en servir en priorité, ce qui n'est pas
+   * la même question : un client peut nous autoriser la retouche libre et
+   * vouloir malgré tout qu'on parte de ses photos à lui.
+   *
+   * · `client_surtout` — son commerce, ses produits, son monde. On part de ses
+   *   fichiers ; on ne complète que s'il n'y a rien d'utilisable.
+   * · `mixte` — ses photos quand elles servent le sujet, des ambiances sinon.
+   * · `ambiances` — il n'a pas de photothèque ou ne veut pas la montrer.
+   */
+  provenance_visuels?: 'client_surtout' | 'mixte' | 'ambiances';
+
+  /**
+   * Quelle place l'actualité et les événements prennent DANS L'IMAGE.
+   *
+   * Même remarque du fondateur : « s'il ouvre la possibilité avec du mixte, on
+   * peut améliorer avec des touches d'événements et d'actualité très
+   * pertinentes, et selon son besoin on le mettra plus ou moins fort
+   * visuellement. »
+   *
+   * · `aucun` — jamais d'événement dans l'image. Le commerce, point.
+   * · `touches` — un détail qui situe le moment, sans voler la scène.
+   * · `fort` — l'événement est visible au premier coup d'œil.
+   */
+  evenements?: 'aucun' | 'touches' | 'fort';
 }
 
 /**
@@ -1339,7 +1373,8 @@ export interface AssetUsagePolicy {
  * aucune police définie (comportement historique inchangé).
  */
 export function getAssetUsagePolicyRules(policy?: AssetUsagePolicy | null): string {
-  if (!policy || (!policy.mode && policy.allow_mix === undefined && policy.allow_add_elements === undefined)) return '';
+  if (!policy || (!policy.mode && policy.allow_mix === undefined && policy.allow_add_elements === undefined
+    && !policy.provenance_visuels && !policy.evenements)) return '';
   const mode = policy.mode || 'light';
   const lines: string[] = [];
   lines.push('\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -1356,6 +1391,46 @@ export function getAssetUsagePolicyRules(policy?: AssetUsagePolicy | null): stri
   lines.push(`- MIXAGE de plusieurs images du client (montage/composition) : ${policy.allow_mix ? 'AUTORISÉ.' : 'INTERDIT — n\'assemble pas plusieurs de ses images en une seule.'}`);
   lines.push(`- AJOUT d\'éléments par IA (personnes, objets, décor absents de la photo d\'origine) : ${policy.allow_add_elements ? 'AUTORISÉ (avec parcimonie, réaliste).' : 'INTERDIT — n\'ajoute AUCune personne ni objet qui n\'était pas dans la photo d\'origine.'}`);
   lines.push('En cas de doute, choisis TOUJOURS l\'option la plus respectueuse du fichier d\'origine.');
+
+  // ── D'où viennent les visuels ──
+  //
+  // Question distincte de « qu'a-t-on le droit de faire de ses fichiers » : un
+  // client peut autoriser la retouche libre et vouloir malgré tout qu'on parte
+  // de SES photos. Sans cette distinction, on lui fabriquait des ambiances
+  // pendant que sa photothèque dormait.
+  const source = policy.provenance_visuels || 'mixte';
+  lines.push('');
+  lines.push('D\'OÙ VIENNENT LES VISUELS (choix du client) :');
+  if (source === 'client_surtout') {
+    lines.push('- SES PHOTOS D\'ABORD. Pars des fichiers qu\'il a déposés : son commerce, ses produits, ses gens. C\'est SON monde qu\'on montre, pas une ambiance générique.');
+    lines.push('- Ne complète par une ambiance QUE si rien dans son dossier ne peut servir le sujet — et dis-le dans le brief.');
+    lines.push('- Une belle image qui n\'est pas la sienne vaut moins qu\'une image correcte qui l\'est : ses clients reconnaissent son lieu.');
+  } else if (source === 'ambiances') {
+    lines.push('- AMBIANCES. Il n\'a pas de photothèque à montrer : on travaille en scènes de métier crédibles, jamais en photos de banque d\'images reconnaissables.');
+    lines.push('- La scène doit rester plausible POUR SON COMMERCE : même échelle, même standing, même type de lieu.');
+  } else {
+    lines.push('- MIXTE. Ses photos quand elles servent vraiment le sujet, une ambiance quand elles ne l\'illustrent pas.');
+    lines.push('- Le critère est la PERTINENCE, pas la disponibilité : une photo à lui hors-sujet ne vaut pas mieux qu\'une ambiance juste.');
+  }
+
+  // ── La place de l'actualité DANS l'image ──
+  //
+  // Fondateur : « selon son besoin on le mettra plus ou moins fort
+  // visuellement ». C'est un curseur, pas un interrupteur — et il n'a de sens
+  // que si le lien à l'actualité est déjà jugé pertinent par la doctrine.
+  const ev = policy.evenements || 'touches';
+  lines.push('');
+  lines.push('PLACE DE L\'ACTUALITÉ ET DES ÉVÉNEMENTS DANS L\'IMAGE :');
+  if (ev === 'aucun') {
+    lines.push('- AUCUNE. Le commerce, ses produits, ses gens. Jamais de décor d\'événement, de couleurs de saison appuyées ni de référence à une date.');
+  } else if (ev === 'fort') {
+    lines.push('- BIEN VISIBLE. L\'événement doit se lire au premier coup d\'œil, DANS la scène du commerce — jamais à côté ni à la place.');
+    lines.push('- Il reste un décor du lieu, pas une affiche : des couleurs sur un plateau, un écriteau à la craie, une vitrine habillée.');
+  } else {
+    lines.push('- EN TOUCHE. Un détail qui situe le moment sans voler la scène : une couleur, un accessoire, une lumière de saison.');
+    lines.push('- Si la touche prend le dessus sur le produit ou le geste, elle est trop forte — enlève-la.');
+  }
+  lines.push('- Ce curseur ne crée JAMAIS un lien qui n\'existe pas : si l\'actualité ne concerne pas ce commerce, on n\'en met pas, même en réglage « bien visible ».');
   lines.push('⚠️ CES RÈGLES SONT LE RÉGLAGE PAR DÉFAUT DU CLIENT. Si le client donne une consigne explicite CONTRAIRE pour une demande précise (ex : « pour ce post, ajoute une personne » ou « utilise ma photo brute »), SA DEMANDE DU MOMENT PRIME sur le réglage par défaut. Le client reste maître de ses fichiers.');
   return lines.join('\n');
 }
