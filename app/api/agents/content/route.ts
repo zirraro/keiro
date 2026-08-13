@@ -1715,10 +1715,54 @@ function extractSeedanceVideoUrl(data: any): string | null {
  */
 const MODELE_VIDEO = process.env.SEEDANCE_MODEL || 'seedance-1-0-lite-t2v-250428';
 
-async function bakeMusicOnVideo(videoUrl: string): Promise<string> {
+/**
+ * Ce qu'on ajoute au brief vidéo pour que le modèle léger tienne le niveau.
+ *
+ * Fondateur, 2026-08-13 : « 1.0 doit produire du top aussi ! »
+ *
+ * Il a raison d'insister : changer de modèle pour économiser ne vaut que si la
+ * qualité tient. Un modèle plus léger suit moins bien les consignes implicites —
+ * il faut donc rendre explicite ce que le gros modèle devinait : une seule
+ * action, une seule caméra, une lumière nommée, une durée courte.
+ *
+ * C'est la même logique que partout ailleurs aujourd'hui : on ne demande pas
+ * mieux, on demande plus précisément.
+ */
+const PRECISION_VIDEO = [
+  'One single continuous action, no cut, no scene change.',
+  'Camera: one slow move only (push in, or slow pan). Never a zoom plus a pan.',
+  'Named light: morning window light, warm evening lamp, or overcast daylight.',
+  'Real materials and real hands. No text, no logo, no interface on screen.',
+  'Keep effects minimal: no added steam, sparkle, bokeh circles or haze unless',
+  'the scene truly produces them, and then keep them faint.',
+].join(' ');
+
+async function bakeMusicOnVideo(
+  videoUrl: string,
+  /**
+   * Le contexte du reel : de quoi il parle et pour quel métier.
+   *
+   * Fondateur, 2026-08-13 : « trouve un moyen d'avoir des sons justes et
+   * pertinents par reel. »
+   *
+   * La logique de choix existait — elle tient compte du pilier, du métier et du
+   * mouvement — mais elle n'était JAMAIS alimentée : l'appel passait
+   * littéralement . Tous les reels recevaient donc la
+   * même ambiance par défaut, quel que soit leur sujet. Une boulangerie à l'aube
+   * et un bar un soir de match repartaient avec la même musique.
+   *
+   * Le code était juste, il tournait à vide. C'est le même défaut que le réglage
+   * client déclaré mais jamais lu : ce qui n'est pas branché ne sert à rien.
+   */
+  contexte?: { pilier?: string | null; metier?: string | null },
+): Promise<string> {
   try {
     const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
-    const mood: any = pickMoodFromContext({ motion: undefined as any });
+    const mood: any = pickMoodFromContext({
+      pillar: contexte?.pilier || undefined,
+      businessType: contexte?.metier || undefined,
+    });
+    console.log(`[Content] ambiance musicale retenue : ${mood} (pilier ${contexte?.pilier || "?"}, métier ${contexte?.metier || "?"})`);
     const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
     if (music?.url) {
       const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
@@ -1762,7 +1806,14 @@ async function bakeMusicOnVideo(videoUrl: string): Promise<string> {
   return videoUrl;
 }
 
-async function generateTikTokVideo(visualDescription: string): Promise<string | null> {
+async function generateTikTokVideo(
+  visualDescription: string,
+  /**
+   * De quoi parle ce reel et pour quel métier — sert à choisir la musique.
+   * Sans lui, tous les reels repartaient avec la même ambiance.
+   */
+  contexteMusique?: { pilier?: string | null; metier?: string | null },
+): Promise<string | null> {
   try {
     // Optimize prompt for viral video generation
     const optimizedPrompt = await callClaude({
@@ -1815,7 +1866,7 @@ Output ONLY the video prompt, nothing else.`,
         if (result.status === 'completed' && result.videoUrl) {
           console.log(`[Content] Kling T2V completed: ${result.videoUrl.substring(0, 80)}...`);
           const cachedUrl = await cacheVideoToStorage(result.videoUrl, `tiktok-${Date.now()}`);
-          return await bakeMusicOnVideo(cachedUrl || result.videoUrl);
+          return await bakeMusicOnVideo(cachedUrl || result.videoUrl, contexteMusique);
         }
         if (result.status === 'failed') {
           console.error(`[Content] Kling T2V failed: ${result.error}`);
@@ -1830,7 +1881,7 @@ Output ONLY the video prompt, nothing else.`,
     // --- Fallback to Seedance T2V ---
     try {
       console.log('[Content] Kling failed — falling back to Seedance T2V...');
-      const formattedPrompt = `${videoPrompt} --camerafixed false --duration 10`;
+      const formattedPrompt = `${videoPrompt}. ${PRECISION_VIDEO} --camerafixed false --duration 10`;
       const seedanceRes = await fetch(SEEDANCE_API_URL, {
         method: 'POST',
         headers: {
@@ -1886,7 +1937,7 @@ Output ONLY the video prompt, nothing else.`,
               }).catch(() => {});
             } catch { /* silent */ }
             const cachedUrl = await cacheVideoToStorage(videoUrl, `tiktok-${Date.now()}`);
-            return await bakeMusicOnVideo(cachedUrl || videoUrl);
+            return await bakeMusicOnVideo(cachedUrl || videoUrl, contexteMusique);
           }
           console.warn('[Content] Seedance completed but no video URL');
           break;
@@ -2027,7 +2078,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       try {
         const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
         const segDuration = scenes[0].duration >= 10 ? 10 : 5;
-        const formattedPrompt = `${scenes[0].prompt.substring(0, 200)} --camerafixed false --ratio ${aspectRatio} --duration ${segDuration}`;
+        const formattedPrompt = `${scenes[0].prompt.substring(0, 200)}. ${PRECISION_VIDEO} --camerafixed false --ratio ${aspectRatio} --duration ${segDuration}`;
         const SEEDANCE_T2V_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
         const seedanceRes = await fetch(SEEDANCE_T2V_URL, {
           method: 'POST',
