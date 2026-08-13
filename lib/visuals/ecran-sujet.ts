@@ -68,6 +68,56 @@ export function ecranEstLeSujet(brief: string): boolean {
 }
 
 /**
+ * Les scènes vues mille fois, qui ne disent rien de CE commerce.
+ *
+ * ── Pourquoi ──
+ *
+ * Fondateur, 2026-08-13 : « tu as encore sorti un café latte en préparation.
+ * Arrête ce genre de reel, ce n'est pas du tout au niveau. »
+ *
+ * C'est la troisième fois que le latte art ressort. Ce n'est pas un défaut
+ * technique — l'image est souvent jolie — c'est un défaut de FOND : la mousse
+ * qu'on verse en cœur est le cliché le plus vu des réseaux, elle pourrait
+ * illustrer n'importe quel café du monde, et elle ne dit donc rien de celui-ci.
+ * Le contrôle de cohérence, lui, la valide : elle correspond bien au métier.
+ *
+ * Une image générique passe tous les contrôles de qualité ET ne sert à rien.
+ * C'est exactement le trou qu'il fallait fermer.
+ *
+ * ── Ce qu'on refuse, et ce qu'on ne refuse pas ──
+ *
+ * On refuse la scène ARCHI-VUE quand elle est le sujet. On ne refuse pas le
+ * café : un torréfacteur qui montre sa machine, un barista qui règle sa mouture,
+ * une tasse posée sur un comptoir usé — ce sont des scènes de métier. C'est le
+ * cliché de banque d'images qu'on écarte, pas le sujet.
+ */
+const CLICHES = [
+  // Le trio du café, dans l'ordre de fréquence observée.
+  String.raw`latte\s*art`,
+  String.raw`(pouring|poured|swirl\w*)\s+(the\s+)?(milk|foam|latte|cream)`,
+  String.raw`(heart|rosetta|tulip)\s+(shape\s+)?(in|on)\s+(the\s+)?(foam|milk|coffee|latte)`,
+  // Les autres poncifs qui reviennent, tous métiers confondus.
+  String.raw`avocado\s+toast`,
+  String.raw`(hands?\s+)?(clinking|toasting)\s+(glasses|wine)`,
+  String.raw`(steam|smoke)\s+rising\s+from\s+(a\s+)?(cup|mug)\s+of\s+coffee`,
+  String.raw`flat\s*lay`,
+  String.raw`(a\s+)?barista\s+(smiling|posing)\s+at\s+the\s+camera`,
+];
+
+/**
+ * Vrai quand le brief repose sur une scène vue mille fois.
+ *
+ * Volontairement littéral : on nomme les clichés constatés plutôt que d'essayer
+ * de deviner ce qui est « original ». Une liste courte et juste vaut mieux
+ * qu'une heuristique qui écarterait de bonnes scènes.
+ */
+export function sceneTropVue(brief: string): boolean {
+  const t = String(brief || '');
+  if (!t) return false;
+  return CLICHES.some(c => new RegExp(c, 'i').test(t));
+}
+
+/**
  * Les cas qui ont réellement été observés en production, gardés comme
  * référence. Le script `scripts/verifier-ecran-sujet.mjs` les rejoue : une
  * règle de qualité sans cas de test se dégrade sans que personne ne le voie.

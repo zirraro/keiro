@@ -517,14 +517,21 @@ async function generateVisual(
     // On ne bannit pas l'écran : il reste légitime en preuve dans un carrousel
     // (une notification sur un comptoir, un avis 5★). C'est l'écran EN SUJET
     // PRINCIPAL qu'on refuse, parce qu'il ne montre pas le commerce.
-    const { ecranEstLeSujet } = await import('@/lib/visuals/ecran-sujet');
-    if (!demandeExplicite && ecranEstLeSujet(visualDescription || '')) {
+    const { ecranEstLeSujet, sceneTropVue } = await import('@/lib/visuals/ecran-sujet');
+    // Deux défauts, un seul traitement : l'écran en sujet et la scène vue mille
+    // fois se corrigent de la même façon — on réécrit le brief avant de payer la
+    // génération. Le second a été signalé trois fois par le fondateur (« encore
+    // un café latte »), et aucun contrôle ne le voyait : une image générique
+    // passe tous les contrôles de qualité ET ne sert à rien.
+    if (!demandeExplicite && (ecranEstLeSujet(visualDescription || '') || sceneTropVue(visualDescription || ''))) {
       console.warn('[Content] brief à écran détecté, réécriture avant génération :', (visualDescription || '').slice(0, 90));
       try {
         const { callLlmWithFallback } = await import('@/lib/agents/llm-fallback');
         const r = await callLlmWithFallback({
-          system: `A photographic brief makes a SCREEN its main subject (phone, tablet, dashboard, interface). That is never acceptable for a local business post: the image must show the TRADE — the gesture, the product, the place, the people.
-Rewrite the brief so the subject becomes the real scene the post is about. A screen may survive only as a small background element, or disappear entirely.
+          system: `A photographic brief is weak. Either it makes a SCREEN its main subject, or it falls back on a scene everyone has seen a thousand times (latte art, avocado toast, clinking glasses, flat lay, a barista smiling at the camera).
+Both fail for the same reason: the image says nothing about THIS business. A generic image passes every quality check and still earns nothing.
+Rewrite the brief around something SPECIFIC to this trade: a gesture only this craft has, a tool with wear on it, a corner of the place, a moment of the service. A screen may survive only as a small background element, or disappear entirely.
+Ask yourself: could this brief describe a competitor down the street? If yes, it is not specific enough — go one step more precise.
 Keep the light, the mood and the setting. One or two sentences, English, concrete and photographable. No preamble, brief only.`,
           message: (visualDescription || '').slice(0, 600),
           claudeModel: 'claude-haiku-4-5-20251001',
@@ -613,6 +620,7 @@ Keep the light, the mood and the setting. One or two sentences, English, concret
             // moteur de recherche le classe par pertinence, ce qui reste
             // meilleur qu'un tirage au sort.
             let pick = imgs[0];
+            let choisieParVision = false;
             try {
               const { curateCoherentPhotos } = await import('@/lib/visuals/photo-curator');
               const retenues = await curateCoherentPhotos(
@@ -621,15 +629,40 @@ Keep the light, the mood and the setting. One or two sentences, English, concret
               );
               if (retenues[0]) {
                 const trouvee = imgs.find(i => i.largeImageURL === retenues[0]);
-                if (trouvee) pick = trouvee;
+                if (trouvee) { pick = trouvee; choisieParVision = true; }
                 console.log('[Content] photo réelle choisie par vision, pas au hasard');
               }
             } catch { /* vision indisponible : on garde le premier résultat */ }
             if (pick?.largeImageURL) {
-              // strength 0.5 = keep the real-photo realism, restyle to the brief.
-              const grounded = await generateVisualFromReference(pick.largeImageURL, visualDescription, format, 0.5);
+              // ── La photo réelle telle quelle, quand la vision l'a choisie ──
+              //
+              // Fondateur, 2026-08-13 : « on veut du plus naturel possible, ça
+              // doit faire le moins IA possible. »
+              //
+              // La réponse la plus forte était sous la main depuis ce matin
+              // sans que j'aille au bout : la route des reels — celle qu'il a
+              // jugée « très bien » — n'a pas besoin de consigne anti-IA, parce
+              // qu'elle utilise de VRAIES photos, telles quelles. On ne peut pas
+              // faire plus naturel qu'une photographie.
+              //
+              // L'image fixe, elle, repassait systématiquement la photo dans le
+              // générateur à force 0,5 : la moitié du rendu était refabriquée,
+              // et avec elle revenait exactement le lissage qu'on chasse. On
+              // payait une génération POUR DÉGRADER une vraie photo.
+              //
+              // Quand la vision a choisi la photo — donc qu'elle correspond
+              // vraiment au sujet — on la prend telle quelle. Gratuit, et
+              // impossible à distinguer d'une photo, puisque c'en est une.
+              // Sinon on garde l'ancrage, mais à force 0,35 : assez pour
+              // rapprocher du brief, assez peu pour que le grain survive.
+              if (choisieParVision) {
+                console.log(`[Content] photo réelle utilisée TELLE QUELLE (query="${query}") — aucune génération`);
+                const cachee = await cacheImageToStorage(pick.largeImageURL, `stock-${Date.now()}`);
+                if (cachee) return cachee;
+              }
+              const grounded = await generateVisualFromReference(pick.largeImageURL, visualDescription, format, 0.35);
               if (grounded) {
-                console.log(`[Content] Pixabay-grounded visual (query="${query}") — real-photo i2i base`);
+                console.log(`[Content] Pixabay-grounded visual (query="${query}") — ancrage léger, grain préservé`);
                 return grounded;
               }
             }
