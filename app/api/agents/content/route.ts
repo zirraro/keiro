@@ -7904,7 +7904,8 @@ ${promptSpecialise(platform, format)}
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
 Champs obligatoires, DANS CET ORDRE : platform, format, pillar, visual_description, hook, caption, hashtags, best_time, grid_color, content_angle
-Champ obligatoire SI format = carrousel : slides (juste après visual_description)`;
+Champ obligatoire SI format = carrousel : slides (juste après visual_description)
+RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN ANGLAIS (le générateur d'images ne comprend que l'anglais). Le hook, la caption et les hashtags s'écrivent en français.`;
 
   // Ce que le client a annoncé dans ses échanges avec N'IMPORTE QUEL agent :
   // nouveau plat, horaires, fermeture, promotion. Léna doit publier dessus sans
@@ -7922,7 +7923,18 @@ Champ obligatoire SI format = carrousel : slides (juste après visual_descriptio
         + getAssetUsagePolicyRules((clientSettings as any)?.asset_usage_policy)
         + faitsClient,
       message: enhancedPrompt,
-      maxTokens: 2000,
+      // ── Le budget dépend du format, sinon le carrousset perd ses diapositives ──
+      //
+      // 2026-08-13 : le carrousset produisait 5 diapositives, puis 0, puis 5,
+      // sans qu'on comprenne. La cause n'est pas le prompt : le parseur
+      // RÉCUPÈRE le JSON tronqué en refermant l'objet, donc tout champ pas
+      // encore écrit disparaît en silence. Un carrousset demande la légende
+      // ET cinq descriptions de scène — au-delà de 2000 jetons, « slides »
+      // était le champ coupé, et rien ne le signalait.
+      //
+      // Une troncature réparée sans bruit est pire qu'une erreur : on cherche
+      // la cause dans les consignes pendant des heures.
+      maxTokens: (format === 'carrousel' || format === 'carousel') ? 4000 : 2000,
     });
   } catch (claudeError: any) {
     console.error('[Content] Claude API error for daily post:', claudeError.message);
@@ -7979,6 +7991,16 @@ Champ obligatoire SI format = carrousel : slides (juste après visual_descriptio
         return JSON.parse(chars.join(''));
       } catch { /* try salvage */ }
     }
+    // ── Réparer une troncature, mais le DIRE ──
+    //
+    // Cette récupération est utile : mieux vaut un post amputé d'un champ
+    // accessoire qu'un échec complet. Mais elle était muette, et c'est ce qui
+    // m'a coûté une journée le 2026-08-13 : le carrousset sortait tantôt avec
+    // cinq diapositives, tantôt avec zéro, et j'ai cherché la cause dans les
+    // consignes alors que le champ était simplement coupé faute de jetons.
+    //
+    // Une réparation silencieuse transforme une panne mesurable en mystère.
+    console.warn('[Content] réponse TRONQUÉE — récupération partielle. Des champs de fin (slides, hashtags) peuvent manquer. Longueur reçue :', cleanText.length);
     // Salvage truncated JSON
     const partialMatch = cleanText.match(/\{[\s\S]*/);
     if (partialMatch) {
