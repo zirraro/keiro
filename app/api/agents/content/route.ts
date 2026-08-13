@@ -1092,6 +1092,49 @@ async function publishToInstagram(
             error: `daily_cap_reached:${publishedToday}/${dailyLimit}`,
           };
         }
+
+        // ── Un plafond journalier n'empêche pas une rafale ──
+        //
+        // Fondateur, 2026-08-13 : « tu as publié plusieurs posts presque en même
+        // temps, et les vues sont à zéro — attention au throttle TikTok. »
+        //
+        // Il a raison, et c'est ma faute : j'ai publié en testant. Mais le
+        // défaut est dans le produit, pas seulement dans mon test. Le plafond
+        // comptait les publications du JOUR ; rien ne regardait l'ÉCART entre
+        // elles. Cinq posts espacés de six minutes respectaient parfaitement un
+        // plafond de cinq par jour.
+        //
+        // Or c'est l'écart qui compte pour les plateformes. Une rafale ressemble
+        // à un robot, et le compte se fait étouffer — on l'a déjà vécu sur
+        // TikTok en juin, portée passée de 250 à 0.
+        //
+        // Le fondateur avait posé la règle le 12 août : « pas plus de 3 posts
+        // par jour si accumulés, à des heures différentes, JAMAIS en même
+        // temps. » La première moitié était implémentée, la seconde non.
+        const ECART_MINIMAL_MINUTES = 90;
+        try {
+          const { data: derniere } = await supabase
+            .from('content_calendar')
+            .select('published_at')
+            .eq('user_id', effectivePostOwnerId)
+            .eq('platform', 'instagram')
+            .eq('status', 'published')
+            .not('published_at', 'is', null)
+            .order('published_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (derniere?.published_at) {
+            const minutes = (Date.now() - new Date(derniere.published_at).getTime()) / 60000;
+            if (minutes < ECART_MINIMAL_MINUTES) {
+              const attente = Math.ceil(ECART_MINIMAL_MINUTES - minutes);
+              console.warn(`[Content] rafale évitée : dernière publication il y a ${Math.round(minutes)} min, on attend encore ${attente} min`);
+              return {
+                success: false,
+                error: `espacement_insuffisant:${Math.round(minutes)}min_attendre_${attente}min`,
+              };
+            }
+          }
+        } catch { /* la vérification d'écart ne doit jamais bloquer une publication légitime */ }
       } catch (capErr: any) {
         // If the cap check itself fails we don't block the publish —
         // we'd rather a degraded check than a stuck pipeline.
@@ -2153,6 +2196,49 @@ async function publishToTikTok(
   // Founder 13/07 : on ne met PLUS en pause la publication TikTok d'un client
   // payant (il ne comprendrait pas). La portée faible se traite par l'ACTIVITÉ du
   // compte (suivre/liker, conseillé via Jade), pas par une coupure. Gate désactivé.
+  // ── Espacement : TikTok n'avait AUCUNE garde ──
+  //
+  // Fondateur, 2026-08-13 : « tu as publié plein de posts presque en même temps
+  // sur TikTok, les vues sont à zéro, attention au throttle. » Puis : « j'en ai
+  // déjà supprimé quelques-unes, j'attends de voir si les vues montent sur les
+  // autres. »
+  //
+  // Instagram avait un plafond journalier ; TikTok n'avait ni plafond ni
+  // espacement. C'est le réseau où le risque est le plus élevé — la portée y est
+  // déjà passée de 250 à 0 en juin, et on a mis des semaines à comprendre.
+  //
+  // Deux heures d'écart minimum. C'est plus large que sur Instagram parce que
+  // l'algorithme y est plus sensible à la cadence, et parce qu'un compte étouffé
+  // met des semaines à se rétablir : le coût d'attendre est sans commune mesure
+  // avec le coût de se tromper.
+  const ECART_TIKTOK_MINUTES = 120;
+  if (post.id) {
+    try {
+      const { data: precedent } = await supabase
+        .from('content_calendar')
+        .select('published_at')
+        .eq('platform', 'tiktok')
+        .eq('status', 'published')
+        .not('published_at', 'is', null)
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (precedent?.published_at) {
+        const minutes = (Date.now() - new Date(precedent.published_at).getTime()) / 60000;
+        if (minutes < ECART_TIKTOK_MINUTES) {
+          const attente = Math.ceil(ECART_TIKTOK_MINUTES - minutes);
+          console.warn(`[TikTok] rafale évitée : publication précédente il y a ${Math.round(minutes)} min`);
+          await supabase.from('content_calendar')
+            .update({
+              publish_diagnostic: `espacement_tiktok:${Math.round(minutes)}min_attendre_${attente}min`,
+              updated_at: new Date().toISOString(),
+            }).eq('id', post.id);
+          return { success: false, error: `espacement_insuffisant:attendre_${attente}min` };
+        }
+      }
+    } catch { /* la vérification ne bloque jamais une publication légitime */ }
+  }
+
   // ─── ATOMIC CLAIM ─── same pattern as publishToInstagram so two
   // concurrent crons can't publish the same TikTok row twice.
   if (post.id) {
@@ -4106,6 +4192,44 @@ async function POSTInterne(request: NextRequest) {
           .eq('id', body.postId);
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
         return NextResponse.json({ ok: true });
+      }
+
+      // ── Vérifier la qualité SANS publier ──
+      //
+      // Fondateur, 2026-08-13, après une rafale de publications de test :
+      // « vérifie les résultats, pas le chemin de test complet jusqu'à la
+      // publication. »
+      //
+      // Jusqu'ici, la seule façon de connaître le verdict du contrôle était de
+      // demander la publication. Tester la qualité revenait donc à publier —
+      // c'est ce qui a produit cinq posts en vingt-trois minutes ce matin, et
+      // du contenu médiocre en ligne. Un système où l'on ne peut pas mesurer
+      // sans agir pousse à agir pour mesurer.
+      //
+      // `simulation: true` fait tourner exactement le même contrôle et rend le
+      // même verdict, sans rien publier, sans rien modifier en base.
+      case 'controler': {
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: p } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!p) return NextResponse.json({ ok: false, error: 'Post introuvable' }, { status: 404 });
+        try {
+          const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
+          const v = await controlerAvantPublication(supabase, {
+            id: p.id, user_id: p.user_id, hook: p.hook, caption: p.caption,
+            hashtags: p.hashtags as any, visual_url: p.visual_url, video_url: p.video_url,
+            platform: body.platform || p.platform, format: p.format,
+          });
+          return NextResponse.json({
+            ok: true, simulation: true,
+            publiable: v.publiable, code: v.code, diagnostic: v.diagnostic,
+            note: (v.details as any)?.score, motifs: (v.details as any)?.reasons,
+            note_accroche: (v.details as any)?.hookScore,
+            image_utilisable: (v.details as any)?.imageUsable,
+            format: p.format, reseau: p.platform, accroche: p.hook,
+          });
+        } catch (e: any) {
+          return NextResponse.json({ ok: false, error: `controle_indisponible: ${e?.message}` }, { status: 500 });
+        }
       }
 
       case 'publish': {
