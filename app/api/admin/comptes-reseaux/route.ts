@@ -56,15 +56,16 @@ export async function GET(req: NextRequest) {
 
   const supabase = sb();
 
-  const { data: profils, error } = await supabase
-    .from('profiles')
-    .select([
-      'id', 'email', 'is_admin', 'subscription_plan',
-      'instagram_business_account_id', 'instagram_username',
-      'facebook_page_access_token', 'instagram_igaa_token', 'instagram_token_expires_at',
-      'tiktok_access_token', 'tiktok_username', 'tiktok_token_expires_at',
-      'linkedin_access_token', 'linkedin_token_expires_at',
-    ].join(', '));
+  // On lit la ligne entière plutôt que d'énumérer les colonnes : le schéma
+  // porte plusieurs conventions concurrentes pour la même notion
+  // (`*_token_expires_at` et `*_token_expiry` coexistent), et nommer la
+  // mauvaise fait échouer la requête entière sur une colonne absente. Aucun
+  // jeton ne ressort d'ici — on n'en tire que des booléens et des échéances.
+  const { data: profils, error } = await supabase.from('profiles').select('*');
+
+  /** La première échéance renseignée parmi les noms de colonne en usage. */
+  const echeanceDe = (p: any, reseau: string) =>
+    p[`${reseau}_token_expires_at`] ?? p[`${reseau}_token_expiry`] ?? null;
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
@@ -97,16 +98,16 @@ export async function GET(req: NextRequest) {
           connecte: ig,
           compte: p.instagram_username || null,
           business_id: p.instagram_business_account_id || null,
-          jeton: etatJeton(p.facebook_page_access_token || p.instagram_igaa_token, p.instagram_token_expires_at),
+          jeton: etatJeton(p.facebook_page_access_token || p.instagram_igaa_token, echeanceDe(p, 'instagram')),
         },
         tiktok: {
           connecte: tt,
           compte: p.tiktok_username || null,
-          jeton: etatJeton(p.tiktok_access_token, p.tiktok_token_expires_at),
+          jeton: etatJeton(p.tiktok_access_token, echeanceDe(p, 'tiktok')),
         },
         linkedin: {
           connecte: li,
-          jeton: etatJeton(p.linkedin_access_token, p.linkedin_token_expires_at),
+          jeton: etatJeton(p.linkedin_access_token, echeanceDe(p, 'linkedin')),
         },
         publications: compte[p.id] || {},
         // Un compte sans aucun réseau ni aucune publication n'apprend rien :
