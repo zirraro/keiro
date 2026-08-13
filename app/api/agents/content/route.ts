@@ -6855,12 +6855,37 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // Sans réponse, on garde le mélange : c'est ce qui convient à la plupart, et
   // un client qui n'a rien demandé ne doit voir aucun changement.
   const sujets = String((clientSettings as any)?.sujets_publications || '').toLowerCase();
-  const PILLAR_ROTATION =
+  const PILLAR_ROTATION_BRUTE =
     sujets.includes('uniquement') || sujets.includes('produits, uniquement')
       ? ['demo', 'tips', 'social_proof', 'demo', 'tips', 'social_proof', 'demo']
       : sujets.includes('beaucoup')
         ? ['trends', 'demo', 'trends', 'tips', 'trends', 'social_proof', 'trends']
         : ['trends', 'tips', 'demo', 'trends', 'social_proof', 'tips', 'demo'];
+
+  // ── On ne demande pas une preuve à qui n'en a pas ──
+  //
+  // Test du 2026-08-13 : le pilier « preuve » a produit « Ce restaurant
+  // parisien a vu ses réservations s'envoler de +150 % en un mois ». Le
+  // contrôle l'a bloqué — client inventé — et il a eu raison.
+  //
+  // Mais la faute n'est pas au modèle. On lui a demandé une preuve alors que le
+  // dossier n'en contient aucune : pas de témoignage, pas de résultat, pas
+  // d'avis. Sommé de produire une preuve sans matière, il l'invente. C'est le
+  // même mécanisme que le lien d'actualité forcé, et il se corrige au même
+  // endroit : en cessant d'exiger l'impossible.
+  //
+  // Sans matière, la place revient à la démonstration — montrer ce qu'on sait
+  // faire est toujours possible, et c'est honnête.
+  const aDeQuoiProuver = !!(
+    (clientSettings as any)?.testimonials
+    || (clientSettings as any)?.results
+    || (clientSettings as any)?.social_proof
+    || (clientSettings as any)?.google_rating
+  );
+  const PILLAR_ROTATION = aDeQuoiProuver
+    ? PILLAR_ROTATION_BRUTE
+    : PILLAR_ROTATION_BRUTE.map(p => (p === 'social_proof' ? 'demo' : p));
+
   // New rotation strategy (2026-04):
   //   - Morning = visibility/reach (posts + carousels, rarely a story)
   //   - Midday = engagement peak (reels for algorithmic lift)
