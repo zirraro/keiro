@@ -1223,7 +1223,15 @@ async function publishToInstagram(
             .maybeSingle();
           if (derniere?.published_at) {
             const minutes = (Date.now() - new Date(derniere.published_at).getTime()) / 60000;
-            if (minutes < ECART_MINIMAL_MINUTES) {
+            // Le fondateur peut lever l'espacement pour une salve décidée par lui —
+          // « publie tout ce qui est préparé sur Insta », 2026-08-13. C'est SON
+          // compte et sa décision ; ce que le garde-fou protège, c'est le
+          // déclenchement AUTOMATIQUE d'une rafale, pas un choix assumé.
+          // La levée est tracée comme le plafond : on saura toujours qu'elle a eu lieu.
+          if (minutes < ECART_MINIMAL_MINUTES && leverPlafondJournalier) {
+            console.warn(`[Content] espacement levé explicitement (${Math.round(minutes)} min depuis la précédente)`);
+          }
+          if (minutes < ECART_MINIMAL_MINUTES && !leverPlafondJournalier) {
               const attente = Math.ceil(ECART_MINIMAL_MINUTES - minutes);
               console.warn(`[Content] rafale évitée : dernière publication il y a ${Math.round(minutes)} min, on attend encore ${attente} min`);
               return {
@@ -8366,7 +8374,21 @@ ${doctrineContenu()}
 ${promptSpecialise(platform, format)}
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
-Champs obligatoires, DANS CET ORDRE : platform, format, pillar, visual_description, hook, caption, hashtags, best_time, grid_color, content_angle
+LE SUJET EST L'ANCRE — ÉCRIS-LE EN PREMIER, TOUT DÉCOULE DE LUI.
+Commence par le champ "sujet" : UNE phrase en français qui dit de quoi parle ce
+post, dans le monde du commerçant. Puis la scène MONTRE ce sujet, et le texte EN
+PARLE. Les deux descendent de la même phrase.
+
+Sans cette ancre, la scène et le texte partent chacun de leur côté : on obtient
+un boulanger à l'image et une aide pour voiture électrique dans la légende. Les
+deux étaient défendables séparément ; ensemble ils ne racontent rien, et le
+contrôle refuse — à raison.
+
+TEST AVANT D'ENVOYER : relis ton "sujet", puis ta scène, puis ta légende. Si les
+trois ne parlent pas de la MÊME chose, ne corrige pas la légende — recommence
+depuis le sujet.
+
+Champs obligatoires, DANS CET ORDRE : platform, format, pillar, sujet, visual_description, hook, caption, hashtags, best_time, grid_color, content_angle
 Champ obligatoire SI format = carrousel : slides (juste après visual_description)
 RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN ANGLAIS (le générateur d'images ne comprend que l'anglais). Le hook, la caption et les hashtags s'écrivent en français.`;
 

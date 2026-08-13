@@ -91,7 +91,16 @@ ses outils ou ses règles. Sinon : conseil, démonstration, preuve.`;
  * visuel rattrapé après coup, et c'est le deuxième motif de refus. Il coûte
  * double : la génération d'image ratée, puis la régénération.
  */
-export const REGLE_SCENE_DABORD = `LA SCÈNE S'ÉCRIT AVANT LE TEXTE.
+export const REGLE_SCENE_DABORD = `UN SEUL SUJET, DONT DESCENDENT LA SCÈNE ET LE TEXTE.
+Écris d'abord LE SUJET en une phrase — de quoi parle ce post, dans le monde du
+commerçant. La scène MONTRE ce sujet, le texte EN PARLE. Les deux descendent de
+la même phrase, jamais l'un de l'autre.
+
+Sans cette ancre commune, les deux partent chacun de leur côté : un boulanger à
+l'image, une aide pour voiture électrique dans la légende. Chacun était
+défendable seul ; ensemble ils ne racontent rien.
+
+LA SCÈNE S'ÉCRIT AVANT LE TEXTE.
 Décris d'abord la scène, puis rédige l'accroche et la légende EN LA REGARDANT.
 L'inverse — écrire le texte puis chercher une image capable de l'illustrer —
 donne un visuel rattrapé après coup, et c'est ce que le contrôle refuse.
