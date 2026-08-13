@@ -7363,11 +7363,34 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     }
     trendsUpcomingEvents = upcomingEvents;
 
-    if (trendItems.length > 0 || newsItems.length > 0 || upcomingEvents.length > 0) {
+    // ── L'actualité n'entre dans le prompt que les jours d'actualité ──
+    //
+    // Fondateur, depuis trois jours : « le lien avec l'actualité est forcé. »
+    // J'ai corrigé la consigne, la rotation des piliers, le classement de
+    // performance. Et les trois derniers tests sont quand même sortis en
+    // « tendance », avec une éclipse, une grève de pompiers, une célébrité.
+    //
+    // Parce que c'est le MODÈLE qui écrit le champ `pillar`, et je lui avais
+    // même donné le droit d'en changer. Tant que la liste des actualités du
+    // jour est sous ses yeux, il l'utilise : on lui demandait de résister à une
+    // tentation qu'on prenait soin de lui mettre devant.
+    //
+    // On ne charge donc la liste que lorsque le pilier prévu est « tendance ».
+    // Les autres jours, elle n'est pas dans le prompt — il n'y a plus rien à
+    // plaquer. Même principe que le garde-fou sur les écrans : on ne demande
+    // pas de résister, on retire l'occasion.
+    //
+    // Les journées thématiques restent, elles : une fête des mères concerne
+    // vraiment un fleuriste, et le curseur « place de l'actualité » du client
+    // en règle l'intensité.
+    const jourDActualite = pillar === 'trends';
+    const trendsUtilisables = jourDActualite ? trendItems : [];
+    const newsUtilisables = jourDActualite ? newsItems : [];
+    if (trendsUtilisables.length > 0 || newsUtilisables.length > 0 || upcomingEvents.length > 0) {
       trendsContext = '\n━━━ TENDANCES & ACTUALITES DU JOUR — 50% DU CONTENU ━━━\n';
       if (eventContext) trendsContext += eventContext;
-      if (trendItems.length > 0) trendsContext += `Trends Google/TikTok : ${trendItems.join(' | ')}\n`;
-      if (newsItems.length > 0) trendsContext += `Actualites France : ${newsItems.join(' | ')}\n`;
+      if (trendsUtilisables.length > 0) trendsContext += `Trends Google/TikTok : ${trendsUtilisables.join(' | ')}\n`;
+      if (newsUtilisables.length > 0) trendsContext += `Actualites France : ${newsUtilisables.join(' | ')}\n`;
       trendsContext += `
 CETTE LISTE EST UNE RESSOURCE, PAS UN QUOTA.
 Aucune actualite n'est a caser. La plupart des jours, aucune ne concerne
