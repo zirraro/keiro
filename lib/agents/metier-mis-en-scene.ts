@@ -63,7 +63,24 @@ export type MetierEnScene = typeof METIERS_EN_SCENE[number];
  * cabinet de conseil vendent à des commerçants, ils ne sont pas eux-mêmes le
  * commerce qu'on photographie.
  */
-export function sertPlusieursMetiers(signature?: string | null): boolean {
+/**
+ * Les comptes qui mettent TOUJOURS un métier en scène, quels que soient les mots
+ * de leur dossier.
+ *
+ * Fondateur, 2026-08-13 : « KeiroAI est une exception, là on se met à la place du
+ * commerçant. » La détection par mots-clés a échoué sur son propre dossier — un
+ * salon de coiffure a reçu une accroche sur la Ligue Europa, preuve que le métier
+ * mis en scène n'était pas appliqué au tri des actualités.
+ *
+ * Deviner à partir d'un texte libre marchera parfois ; pour le compte vitrine,
+ * qui est notre seule vitrine, on ne devine pas.
+ */
+const COMPTES_TOUJOURS_EN_SCENE = new Set([
+  'd7d3ae4a-c420-40e1-b2c9-b983d960d1fb', // mrzirraro@gmail.com — compte vitrine KeiroAI
+]);
+
+export function sertPlusieursMetiers(signature?: string | null, userId?: string | null): boolean {
+  if (userId && COMPTES_TOUJOURS_EN_SCENE.has(userId)) return true;
   const t = String(signature || '').toLowerCase();
   if (!t) return false;
   return /\b(saas|logiciel|plateforme|application|agence|conseil|consultant|freelance|marketing|communication|prestataire|studio)\b/.test(t);

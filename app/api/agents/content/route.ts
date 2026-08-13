@@ -7062,7 +7062,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
         try {
           const { sertPlusieursMetiers, metierDuCreneau } = await import('@/lib/agents/metier-mis-en-scene');
           const sig = [dossier.business_type, dossier.company_description].filter(Boolean).join(' ');
-          if (sertPlusieursMetiers(sig)) {
+          if (sertPlusieursMetiers(sig, userId)) {
             metierEnScene = metierDuCreneau(new Date(), String(forcePlatform || 'auto') + String(forceFormat || ''), userId || '');
             console.log('[Content] commerce mis en scene :', metierEnScene);
           }
