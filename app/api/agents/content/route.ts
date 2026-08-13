@@ -23,6 +23,18 @@ import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
 import { diapoRealiste, REALISME_VIDEO, registreVisuelPour, nuanceRegistre, estTourPublicitaire, REGISTRE_AFFICHE } from '@/lib/visuals/realisme-photo';
 import { directiveGeneration } from '@/lib/visuals/exigences-reseau';
+// ── Pourquoi la doctrine est injectée ICI aussi, et à la FIN du prompt ──
+//
+// Le 13 août j'ai sorti ces règles du prompt de la route pour les mettre en
+// tête du prompt système, au nom de la source unique. Résultat : trois
+// générations sur trois sont reparties sur des écrans de smartphone, et le
+// carrousel a cessé de produire ses diapositives. J'avais retiré les consignes
+// de l'endroit le plus proche de la sortie pour les enfouir au début d'un
+// prompt de mille lignes — la position compte autant que le contenu.
+//
+// La source reste unique (le module), mais elle est rappelée juste avant la
+// consigne de sortie, là où le modèle la lit en dernier.
+import { doctrineContenu } from '@/lib/agents/doctrine-contenu';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -7780,6 +7792,8 @@ CLIENT QUI SERT PLUSIEURS MÉTIERS — ÉCRIS DEPUIS LA SCÈNE :
  et la règle du carrousel sont énoncés une seule fois, dans la doctrine en tête
  de ce prompt. Ne les redis pas ici : c'est exactement ainsi que les deux
  prompts avaient fini par se contredire.)
+
+${doctrineContenu()}
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
 Champs obligatoires, DANS CET ORDRE : platform, format, pillar, visual_description, hook, caption, hashtags, best_time, grid_color, content_angle
