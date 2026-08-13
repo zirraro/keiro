@@ -483,6 +483,45 @@ async function generateVisual(
   businessTypePourVisuel?: string | null,
 ): Promise<string | null> {
   try {
+    // ── Garde-fou : un écran ne peut pas être le sujet ──
+    //
+    // Fondateur, depuis deux jours : « on doit voir le métier, pas un
+    // smartphone. » La règle est écrite dans la doctrine, en tête ET en fin de
+    // prompt. Elle a été désobéie SIX fois de suite : « a tablet displays a
+    // dashboard », « a smartphone showing Unknown Number », « a blurred tablet
+    // next to an ice cream ». Un modèle qui ne suit pas une consigne écrite
+    // trois fois ne la suivra pas à la quatrième — continuer à ajouter du texte
+    // serait répéter plus fort la même chose.
+    //
+    // On passe donc du prompt au CONTRÔLE : ici, au point de passage unique par
+    // lequel toutes les routes génèrent leur image. Si le brief fait d'un écran
+    // le sujet, on le réécrit avant de payer la génération. Un appel de texte
+    // coûte une fraction de centime, l'image ratée en coûte trois.
+    //
+    // On ne bannit pas l'écran : il reste légitime en preuve dans un carrousel
+    // (une notification sur un comptoir, un avis 5★). C'est l'écran EN SUJET
+    // PRINCIPAL qu'on refuse, parce qu'il ne montre pas le commerce.
+    const ECRAN_SUJET = /^[^.]{0,90}\b(smartphone|phone|tablet|laptop|computer|screen|dashboard|app interface|mockup)\b/i;
+    if (ECRAN_SUJET.test(visualDescription || '')) {
+      console.warn('[Content] brief à écran détecté, réécriture avant génération :', (visualDescription || '').slice(0, 90));
+      try {
+        const { callLlmWithFallback } = await import('@/lib/agents/llm-fallback');
+        const r = await callLlmWithFallback({
+          system: `A photographic brief makes a SCREEN its main subject (phone, tablet, dashboard, interface). That is never acceptable for a local business post: the image must show the TRADE — the gesture, the product, the place, the people.
+Rewrite the brief so the subject becomes the real scene the post is about. A screen may survive only as a small background element, or disappear entirely.
+Keep the light, the mood and the setting. One or two sentences, English, concrete and photographable. No preamble, brief only.`,
+          message: (visualDescription || '').slice(0, 600),
+          claudeModel: 'claude-haiku-4-5-20251001',
+          maxTokens: 250, callTag: 'qc_brief_sans_ecran',
+        });
+        const reecrit = (r.text || '').trim().replace(/^["'`]+|["'`]+$/g, '');
+        if (reecrit.length > 25 && !ECRAN_SUJET.test(reecrit)) {
+          visualDescription = reecrit;
+          console.log('[Content] brief réécrit sans écran :', reecrit.slice(0, 90));
+        }
+      } catch { /* la réécriture échoue : on génère quand même, le contrôle jugera */ }
+    }
+
     // 2026-06-03 — Levier 3: visual reuse INTRA-client.
     // 30% probability d'utiliser un top performer du client (économie
     // Bytedance + renforce les visuels qui marchent). Pas de cross-client.

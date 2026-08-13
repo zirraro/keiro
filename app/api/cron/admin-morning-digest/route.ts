@@ -440,11 +440,13 @@ export async function GET(req: NextRequest) {
     const to48h = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
     const { data: pub } = await supabase
       .from('content_calendar')
-      .select('user_id, platform, engagement_data, published_at')
+      .select('id, user_id, platform, engagement_data, published_at')
       .eq('status', 'published')
       .gte('published_at', from7d)
       .lte('published_at', to48h)
       .not('engagement_data', 'is', null);
+    // Ce qu'on a déjà signalé, on ne le resignale pas.
+    const aMarquer: string[] = [];
     const { isNoContentAccount: isInternalReach } = await import('@/lib/agents/internal-accounts');
     const reachMap = new Map<string, { platform: string; count: number }>();
     for (const p of pub || []) {
@@ -455,6 +457,22 @@ export async function GET(req: NextRequest) {
       if (!measured) continue; // pas encore mesuré → on ne juge pas
       const total = (Number(e.views) || 0) + (Number(e.reach) || 0) + (Number(e.impressions) || 0) + (Number(e.like_count) || 0) + (Number(e.play_count) || 0);
       if (total > 0) continue;
+      // ── Signalé une fois, pas tous les matins ──
+      //
+      // Fondateur, 2026-08-13 : « c'est une fausse info, on avait déjà réglé le
+      // problème et j'ai supprimé le post. »
+      //
+      // Il a raison sur les deux points. Un post supprimé sur le réseau reste
+      // « publié » chez nous — la synchronisation ne le retrouve simplement plus
+      // et son engagement reste à zéro pour toujours. La fenêtre de sept jours
+      // le faisait donc ressortir cinq matins de suite, pour une situation déjà
+      // traitée.
+      //
+      // Une alerte qui se répète après action perd sa valeur : on apprend à
+      // sauter le bloc, et le jour où un VRAI cas apparaît, personne ne le voit.
+      // On marque donc le post une fois signalé, et on ne le redit plus.
+      if (e.portee_morte_signalee) continue;
+      if (p.id) aMarquer.push(String(p.id));
       const key = `${p.user_id}::${p.platform}`;
       const g = reachMap.get(key) || { platform: p.platform, count: 0 };
       g.count++; reachMap.set(key, g);
@@ -468,6 +486,13 @@ export async function GET(req: NextRequest) {
         network: g.platform,
         detail: `${g.count} post(s) ${g.platform} publié(s) depuis +48h TOUJOURS à 0 vue/reach — portée morte (privé ? shadowban ? app non auditée ?)`,
       });
+    }
+    // On inscrit la marque APRÈS avoir constitué le rapport : si l'envoi échoue
+    // plus loin, on préfère resignaler une fois de trop que perdre l'alerte.
+    for (const id of aMarquer) {
+      const ligne = (pub || []).find((x: any) => String(x.id) === id);
+      const eng = { ...((ligne?.engagement_data as any) || {}), portee_morte_signalee: new Date().toISOString() };
+      await supabase.from('content_calendar').update({ engagement_data: eng }).eq('id', id);
     }
   } catch { /* best-effort */ }
 
