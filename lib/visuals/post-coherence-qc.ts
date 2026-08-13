@@ -396,6 +396,23 @@ export async function assessPostCoherence(input: {
   hashtags?: string[] | null;
   platform?: string;
   format?: string;
+  /**
+   * Le métier du commerçant et la clientèle à qui il parle.
+   *
+   * Fondateur, 2026-08-13 : « on ne sacrifie pas la qualité, seulement une
+   * meilleure analyse permet de savoir à qui s'adresse la génération. Et la
+   * plante sèche, ça marche pour un fleuriste. »
+   *
+   * Le juge ne savait RIEN du métier. Il évaluait la pertinence dans le vide —
+   * d'où le refus d'« une plante en plein soleil » pour parler de communication
+   * qui s'assèche : excellente image pour un fleuriste, hors-sujet pour un
+   * garagiste. Sans savoir pour qui, on ne peut pas juger si c'est pertinent.
+   *
+   * Ce n'est donc pas un assouplissement du barème : c'est le contexte qui lui
+   * manquait pour appliquer le barème correctement.
+   */
+  metier?: string | null;
+  cible?: string | null;
 }): Promise<CoherenceVerdict | CoherenceUnavailable | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !input.visualUrl) return null;
@@ -412,6 +429,16 @@ export async function assessPostCoherence(input: {
   const contexte = [
     blocExigence(input.platform, { avecTexte: true }),
     '',
+    ...(input.metier ? [
+      `MÉTIER DU COMMERÇANT : ${String(input.metier).slice(0, 200)}`,
+      ...(input.cible ? [`SA CLIENTÈLE : ${String(input.cible).slice(0, 200)}`] : []),
+      "Juge la pertinence POUR CE MÉTIER et POUR CETTE CLIENTÈLE, pas dans l'absolu.",
+      "Une métaphore ou une image indirecte est PERTINENTE si elle appartient au monde",
+      "de ce commerce : une plante qui sèche parle à un fleuriste, un moteur qui cale à",
+      "un garagiste. La même image serait hors-sujet ailleurs — c'est le métier qui",
+      'tranche, pas ton goût.',
+      '',
+    ] : []),
     `Format : ${input.format || 'post'}`,
     '',
     'LÉGENDE :',
@@ -450,11 +477,6 @@ export async function assessPostCoherence(input: {
     // dans les deux cas le post affirme une connexion qui n'existe pas, et le
     // lecteur le sent immédiatement. Une accroche molle ne bloque pas seule —
     // elle pèse déjà sur la note globale.
-    const aucunDefautNomme =
-      !flags.inventedClient && !flags.implausibleClaim && !flags.offTopic
-      && !flags.emptyVisual && !flags.forcedNewsLink
-      && (!Array.isArray(v.reasons) || v.reasons.filter(Boolean).length === 0);
-
     // ── Refuser sans savoir pourquoi n'est pas un contrôle ──
     //
     // 2026-08-13 : une publication notée 6/10, aucun drapeau levé, aucun motif
@@ -469,14 +491,44 @@ export async function assessPostCoherence(input: {
     //
     // Quand le juge NOMME un défaut, le plancher de 7 s'applique — c'est le cas
     // normal et il ne bouge pas. Quand il n'en nomme aucun, 6 suffit.
-    const plancher = aucunDefautNomme ? 6 : COHERENCE_PASS_SCORE;
+    // ── Ce qui bloque vraiment, et ce qui coûte seulement des points ──
+    //
+    // Fondateur, 2026-08-13, devant trois posts refusés d'affilée : « je trouve
+    // ces trois derniers plutôt bien. Attention à te retrouver dans la
+    // situation où tu ne publies rien : on perd nos marges. Le prétexte bien
+    // tourné, ça marche. Et la plante sèche, ça marche pour un fleuriste. »
+    //
+    // Il a raison, et j'avais oublié la moitié de l'équation. J'ai passé la
+    // journée à durcir le contrôle sans jamais peser le COÛT d'un refus : une
+    // génération payée, un créneau vide, et un client qui ne reçoit rien. Un
+    // portillon qui ne laisse plus rien passer ne protège plus la qualité, il
+    // supprime le service.
+    //
+    // On distingue donc deux natures de défauts.
+    //
+    // ÉLIMINATOIRES, parce qu'ils font mentir le commerçant ou ne montrent
+    // rien : un client nommé inventé, un chiffre aberrant, une image vide, une
+    // image qui ne montre pas le sujet. Ceux-là bloquent, quel que soit le
+    // reste.
+    //
+    // PÉNALISANTS, parce qu'ils rendent le post moins bon sans le rendre faux :
+    // le lien à l'actualité tiré par les cheveux en fait partie. Un prétexte
+    // bien tourné fonctionne — et « ta com' est sèche comme une plante en plein
+    // soleil » est une excellente accroche pour un fleuriste. Le juge n'a pas à
+    // trancher à la place du métier : il retire des points, il ne condamne pas.
+    const eliminatoire = flags.inventedClient || flags.implausibleClaim
+      || flags.offTopic || flags.emptyVisual;
 
-    const pass = !flags.inventedClient
-      && !flags.implausibleClaim
-      && !flags.offTopic
-      && !flags.emptyVisual
-      && !flags.forcedNewsLink
-      && score >= plancher;
+    // Le lien forcé coûte deux points. S'il reste au-dessus du plancher, le
+    // post part : c'est le sens de « bien tourné, ça marche ».
+    const noteFinale = flags.forcedNewsLink ? Math.max(0, score - 2) : score;
+
+    // 6, la note que le barème du juge appelle lui-même « publiable ». Exiger 7
+    // partout revenait à ne garder que le remarquable, et à jeter le correct —
+    // or le correct publié vaut infiniment mieux que le remarquable jamais sorti.
+    const plancher = 6;
+
+    const pass = !eliminatoire && noteFinale >= plancher;
 
     return {
       pass,

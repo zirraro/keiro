@@ -145,6 +145,22 @@ export async function controlerAvantPublication(
   if (post.visual_url && process.env.SKIP_COHERENCE_QC !== '1') {
     try {
       const { assessPostCoherence } = await import('./post-coherence-qc');
+      // Qui parle, et à qui. Une lecture de plus, mais elle évite des refus
+      // injustes qui coûtent chacun une génération et un créneau.
+      let dossierMetier: string | null = null;
+      let dossierCible: string | null = null;
+      if (post.user_id) {
+        try {
+          const { data: d } = await supabase
+            .from('business_dossiers')
+            .select('business_type, company_description, target_audience')
+            .eq('user_id', post.user_id).maybeSingle();
+          if (d) {
+            dossierMetier = [d.business_type, d.company_description].filter(Boolean).join(' — ').slice(0, 200) || null;
+            dossierCible = d.target_audience || null;
+          }
+        } catch { /* le contrôle fonctionne sans, simplement moins bien informé */ }
+      }
       const coh = await assessPostCoherence({
         visualUrl: post.visual_url,
         caption: post.caption || '',
@@ -155,6 +171,12 @@ export async function controlerAvantPublication(
         // l'intégralité du propos. Sans cette précision il sanctionnerait des
         // cadrages parfaitement normaux pour une ouverture de reel.
         format: post.video_url ? `${post.format || 'reel'} (image de couverture)` : (post.format || undefined),
+        // Le métier et la clientèle, lus au moment du contrôle : sans eux le juge
+        // évalue la pertinence dans le vide et refuse des images justes — « une
+        // plante en plein soleil » est excellente pour un fleuriste, hors-sujet
+        // pour un garagiste. C'est le métier qui tranche.
+        metier: dossierMetier,
+        cible: dossierCible,
       });
 
       if (coh && (coh as any).unavailableReason) {
