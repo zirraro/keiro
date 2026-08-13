@@ -503,6 +503,23 @@ async function generateVisual(
    * ou 'ambiances'. Décide de ce qu'on s'autorise à composer.
    */
   provenanceVisuels?: string | null,
+  /**
+   * Le texte du post — accroche et légende.
+   *
+   * Mesure du 2026-08-13 : 1 génération sur 4 passait le contrôle. La chaîne
+   * était celle-ci : le modèle écrit un brief à écran (« a smartphone screen
+   * showing a Paris Match article »), le garde-fou le réécrit correctement en
+   * scène de métier — et l'image obtenue, un carnet et un stylo, n'a plus rien
+   * à voir avec la légende qui parle de Macron.
+   *
+   * Le garde-fou faisait bien son travail et cassait le post quand même : il
+   * réécrivait à l'aveugle, sans savoir de quoi le post parle. Corriger un
+   * défaut sans connaître l'intention, c'est déplacer le problème.
+   *
+   * Avec le texte sous les yeux, la réécriture vise le SUJET du post au lieu de
+   * simplement retirer l'écran.
+   */
+  texteDuPost?: string | null,
 ): Promise<string | null> {
   try {
     // ── Garde-fou : un écran ne peut pas être le sujet ──
@@ -564,10 +581,18 @@ close scene: the gesture, the product, the tool, the material, a corner of a
 worktop. A customer recognises a place; nobody can say a gesture is not from
 here.
 
+If the post text is given above, the new scene must illustrate THAT text — the situation it describes, in the trade it speaks to. Fixing a brief without knowing what the post says only moves the problem: you would produce a clean image that no longer matches its caption.
+
 Rewrite the brief around something SPECIFIC to this trade: a gesture only this craft has, a tool with wear on it, a corner of the place, a moment of the service. A screen may survive only as a small background element, or disappear entirely.
 Ask yourself: could this brief describe a competitor down the street? If yes, it is not specific enough — go one step more precise.
 Keep the light, the mood and the setting. One or two sentences, English, concrete and photographable. No preamble, brief only.`,
-          message: (visualDescription || '').slice(0, 600),
+          message: [
+            texteDuPost ? `CE DONT LE POST PARLE (le texte qui accompagnera l'image) :
+${String(texteDuPost).slice(0, 500)}` : '',
+            '',
+            'BRIEF À RÉÉCRIRE :',
+            (visualDescription || '').slice(0, 600),
+          ].filter(Boolean).join('\n'),
           claudeModel: 'claude-haiku-4-5-20251001',
           maxTokens: 250, callTag: 'qc_brief_sans_ecran',
         });
@@ -9424,7 +9449,9 @@ Real natural light matching the room's existing ambience. The dish must look pro
         // Le réglage du client suit jusqu'ici : c'est lui qui décide si on peut
         // composer un lieu ou reprendre une photo de stock telle quelle. Déclaré
         // à l'onboarding, il ne servirait à rien s'il s'arrêtait en route.
-        visualUrl = await generateVisual(visualDesc, postFormat, userId || undefined, platform, detectedBusinessType, false, provenance);
+        // Le texte du post accompagne le brief : si le garde-fou doit réécrire la
+        // scène, il vise le SUJET du post au lieu de corriger à l aveugle.
+        visualUrl = await generateVisual(visualDesc, postFormat, userId || undefined, platform, detectedBusinessType, false, provenance, [post.hook, post.caption].filter(Boolean).join(" — "));
       }
       // Log quota usage AFTER successful generation (only when we
       // actually called Seedream — raw reuses don't count).
