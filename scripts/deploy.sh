@@ -362,6 +362,18 @@ fi
 # Le back-test appelle le site comme un client : pages publiques, espace
 # client, API protégées (401 attendu, jamais 500), crons. Il échoue le
 # déploiement si une fonction est tombée.
+# Les règles de qualité qui se vérifient hors ligne, avant de solliciter le
+# site. Ajouté le 2026-08-13 : le détecteur « un écran est-il le sujet de
+# l'image ? » avait été affaibli sans que personne ne le voie, parce qu'il
+# vivait dans une route de huit mille lignes et que rien ne le rejouait. Une
+# règle de qualité sans cas de test se dégrade en silence.
+echo "▶ règles de qualité (hors ligne)"
+node scripts/verifier-ecran-sujet.mjs || {
+  echo "🚨 Le détecteur d'écran-sujet ne passe plus ses cas de référence."
+  echo "   Des briefs à écran repartiraient en génération. Corriger avant de déployer."
+  exit 1
+}
+
 echo "▶ back-test des fonctions"
 if ! node scripts/back-test.mjs "https://keiroai.com" "$EXPECTED_SHA"; then
   echo "🚨 Le commit est bien en ligne, mais des FONCTIONS sont cassées."

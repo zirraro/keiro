@@ -501,8 +501,8 @@ async function generateVisual(
     // On ne bannit pas l'écran : il reste légitime en preuve dans un carrousel
     // (une notification sur un comptoir, un avis 5★). C'est l'écran EN SUJET
     // PRINCIPAL qu'on refuse, parce qu'il ne montre pas le commerce.
-    const ECRAN_SUJET = /^[^.]{0,90}\b(smartphone|phone|tablet|laptop|computer|screen|dashboard|app interface|mockup)\b/i;
-    if (ECRAN_SUJET.test(visualDescription || '')) {
+    const { ecranEstLeSujet } = await import('@/lib/visuals/ecran-sujet');
+    if (ecranEstLeSujet(visualDescription || '')) {
       console.warn('[Content] brief à écran détecté, réécriture avant génération :', (visualDescription || '').slice(0, 90));
       try {
         const { callLlmWithFallback } = await import('@/lib/agents/llm-fallback');
@@ -515,9 +515,25 @@ Keep the light, the mood and the setting. One or two sentences, English, concret
           maxTokens: 250, callTag: 'qc_brief_sans_ecran',
         });
         const reecrit = (r.text || '').trim().replace(/^["'`]+|["'`]+$/g, '');
-        if (reecrit.length > 25 && !ECRAN_SUJET.test(reecrit)) {
+        if (reecrit.length > 25 && !ecranEstLeSujet(reecrit)) {
+          const avant = visualDescription;
           visualDescription = reecrit;
           console.log('[Content] brief réécrit sans écran :', reecrit.slice(0, 90));
+          // ── Tracer, sinon on vérifie une illusion ──
+          //
+          // La réécriture n'a lieu qu'ICI : la base garde le brief d'origine.
+          // En relisant `visual_description` on voit donc toujours la tablette,
+          // même quand l'image générée n'en contient plus. Sans cette trace, on
+          // ne peut pas distinguer « le garde-fou n'a pas marché » de « il a
+          // marché mais ça ne se voit pas », et on corrige à l'aveugle.
+          try {
+            await getSupabaseAdmin().from('agent_logs').insert({
+              agent: 'content', action: 'qc_brief_ecran_reecrit', status: 'ok',
+              user_id: userIdForReuse || undefined,
+              data: { avant: avant.slice(0, 400), apres: reecrit.slice(0, 400), reseau: platformForReuse, format },
+              created_at: new Date().toISOString(),
+            });
+          } catch { /* la trace ne bloque jamais la génération */ }
         }
       } catch { /* la réécriture échoue : on génère quand même, le contrôle jugera */ }
     }
