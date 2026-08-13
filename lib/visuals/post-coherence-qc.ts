@@ -200,24 +200,19 @@ const TOOL = {
       forced_news_link: {
         type: 'boolean',
         description: [
-          "Le post s'accroche à une actualité ou un événement sans lien réel avec le métier.",
-          '',
-          'TEST : retire la date ou l\'événement du post. S\'il tient toujours et dit exactement',
-          "la même chose, c'était un prétexte → true. S'il perd son sens ou son urgence, le lien",
-          'est réel → false.',
-          '',
-          "ATTENTION — ne confonds pas « prétexte » et « écrit depuis la scène du commerçant ».",
-          "Quand l'annonceur est un prestataire qui sert PLUSIEURS métiers (logiciel, agence,",
-          'conseil), ses posts sont volontairement écrits depuis la situation concrète du',
-          "commerçant qu'il aide : le rush de la rentrée dans un salon de coiffure, la terrasse",
-          "un jour de canicule. C'est la bonne façon de faire, pas un défaut : le lecteur visé",
-          "est le commerçant, et l'événement doit être vrai POUR LUI — pas pour l'annonceur.",
-          "N'exige donc PAS que l'actualité serve directement le produit de l'annonceur. Exige",
-          "qu'elle change réellement quelque chose dans la journée du commerçant montré.",
-          '',
-          "Exemple à NE PAS marquer true : « La rentrée, c'est aussi le rush des coupes de",
-          'dernière minute » pour un logiciel marketing — le rush de rentrée existe vraiment',
-          "chez un coiffeur, et c'est bien à lui qu'on parle.",
+          "Le post parle-t-il d'une actualité SANS RAPPORT avec la clientèle de ce métier ?",
+          "",
+          "⚠️ REBONDIR SUR L'ACTUALITÉ EST LE MÉTIER DE CETTE MARQUE. Ce n'est jamais un défaut en soi, et un lien un peu appuyé mais BIEN TOURNÉ fonctionne très bien.",
+          "Ne lève ce drapeau que si l'actualité choisie ne concerne PAS la clientèle du métier indiqué plus haut : le football pour un salon de coiffure, une célébrité pour un plombier, un sujet financier pour une boulangerie.",
+          "",
+          "NE le lève PAS quand :",
+          "· l'actualité touche la clientèle de ce métier (people et mode pour un coiffeur, sport pour un bar, calendrier affectif pour un fleuriste) ;",
+          "· c'est un sujet qui concerne TOUS les commerces — météo, vie locale, pouvoir d'achat, rentrée, jours fériés ;",
+          "· le lien est une métaphore appartenant au monde du métier : une plante qui sèche pour un fleuriste, un moteur qui cale pour un garagiste.",
+          "",
+          "Autrement dit : tu juges la PERTINENCE pour ce commerce et sa cible, pas le degré d'accroche.",
+          "",
+          "ET L'IMAGE DOIT LE MONTRER. Quand le post s'appuie sur une actualité, un événement ou une saison, on doit VOIR le lien : la scène du commerce porte un signe du moment — la lumière d'un jour de canicule, les couleurs d'une saison, l'affluence d'un samedi, un détail de décor. Une actualité qui n'existe que dans le texte laisse une image muette, et le lecteur ne fait pas le rapprochement.",
         ].join('\n'),
       },
       hook_score: { type: 'number', description: "Force de la première ligne sur 10 : retient-elle le lecteur ?" },
@@ -524,9 +519,22 @@ export async function assessPostCoherence(input: {
     const eliminatoire = flags.inventedClient || flags.implausibleClaim
       || flags.offTopic || flags.emptyVisual;
 
-    // Le lien forcé coûte deux points. S'il reste au-dessus du plancher, le
-    // post part : c'est le sens de « bien tourné, ça marche ».
-    const noteFinale = flags.forcedNewsLink ? Math.max(0, score - 2) : score;
+    // ── L'actualité n'est plus un motif de sanction ──
+    //
+    // Fondateur, 2026-08-13 : « il ne faut pas que l'actualité soit bloquée et
+    // refusée par le contrôle qualité, mais la pertinence avec le business, la
+    // cible et le texte/titre, pour tous nos formats. »
+    //
+    // Il a raison, et ça simplifie le juge. La bonne question n'a jamais été
+    // « ce lien à l'actualité est-il forcé ? » — c'est une question de goût, et
+    // rebondir sur l'actualité est précisément le métier. La seule question qui
+    // vaut : ce post parle-t-il à CE commerce et à SA clientèle ?
+    //
+    // Un post d'actualité hors-sujet pour la cible tombe déjà sous le critère de
+    // pertinence, qui lui est éliminatoire. Le pénaliser une seconde fois au
+    // nom de l'actualité revenait à sanctionner deux fois le même défaut — et à
+    // décourager le rebond, qui est notre valeur ajoutée.
+    const noteFinale = score;
 
     // 6, la note que le barème du juge appelle lui-même « publiable ». Exiger 7
     // partout revenait à ne garder que le remarquable, et à jeter le correct —

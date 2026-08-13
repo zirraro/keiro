@@ -1707,8 +1707,36 @@ async function bakeMusicOnVideo(videoUrl: string): Promise<string> {
       }
     }
   } catch (e: any) {
-    console.warn('[Content] bakeMusicOnVideo failed (shipping silent as last resort):', e?.message);
+    console.warn('[Content] bakeMusicOnVideo failed:', e?.message);
   }
+
+  // ── Sans musique, on COUPE le son plutôt que de livrer les bruits du modèle ──
+  //
+  // Fondateur, 2026-08-13 : « les bruits de fond des vidéos ne sont pas toujours
+  // agréables — clavier, bruit de cuisine. Autant mettre une musique, c'est
+  // mieux pour attirer l'attention et garder les gens sur le reel. » Puis : « le
+  // bruit est sûrement généré par Seedance, et ce type de génération coûte plus
+  // cher. »
+  //
+  // Il a raison sur les deux points. Le commentaire au-dessus de cette fonction
+  // affirme que Seedance ne produit pas de son — c'était vrai du modèle
+  // précédent. Le 1.5 pro en produit, et quand l'ajout de musique échouait on
+  // livrait la vidéo brute AVEC ses bruits : cliquetis de clavier, casseroles.
+  // On croyait envoyer du silence, on envoyait du bruit.
+  //
+  // Une piste silencieuse vaut mieux : elle satisfait Instagram, qui refuse une
+  // vidéo sans flux audio, et elle laisse le fondateur poser un son dans
+  // l'application. Un bruit d'ambiance mal enregistré fait scroller ; le silence
+  // au moins ne dérange pas.
+  try {
+    const { ensureAudioTrack } = await import('@/lib/audio/reel-audio-mux');
+    const muet = await ensureAudioTrack({ videoUrl, postId: `muet-${Date.now()}` });
+    if (muet && muet !== videoUrl) {
+      console.log('[Content] musique indisponible — son du modèle remplacé par une piste silencieuse');
+      return muet;
+    }
+  } catch { /* si même ça échoue, on garde la vidéo telle quelle */ }
+
   return videoUrl;
 }
 
@@ -4440,47 +4468,85 @@ async function POSTInterne(request: NextRequest) {
           //
           // Un seul essai : au-delà, le coût de la recherche dépasse le gain de
           // qualité, et c'est la marge du fondateur qui paie.
-          const noteInitiale = Number((verdict.details as any)?.score ?? 0);
-          if (verdict.publiable && noteInitiale > 0 && noteInitiale < 8) {
-            const dv = verdict.details || {};
-            try {
-              const { reparerLegende } = await import('@/lib/qualite/reparation');
-              const mieux = await reparerLegende({
-                descriptionImage: String((dv as any).imageDescription || ''),
-                motifs: [
-                  `Le post est publiable (${noteInitiale}/10) mais on vise 8 ou plus.`,
-                  'Renforce l\'accroche et la précision, sans changer le sujet ni l\'image.',
-                  ...((dv as any).reasons || []).slice(0, 2),
-                ].join(' · '),
-                plateforme: targetPlatform,
-                ancienneLegende: pubPost.caption || '',
-              });
-              if (mieux?.caption) {
+          // ── On vise 8, on recommence, et on livre toujours ──
+          //
+          // Fondateur, 2026-08-13 : « on veut des posts de super qualité pour
+          // tous nos formats, de préférence à la 1re tentative, mais on
+          // recommence 3 fois pour les images et 2 fois pour les reels, sachant
+          // qu'on délivre quelque chose dans tous les cas — donc au pire la note
+          // 6 passe. »
+          //
+          // Trois règles en une phrase, et elles se tiennent : viser haut,
+          // s'autoriser à recommencer, ne jamais rentrer les mains vides.
+          //
+          // Moins d'essais sur les reels parce qu'ils coûtent bien plus cher —
+          // une vidéo se compte en minutes de calcul là où une image se compte
+          // en secondes. Le plafond n'est pas une préférence esthétique, c'est
+          // la marge.
+          //
+          // À chaque tour on garde la MEILLEURE version obtenue, pas la
+          // dernière : une tentative peut dégrader, et il serait absurde de
+          // publier une version moins bonne que celle qu'on avait déjà.
+          const estVideo = !!pubPost.video_url || ['reel', 'video'].includes(String(pubPost.format || ''));
+          const MAX_TENTATIVES = estVideo ? 2 : 3;
+          const VISE = 8;
+
+          let meilleureNote = Number((verdict.details as any)?.score ?? 0);
+          let meilleurHook = pubPost.hook;
+          let meilleureLegende = pubPost.caption;
+
+          if (verdict.publiable && meilleureNote > 0 && meilleureNote < VISE) {
+            for (let essai = 1; essai < MAX_TENTATIVES && meilleureNote < VISE; essai++) {
+              try {
+                const dv = verdict.details || {};
+                const { reparerLegende } = await import('@/lib/qualite/reparation');
+                const mieux = await reparerLegende({
+                  descriptionImage: String((dv as any).imageDescription || ''),
+                  motifs: [
+                    `Le post est publiable (${meilleureNote}/10) mais on vise ${VISE} ou plus.`,
+                    "Renforce l'accroche et la précision, sans changer le sujet ni l'image.",
+                    ...(((dv as any).reasons || []).slice(0, 2)),
+                  ].join(' · '),
+                  plateforme: targetPlatform,
+                  ancienneLegende: meilleureLegende || '',
+                });
+                if (!mieux?.caption) break;
+
                 const second = await controlerAvantPublication(supabase, {
                   id: pubPost.id, user_id: pubPost.user_id,
-                  hook: mieux.hook || pubPost.hook, caption: mieux.caption,
+                  hook: mieux.hook || meilleurHook, caption: mieux.caption,
                   hashtags: pubPost.hashtags as any,
                   visual_url: pubPost.visual_url, video_url: pubPost.video_url,
                   platform: targetPlatform, format: pubPost.format,
                 });
                 const noteApres = Number((second.details as any)?.score ?? 0);
-                if (second.publiable && noteApres > noteInitiale) {
-                  await supabase.from('content_calendar').update({
-                    hook: mieux.hook || pubPost.hook,
-                    caption: mieux.caption,
-                    publish_diagnostic: `qc_ameliore: ${noteInitiale}/10 → ${noteApres}/10`,
-                    updated_at: new Date().toISOString(),
-                  }).eq('id', pubPost.id);
-                  pubPost.hook = mieux.hook || pubPost.hook;
-                  pubPost.caption = mieux.caption;
-                  console.log(`[Content] ${pubPost.id} amélioré avant publication : ${noteInitiale} → ${noteApres}`);
+                if (second.publiable && noteApres > meilleureNote) {
+                  meilleureNote = noteApres;
+                  meilleurHook = mieux.hook || meilleurHook;
+                  meilleureLegende = mieux.caption;
+                  console.log(`[Content] ${pubPost.id} essai ${essai}/${MAX_TENTATIVES - 1} : ${noteApres}/10 (retenu)`);
                 } else {
-                  console.log(`[Content] ${pubPost.id} : amélioration sans gain (${noteInitiale} → ${noteApres || '?'}), on publie l'originale`);
+                  console.log(`[Content] ${pubPost.id} essai ${essai}/${MAX_TENTATIVES - 1} : ${noteApres || '?'}/10 (sans gain)`);
                 }
+              } catch (e: any) {
+                console.warn("[Content] tentative d'amélioration indisponible:", e?.message);
+                break;
               }
-            } catch (e: any) {
-              console.warn('[Content] tentative d\'amélioration indisponible:', e?.message);
             }
+
+            if (meilleureLegende !== pubPost.caption) {
+              await supabase.from('content_calendar').update({
+                hook: meilleurHook, caption: meilleureLegende,
+                publish_diagnostic: `qc_ameliore: ${(verdict.details as any)?.score}/10 → ${meilleureNote}/10`,
+                updated_at: new Date().toISOString(),
+              }).eq('id', pubPost.id);
+              pubPost.hook = meilleurHook;
+              pubPost.caption = meilleureLegende;
+            }
+            // On publie la meilleure version obtenue, même à 6 : « on délivre
+            // quelque chose dans tous les cas ». Ne rien publier coûte un
+            // créneau, une génération, et un client qui ne reçoit rien.
+            console.log(`[Content] ${pubPost.id} publié à ${meilleureNote}/10 après ${MAX_TENTATIVES} tentative(s) max`);
           }
 
           if (!verdict.publiable) {

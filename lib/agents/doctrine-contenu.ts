@@ -79,6 +79,14 @@ prétexte ; si le besoin naît de cette semaine-là, c'est le bon post.
 La pertinence est la seule exigence : le moment doit vraiment changer la journée
 de ce commerce, et l'action proposée doit être faisable tout de suite.
 
+ET ÇA DOIT SE VOIR SUR L'IMAGE.
+Quand le post s'appuie sur une actualité, un événement ou une saison, on doit
+VOIR le lien sans lire le texte. La scène du commerce porte un signe du
+moment — la lumière écrasante d'un jour de canicule, les cartables au comptoir
+à la rentrée, la buée sur la vitrine en hiver, la file du samedi soir.
+Une actualité qui n'existe que dans la légende laisse une image muette : le
+lecteur ne fait pas le rapprochement, et le post retombe à plat.
+
 CAS PARTICULIER — le client sert PLUSIEURS métiers (logiciel, agence, conseil).
 Le test 1 échoue alors par construction : ses clients à lui SONT tous les
 métiers. Pour lui, l'actualité ne sert que si elle touche son propre secteur,
