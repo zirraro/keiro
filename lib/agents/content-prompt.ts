@@ -458,7 +458,7 @@ L'IMAGE DOIT MONTRER QUELQUE CHOSE, ET CE QUELQUE CHOSE DOIT ÊTRE LE SUJET
 ⛔ Jamais un pictogramme ou un symbole abstrait seul : flèche, ampoule, engrenage, point d'interrogation, fusée, forme géométrique posée sur un fond dégradé. Ce type de visuel ne montre rien, n'apprend rien, ne donne envie de rien — le lecteur scrolle avant d'avoir lu la première ligne.
 ✅ Montre le concret du métier dont parle la légende : un lieu, un produit, un geste, une personne au travail, une capture d'écran lisible, un graphique dont on comprend l'axe.
 TEST avant de valider un visuel : « si quelqu'un voit cette image SANS la légende, comprend-il de quoi on parle ? » Si non, le visuel est à refaire.
-Et l'inverse compte autant : si la légende parle d'un boulanger, l'image montre une boulangerie — pas une salle de réunion, pas des framboises, pas un smartphone générique.
+Et l'inverse compte autant : si la légende parle d'un boulanger, l'image montre SA boulangerie — son four, son pain, sa vitrine, ses clients.
 
 LE FRAMEWORK ÉMOTION × PREUVE SOCIALE × AUTORITÉ
 Chaque post doit cocher AU MOINS 2 des 3 dimensions suivantes (idéalement les 3) :
@@ -957,11 +957,10 @@ RÈGLES VISUELLES CAPTION :
 COHÉRENCE VISUEL ↔ CAPTION (ULTRA IMPORTANT) :
 - La caption DOIT décrire/commenter ce que l'image MONTRE
 - Si le visuel montre un restaurant → la caption parle de restaurant
-- L'IMAGE PRINCIPALE N'EST JAMAIS UN ÉCRAN. Ni smartphone, ni tablette, ni tableau de
-  bord, ni capture : c'est le réflexe le plus fréquent et le plus mort. On montre le
-  COMMERCE — le geste, le produit, le lieu, les gens. Un écran ne peut apparaître qu'en
-  élément de preuve à l'intérieur d'un carrousel (une notification sur un comptoir, un
-  avis 5★), jamais comme sujet de la première image.
+- CE QUE MONTRE L'IMAGE PRINCIPALE : le commerce. Le geste du métier, le produit, le
+  lieu, les gens. Le sujet est une chose que le commerçant pourrait montrer du doigt
+  dans son atelier, sa boutique ou sa salle — c'est ce qu'on vient voir, et c'est ce
+  qui fait entrer quelqu'un.
 - JAMAIS de décalage entre ce qu'on voit et ce qu'on lit
 - Le hook doit donner envie de REGARDER l'image, et l'image doit ILLUSTRER le hook
 - Le prospect doit se dire "je veux ce résultat pour MON commerce"
@@ -1100,7 +1099,7 @@ Le profil @keiroai doit donner une impression PREMIUM et COHÉRENTE quand on le 
    Sinon → cadre unique. Un split bâclé = signal "AI generic".
 
    RÈGLE CRITIQUE — ZÉRO TÉLÉPHONE PAR DÉFAUT :
-   INTERDIT de mettre un téléphone, smartphone, écran, mockup, device dans le visuel.
+   Le sujet du visuel est toujours une scène réelle du métier : un geste, un produit, un lieu, une personne au travail.
    Exception : MAX 1 post sur 10, et UNIQUEMENT si le sujet l'exige (ex: démo app).
    Privilégie TOUJOURS : scènes de vie réelles, objets métier réels, gestes humains photographiés.
 
@@ -1164,7 +1163,7 @@ FORMAT DE RÉPONSE (JSON strict, PAS de markdown)
   "hook": "Les 3-8 premiers mots qui STOPPENT le scroll (pattern interrupt, chiffre choc, ou question provocante)",
   "caption": "Texte AÉRÉ et PERCUTANT avec des \\n pour les sauts de ligne. Structure : Hook\\n\\nValeur (2-3 lignes avec emojis)\\n\\nCTA\\n\\nNE PAS inclure les hashtags ici (ils sont dans le champ hashtags). Instagram max 800 chars, TikTok max 500 chars. Tutoiement. Max 3-5 emojis. DOIT être cohérent avec le visual_description.",
   "hashtags": ["#keiroai", "#tag2", "#tag3", "...max 10 hashtags de niche pertinents"],
-  "visual_description": "Description détaillée du visuel principal EN ANGLAIS : composition, couleurs (palette KeiroAI), style (isométrique/photo réaliste/minimaliste/illustration moderne/3D soft clay/collage/gradient art/flat design), éléments visuels, ambiance. VARIE le style à chaque post. ZÉRO téléphone/smartphone/écran/device (interdit sauf 1 post sur 10). AUCUN texte dans l'image. SI LE POST EST P0 (news/tendance) : la description visuelle DOIT contenir à la fois (a) un ou plusieurs éléments contextuels qui signalent l'actu/tendance (saison, événement, ambiance, objet symbolique) ET (b) un ou plusieurs éléments business du commerçant cible (produit, geste, espace) dans la même scène. Sans ce double ancrage le post est invalide.",
+  "visual_description": "Description détaillée du visuel principal EN ANGLAIS : composition, couleurs (palette KeiroAI), style photographique (le cadrage, la lumière, la profondeur de champ), éléments visuels, ambiance. VARIE le cadrage et la lumière à chaque post. Le sujet est une scène réelle du métier. AUCUN texte dans l'image. SI LE POST EST P0 (news/tendance) : la description visuelle DOIT contenir à la fois (a) un ou plusieurs éléments contextuels qui signalent l'actu/tendance (saison, événement, ambiance, objet symbolique) ET (b) un ou plusieurs éléments business du commerçant cible (produit, geste, espace) dans la même scène. Sans ce double ancrage le post est invalide.",
   "news_visual_link": "OBLIGATOIRE si pillar=trends. 1 phrase qui résume comment l'image relie visuellement l'actu au business (ex: 'Bol de soupe fumant + fenêtre embuée pour signaler la vague de froid'). Omettre si pillar n'est pas trends.",
   "reusable": "true|false — true si cette story/post est intemporelle et peut être ressortie de la bibliothèque dans plusieurs semaines/mois (coulisses, geste métier, témoignage, valeurs, education evergreen). false si elle est attachée à un événement daté (news chaude, saisonnier court, promo).",
   "amplification": "Liste optionnelle des dimensions d'amplification activées pour ce post : ['catchy'], ['urgency'], ['authority'], ou combinaison de 2 max. Omettre si aucune amplification.",

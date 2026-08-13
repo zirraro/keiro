@@ -224,7 +224,7 @@ BRAND VISUAL IDENTITY (KeiroAI ONLY — does NOT apply to client posts):
 - Primary color: deep violet — innovation, premium tech
 - Secondary: soft purple, deep black, warm white
 - Accent: amber for energy
-- Style: clean flat design, subtle 3D elements, modern tech aesthetic
+- Style: real photography, as for any client — KeiroAI shows merchants at work, never a rendered brand world
 - Mood: professional yet approachable, innovative yet simple
 
 QUALITY STANDARDS:
@@ -482,6 +482,20 @@ async function generateVisual(
    * plus sûr quand on ne sait pas.
    */
   businessTypePourVisuel?: string | null,
+  /**
+   * Le client a écrit CE brief lui-même, ou l'a explicitement demandé.
+   *
+   * Fondateur, 2026-08-13 : « sauf si voulu à l'image. » Le garde-fou qui
+   * écarte les écrans existe parce que le modèle en met spontanément là où il
+   * faudrait montrer le commerce. Mais un client qui demande une capture de son
+   * système de réservation, ou un plan sur sa borne de commande, a raison de le
+   * demander — et un contrôle qui refuse la commande du client n'est plus un
+   * contrôle, c'est un obstacle.
+   *
+   * On distingue donc les deux : le réflexe de la machine est corrigé, la
+   * demande de l'humain est honorée.
+   */
+  demandeExplicite?: boolean,
 ): Promise<string | null> {
   try {
     // ── Garde-fou : un écran ne peut pas être le sujet ──
@@ -503,7 +517,7 @@ async function generateVisual(
     // (une notification sur un comptoir, un avis 5★). C'est l'écran EN SUJET
     // PRINCIPAL qu'on refuse, parce qu'il ne montre pas le commerce.
     const { ecranEstLeSujet } = await import('@/lib/visuals/ecran-sujet');
-    if (ecranEstLeSujet(visualDescription || '')) {
+    if (!demandeExplicite && ecranEstLeSujet(visualDescription || '')) {
       console.warn('[Content] brief à écran détecté, réécriture avant génération :', (visualDescription || '').slice(0, 90));
       try {
         const { callLlmWithFallback } = await import('@/lib/agents/llm-fallback');
@@ -4399,7 +4413,7 @@ async function POSTInterne(request: NextRequest) {
 
         // Regenerate image if missing/expired
         if (!singleVisualUrl && singlePost.visual_description) {
-          singleVisualUrl = await generateVisual(singlePost.visual_description, singlePost.format || 'post');
+          singleVisualUrl = await generateVisual(singlePost.visual_description, singlePost.format || 'post', undefined, undefined, null, true);
           if (singleVisualUrl) {
             // Cache to permanent Supabase Storage immediately
             const cachedUrl = await cacheImageToStorage(singleVisualUrl, singlePost.id);
@@ -4465,7 +4479,7 @@ async function POSTInterne(request: NextRequest) {
         if (!regenPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
         if (!regenPost.visual_description) return NextResponse.json({ ok: false, error: 'Pas de description visuelle' }, { status: 400 });
 
-        const newVisualUrl = await generateVisual(regenPost.visual_description, regenPost.format || 'post');
+        const newVisualUrl = await generateVisual(regenPost.visual_description, regenPost.format || 'post', undefined, undefined, null, true);
         if (!newVisualUrl) return NextResponse.json({ ok: false, error: 'Échec génération image' }, { status: 500 });
 
         await supabase.from('content_calendar').update({
@@ -7828,7 +7842,7 @@ STRATÉGIE GLOBALE :
 RÈGLES :
 - Plateformes autorisées : instagram, tiktok, linkedin
 - Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
-- INTERDIT : téléphone, smartphone, écran, mockup, device dans le visuel (sauf 1 post sur 10 max)
+- Le sujet du visuel est une scène réelle du métier : un geste, un produit, un lieu, une personne au travail.
 - À ÉVITER (qualité) : visuels abstraits 3D / cubes glowing / cyberpunk / sci-fi visualisations / waveforms / hologrammes / split-screen abstrait — ce sont des visuels AMATEURS de stock photo. Acceptable seulement si le business est genuinely tech/3D/IA. Pour un resto, un coiffeur, un fleuriste, un coach, etc. → préfère ÉDITORIAL photo réelle, lifestyle, monde tangible.
 - À ÉVITER (qualité) : split-screen "concept A vs concept B" avec une moitié abstraite et l'autre réelle. C'est un cliché de designer paresseux. Si tu veux contraster deux idées, fais-le plutôt avec UNE scène réelle qui contient le contraste (ex : une assiette à moitié vide, deux coiffures côte-à-côte, une boutique avant/après).
 - UNE SCÈNE, JAMAIS UN CONCEPT. Un générateur d'images ne sait pas illustrer

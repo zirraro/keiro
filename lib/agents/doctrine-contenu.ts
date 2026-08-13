@@ -89,11 +89,10 @@ TEST : quelqu'un qui voit l'image SANS lire le texte doit comprendre de quoi
 parle le post. Si l'image pourrait accompagner n'importe quelle autre légende,
 recommence.
 
-L'IMAGE PRINCIPALE N'EST JAMAIS UN ÉCRAN. Ni smartphone, ni tablette, ni tableau
-de bord, ni capture : c'est le réflexe le plus fréquent et le plus mort. On
-montre le COMMERCE — le geste, le produit, le lieu, les gens. Un écran ne peut
-apparaître qu'en élément de preuve à l'intérieur d'un carrousel, jamais comme
-sujet de la première image.`;
+CE QUE MONTRE L'IMAGE : LE COMMERCE. Le geste du métier, le produit, le lieu,
+les gens. C'est ce qu'on vient voir et c'est ce qui fait entrer quelqu'un.
+Le sujet est toujours une chose qui existe dans l'atelier, la boutique, la
+cuisine ou la salle — quelque chose que le commerçant pourrait montrer du doigt.`;
 
 /**
  * Le registre varie, et c'est la scène qui décide.
