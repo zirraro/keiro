@@ -204,14 +204,37 @@ export function pickPillarWithRanking(
   if (!ranking || ranking.confidence === 'low') return defaultPillar;
   const pillars = ranking.by_pillar;
   if (pillars.length === 0) return defaultPillar;
+
+  // ── Le classement ne peut pas POUSSER vers « tendance » ──
+  //
+  // 2026-08-13 : trois générations de test, trois piliers « tendance », alors
+  // que la rotation n'en prévoit que deux jours sur sept. Le classement de
+  // performance passait par-dessus.
+  //
+  // C'est une boucle qui s'auto-entretient : on a longtemps publié surtout des
+  // posts d'actualité, donc « tendance » porte le plus de données et sort en
+  // tête du classement, donc on en publie encore. Rien dans le mécanisme ne
+  // l'arrête, et il s'aggrave à chaque tour.
+  //
+  // Or « tendance » n'est pas un pilier comme les autres : il dépend d'une
+  // matière EXTÉRIEURE qui n'existe pas tous les jours. Conseil, démonstration
+  // et preuve sont toujours produisibles ; l'actualité, non. Un classement peut
+  // légitimement nous dire de faire plus de démonstrations — il ne peut pas
+  // nous faire trouver une actualité qui n'existe pas.
+  //
+  // Le classement garde donc son rôle quand la rotation prévoit déjà
+  // « tendance » (il peut alors l'en écarter), mais il ne peut plus y conduire.
+  const peutAllerVersTendance = defaultPillar === 'trends';
+  const candidats = peutAllerVersTendance ? pillars : pillars.filter(p => p.pillar !== 'trends');
+  if (candidats.length === 0) return defaultPillar;
   // Same softmax idea, slightly more explorative on pillars (variety
   // matters more for audience relevance).
-  const weights = pillars.map((_, i) => Math.pow(0.7, i));
+  const weights = candidats.map((_, i) => Math.pow(0.7, i));
   const total = weights.reduce((s, w) => s + w, 0);
   let r = Math.random() * total;
-  for (let i = 0; i < pillars.length; i++) {
+  for (let i = 0; i < candidats.length; i++) {
     r -= weights[i];
-    if (r <= 0) return pillars[i].pillar;
+    if (r <= 0) return candidats[i].pillar;
   }
-  return pillars[0].pillar;
+  return candidats[0].pillar;
 }
