@@ -6827,7 +6827,27 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // Deux jours sur sept, l'actualité redevient une occasion qu'on saisit quand
   // elle se présente. Les cinq autres vont aux publications qui vendent
   // réellement : conseils, démonstrations, preuves.
-  const PILLAR_ROTATION = ['trends', 'tips', 'demo', 'trends', 'social_proof', 'tips', 'demo'];
+  // ── La rotation suit le choix du client, pas une valeur en dur ──
+  //
+  // Fondateur, 2026-08-13 : « on parle aussi simplement du business en lui-même
+  // et des produits vendus ; à l'onboarding c'est un choix à proposer, qui
+  // viendra se déverser dans nos choix au moment de la sélection des prompts. »
+  // Et : « il faut aussi un choix mixte. »
+  //
+  // Trois rotations, une par réponse. Un commerce qui a répondu « mon commerce
+  // et mes produits, uniquement » ne doit JAMAIS voir passer un post
+  // d'actualité — pas moins souvent : jamais. C'est une promesse, pas un
+  // réglage de fréquence.
+  //
+  // Sans réponse, on garde le mélange : c'est ce qui convient à la plupart, et
+  // un client qui n'a rien demandé ne doit voir aucun changement.
+  const sujets = String((clientSettings as any)?.sujets_publications || '').toLowerCase();
+  const PILLAR_ROTATION =
+    sujets.includes('uniquement') || sujets.includes('produits, uniquement')
+      ? ['demo', 'tips', 'social_proof', 'demo', 'tips', 'social_proof', 'demo']
+      : sujets.includes('beaucoup')
+        ? ['trends', 'demo', 'trends', 'tips', 'trends', 'social_proof', 'trends']
+        : ['trends', 'tips', 'demo', 'trends', 'social_proof', 'tips', 'demo'];
   // New rotation strategy (2026-04):
   //   - Morning = visibility/reach (posts + carousels, rarely a story)
   //   - Midday = engagement peak (reels for algorithmic lift)

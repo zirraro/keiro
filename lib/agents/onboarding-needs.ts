@@ -149,6 +149,35 @@ const SOCLE: BesoinAgent[] = [
     exemple: 'Un fleuriste vit de la Saint-Valentin et de la fête des mères ; un plombier, non.',
   },
   {
+    /**
+     * ── De quoi on parle : son commerce, l'actualité, ou les deux ──
+     *
+     * Fondateur, 2026-08-13 : « on parle aussi simplement du business en
+     * lui-même et des produits vendus ; à l'onboarding c'est aussi un choix à
+     * proposer, qui viendra se déverser dans nos choix au moment de la
+     * sélection des prompts. » Puis : « et là il faut aussi un choix mixte. »
+     *
+     * Distinct des deux questions précédentes, qui portent sur l'IMAGE : d'où
+     * viennent les visuels, et quelle place y prend le calendrier. Celle-ci
+     * porte sur le SUJET du post. Un commerce peut vouloir des visuels très
+     * sobres et des sujets d'actualité, ou l'inverse.
+     *
+     * Ce réglage décide de la présence même du pilier « tendance » dans la
+     * rotation — pas seulement de son intensité. Le poser ici évite de le
+     * découvrir après trois semaines de publications qui ne conviennent pas.
+     */
+    cle: 'sujets_publications', agents: ['content'],
+    question: 'De quoi tes publications parlent, au fond ?',
+    aQuoiCaSert: "Certains commerces veulent parler de ce qu'ils vendent, point. D'autres gagnent à rebondir sur ce qui se passe — une canicule pour une terrasse, un match pour un bar, la rentrée pour une boulangerie. Ton choix règle la part de chaque chose.",
+    priorite: 'essentiel', type: 'choix',
+    options: [
+      'Mon commerce et mes produits, uniquement',
+      'Un mélange : surtout mon commerce, et l\'actualité quand elle me concerne vraiment',
+      'Beaucoup l\'actualité et les événements — c\'est ce qui fait réagir ma clientèle',
+    ],
+    exemple: "Le mélange convient à la plupart : on parle du commerce, et on rebondit quand l'actualité le concerne pour de vrai.",
+  },
+  {
     cle: 'unique_selling_points', agents: ['content', 'email', 'dm', 'chatbot', 'commercial'],
     question: "Ce qui te distingue vraiment des autres, chez toi",
     aQuoiCaSert: "C'est l'argument qu'on répète partout. Sans lui, les agents écrivent des banalités vraies pour n'importe quel concurrent.",

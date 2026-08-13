@@ -106,6 +106,25 @@ const INDICES: Record<Univers, RegExp> = {
   tech: /\b(intelligence artificielle|\bia\b|application|réseaux sociaux|reseaux sociaux|tiktok|instagram|algorithme|smartphone|numérique|numerique)\b/i,
 };
 
+/**
+ * Les univers qui concernent TOUS les commerces, quel que soit le métier.
+ *
+ * Fondateur, 2026-08-13 : « les actualités générales, politique ou sport,
+ * parfois s'appliquent à tous — faut juste bien savoir l'appliquer et que ce
+ * soit pertinent. »
+ *
+ * Mon premier tri était trop rigide : il n'autorisait que les univers propres
+ * au métier. Or une canicule change la journée d'un fleuriste comme d'un
+ * plombier ; une grève de transports vide un centre-ville pour tout le monde ;
+ * une hausse de charges touche chaque commerçant. Les écarter, c'était priver
+ * les clients des actualités qui les concernent le plus directement.
+ *
+ * Ces univers-là passent toujours. Ce qui change, c'est ce qu'on en fait :
+ * l'angle doit dire ce que ça change POUR CE COMMERCE, pas commenter
+ * l'événement.
+ */
+const UNIVERS_UNIVERSELS: Univers[] = ['meteo', 'local', 'economie', 'famille'];
+
 /** Les univers pertinents pour ce métier, avec un repli raisonnable. */
 export function universPour(metier?: string | null): Univers[] {
   const cle = String(metier || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
@@ -140,8 +159,14 @@ export function filtrerActualites(
   metier?: string | null,
   max = 6,
 ): string[] {
-  const univers = universPour(metier);
-  const rang = new Map(univers.map((u, i) => [u, i]));
+  const propres = universPour(metier);
+  // Les univers du métier d'abord, puis ceux qui concernent tout le monde. Une
+  // canicule intéresse un fleuriste, mais moins que la fête des mères : l'ordre
+  // dit la priorité, pas l'exclusion.
+  const rang = new Map<Univers, number>();
+  propres.forEach((u, i) => rang.set(u, i));
+  UNIVERS_UNIVERSELS.forEach((u, i) => { if (!rang.has(u)) rang.set(u, propres.length + i); });
+
   return (items || [])
     .map(t => ({ t, u: universDuTitre(t) }))
     .filter(x => x.u !== null && rang.has(x.u))
@@ -172,6 +197,14 @@ export function blocPertinence(metier?: string | null): string {
     `la clientèle de ce métier — ${u.map(x => noms[x]).join(', ')}.`,
     `Ce sont les sujets qui font pousser sa porte. Une actualité d'un autre`,
     `univers ne l'intéresse pas, même si elle fait beaucoup de bruit ailleurs.`,
+    '',
+    `S'y ajoutent les sujets qui concernent TOUS les commerces — la météo, la vie`,
+    `locale, le pouvoir d'achat, le calendrier familial. Une canicule change la`,
+    `journée d'un fleuriste comme d'un plombier ; une grève de transports vide un`,
+    `centre-ville pour tout le monde.`,
+    `Sur ceux-là, l'angle ne COMMENTE PAS l'événement : il dit ce que ça change`,
+    `pour CE commerce, cette semaine, concrètement. « Il va faire 38 °C » n'est pas`,
+    `un post ; « la vitrine reste fraîche jusqu'à 16 h, passez avant » en est un.`,
     '',
   ].join('\n');
 }
