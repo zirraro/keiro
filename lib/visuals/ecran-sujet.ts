@@ -118,6 +118,39 @@ export function sceneTropVue(brief: string): boolean {
 }
 
 /**
+ * Le brief montre-t-il un LIEU identifiable — devanture, salle, vitrine ?
+ *
+ * ── Pourquoi c'est la seule chose qu'on ne peut pas inventer ──
+ *
+ * Fondateur, 2026-08-13 : « si mixte, ne jamais prendre de devanture ou de
+ * salon qui n'existe pas. On s'inspire toujours de ce qu'il nous a fourni, et
+ * si rien n'est disponible on peut inventer, mais le rendu doit être super
+ * propre. »
+ *
+ * La règle est juste, et elle tient à une distinction simple : un client
+ * RECONNAÎT un lieu. Il pousse la porte, et ce n'est pas la boutique de la
+ * photo — le commerçant passe pour un menteur, sur sa propre page. Un geste,
+ * un produit, une matière, une main au travail : personne ne peut dire qu'ils
+ * ne sont pas d'ici.
+ *
+ * On peut donc composer une scène de métier sans photo du client. On ne peut
+ * pas composer SA devanture.
+ */
+const LIEU_IDENTIFIABLE = [
+  String.raw`(shop\s*front|storefront|store\s+front|facade|façade)`,
+  String.raw`(the\s+)?(shop|store|salon|restaurant|bakery|boutique|café|cafe|bar)\s+(interior|from\s+outside|seen\s+from\s+the\s+street|entrance)`,
+  String.raw`(wide|establishing)\s+shot\s+of\s+(a|the)\s+(shop|store|salon|restaurant|bakery|boutique|dining\s+room|café|cafe|bar)`,
+  String.raw`(dining\s+room|shop\s+window|window\s+display|terrace)\s+(of|with)`,
+  String.raw`(inside|interior\s+of)\s+(a|the)\s+(busy\s+|small\s+|cosy\s+|cozy\s+|modern\s+)?(shop|store|salon|restaurant|bakery|boutique|café|cafe|bar)`,
+];
+
+export function lieuIdentifiable(brief: string): boolean {
+  const t = String(brief || '');
+  if (!t) return false;
+  return LIEU_IDENTIFIABLE.some(c => new RegExp(c, 'i').test(t));
+}
+
+/**
  * Les cas qui ont réellement été observés en production, gardés comme
  * référence. Le script `scripts/verifier-ecran-sujet.mjs` les rejoue : une
  * règle de qualité sans cas de test se dégrade sans que personne ne le voie.

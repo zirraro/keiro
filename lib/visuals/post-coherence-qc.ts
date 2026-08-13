@@ -450,12 +450,33 @@ export async function assessPostCoherence(input: {
     // dans les deux cas le post affirme une connexion qui n'existe pas, et le
     // lecteur le sent immédiatement. Une accroche molle ne bloque pas seule —
     // elle pèse déjà sur la note globale.
+    const aucunDefautNomme =
+      !flags.inventedClient && !flags.implausibleClaim && !flags.offTopic
+      && !flags.emptyVisual && !flags.forcedNewsLink
+      && (!Array.isArray(v.reasons) || v.reasons.filter(Boolean).length === 0);
+
+    // ── Refuser sans savoir pourquoi n'est pas un contrôle ──
+    //
+    // 2026-08-13 : une publication notée 6/10, aucun drapeau levé, aucun motif
+    // écrit — et retenue quand même, parce que le plancher est à 7. Le
+    // fondateur avait validé l'accroche à la main ; le juge, lui, ne trouvait
+    // rien à lui reprocher mais la bloquait sur un chiffre.
+    //
+    // Une note sans motif n'est pas un jugement, c'est une hésitation. Or le
+    // barème du juge appelle lui-même 6 « publiable ». Bloquer là-dessus coûte
+    // un créneau et une génération, sans rien apprendre à personne : ni le
+    // client ni la réparation automatique n'ont de prise sur « 6 ».
+    //
+    // Quand le juge NOMME un défaut, le plancher de 7 s'applique — c'est le cas
+    // normal et il ne bouge pas. Quand il n'en nomme aucun, 6 suffit.
+    const plancher = aucunDefautNomme ? 6 : COHERENCE_PASS_SCORE;
+
     const pass = !flags.inventedClient
       && !flags.implausibleClaim
       && !flags.offTopic
       && !flags.emptyVisual
       && !flags.forcedNewsLink
-      && score >= COHERENCE_PASS_SCORE;
+      && score >= plancher;
 
     return {
       pass,

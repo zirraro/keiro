@@ -497,6 +497,11 @@ async function generateVisual(
    * demande de l'humain est honorée.
    */
   demandeExplicite?: boolean,
+  /**
+   * D'où le client veut que viennent ses visuels : 'client_surtout', 'mixte'
+   * ou 'ambiances'. Décide de ce qu'on s'autorise à composer.
+   */
+  provenanceVisuels?: string | null,
 ): Promise<string | null> {
   try {
     // ── Garde-fou : un écran ne peut pas être le sujet ──
@@ -517,19 +522,47 @@ async function generateVisual(
     // On ne bannit pas l'écran : il reste légitime en preuve dans un carrousel
     // (une notification sur un comptoir, un avis 5★). C'est l'écran EN SUJET
     // PRINCIPAL qu'on refuse, parce qu'il ne montre pas le commerce.
-    const { ecranEstLeSujet, sceneTropVue } = await import('@/lib/visuals/ecran-sujet');
+    const { ecranEstLeSujet, sceneTropVue, lieuIdentifiable } = await import('@/lib/visuals/ecran-sujet');
     // Deux défauts, un seul traitement : l'écran en sujet et la scène vue mille
     // fois se corrigent de la même façon — on réécrit le brief avant de payer la
     // génération. Le second a été signalé trois fois par le fondateur (« encore
     // un café latte »), et aucun contrôle ne le voyait : une image générique
     // passe tous les contrôles de qualité ET ne sert à rien.
-    if (!demandeExplicite && (ecranEstLeSujet(visualDescription || '') || sceneTropVue(visualDescription || ''))) {
+    // ── On ne compose jamais un LIEU qui n'est pas le sien ──
+    //
+    // Fondateur, 2026-08-13 : « si mixte, ne jamais prendre de devanture ou de
+    // salon qui n'existe pas. On s'inspire toujours de ce qu'il nous a fourni,
+    // et si rien n'est disponible on peut inventer, mais le rendu doit être
+    // super propre. »
+    //
+    // La règle tient à une distinction simple : un client RECONNAÎT un lieu. Il
+    // pousse la porte, ce n'est pas la boutique de la photo, et le commerçant
+    // passe pour un menteur sur sa propre page. Un geste, un produit, une
+    // matière : personne ne peut dire qu'ils ne sont pas d'ici.
+    //
+    // On peut donc composer une scène de métier sans photo du client. On ne
+    // peut pas composer SA devanture. Le garde ne s'applique qu'ici, là où on
+    // FABRIQUE l'image — quand on part d'une photo du client, son lieu est le
+    // vrai et il n'y a rien à protéger.
+    const lieuInterdit = !demandeExplicite
+      && provenanceVisuels !== 'ambiances'
+      && lieuIdentifiable(visualDescription || '');
+    if (lieuInterdit) {
+      console.warn('[Content] lieu identifiable dans un visuel composé — recentrage sur le geste :', (visualDescription || '').slice(0, 80));
+    }
+    if (!demandeExplicite && (lieuInterdit || ecranEstLeSujet(visualDescription || '') || sceneTropVue(visualDescription || ''))) {
       console.warn('[Content] brief à écran détecté, réécriture avant génération :', (visualDescription || '').slice(0, 90));
       try {
         const { callLlmWithFallback } = await import('@/lib/agents/llm-fallback');
         const r = await callLlmWithFallback({
           system: `A photographic brief is weak. Either it makes a SCREEN its main subject, or it falls back on a scene everyone has seen a thousand times (latte art, avocado toast, clinking glasses, flat lay, a barista smiling at the camera).
 Both fail for the same reason: the image says nothing about THIS business. A generic image passes every quality check and still earns nothing.
+If the brief shows an identifiable PLACE that is not the client's own — a
+shopfront, a salon interior, a dining room, a window display — replace it with a
+close scene: the gesture, the product, the tool, the material, a corner of a
+worktop. A customer recognises a place; nobody can say a gesture is not from
+here.
+
 Rewrite the brief around something SPECIFIC to this trade: a gesture only this craft has, a tool with wear on it, a corner of the place, a moment of the service. A screen may survive only as a small background element, or disappear entirely.
 Ask yourself: could this brief describe a competitor down the street? If yes, it is not specific enough — go one step more precise.
 Keep the light, the mood and the setting. One or two sentences, English, concrete and photographable. No preamble, brief only.`,
@@ -655,7 +688,11 @@ Keep the light, the mood and the setting. One or two sentences, English, concret
               // impossible à distinguer d'une photo, puisque c'en est une.
               // Sinon on garde l'ancrage, mais à force 0,35 : assez pour
               // rapprocher du brief, assez peu pour que le grain survive.
-              if (choisieParVision) {
+              // Une photo libre de droits telle quelle n'est PAS sa boutique. On ne
+              // se l'autorise donc que si le client a accepté les ambiances. Pour
+              // « mes photos d'abord », montrer un autre commerce serait exactement
+              // le mensonge qu'on vient d'interdire sur les lieux composés.
+              if (choisieParVision && provenanceVisuels === 'ambiances') {
                 console.log(`[Content] photo réelle utilisée TELLE QUELLE (query="${query}") — aucune génération`);
                 const cachee = await cacheImageToStorage(pick.largeImageURL, `stock-${Date.now()}`);
                 if (cachee) return cachee;
@@ -9098,7 +9135,10 @@ Real natural light matching the room's existing ambience. The dish must look pro
       }
       // 30% — pure Seedream text-to-image (or whenever no client photo is available)
       if (!visualUrl && !imageQuotaExhausted) {
-        visualUrl = await generateVisual(visualDesc, postFormat);
+        // Le réglage du client suit jusqu'ici : c'est lui qui décide si on peut
+        // composer un lieu ou reprendre une photo de stock telle quelle. Déclaré
+        // à l'onboarding, il ne servirait à rien s'il s'arrêtait en route.
+        visualUrl = await generateVisual(visualDesc, postFormat, userId || undefined, platform, detectedBusinessType, false, provenance);
       }
       // Log quota usage AFTER successful generation (only when we
       // actually called Seedream — raw reuses don't count).

@@ -94,15 +94,27 @@ const UNIVERS_PAR_METIER: Record<string, Univers[]> = {
 /** Les mots qui trahissent l'univers d'un titre d'actualité, en français. */
 const INDICES: Record<Univers, RegExp> = {
   sport: /\b(match|foot|football|rugby|tennis|basket|cyclisme|tour de france|jo|jeux olympiques|championnat|ligue|coupe|finale|marathon|roland[- ]garros|psg|équipe de france)\b/i,
-  people: /\b(star|célébrité|celebrite|acteur|actrice|chanteu|rappeu|influenceu|téléréalité|telerealite|festival de cannes|oscar|césar|people)\b/i,
+  // ── Le people se reconnaît aussi à la forme de la dépêche ──
+  //
+  // 2026-08-13 : « Travis Kelce rêvait de mariage avec Taylor Swift » est
+  // ressorti sur un post de commerçant. Le titre ne contenait aucun mot-métier
+  // — ni « star », ni « chanteuse » — mais il contenait « mariage », classé
+  // dans la famille, univers universel. Une actualité de couple de célébrités
+  // passait donc pour un sujet de calendrier familial.
+  //
+  // On reconnaît donc aussi les tournures : se marie, fiançailles, divorce,
+  // couple, attend un bébé. Et « mariage » seul quitte la famille — un
+  // fleuriste s'intéresse à la SAISON des mariages, pas au mariage de
+  // quelqu'un en particulier.
+  people: /\b(star|célébrité|celebrite|acteur|actrice|chanteu|rappeu|influenceu|téléréalité|telerealite|festival de cannes|oscar|césar|people|se marie|se marient|fiançailles|fiancailles|divorce|en couple|attend un bébé|attend un bebe)\b/i,
   culture: /\b(film|cinéma|cinema|série|serie|album|concert|festival|expo|exposition|livre|roman|théâtre|theatre|sortie|netflix)\b/i,
-  gastronomie: /\b(restaurant|chef|cuisine|recette|gastronomi|michelin|produit|marché|marche|saison|récolte|recolte|vin|fromage)\b/i,
+  gastronomie: /\b(restaurant|chef|cuisine|recette|gastronomi|michelin|produit de saison|produits de saison|fruits de saison|légumes de saison|marché|marche|récolte|recolte|vin|fromage)\b/i,
   meteo: /\b(canicule|chaleur|froid|neige|pluie|orage|tempête|tempete|vague de|météo|meteo|degré|degre|beau temps|ensoleill)\b/i,
   local: /\b(ville|quartier|commune|mairie|travaux|circulation|grève|greve|transport|marché de|braderie|brocante)\b/i,
   economie: /\b(inflation|prix|pouvoir d'achat|taxe|impôt|impot|aide|subvention|crédit|credit|taux|salaire|smic|réforme|reforme)\b/i,
   sante_bienetre: /\b(santé|sante|bien[- ]être|bien[- ]etre|sommeil|stress|alimentation|sport santé|prévention|prevention|allergie)\b/i,
   mode: /\b(mode|tendance|collection|défilé|defile|fashion|style|vêtement|vetement|coiffure|beauté|beaute)\b/i,
-  famille: /\b(rentrée|rentree|vacances|enfant|famille|école|ecole|fête des|fete des|noël|noel|anniversaire|mariage|saint[- ]valentin)\b/i,
+  famille: /\b(rentrée|rentree|vacances|enfant|famille|école|ecole|fête des|fete des|noël|noel|anniversaire|saison des mariages|saint[- ]valentin)\b/i,
   tech: /\b(intelligence artificielle|\bia\b|application|réseaux sociaux|reseaux sociaux|tiktok|instagram|algorithme|smartphone|numérique|numerique)\b/i,
 };
 
