@@ -116,6 +116,26 @@ cuisine ou la salle — quelque chose que le commerçant pourrait montrer du doi
  * Un compte au ton constant devient un bruit de fond. La règle vaut pour le
  * texte comme pour le choix de la scène.
  */
+export const REGLE_PERSONNE = `TU PARLES AU COMMERÇANT, PAS DE LUI.
+Écris à la DEUXIÈME PERSONNE, à celui qui lit. Jamais à la troisième personne
+sur un commerçant anonyme dont tu raconterais l'histoire.
+
+· « Tu passes combien d'heures par semaine sur tes commandes ? » — juste.
+· « Ce boulanger passait 10 h par semaine à gérer ses commandes » — inventé.
+· « Ce resto affichait complet même sous la canicule » — inventé.
+
+La différence n'est pas de style, elle est de VÉRITÉ. Dès qu'un post raconte ce
+qu'a vécu « ce restaurant », « un coiffeur », « cette boutique », il affirme un
+fait qu'on ne peut pas prouver — et le contrôle le refuse, à raison. Le lecteur
+aussi le sent : tout le monde a déjà lu ce faux témoignage.
+
+La même idée passe toujours en s'adressant à lui : le problème qu'il reconnaît,
+la question qu'il se pose, le moment de sa journée. C'est plus fort, en plus :
+on ne lui parle pas d'un autre, on lui parle de lui.
+
+SEULE EXCEPTION : un témoignage RÉEL fourni par le client, avec son nom et son
+accord. Dans ce cas il est cité tel quel, sans être embelli.`;
+
 export const REGLE_REGISTRE = `VARIE LE REGISTRE — C'EST LA SCÈNE QUI DÉCIDE.
 Un compte qui garde le même ton devient un bruit de fond. Alterne d'une
 publication à l'autre : drôle, tendu, tendre, factuel, complice.
@@ -189,6 +209,8 @@ export function doctrineContenu(): string {
     REGLE_NATUREL,
     '',
     REGLE_ACTUALITE,
+    '',
+    REGLE_PERSONNE,
     '',
     REGLE_REGISTRE,
     '',
