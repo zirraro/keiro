@@ -7446,7 +7446,31 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     }
     let eventContext = '';
     if (upcomingEvents.length > 0) {
-      eventContext = `\nJOURNÉES THÉMATIQUES : ${upcomingEvents.join(' | ')}\nUn seul post par journée thématique, le jour même. Jamais après coup.\n`;
+      // ── Une journée thématique n'est pas un prétexte ──
+      //
+      // Test du 2026-08-13 : deux posts sur trois refusés pour « la rentrée sert
+      // de prétexte ». Le conseil était bon, mais générique — il aurait marché
+      // n'importe quand. La journée thématique était collée devant.
+      //
+      // Le même test que pour l'actualité s'applique : si le post tient sans la
+      // date, la date ne sert à rien. Et une journée thématique ne concerne pas
+      // tous les métiers — la fête des mères fait vivre un fleuriste, elle ne
+      // dit rien à un plombier.
+      eventContext = [
+        '',
+        `JOURNÉES THÉMATIQUES À VENIR : ${upcomingEvents.join(' | ')}`,
+        'Un seul post par journée thématique, le jour même. Jamais après coup.',
+        '',
+        "N'en utilise une QUE si elle change quelque chose pour ce commerce :",
+        'ce qu\'il vend ce jour-là, ce que ses clients viennent chercher, ce qu\'il',
+        'doit préparer. Une date qui ne change rien pour lui ne se mentionne pas.',
+        '',
+        'TEST : retire la date de ton post. S\'il tient toujours et dit la même',
+        'chose, c\'est qu\'elle servait de prétexte — écris-le sans elle.',
+        '« 3 conseils pour la rentrée » qui marcherait aussi en mars n\'est pas un',
+        'post de rentrée. « Les cartables sont sortis, ta vitrine aussi ? » en est un.',
+        '',
+      ].join('\n');
     }
     trendsUpcomingEvents = upcomingEvents;
 
