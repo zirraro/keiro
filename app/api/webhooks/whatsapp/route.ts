@@ -423,7 +423,18 @@ async function handleIncomingMessage(
     const learnings = await getActiveLearnings(supabase, 'whatsapp', 'conversion', ownerId || undefined);
     poolLearnings = (learnings || []).slice(0, 5).map((l: any) => l.learning).filter(Boolean);
   } catch { /* pool best-effort */ }
-  const systemPrompt = getWhatsAppSystemPrompt({
+  // ── Ce que le commerçant a annoncé aux autres agents ──
+  //
+  // Fondateur, 2026-08-13 : « si une demande est faite dans un chat, Jade lors
+  // des DM entrants et Stella sur WhatsApp peuvent répondre aussi, car ils ont
+  // l'info. » Stella prend des réservations : lui cacher une fermeture
+  // exceptionnelle, c'est lui faire promettre une table qui n'existera pas.
+  let faitsWA = '';
+  try {
+    const { faitsPourPrompt } = await import('@/lib/agents/faits-client');
+    faitsWA = await faitsPourPrompt(supabase, ownerId);
+  } catch { /* jamais bloquant sur une réponse client */ }
+  const systemPrompt = faitsWA + getWhatsAppSystemPrompt({
     companyName,
     businessType: bizType,
     prospectName: prospect.first_name || undefined,

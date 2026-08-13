@@ -84,6 +84,18 @@ export async function generateReviewReply(
       const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
       directivesBlock = await directiveBlockFor(supabaseClient, ownerUserId, 'reviews');
     } catch { /* best-effort */ }
+
+    // ── Ce que le commerçant a annoncé ailleurs ──
+    //
+    // Fondateur, 2026-08-13 : toutes les infos des chats doivent circuler entre
+    // les agents. Théo répond publiquement sous des avis Google : répondre
+    // « au plaisir de vous revoir samedi » la semaine où le commerce est fermé
+    // se voit par tout le monde et ne se rattrape pas. Il lit donc les faits
+    // avant d'écrire, comme Léna et Jade.
+    try {
+      const { faitsPourPrompt } = await import('@/lib/agents/faits-client');
+      directivesBlock += await faitsPourPrompt(supabaseClient, ownerUserId);
+    } catch { /* jamais bloquant sur une réponse à un avis */ }
   }
 
   const preCheck = preClassify(review);
