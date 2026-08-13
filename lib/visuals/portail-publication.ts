@@ -256,6 +256,28 @@ export async function controlerAvantPublication(
           },
         };
       }
+
+      // ── Un verdict qui passe doit dire SA NOTE, lui aussi ──
+      //
+      // Le banc d'essai a immédiatement révélé ce trou : les posts refusés
+      // remontaient leur note, les posts ACCEPTÉS ne remontaient rien. On
+      // mesurait donc uniquement les échecs — et la route de corrélation, qui
+      // doit comparer nos notes à l'engagement réel, n'aurait jamais eu la note
+      // des posts effectivement publiés. Elle aurait comparé des refus entre
+      // eux.
+      //
+      // Instrumenter le succès coûte une ligne et vaut autant que le refus :
+      // c'est le seul moyen de savoir si un 9 fait mieux qu'un 6.
+      if (coh && 'pass' in coh && coh.pass) {
+        return {
+          publiable: true,
+          details: {
+            score: coh.score, reasons: coh.reasons, hookScore: coh.hookScore,
+            flags: coh.flags, imageUsable: coh.imageUsable,
+            imageDescription: coh.imageDescription,
+          },
+        };
+      }
     } catch { /* contrôle indisponible : la publication continue */ }
   }
 
