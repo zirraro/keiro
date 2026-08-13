@@ -7291,8 +7291,20 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     });
     const filteredTrends = trendItems.filter((t: string) => countOccurrences(recentTextBlob, String(t).toLowerCase().slice(0, 40)) < NEWS_REUSE_CAP && !hasOverusedTheme(String(t)));
     const newsItems = filteredNews.slice(0, 12);
-    trendsTrendItems = filteredTrends;
-    trendsNewsItems = newsItems;
+    // ── La MÊME porte pour tous les canaux d'actualité ──
+    //
+    // J'ai fermé plus haut la liste des actualités du prompt, et le test
+    // suivant est quand même sorti sur « Lenny Kravitz à Bordeaux ». Ces deux
+    // variables-ci sont remplies AVANT ce filtrage et alimentent un second
+    // canal : le sélecteur d'angle d'actualité. Fermer une porte sur deux ne
+    // ferme rien.
+    //
+    // Leçon, la même que pour les deux prompts contradictoires : quand on pose
+    // une règle, il faut chercher TOUS les chemins qu'elle doit couvrir. Un
+    // seul oubli et la règle paraît ne pas fonctionner, ce qui envoie corriger
+    // au mauvais endroit — j'y ai passé la journée.
+    trendsTrendItems = pillar === 'trends' ? filteredTrends : [];
+    trendsNewsItems = pillar === 'trends' ? newsItems : [];
 
     // Event calendar — key dates to leverage in content
     const now = new Date();
@@ -7679,12 +7691,17 @@ preuve : c'est la le contenu qui le fait vendre, pas un evenement du jour.
   // inventer ferait perdre sa crédibilité au commerce en une publication. Ce
   // sont les repères de saison, publiés des mois à l'avance, et chacun porte
   // son degré de certitude.
+  // Quatrième canal d'actualité, et le dernier trouvé. Il partait sans
+  // condition : un calendrier de matchs sous les yeux du modèle tous les jours,
+  // pour un fleuriste comme pour un plombier. Même porte que les trois autres.
   let blocSport = '';
-  try {
-    const { blocCalendrierSportif } = await import('@/lib/marketing/calendrier-sportif');
-    blocSport = blocCalendrierSportif(detectedBusinessType || (clientSettings as any)?.business_type, 30);
-  } catch (e: any) {
-    console.warn('[Content] calendrier sportif non chargé:', e?.message);
+  if (pillar === 'trends') {
+    try {
+      const { blocCalendrierSportif } = await import('@/lib/marketing/calendrier-sportif');
+      blocSport = blocCalendrierSportif(detectedBusinessType || (clientSettings as any)?.business_type, 30);
+    } catch (e: any) {
+      console.warn('[Content] calendrier sportif non chargé:', e?.message);
+    }
   }
 
   const NL_SUJET = String.fromCharCode(10);
@@ -7720,7 +7737,12 @@ preuve : c'est la le contenu qui le fait vendre, pas un evenement du jour.
   try {
     // Un sujet imposé remplace la sélection automatique : inutile d'aller
     // chercher une actualité qu'on n'utilisera pas.
-    const shouldPickAngle = !sujetImpose && (pillar === 'trends' || trendsUpcomingEvents.length > 0);
+    // `trendsUpcomingEvents.length > 0` suffisait à déclencher le sélecteur
+    // d'angle : il existe presque toujours une journée thématique dans les
+    // trois semaines à venir, donc la condition était vraie en permanence et le
+    // pilier ne servait à rien. Une journée thématique justifie qu'on en parle
+    // — elle ne justifie pas d'aller chercher l'actualité du jour par-dessus.
+    const shouldPickAngle = !sujetImpose && pillar === 'trends';
     if (shouldPickAngle && (trendsTrendItems.length > 0 || trendsNewsItems.length > 0 || trendsUpcomingEvents.length > 0)) {
       let dossierForAngle: any = null;
       if (userId) {
