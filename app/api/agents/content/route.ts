@@ -7793,7 +7793,9 @@ ${pillar === 'giving_value' ? '- Donne un vrai conseil applicable IMMÉDIATEMENT
 ${pillar === 'cta' ? '- CTA DIRECT mais pas agressif. Montre la transformation : avant/après. "Teste gratuitement", "Lien en bio", "15 crédits offerts". Le CTA est le point central du post.' : ''}
 ${pillar === 'social_proof' ? '- Montre des RÉSULTATS concrets. Chiffres, avant/après, témoignages (même simulés de manière crédible pour des types de commerces). Ex: "Ce restaurant a multiplié x3 ses réservations via Instagram".' : ''}
 ${pillar === 'educational' ? '- Enseigne quelque chose de NOUVEAU. Format tutoriel. "Comment...", "Pourquoi...", "Le guide pour...". Le lecteur apprend ET découvre que KeiroAI peut l\'aider.' : ''}
-${pillar === 'trends' ? '- Commente une TENDANCE actuelle (IA, réseaux sociaux, marketing digital). Positionne KeiroAI comme expert qui suit l\'actu. Donne ton avis pro.' : ''}
+${pillar === 'trends' ? `- Pilier TENDANCE : commente une tendance ou une actualité SI, et seulement si, elle passe les deux tests de la doctrine ci-dessous (substitution du métier, substitution de l'actualité).
+  SINON, ÉCRIS UN POST CONSEIL OU DÉMONSTRATION ET CHANGE LE CHAMP "pillar" EN CONSÉQUENCE. C'est une sortie prévue, pas un échec : le pilier annonce une INTENTION, il n'oblige à rien quand la matière manque.
+  Cette permission existe parce que l'obligation produisait « Tom Cruise te vole ton rôle ? » et « Comme Mark Wahlberg, tu as des tâches marketing » sur des posts de commerçants — une célébrité ou un fait divers plaqués faute d'avoir le droit de faire autrement.` : ''}
 ${pillar === 'behind_the_scenes' ? '- Montre les COULISSES : comment KeiroAI fonctionne, le process de création, les updates. Humanise la marque. Crée de la proximité.' : ''}
 ${pillar === 'pain_point' ? '- Identifie un PROBLÈME que la cible vit au quotidien, puis montre la solution. Ex: "Tu passes 3h/jour sur tes posts ? Voici comment passer à 10min".' : ''}
 ${pillar === 'demo' ? '- DÉMONTRE le produit en action. Avant/après visuel. Montre la puissance de Seedream/KeiroAI. Le post EST la preuve.' : ''}
