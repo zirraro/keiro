@@ -130,6 +130,11 @@ Puis évalue quatre points :
 3. HORS-SUJET
    L'image illustre-t-elle le propos de la légende ? Un lien lointain ou décoratif ne suffit pas : un lecteur doit comprendre pourquoi CETTE image accompagne CE texte.
 
+   ⚠️ CAS DU PRESTATAIRE QUI SERT PLUSIEURS MÉTIERS (logiciel, agence, conseil).
+   Ses posts montrent VOLONTAIREMENT le commerce de ses clients : un fleuriste qui prépare ses bouquets, un salon en plein rush, une terrasse un jour de canicule. C'est la bonne façon de faire, et la seule qui produise une image vivante — le lecteur visé EST ce commerçant, pas l'annonceur.
+   N'EXIGE DONC PAS que l'image montre le produit de l'annonceur, son écran ou son logo. Une image de fleuriste sur le compte d'un logiciel de marketing n'est PAS hors-sujet si la légende parle de la journée de ce fleuriste.
+   Ce qui reste hors-sujet, et que tu dois toujours refuser : l'image montre UN métier et la légende parle d'UN AUTRE — un boulanger à l'image, une aide pour voiture électrique dans le texte. Là, les deux ne racontent pas la même chose, et c'est ça le vrai défaut.
+
 4. IMAGE VIDE
    L'image se réduit-elle à un pictogramme ou un symbole abstrait isolé — flèche, ampoule, engrenage, point d'interrogation, forme géométrique — posé sur un fond uni ou dégradé ?
    Ce type d'image ne montre rien, n'apprend rien, ne donne envie de rien. Elle est rejetée même si elle est jolie et techniquement parfaite.
