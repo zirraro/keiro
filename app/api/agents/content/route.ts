@@ -36,6 +36,7 @@ import { directiveGeneration } from '@/lib/visuals/exigences-reseau';
 // consigne de sortie, là où le modèle la lit en dernier.
 import { doctrineContenu } from '@/lib/agents/doctrine-contenu';
 import { promptSpecialise } from '@/lib/agents/prompts-format';
+import { blocMetierEnScene } from '@/lib/agents/metier-mis-en-scene';
 import { filtrerActualites, blocPertinence } from '@/lib/agents/pertinence-actualite';
 
 // ──────────────────────────────────────
@@ -7038,6 +7039,11 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // description à des fonctions qui attendent « restaurant » — le genre d'effet
   // de bord qui casse une fonction en en réparant une autre.
   let signatureMetier: string | null = null;
+  // Le commerce mis en scène quand l'annonceur sert tous les métiers : un
+  // logiciel n'a rien à photographier, donc on raconte la journée d'un de ses
+  // clients. Décidé UNE fois ici, il pilote ensuite la scène, le texte, le tri
+  // d'actualité et le contrôle — c'est l'ancre qui manquait.
+  let metierEnScene: string | null = null;
   if (userId) {
     try {
       const { data: dossier } = await supabase
@@ -7052,6 +7058,15 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
         // Sans elle, un salon de brunch et un fast-food recevaient les mêmes
         // actualités, alors que leurs clientèles n'ont rien en commun.
         detectedBusinessType = dossier.business_type;
+        // Décision du métier mis en scène, juste après avoir lu le dossier.
+        try {
+          const { sertPlusieursMetiers, metierDuCreneau } = await import('@/lib/agents/metier-mis-en-scene');
+          const sig = [dossier.business_type, dossier.company_description].filter(Boolean).join(' ');
+          if (sertPlusieursMetiers(sig)) {
+            metierEnScene = metierDuCreneau(new Date(), String(forcePlatform || 'auto') + String(forceFormat || ''), userId || '');
+            console.log('[Content] commerce mis en scene :', metierEnScene);
+          }
+        } catch { /* sans lui, on retombe sur le comportement precedent */ }
         signatureMetier = [dossier.business_type, dossier.company_description, dossier.main_products]
           .filter(Boolean).join(' — ').slice(0, 300);
         const { naturalismProfileFor, naturalismToPromptBlock } = await import('@/lib/agents/business-naturalism');
@@ -7686,7 +7701,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     //
     // On remet donc l'accès, avec le tri qui manquait : chaque métier a des
     // univers qui touchent SA clientèle, et on ne lui donne que ceux-là.
-    const metierPourActu = signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type;
+    const metierPourActu = metierEnScene || signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type;
     trendsTrendItems = filtrerActualites(filteredTrends, metierPourActu);
     trendsNewsItems = filtrerActualites(newsItems, metierPourActu);
 
@@ -7806,7 +7821,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     // Même tri pour la liste affichée au modèle : ce qu'il voit est déjà
     // pertinent pour ce métier, donc il n'a plus à choisir entre du pertinent
     // et du bruit — il n'a que du pertinent.
-    const metierListe = signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type;
+    const metierListe = metierEnScene || signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type;
     const trendsUtilisables = filtrerActualites(trendItems, metierListe);
     const newsUtilisables = filtrerActualites(newsItems, metierListe);
     if (trendsUtilisables.length > 0 || newsUtilisables.length > 0 || upcomingEvents.length > 0) {
@@ -8370,6 +8385,7 @@ CLIENT QUI SERT PLUSIEURS MÉTIERS — ÉCRIS DEPUIS LA SCÈNE :
  de ce prompt. Ne les redis pas ici : c'est exactement ainsi que les deux
  prompts avaient fini par se contredire.)
 
+${metierEnScene ? blocMetierEnScene(metierEnScene as any) : ''}
 ${doctrineContenu()}
 ${promptSpecialise(platform, format)}
 
