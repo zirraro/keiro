@@ -2271,7 +2271,14 @@ async function publishToTikTok(
   // publication est partie sans aucun texte le 2026-08-04, et un post sans
   // texte ne touche personne sur les deux réseaux.
   post: { id?: string; format?: string; caption?: string; hook?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
-  supabase: any
+  supabase: any,
+  /**
+   * Levée explicite du plafond journalier TikTok, pour une publication précise.
+   * Même principe que sur Instagram : demandée à la main, tracée, jamais
+   * transmise par un cron. L espacement de 120 minutes, lui, reste actif —
+   * c est lui qui protège la portée.
+   */
+  leverPlafondJournalier?: boolean
 ): Promise<{ success: boolean; publish_id?: string; error?: string; unaudited?: boolean }> {
   // ─── TIKTOK COOLDOWN ─── 2026-06-17: the account got reach-throttled (~June 10
   // reach 250→0). Founder decision: PAUSE TikTok auto-posting + human cadence to
@@ -2434,7 +2441,10 @@ async function publishToTikTok(
         ]);
         const { getAccountStage, reachPlan } = await import('@/lib/agents/reach-strategy');
         const cap = reachPlan(getAccountStage(ttTotal || 0), 'tiktok').dailyCap;
-        if ((tt24 || 0) >= cap) {
+        if ((tt24 || 0) >= cap && leverPlafondJournalier) {
+          console.warn(`[TikTok] plafond journalier LEVÉ explicitement (${tt24}/${cap}) — demande directe`);
+        }
+        if ((tt24 || 0) >= cap && !leverPlafondJournalier) {
           // ANTI-BURST (founder 02/07) : l'ancien code décalait TOUT le surplus
           // à demain 18:30 → le lendemain ils redevenaient tous dus À LA MÊME
           // HEURE = re-burst (cause du shadowban : 27 vidéos en 5 min le 24/06).
@@ -4639,7 +4649,9 @@ async function POSTInterne(request: NextRequest) {
         }
 
         if ((targetPlatform === 'tiktok' || targetPlatform === 'all') && (pubPost.visual_url || pubPost.video_url)) {
-          const ttResult = await publishToTikTok(pubPost, supabase);
+          // Seul le chemin manuel transmet la levée — un plafond levé par un cron
+          // est un plafond qui n existe pas.
+          const ttResult = await publishToTikTok(pubPost, supabase, body.leverPlafond === true);
           if (ttResult.success && ttResult.publish_id) {
             pubUpdate.tiktok_publish_id = ttResult.publish_id;
             pubPublishId = ttResult.publish_id;

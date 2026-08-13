@@ -194,12 +194,28 @@ export async function controlerAvantPublication(
       // post accepté à 6 dit exactement ce qui manque pour atteindre 8. Sans
       // cette trace, la même faiblesse se répète indéfiniment parce qu'elle ne
       // franchit jamais le seuil du refus.
-      if (coh && 'pass' in coh && coh.pass && Number(coh.score) < 8) {
+      // ── Garder TOUTES les notes, pas seulement les faibles ──
+      //
+      // Fondateur, 2026-08-13 : « il faut une route qui track les résultats de ce
+      // qu'on a considéré comme un 6, 7, 8, 9 ou 10, et les likes/vues que
+      // l'algorithme a poussés — l'attention que ça a générée. On améliore
+      // constamment avec le feedback pour aller dans le sens de l'attention. »
+      //
+      // Sans la note des posts qui passent bien, la corrélation est impossible :
+      // on ne pourrait comparer que des refus entre eux. Et c'est la question qui
+      // compte vraiment — si nos 9 ne font pas mieux que nos 6, notre barème ne
+      // mesure rien et il faut le refaire.
+      //
+      // Une ligne par verdict, pour tout le monde. Le journal est déjà écrit à
+      // cet instant, l'écriture supplémentaire est négligeable, et sans elle on
+      // ne saura jamais si le contrôle sert à quelque chose.
+      if (coh && 'pass' in coh) {
         supabase.from('agent_logs').insert({
-          agent: 'content', action: 'qc_note_faible', status: 'ok',
+          agent: 'content', action: 'qc_verdict', status: 'ok',
           user_id: post.user_id || undefined,
           data: {
             post_id: post.id, reseau: post.platform, note: coh.score,
+            format: post.format, publiable: coh.pass,
             motifs: (coh.reasons || []).slice(0, 3),
             flags: Object.entries(coh.flags || {}).filter(([, v]) => v).map(([k]) => k),
           },
