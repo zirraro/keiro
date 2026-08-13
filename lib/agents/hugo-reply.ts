@@ -235,6 +235,21 @@ export async function generateReply(params: {
     } catch { /* RAG load is best-effort */ }
   }
 
+  // ── Ce que le commerçant a annoncé aux autres agents ──
+  //
+  // Fondateur, 2026-08-13 : toutes les infos des chats doivent circuler entre
+  // tous les agents. Hugo écrit AU NOM du client à ses prospects et clients :
+  // annoncer des horaires périmés ou ignorer une promotion en cours dans un
+  // email signé de sa main est exactement ce qui décrédibilise le commerçant
+  // auprès de quelqu'un qu'il essaie de convaincre.
+  let faitsBlock = '';
+  if (params.supabase && params.ownerUserId) {
+    try {
+      const { faitsPourPrompt } = await import('./faits-client');
+      faitsBlock = await faitsPourPrompt(params.supabase, params.ownerUserId);
+    } catch { /* jamais bloquant sur une réponse */ }
+  }
+
   const replyGuide = classification === 'needs_reply'
     ? `Le prospect a répondu humainement. Réponds à sa question/remarque précisément, cite les infos du prospect (Léo les a mises en bas) pour prouver que tu connais son business, et termine par un CTA léger (question ouverte OU proposition d'envoi de plus d'infos OU de rendez-vous). 4 à 8 lignes. Pas de formule toute faite.`
     : classification === 'meeting_request'
@@ -248,7 +263,7 @@ export async function generateReply(params: {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 700,
-        system: `Tu es HUGO, l'agent email de KeiroAI qui écrit AU NOM du client. Tu ne parles JAMAIS de KeiroAI, IA, agents ou automatisation — tu signes comme si c'était le fondateur du business client qui tapait à la main.
+        system: faitsBlock + `Tu es HUGO, l'agent email de KeiroAI qui écrit AU NOM du client. Tu ne parles JAMAIS de KeiroAI, IA, agents ou automatisation — tu signes comme si c'était le fondateur du business client qui tapait à la main.
 
 ${replyGuide}
 
