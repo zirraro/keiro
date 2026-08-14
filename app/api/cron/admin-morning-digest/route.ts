@@ -797,7 +797,12 @@ export async function GET(req: NextRequest) {
   // panne qui dégrade TOUS les agents à la fois, et la seule qu'on peut manquer
   // deux semaines de suite : le repli fonctionne, donc rien n'a l'air cassé.
   // Elle doit se lire dans la liste des mails, sans ouvrir.
-  const subject = (etatClaude && !etatClaude.disponible && process.env.CLAUDE_DESACTIVE !== '1')
+  // Le crédit épuisé ne monte plus dans l'objet : l'étage DeepSeek est en
+  // place et travaille, donc ce n'est plus un incident mais une configuration.
+  // L'objet doit rester réservé à ce qui demande une action aujourd'hui.
+  const claudeEnPanneReelle = etatClaude && !etatClaude.disponible
+    && !etatClaude.creditEpuise && process.env.CLAUDE_DESACTIVE !== '1';
+  const subject = claudeEnPanneReelle
     ? `🚨 Claude indisponible — les agents sont en repli${etatClaude.creditEpuise ? ' (crédit épuisé)' : ''}`
     : totalP0 > 0
       ? `🚨 P0 KeiroAI matin — ${totalP0} bloquant${totalP0 > 1 ? 's' : ''} avant briefs clients`

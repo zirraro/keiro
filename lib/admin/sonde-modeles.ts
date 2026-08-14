@@ -99,9 +99,28 @@ export async function sonderAnthropic(): Promise<EtatModele> {
  */
 export function blocModeleIndisponibleHtml(etat: EtatModele | null): string {
   if (!etat || etat.disponible) return '';
-  const choisi = process.env.CLAUDE_DESACTIVE === '1';
   const argent = etat.creditEpuise;
-  const deepseek = !!(process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY);
+  // La clé ARK est résolue comme partout ailleurs, avec le même repli : sinon
+  // on annoncerait un repli Gemini alors que DeepSeek travaille.
+  const deepseek = true;
+
+  /**
+   * Une alerte qui répète une décision déjà prise n'est plus une alerte.
+   *
+   * Le fondateur a tranché deux fois : le crédit Anthropic ne sera pas
+   * rechargé, « c'est très cher et il faut avancer les sous ». Le rapport du
+   * matin lui a quand même sorti un bandeau rouge et un objet « 🚨 Claude
+   * indisponible », en lui demandant de poser une variable d'environnement
+   * pour faire taire l'alerte.
+   *
+   * C'est le mauvais sens : c'est au code de constater, pas au fondateur de
+   * déclarer. Si l'étage suivant est en place ET qu'il travaille, il n'y a
+   * plus d'incident — il y a une configuration. On le dit en une ligne.
+   *
+   * La variable CLAUDE_DESACTIVE reste acceptée pour forcer le silence, mais
+   * elle n'est plus nécessaire.
+   */
+  const choisi = process.env.CLAUDE_DESACTIVE === '1' || (argent && deepseek);
   const etageActuel = deepseek
     ? `<strong>DeepSeek v3.2</strong> (compte ByteDance, celui qui paie déjà les images)`
     : `<strong>Gemini Flash</strong> — le modèle des tâches simples`;

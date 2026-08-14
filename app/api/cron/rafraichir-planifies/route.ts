@@ -388,7 +388,7 @@ export async function GET(req: NextRequest) {
     // c'est le texte FINAL qu'il faut juger.
     const { data: frais } = await supabase
       .from('content_calendar')
-      .select('id, user_id, platform, format, hook, caption, hashtags, visual_url, video_url, status, qa_notes')
+      .select('id, user_id, platform, format, hook, caption, hashtags, visual_url, video_url, status, qa_notes, publish_diagnostic')
       .eq('id', p.id)
       .maybeSingle();
     if (!frais || !['approved', 'scheduled', 'pending'].includes(frais.status)) continue;
@@ -472,7 +472,83 @@ export async function GET(req: NextRequest) {
     // second appel de vision — le contrôle au moment de publier reste le juge
     // final, et il ne coûte rien de plus puisqu'il a lieu de toute façon.
     const d = verdict.details || {};
-    if (!verdict.publiable && d.imageUsable && d.imageDescription
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Quand c'est l'IMAGE qui cloche, on refait l'IMAGE
+    // ══════════════════════════════════════════════════════════════════════
+    //
+    // ── Ce que le rapport du matin a montré ──
+    //
+    // 29 publications non livrées, et une cause qui écrase toutes les autres :
+    //
+    //   « qc_legende_reecrite: qc_coherence_bloque: L'image est hors-sujet »
+    //
+    // Le contrôle dit que l'IMAGE ne va pas. La réparation réécrit la LÉGENDE.
+    // Le contrôle suivant retrouve la même image, la refuse à nouveau, et le
+    // post reste bloqué. On tourne en rond sur le mauvais côté.
+    //
+    // ── Pourquoi c'était écrit comme ça ──
+    //
+    // Le raisonnement d'origine se tient : « la quasi-totalité des motifs se
+    // corrigent en réécrivant le texte, jeter un visuel réussi serait payer
+    // deux fois la même erreur ». C'est vrai pour un client inventé ou un
+    // chiffre aberrant — le visuel est bon, c'est le texte qui ment.
+    //
+    // Ça ne l'est pas pour « l'image montre une boulangerie alors que
+    // l'annonceur est une agence ». Là, aucune légende ne rattrape le visuel :
+    // réécrire le texte pour parler de boulangerie ferait publier un post de
+    // boulangerie sur le compte d'une agence.
+    //
+    // ── La règle qui en découle ──
+    //
+    // On lit CE QUE LE CONTRÔLE A REPROCHÉ, pas seulement son code. S'il parle
+    // de l'image, on refait l'image à partir de la légende — l'inverse exact
+    // de ce qu'on faisait. La légende, elle, a déjà passé le contrôle sur le
+    // fond : c'est la référence, pas le problème.
+    //
+    // Et on ne réécrit plus une légende deux fois : si le post porte déjà la
+    // trace d'une réécriture et qu'il est encore refusé, c'est la preuve que
+    // le texte n'était pas le sujet.
+    const motifsBruts = (d.reasons || [verdict.diagnostic]).join(' ').toLowerCase();
+    const grief = /l['’]image|le visuel|la photo|hors-sujet|n['’]illustre|ne montre/.test(motifsBruts);
+    const dejaReecrite = /qc_legende_reecrite/.test(String(frais.publish_diagnostic || ''));
+
+    if (!verdict.publiable && (grief || dejaReecrite) && frais.visual_url && !frais.video_url
+        && (verdict.code === 'coherence' || verdict.code === 'claim_invente')) {
+      try {
+        const { regenererVisuelDepuisLegende } = await import('@/lib/qualite/refaire-visuel');
+        const neuf = await regenererVisuelDepuisLegende({
+          hook: frais.hook || '',
+          caption: frais.caption || '',
+          plateforme: frais.platform,
+          format: frais.format || 'post',
+          griefs: (d.reasons || [verdict.diagnostic]).slice(0, 3).join(' · '),
+          userId: frais.user_id || null,
+        });
+        if (neuf) {
+          await supabase.from('content_calendar').update({
+            visual_url: neuf,
+            qa_notes: `${frais.qa_notes ? frais.qa_notes + '\n' : ''}${MARQUE_STANDARD} visuel refait (le grief portait sur l'image)`.slice(0, 4000),
+            publish_diagnostic: `qc_visuel_refait: ${verdict.diagnostic}`.slice(0, 500),
+            updated_at: maintenant,
+          }).eq('id', frais.id);
+          try {
+            await supabase.from('agent_logs').insert({
+              agent: 'content', action: 'qc_visuel_refait', status: 'ok', user_id: frais.user_id || undefined,
+              data: { post_id: frais.id, reseau: frais.platform, motif: verdict.diagnostic, ancien: frais.visual_url, nouveau: neuf },
+              created_at: maintenant,
+            });
+          } catch { /* la trace ne bloque pas */ }
+          requalifiesReecrits++;
+          if (exemples.length < 10) exemples.push(`${p.scheduled_date} ${frais.platform} — visuel refait sur la légende`);
+          continue;
+        }
+      } catch (e: any) {
+        console.warn('[fraicheur] visuel non refait :', e?.message?.slice(0, 140));
+      }
+    }
+
+    if (!verdict.publiable && !dejaReecrite && d.imageUsable && d.imageDescription
         && (verdict.code === 'coherence' || verdict.code === 'claim_invente')) {
       const nouvelle = await reecrireLegende({
         descriptionImage: String(d.imageDescription),

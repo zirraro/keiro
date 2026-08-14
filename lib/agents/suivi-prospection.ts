@@ -171,6 +171,35 @@ export function blocProspectionHtml(m: SuiviProspection | null): string {
           </tr>
           ${ligne('Ont ouvert', jour.ouverts, semaine.ouverts, taux.ouverture, '25 %', couleur(taux.ouverture, 25, 15))}
           ${ligne("Ont cliqué sur l'article", jour.cliques, semaine.cliques, taux.clic, '3 %', couleur(taux.clic, 3, 1))}
+          ${(() => {
+            /**
+             * Le clic RAPPORTÉ AUX OUVREURS, demandé par le fondateur le 15 août.
+             *
+             * Les deux taux précédents se calculent sur les envois. Celui-ci se
+             * calcule sur les gens qui ont OUVERT — et il répond à une question
+             * différente : une fois qu'on est lu, est-ce qu'on convainc ?
+             *
+             * C'est le seul chiffre qui isole la qualité du CONTENU de celle de
+             * l'objet. Un taux d'ouverture à 3 % avec un clic-sur-ouvreurs à
+             * 60 % ne dit pas « nos mails sont mauvais » : il dit « ceux qui
+             * les lisent y vont, il faut aller chercher les ouvertures ». Sans
+             * cette ligne, les deux problèmes se confondent et on corrige le
+             * mauvais.
+             *
+             * Repère : 10 à 15 % en prospection froide B2B.
+             */
+            if (semaine.ouverts === 0) return '';
+            const parmiOuvreurs = Math.round((semaine.cliques / semaine.ouverts) * 1000) / 10;
+            const c = couleur(parmiOuvreurs, 15, 8);
+            return `
+          <tr style="border-top:1px solid #e5e7eb;">
+            <td style="padding:7px 0 5px;color:#111;font-weight:600;">Clics parmi ceux qui ouvrent</td>
+            <td style="padding:7px 0 5px;text-align:right;color:#9ca3af;font-size:11px;">—</td>
+            <td style="padding:7px 0 5px;text-align:right;font-variant-numeric:tabular-nums;">${semaine.cliques}&nbsp;/&nbsp;${semaine.ouverts}</td>
+            <td style="padding:7px 0 5px;text-align:right;font-weight:700;color:${c};font-variant-numeric:tabular-nums;">${parmiOuvreurs} %</td>
+            <td style="padding:7px 0 5px;text-align:right;color:#9ca3af;font-size:11px;">repère 10–15 %</td>
+          </tr>`;
+          })()}
           ${reponses ? `<tr><td style="padding:5px 0;color:#166534;font-weight:600;">Ont répondu</td><td style="padding:5px 0;text-align:right;font-weight:700;color:#166534;">${reponses.jour}</td><td style="padding:5px 0;text-align:right;font-weight:700;color:#166534;">${reponses.semaine}</td><td colspan="2" style="padding:5px 0;text-align:right;color:#9ca3af;font-size:11px;">le seul qui compte vraiment</td></tr>` : ''}
         </table>
         <div style="font-size:11px;color:#6b7280;margin-top:10px;line-height:1.55;border-top:1px solid #e5e7eb;padding-top:8px;">
