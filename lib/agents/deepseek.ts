@@ -143,11 +143,22 @@ export async function callDeepSeek(opts: {
     const { logApiCost } = await import('@/lib/admin/api-cost-logger');
     const usage = data?.usage || {};
     const ctx = contexteCoutActuel();
-    // Tarif à confirmer dans la console ARK : on journalise les tokens même
-    // sans prix certain, plutôt que de ne rien journaliser. Un coût approché
-    // et visible vaut mieux qu'un coût exact et absent.
-    const PRIX_M_USD = Number(process.env.DEEPSEEK_PRIX_M_USD || 0.4);
-    const coutUsd = ((usage.prompt_tokens || 0) + (usage.completion_tokens || 0)) / 1e6 * PRIX_M_USD;
+    /**
+     * Le tarif publié par BytePlus, entrée et sortie séparées.
+     *
+     * La première version appliquait un prix unique de 0,40 $/M faute de mieux.
+     * C'était commode et faux : chez DeepSeek l'entrée et la sortie ne coûtent
+     * pas la même chose, et c'est justement l'écart qui rend le modèle
+     * intéressant. Lire nos briefs, qui sont longs, coûte peu (0,28 $/M) ;
+     * écrire, qui est court, coûte peu aussi (0,42 $/M). Chez Gemini Flash la
+     * sortie est à 2,50 $/M — six fois plus.
+     *
+     * Un prix moyen aurait masqué exactement ce qu'on veut suivre.
+     */
+    const PRIX_ENTREE = Number(process.env.DEEPSEEK_PRIX_ENTREE_USD || 0.28);
+    const PRIX_SORTIE = Number(process.env.DEEPSEEK_PRIX_SORTIE_USD || 0.42);
+    const coutUsd = (usage.prompt_tokens || 0) / 1e6 * PRIX_ENTREE
+      + (usage.completion_tokens || 0) / 1e6 * PRIX_SORTIE;
     await logApiCost({
       provider: 'ark',
       kind: MODELE_DEEPSEEK,
@@ -160,7 +171,7 @@ export async function callDeepSeek(opts: {
         tokens_entree: usage.prompt_tokens ?? 0,
         tokens_sortie: usage.completion_tokens ?? 0,
         ms: Date.now() - debut,
-        prix_estime: true,
+        prix_publie: true,
         origine: ctx.origine ?? null,
       },
     }).catch(() => {});
