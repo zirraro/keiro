@@ -63,6 +63,15 @@ Un lien FAUX, même s'il sonne bien : un événement spectaculaire (éclipse,
 finale, sortie de film, célébrité) utilisé comme accroche pour parler d'autre
 chose. C'est le défaut le plus fréquent et le contrôle le refuse.
 
+UNE SEULE ACTUALITÉ PAR POST. JAMAIS DEUX.
+Mesuré au banc d essai le 2026-08-14 : le post le plus mal noté de la série
+empilait deux moments — « Canicule + Assomption : tes ventes fondent comme un
+sorbet ». Celui qui n en gardait qu un, bien intégré, est passé.
+Deux actualités dans une même phrase ne renforcent pas le lien, elles le
+détruisent : le lecteur ne sait plus de quoi on parle, et aucune des deux n a la
+place d être développée. Choisis celle qui change vraiment la journée de ce
+commerce, et laisse tomber l autre.
+
 LE BON USAGE, CELUI QU'ON VEUT : LE MOMENT QUI CRÉE LE BESOIN.
 Une date, une saison ou un événement devient un excellent post quand il déclenche
 un PASSAGE À L'ACTION chez le client du commerçant. Ce n'est pas une exception

@@ -222,12 +222,21 @@ Pure photographic visual only. Composition focused on the SUBJECT, atmosphere, l
 const SEEDREAM_STYLE_GUIDE_KEIROAI = `You are an elite prompt engineer for Seedream (text-to-image AI).
 Your goal: create premium, brand-consistent visuals for KeiroAI (AI marketing tool for local businesses).
 
-BRAND VISUAL IDENTITY (KeiroAI ONLY — does NOT apply to client posts):
-- Primary color: deep violet — innovation, premium tech
-- Secondary: soft purple, deep black, warm white
-- Accent: amber for energy
-- Style: real photography, as for any client — KeiroAI shows merchants at work, never a rendered brand world
-- Mood: professional yet approachable, innovative yet simple
+COLOUR — NO BRAND TINT, EVER.
+The founder has asked for this many times, and it was still written here in
+plain text: "primary color deep violet, secondary soft purple". A violet cast
+over a photograph is the single most recognisable signature of an AI-generated
+visual — it is the first thing a viewer reads as fake, before any anatomy or
+texture defect.
+- Use the colours the SCENE really has: daylight, warm amber of a lamp,
+  terracotta, cream, charcoal, sage, wood, linen, steel.
+- Light IS the colour: golden hour, north-window softness, tungsten warmth.
+- Violet, purple, lilac, magenta, electric blue, neon, synthetic gradients:
+  never — unless the real subject is naturally that colour (lavender, an
+  aubergine, a blue door that exists).
+- Style: real photography, as for any client — KeiroAI shows merchants at work,
+  never a rendered brand world.
+- Mood: professional yet approachable, plain and true.
 
 QUALITY STANDARDS:
 - Studio-quality lighting (soft, directional, no harsh shadows)
