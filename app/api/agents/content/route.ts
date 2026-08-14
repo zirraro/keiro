@@ -4464,6 +4464,42 @@ async function POSTInterne(request: NextRequest) {
         if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
         const { data: p } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
         if (!p) return NextResponse.json({ ok: false, error: 'Post introuvable' }, { status: 404 });
+        // ── Réparation automatique, à la demande ──
+        //
+        // Fondateur, 2026-08-14 : « il faut absolument réparer en auto, et
+        // publier une fois le contrôle passé. »
+        //
+        // Le même code que la publication, appelé depuis le même module : deux
+        // implémentations de la réparation finiraient par diverger, comme les
+        // deux prompts, le juge et la musique cette semaine.
+        if (body.reparer === true) {
+          const { reparerJusquAuNiveau } = await import('@/lib/qualite/boucle-reparation');
+          const r = await reparerJusquAuNiveau(supabase, {
+            id: p.id, user_id: p.user_id, hook: p.hook, caption: p.caption,
+            hashtags: p.hashtags as any, visual_url: p.visual_url, video_url: p.video_url,
+            platform: body.platform || p.platform, format: p.format,
+            business_type: (p as any).business_type || null,
+          }, {
+            genererVisuel: (brief, format, texte) =>
+              generateVisual(brief, format, p.user_id || undefined, p.platform, null, false, null, texte),
+          });
+          // On enregistre la version réparée : sans ça, la publication qui suit
+          // repartirait de la version défectueuse et tout le travail serait perdu.
+          if (r.hook !== p.hook || r.caption !== p.caption || r.visualUrl !== p.visual_url) {
+            await supabase.from('content_calendar').update({
+              hook: r.hook, caption: r.caption, visual_url: r.visualUrl,
+              publish_diagnostic: `qc_repare: ${r.note}/10 en ${r.essais} essai(s)`,
+              updated_at: new Date().toISOString(),
+            }).eq('id', p.id);
+          }
+          return NextResponse.json({
+            ok: true, simulation: true, reparation: true,
+            publiable: r.publiable, note: r.note,
+            essai_gagnant: r.essaiGagnant, essais: r.essais, journal: r.journal,
+            format: p.format, reseau: p.platform, accroche: r.hook,
+          });
+        }
+
         try {
           const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
           const v = await controlerAvantPublication(supabase, {

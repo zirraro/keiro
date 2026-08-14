@@ -89,10 +89,22 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
+      // ── On mesure la CHAÎNE COMPLÈTE, pas le premier jet ──
+      //
+      // Fondateur, 2026-08-14 : « 3 sur 4 passent du premier coup, mais ça veut
+      // dire qu'on a réessayé pour un post — est-ce que ça s'est bien passé, au
+      // 2e essai si c'est un reel, jusqu'au 3e si c'est une image ? Il faut bien
+      // savoir ça, car de toute façon on doit délivrer, jamais rester sur un
+      // échec. »
+      //
+      // Le banc ne mesurait que le premier essai : il disait « 3 sur 4 passent »
+      // sans jamais dire ce qu'il advenait du quatrième. Or c'est précisément la
+      // question — le taux qui compte n'est pas celui du premier jet, c'est
+      // celui de ce que le client reçoit AU BOUT.
       const c = await fetch(`${base}/api/agents/content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-        body: JSON.stringify({ action: 'controler', postId: post.id }),
+        body: JSON.stringify({ action: 'controler', postId: post.id, reparer: true }),
       });
       const v = await c.json().catch(() => ({}));
 
@@ -105,6 +117,9 @@ export async function GET(req: NextRequest) {
         note: (v as any).note ?? null,
         publiable: !!(v as any).publiable,
         motifs: ((v as any).motifs || []).map((m: string) => String(m).slice(0, 160)),
+        essai_gagnant: (v as any).essai_gagnant ?? null,
+        essais: (v as any).essais ?? 1,
+        journal: (v as any).journal || [],
         secondes: Math.round((Date.now() - debut) / 1000),
       });
     } catch (err: any) {
