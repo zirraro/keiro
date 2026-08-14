@@ -12,7 +12,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export interface BlogMatch { title: string; slug: string; excerpt?: string }
+export interface BlogMatch { title: string; slug: string; excerpt?: string; content?: string }
 
 /** Mots-clés métier → aide au matching des slugs/keywords d'articles. */
 function typeTokens(type: string | null | undefined): string[] {
@@ -52,7 +52,7 @@ export async function pickBlogArticleForType(
   for (const tok of tokens) {
     const { data } = await supabase
       .from('blog_posts')
-      .select('title, slug, excerpt')
+      .select('title, slug, excerpt, content')
       .eq('status', 'published')
       .ilike('slug', `%${tok}%`)
       .order('published_at', { ascending: false })
@@ -64,7 +64,7 @@ export async function pickBlogArticleForType(
   for (const tok of tokens) {
     const { data } = await supabase
       .from('blog_posts')
-      .select('title, slug, excerpt')
+      .select('title, slug, excerpt, content')
       .eq('status', 'published')
       .ilike('keywords_primary', `%${tok}%`)
       .order('published_at', { ascending: false })
@@ -86,14 +86,66 @@ export async function pickBlogArticleForType(
  * Bloc HTML élégant "guide complet" à injecter dans un mail (valeur gratuite).
  * Teaser + lien vers l'article complet sur le blog + accroche essai.
  */
+/**
+ * Le début de l'article DANS le mail, et le bouton qui mène au reste.
+ *
+ * ── Pourquoi ──
+ *
+ * Fondateur, 2026-08-13 : « plutôt que de mettre un lien du blog en bas,
+ * peut-être qu'on peut mettre 1/3 du blog dans le mail avec un bouton
+ * "continuer la lecture de l'article", et ça amène sur Keiro pour lire. »
+ *
+ * Le bloc précédent montrait 140 caractères de résumé et un lien. Un lien
+ * demande un acte de foi : le lecteur doit cliquer pour savoir si ça vaut le
+ * coup. Un tiers d'article ne demande rien — il donne d'abord, et le clic vient
+ * parce que la lecture a commencé et qu'on veut la finir.
+ *
+ * C'est aussi la seule façon de rendre le clic MESURABLE comme un signal
+ * d'intérêt : quelqu'un qui clique après avoir lu trois paragraphes est
+ * réellement intéressé par le sujet, là où un clic sur un titre peut n'être que
+ * de la curiosité.
+ *
+ * ── Pourquoi un tiers, et pas la moitié ──
+ *
+ * Assez pour que le conseil ait commencé à servir, assez peu pour que la suite
+ * garde de la valeur. Au-delà, plus personne ne clique : on a tout donné.
+ */
+function premierTiers(contenu: string, mots = 180): string {
+  const texte = String(contenu || '')
+    .replace(/<[^>]*>/g, ' ')          // le HTML du blog ne s'invite pas dans le mail
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!texte) return '';
+  const tous = texte.split(' ');
+  const tiers = Math.min(mots, Math.max(60, Math.floor(tous.length / 3)));
+  let extrait = tous.slice(0, tiers).join(' ');
+  // On coupe à une fin de phrase quand il y en a une à portée : une phrase
+  // tranchée au milieu donne l'impression d'un mail cassé, pas d'un extrait.
+  const dernierPoint = extrait.lastIndexOf('. ');
+  if (dernierPoint > extrait.length * 0.6) extrait = extrait.slice(0, dernierPoint + 1);
+  return extrait;
+}
+
 export function blogValueBlockHtml(article: BlogMatch): string {
   const url = `https://keiroai.com/blog/${article.slug}`;
-  const teaser = (article.excerpt || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 140);
-  return `<div style="margin:18px 0;padding:16px 18px;background:#f8fafc;border:1px solid #e5e7eb;border-left:3px solid #0c1a3a;border-radius:8px;">
-<div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Guide gratuit</div>
-<a href="${url}" style="font-size:15px;font-weight:bold;color:#0c1a3a;text-decoration:none;">${article.title}</a>
-${teaser ? `<div style="font-size:13px;color:#555;margin-top:6px;line-height:1.5;">${teaser}…</div>` : ''}
-<a href="${url}" style="display:inline-block;margin-top:10px;font-size:13px;color:#0c1a3a;font-weight:600;text-decoration:none;">Lire le guide complet →</a>
+  const extrait = premierTiers(article.content || article.excerpt || '');
+  const paragraphes = extrait
+    .split(/(?<=\.)\s+(?=[A-ZÀ-Ü])/)
+    .reduce((acc: string[], phrase, i) => {
+      // Deux phrases par paragraphe : un pavé ne se lit pas dans un mail.
+      const idx = Math.floor(i / 2);
+      acc[idx] = (acc[idx] ? acc[idx] + ' ' : '') + phrase;
+      return acc;
+    }, [])
+    .map(par => `<p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:#374151;">${par}</p>`)
+    .join('');
+
+  return `<div style="margin:22px 0;padding:20px 22px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;">
+<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Guide gratuit</div>
+<div style="font-size:17px;font-weight:700;color:#0c1a3a;line-height:1.35;margin-bottom:12px;">${article.title}</div>
+${paragraphes || `<p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:#374151;">${(article.excerpt || '').slice(0, 200)}</p>`}
+<a href="${url}" style="display:inline-block;margin-top:6px;padding:11px 20px;background:#0c1a3a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:7px;">Continuer la lecture →</a>
 </div>`;
 }
 
