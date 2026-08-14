@@ -1188,6 +1188,7 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
     // org_agent_configs.config.<agent>_directives for THIS client,
     // and to global_agent_directives for all clients of the same
     // business_type when Sonnet judges the rule generalizable.
+    let questionEcheance = '';
     try {
       const { extractDirective, persistDirective } = await import('@/lib/agents/extract-directive');
       const { data: dossier } = await supabase
@@ -1208,7 +1209,19 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
           directive,
           businessType: dossier?.business_type || undefined,
         });
-        console.log(`[ClientChat] Directive captured for ${agent_id}: "${directive.text.slice(0, 60)}..." (scope=${directive.scope})`);
+        console.log(`[ClientChat] Directive captured for ${agent_id}: "${directive.text.slice(0, 60)}..." (scope=${directive.scope}, portée=${directive.portee || "?"})`);
+        // ── On DEMANDE la durée au lieu de la deviner ──
+        //
+        // Fondateur, 2026-08-14 : « demande aussi dans le chat si c est
+        // temporaire, la temporalité, et inscris-la ainsi. »
+        //
+        // Une échéance devinée est une échéance fausse, et le client ne saura
+        // jamais qu elle existe : il verra son contenu changer sans comprendre,
+        // ou revenir en arrière sans prévenir. Une question d une ligne règle
+        // ça, et elle montre au passage qu on a bien noté sa demande.
+        if ((directive as any).echeance_a_confirmer) {
+          questionEcheance = ` Au fait, cette consigne vaut jusqu à quand ? Je l ai notée comme temporaire — dis-moi la date ou la durée et je l inscris précisément.`;
+        }
 
         // AMI ORCHESTRATION: when the chat is with AMI (marketing
         // agent), the directive must also propagate to the
@@ -1285,7 +1298,7 @@ Rends UNIQUEMENT le document, en markdown, sans préambule ni commentaire. Laiss
     // Le contrôle ne se déclenche QUE sur une réponse assez longue pour être un
     // document. Juger chaque message conversationnel doublerait le coût du chat
     // pour rien : « oui, je m'en occupe » n'a pas besoin d'un relecteur.
-    let reponse = reply;
+    let reponse = reply + questionEcheance;
     if ((agent_id === 'rh' || agent_id === 'comptable') && String(reply || '').length > 800) {
       try {
         const { controlerSortie } = await import('@/lib/qualite/controle-sortie');

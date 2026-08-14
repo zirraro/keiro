@@ -8171,7 +8171,27 @@ preuve : c'est la le contenu qui le fait vendre, pas un evenement du jour.
   // The legacy key was 'content_directives'; the new extractor writes
   // to '<agent>_directives' = 'content_directives' (same name for
   // content agent), so they merge naturally.
-  const clientDirectives: string[] = (clientSettings as any).content_directives || [];
+  // ── Une règle temporaire cesse de s appliquer à son échéance ──
+  //
+  // Fondateur, 2026-08-14 : « bien faire la distinction entre il demande quelque
+  // chose de permanent et de temporaire. »
+  //
+  // Sans ce filtre, « cette semaine mets des photos de mon équipe » resterait
+  // appliqué des mois — le client verrait son contenu déformé sans comprendre
+  // pourquoi, et personne ne penserait à regarder une directive posée en août.
+  //
+  // Les échéances sont notées à côté de la liste, indexées par le texte de la
+  // règle. Une directive sans échéance est permanente et ne bouge pas.
+  const echeancesDirectives: Record<string, string> = (clientSettings as any).content_directives_echeance || {};
+  const aujourdhuiISO = new Date().toISOString().slice(0, 10);
+  const clientDirectives: string[] = ((clientSettings as any).content_directives || [])
+    .filter((d: string) => {
+      const fin = echeancesDirectives[d];
+      if (!fin) return true;                     // permanente
+      const encoreValable = fin >= aujourdhuiISO;
+      if (!encoreValable) console.log(`[Content] directive temporaire échue le ${fin}, ignorée : ${String(d).slice(0, 60)}`);
+      return encoreValable;
+    });
 
   // Cross-client directives — patterns extracted from OTHER clients of
   // the same business_type that translated to durable rules. Applied

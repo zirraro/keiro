@@ -24,6 +24,23 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type ExtractedDirective = {
   text: string;          // the rule to persist (1-2 sentences)
   scope: 'this_client' | 'business_type';   // who should benefit
+  /**
+   * Permanente ou temporaire.
+   *
+   * Une règle temporaire posée comme permanente déforme le contenu pendant des
+   * mois sans que personne ne sache pourquoi. C'est le genre de défaut qu'on ne
+   * retrouve jamais, parce qu'il ressemble à une préférence assumée.
+   */
+  portee?: 'permanente' | 'temporaire';
+  /** Date de fin d'une règle temporaire. Null quand elle est permanente. */
+  valable_jusqu_au?: string | null;
+  /**
+   * Vrai quand la règle est temporaire mais que le client n'a pas dit jusqu'à
+   * quand. On lui pose alors la question dans la réponse du chat, au lieu de
+   * choisir une durée à sa place — une échéance devinée est une échéance fausse,
+   * et il ne saura jamais qu'elle existe.
+   */
+  echeance_a_confirmer?: boolean;
   category: 'visual' | 'tone' | 'audience' | 'frequency' | 'platform' | 'overlay' | 'other';
 };
 
@@ -65,10 +82,37 @@ OUTPUT — STRICT JSON:
   "extracted": true,
   "text": "<the rule rephrased as a clear durable instruction in ${lang === 'fr' ? 'French' : 'English'}, 1-2 sentences>",
   "scope": "this_client" | "business_type",
-  "category": "visual" | "tone" | "audience" | "frequency" | "platform" | "overlay" | "other"
+  "category": "visual" | "tone" | "audience" | "frequency" | "platform" | "overlay" | "other",
+  "portee": "permanente" | "temporaire",
+  "valable_jusqu_au": "AAAA-MM-JJ ou null"
 }
 OR if nothing to extract:
 { "extracted": false }
+
+PORTÉE — LA DISTINCTION LA PLUS IMPORTANTE.
+Le fondateur, 2026-08-14 : « bien faire la distinction entre il demande quelque
+chose de permanent et de temporaire. »
+
+Confondre les deux fait des dégâts dans les deux sens. Graver « mets une photo
+de mon équipe » comme règle permanente parce que le client l'a dit une fois,
+c'est lui imposer pour des mois ce qu'il voulait une semaine. À l'inverse,
+traiter « ne montre jamais mon visage » comme une lubie passagère, c'est le
+trahir au troisième post.
+
+· "permanente" — la règle décrit comment travailler POUR TOUJOURS. Marqueurs :
+  « toujours », « jamais », « à partir de maintenant », « je ne veux plus »,
+  « en général », ou une préférence de fond sans échéance.
+· "temporaire" — la demande vaut pour une période ou une occasion. Marqueurs :
+  « cette semaine », « pour ce post », « jusqu'à dimanche », « pendant les
+  travaux », « en août », « le temps que ».
+
+Dans le doute, choisis "temporaire" : une règle temporaire qui aurait dû être
+permanente se redemande en une phrase ; une règle permanente posée par erreur
+se découvre des semaines plus tard, après avoir déformé tout le contenu.
+
+"valable_jusqu_au" : la date de fin quand elle est calculable depuis
+aujourd'hui (2026-08-14). Sinon null — et la règle
+temporaire vaudra trente jours par défaut.
 
 scope = "business_type" only when the rule is general enough that ALL clients of the same business type would benefit (e.g. "restaurants should always show plate composition with real ingredients"). Default to "this_client".
 
@@ -99,6 +143,20 @@ JSON only. No preamble.`;
     return {
       text: parsed.text.slice(0, 280),
       scope: parsed.scope === 'business_type' ? 'business_type' : 'this_client',
+      portee: parsed.portee === 'permanente' ? 'permanente' : 'temporaire',
+      // Le client a-t-il DIT jusqu à quand ? Si non, on le lui demandera plutôt
+      // que de deviner. Fondateur, 2026-08-14 : « demande aussi dans le chat si
+      // c est temporaire, la temporalité, et inscris-la ainsi. »
+      echeance_a_confirmer: parsed.portee !== 'permanente'
+        && !/^d{4}-d{2}-d{2}$/.test(String(parsed.valable_jusqu_au || '')),
+      valable_jusqu_au: /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.valable_jusqu_au || ''))
+        ? parsed.valable_jusqu_au
+        : (parsed.portee === 'permanente'
+            ? null
+            // Sans échéance dite, une demande temporaire vaut un mois : assez
+            // pour couvrir « cette semaine » ou « pendant les travaux », assez
+            // court pour ne pas devenir une règle par oubli.
+            : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)),
       category: ['visual', 'tone', 'audience', 'frequency', 'platform', 'overlay', 'other'].includes(parsed.category)
         ? parsed.category
         : 'other',
@@ -136,9 +194,27 @@ export async function persistDirective(
     const existing: string[] = (cfg?.config as any)?.[directiveKey] || [];
     if (!existing.includes(input.directive.text)) {
       const next = [...existing, input.directive.text].slice(-30);   // cap at 30
+
+      // ── L échéance vit à côté, pour ne pas casser les lecteurs ──
+      //
+      // Les directives sont une simple liste de textes, lue par plusieurs
+      // agents. Y glisser une date changerait ce que voit le modèle et
+      // demanderait de toucher chaque lecteur. On garde donc la liste intacte
+      // et on note les échéances dans une table à côté, indexée par le texte.
+      //
+      // Un lecteur qui ignore cette table se comporte comme avant : la règle
+      // temporaire reste appliquée. Un lecteur à jour l écarte à l échéance.
+      // Aucune régression possible, l amélioration est progressive.
+      const cleEcheances = `${input.agentId}_directives_echeance`;
+      const echeances = { ...(((cfg?.config as any) || {})[cleEcheances] || {}) };
+      if (input.directive.portee === 'temporaire' && input.directive.valable_jusqu_au) {
+        echeances[input.directive.text] = input.directive.valable_jusqu_au;
+      }
+
       const newConfig = {
         ...((cfg?.config as any) || {}),
         [directiveKey]: next,
+        [cleEcheances]: echeances,
       };
       if (cfg?.id) {
         await supabase
