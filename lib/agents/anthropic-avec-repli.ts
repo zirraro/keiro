@@ -51,7 +51,8 @@ export interface ReponseAnthropic {
   content: Array<{ type: string; text?: string; name?: string; input?: any }>;
   usage?: { input_tokens?: number; output_tokens?: number };
   /** Qui a effectivement répondu — pour les journaux, jamais pour la logique. */
-  __fournisseur?: 'anthropic' | 'gemini';
+  /** 'ark' = DeepSeek, l'étage texte intercalé quand Claude n'est pas là. */
+  __fournisseur?: 'anthropic' | 'gemini' | 'ark';
   __motifRepli?: string;
 }
 
@@ -162,14 +163,68 @@ export async function appelerModele(
     }
   }
 
-  // ── 2. Gemini ──
-  const cleG = process.env.GEMINI_API_KEY;
-  if (!cleG) {
-    console.error(`[modele] ${etiquette} — aucun modèle disponible (ni Anthropic ni Gemini)`);
-    return null;
+  const outil = Array.isArray(corps.tools) && corps.tools.length ? corps.tools[0] : null;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── 2. DeepSeek, mais seulement quand la demande est du TEXTE PUR ──
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Ce chemin de repli était le dernier à échapper au basculement : 43 appels
+  // en une journée, tous rangés sous « system / llm », tous partis chez Gemini
+  // alors qu'ils auraient pu bénéficier du meilleur suivi de consigne.
+  //
+  // ── L'arbitrage, et ce qui le fonde ──
+  //
+  // · TEXTE SEUL → DeepSeek. Mesuré sur sept tâches réelles : 14/14 conformes
+  //   contre 10/14, à coût inférieur. Les échecs de Gemini sont des refus
+  //   d'obéir (trois phrases là où deux sont demandées, une formule bannie),
+  //   pas des maladresses.
+  //
+  // · IMAGE dans la demande → Gemini, sans discussion. DeepSeek v3.2 est
+  //   texte seul : il ne verrait rien et noterait au hasard. Et parmi les
+  //   modèles de vision de ByteDance, Gemini reste le plus discriminant au
+  //   banc (notes de 6 à 10, quand seed-2-0-lite ne descend jamais sous 8) et
+  //   cinq fois plus rapide.
+  //
+  // · JSON IMPOSÉ PAR SCHÉMA → Gemini. Le catalogue du fournisseur est formel
+  //   pour deepseek-v3-2 : `structured_outputs: { json_object: false,
+  //   json_schema: false }`. Lui confier un verdict au format imposé, c'est
+  //   accepter qu'il rende parfois autre chose — et un contrôle qualité dont
+  //   la réponse ne se lit pas est pire qu'un contrôle absent.
+  //
+  // Autrement dit : on ne bascule pas là où le modèle « pourrait passer », on
+  // bascule là où il est objectivement meilleur.
+  const contientImage = (corps.messages || []).some((m: any) =>
+    Array.isArray(m.content) && m.content.some((c: any) => c?.type === 'image'));
+
+  if (!contientImage && !outil) {
+    try {
+      const { callDeepSeek, deepseekDisponible } = await import('./deepseek');
+      if (deepseekDisponible()) {
+        const texte = await callDeepSeek({
+          system: texteSysteme(corps.system),
+          message: (corps.messages || [])
+            .map((m: any) => (Array.isArray(m.content)
+              ? m.content.filter((c: any) => c?.type === 'text').map((c: any) => c.text).join('\n')
+              : String(m.content ?? '')))
+            .join('\n\n'),
+          maxTokens: corps.max_tokens || 2000,
+        });
+        // On rend la forme Anthropic que les appelants savent lire : le repli
+        // ne doit rien changer pour eux.
+        return { content: [{ type: 'text', text: texte }], __fournisseur: 'ark' };
+      }
+    } catch (e: any) {
+      console.warn(`[modele] ${etiquette} — DeepSeek indisponible (${e?.message?.slice(0, 120)}) — repli Gemini`);
+    }
   }
 
-  const outil = Array.isArray(corps.tools) && corps.tools.length ? corps.tools[0] : null;
+  // ── 3. Gemini ──
+  const cleG = process.env.GEMINI_API_KEY;
+  if (!cleG) {
+    console.error(`[modele] ${etiquette} — aucun modèle disponible`);
+    return null;
+  }
 
   try {
     const res = await fetch(
