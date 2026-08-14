@@ -728,6 +728,12 @@ export async function GET(req: NextRequest) {
       <div style="font-size:12px;color:#7f1d1d;margin-top:2px;">${d.detail}</div>
     </div>`).join('');
 
+  // Suivi prospection (ouvertures / clics) — bloc partagé avec le digest du
+  // soir. Fondateur 2026-08-14 : il veut ces chiffres dans le mail quotidien,
+  // pas au fond de la base.
+  const { blocSuiviProspection } = await import('@/lib/agents/suivi-prospection');
+  const prospectionHtml = await blocSuiviProspection(supabase);
+
   const adminHtml = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
     <div style="background:#0c1a3a;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0;">
       <h2 style="margin:0;font-size:18px;">☀️ Service Health — Rapport matin</h2>
@@ -759,6 +765,8 @@ export async function GET(req: NextRequest) {
       ${creditAlerts.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:16px 0 8px;">💳 Crédits & budgets externes</h3>${creditBlocks}` : ''}
       ${tokenIssues.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:20px 0 8px;">🔌 Tokens & connexions</h3>${tokenBlocks}` : ''}
       ${failures.length > 0 ? `<h3 style="font-size:14px;color:#374151;margin:20px 0 8px;">⚙️ Erreurs d'exécution d'agents (12h)</h3>${failureBlocks}` : ''}
+
+      ${prospectionHtml}
 
       <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px;border-radius:8px;margin-top:18px;">
         <strong style="color:#166534;font-size:12px;">📋 Workflow</strong>

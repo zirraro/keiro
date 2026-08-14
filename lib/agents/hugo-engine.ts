@@ -17,6 +17,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Events } from './event-bus';
 import { saveKnowledge } from './knowledge-rag';
 import { getAgentKnowledgeContext } from './knowledge-rag';
+import { consignerActivite } from '@/lib/crm/journal';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -291,7 +292,7 @@ export async function handleReply(
       }).eq('id', reply.prospect_id);
 
       // CRM activity
-      await supabase.from('crm_activities').insert({
+      await consignerActivite(supabase, {
         prospect_id: reply.prospect_id, type: 'email_replied',
         description: `Reponse ${analysis.sentiment} (${Math.round(analysis.score * 100)}%) — brouillon cree`,
         data: { sentiment: analysis.sentiment, score: analysis.score, action: 'draft_created', key_points: analysis.key_points },
@@ -333,7 +334,7 @@ export async function handleReply(
         temperature: 'hot', status: 'demo', updated_at: now,
       }).eq('id', reply.prospect_id);
 
-      await supabase.from('crm_activities').insert({
+      await consignerActivite(supabase, {
         prospect_id: reply.prospect_id, type: 'email_replied',
         description: `RDV demande ! Sequence stoppee. Client notifie en urgence.`,
         data: { sentiment: 'meeting_request', urgency: 'urgent' },
@@ -370,7 +371,7 @@ export async function handleReply(
         });
 
         // CRM
-        await supabase.from('crm_activities').insert({
+        await consignerActivite(supabase, {
           prospect_id: reply.prospect_id, type: 'email',
           description: `HUGO a repondu automatiquement (neutral, autonomy ${client.autonomy_level})`,
           data: { auto_reply: true, sentiment: 'neutral' },
@@ -414,7 +415,7 @@ export async function handleReply(
         temperature: 'dead', status: 'perdu', email_sequence_status: 'stopped', updated_at: now,
       }).eq('id', reply.prospect_id);
 
-      await supabase.from('crm_activities').insert({
+      await consignerActivite(supabase, {
         prospect_id: reply.prospect_id, type: 'email_replied',
         description: `Reponse negative — prospect archive, sequence stoppee`,
         data: { sentiment: 'negative' },

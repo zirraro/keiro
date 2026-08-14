@@ -14,6 +14,7 @@ import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { pickRegister } from '@/lib/agents/tone-register';
 
 import { sendBrevoCompat } from '@/lib/email/brevo-compat';
+import { consignerActivite } from '@/lib/crm/journal';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -1394,7 +1395,7 @@ async function sendEmail(
       }
     }
 
-    await supabase.from('crm_activities').insert({
+    await consignerActivite(supabase, {
       prospect_id: prospect.id,
       type: 'email',
       description: `Email step ${step} envoyé: "${template.subject}"`,

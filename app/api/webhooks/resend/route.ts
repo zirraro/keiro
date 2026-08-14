@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { consignerActivite } from '@/lib/crm/journal';
 
 export const runtime = 'nodejs';
 
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
     await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
 
     // Log activity
-    await supabase.from('crm_activities').insert({
+    await consignerActivite(supabase, {
       prospect_id: prospect.id,
       type: `email_${eventType.replace('email.', '')}`,
       description: `Email ${eventType.replace('email.', '')}: ${subject || email}`,

@@ -648,6 +648,14 @@ export async function sendAdminDailyDigest(
     return `<tr style="${silent ? 'background:#fef3c7;' : ''}"><td style="padding:4px 8px;font-size:11px;${silent ? 'color:#92400e;font-weight:bold;' : ''}">${esc(a.agent)}${silent ? ' ⚠️' : ''}</td><td style="padding:4px 8px;font-size:11px;text-align:right;font-weight:bold;">${a.delivered > 0 ? `${a.delivered} <span style="color:#6b7280;font-weight:normal;">${esc(a.unit)}</span>` : '—'}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${silent ? '#d97706' : '#9ca3af'};">${a.runs}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${a.errors > 0 ? '#ef4444' : '#22c55e'};">${a.errors}</td><td style="padding:4px 8px;font-size:10px;color:#6b7280;">${esc(a.last_action).substring(0, 30)}</td></tr>`;
   }).join('');
 
+  // ─── Section: Prospection (ouvertures / clics) ────────────────────
+  // Fondateur 2026-08-14 : le suivi ouverture + clic doit apparaître dans le
+  // mail quotidien, pas seulement dans la base. Bloc partagé avec le rapport du
+  // matin — une seule implémentation, sinon les deux mails afficheraient des
+  // chiffres différents pour la même chose le même jour.
+  const { blocSuiviProspection } = await import('@/lib/agents/suivi-prospection');
+  const prospectionHtml = await blocSuiviProspection(supabase);
+
   const downCount = agentsDown.filter(a => a.status === 'down').length;
   const p0Count = healthCauses.filter(c => c.severity === 'P0').length;
   const p1Count = healthCauses.filter(c => c.severity === 'P1').length;
@@ -721,6 +729,8 @@ export async function sendAdminDailyDigest(
           ${issuesHtml}
 
           ${quickWinsHtml}
+
+          ${prospectionHtml}
 
           <h3 style="color:#111;font-size:14px;margin:24px 0 8px;">Tous les agents (silencieux en ambre ⚠️)</h3>
           <table style="width:100%;border-collapse:collapse;font-size:11px;">

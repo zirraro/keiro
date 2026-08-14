@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { consignerActivite } from '@/lib/crm/journal';
 import {
   classifyInbound,
   loadReplyContext,
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
                   source: 'prospect_reply',
                 }, { onConflict: 'client_id,email' });
               }
-              await supabase.from('crm_activities').insert({
+              await consignerActivite(supabase, {
                 prospect_id: m.id,
                 type: 'email_replied',
                 description: `Désabonnement détecté via "${normalized.from_email}" (sujet "${subj.substring(0, 80)}") — prospect marqué dead`,
@@ -203,7 +204,7 @@ export async function POST(req: NextRequest) {
       reason: 'unsubscribe',
       source: 'prospect_reply',
     }, { onConflict: 'client_id,email' });
-    await supabase.from('crm_activities').insert({
+    await consignerActivite(supabase, {
       prospect_id: prospect.id,
       type: 'email_replied',
       description: 'Demande de désabonnement — blacklisté',
@@ -226,7 +227,7 @@ export async function POST(req: NextRequest) {
       email_sequence_status: 'stopped',
       updated_at: now,
     }).eq('id', prospect.id);
-    await supabase.from('crm_activities').insert({
+    await consignerActivite(supabase, {
       prospect_id: prospect.id,
       type: 'email_replied',
       description: 'Réponse négative — séquence stoppée',
@@ -256,7 +257,7 @@ export async function POST(req: NextRequest) {
 
   if (!drafted) {
     // Couldn't generate — surface for the human without staying silent.
-    await supabase.from('crm_activities').insert({
+    await consignerActivite(supabase, {
       prospect_id: prospect.id,
       type: 'email_replied',
       description: `Réponse reçue mais Hugo n'a pas pu drafter — à regarder à la main`,
@@ -319,7 +320,7 @@ export async function POST(req: NextRequest) {
       updated_at: now,
     }).eq('id', prospect.id);
 
-    await supabase.from('crm_activities').insert({
+    await consignerActivite(supabase, {
       prospect_id: prospect.id,
       type: 'email_replied',
       description: draftResult.drafted
@@ -403,7 +404,7 @@ export async function POST(req: NextRequest) {
     updated_at: now,
   }).eq('id', prospect.id);
 
-  await supabase.from('crm_activities').insert({
+  await consignerActivite(supabase, {
     prospect_id: prospect.id,
     type: 'email_replied',
     description: sent

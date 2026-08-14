@@ -6,6 +6,7 @@ import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { Events } from '@/lib/agents/event-bus';
 import { analyzeSentiment, handleReply as hugoHandleReply, isBlacklisted } from '@/lib/agents/hugo-engine';
 import { saveLearning } from '@/lib/agents/learning';
+import { consignerActivite } from '@/lib/crm/journal';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', prospect.id);
 
-          await supabase.from('crm_activities').insert({
+          await consignerActivite(supabase, {
             prospect_id: prospect.id,
             type: 'email_opened',
             description: `Email step ${step} ouvert (+${scoreBonus} score) — ${opensCount} ouvertures total`,
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', prospect.id);
 
-          await supabase.from('crm_activities').insert({
+          await consignerActivite(supabase, {
             prospect_id: prospect.id,
             type: 'email_clicked',
             description: `Lien clique dans email step ${prospect.email_sequence_step ?? 1} (+${clickScoreBonus} score) — ${clicksCount} clics total`,
@@ -264,7 +265,7 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', prospect.id);
 
-          await supabase.from('crm_activities').insert({
+          await consignerActivite(supabase, {
             prospect_id: prospect.id,
             type: 'email_bounced',
             description: `Hard bounce pour ${prospect.email}`,
@@ -351,7 +352,7 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          await supabase.from('crm_activities').insert({
+          await consignerActivite(supabase, {
             prospect_id: prospect.id,
             type: `email_${eventType}`,
             description: `${eventType} pour ${prospect.email}${retried ? ' — renvoye via Resend' : ''}`,
@@ -395,7 +396,7 @@ export async function POST(request: NextRequest) {
             // upsert errors are non-fatal: prospect record is already flipped above
           }
 
-          await supabase.from('crm_activities').insert({
+          await consignerActivite(supabase, {
             prospect_id: prospect.id,
             type: `email_${eventType}`,
             description: `${eventType === 'unsubscribed' ? 'Desabonnement' : eventType === 'spam' ? 'Signale spam' : 'Plainte'} pour ${prospect.email}`,
@@ -533,7 +534,7 @@ ${replyContent.substring(0, 2000)}
 
           await supabase.from('crm_prospects').update(updateData).eq('id', prospect.id);
 
-          await supabase.from('crm_activities').insert({
+          await consignerActivite(supabase, {
             prospect_id: prospect.id,
             type: 'email_replied',
             description: `Reponse recue de ${prospect.email} — Intent: ${classification.intent}, Sentiment: ${classification.sentiment}`,
@@ -601,7 +602,7 @@ ${replyContent.substring(0, 2000)}
               });
               console.log(`[BrevoWebhook] Auto-reply sent to ${prospect.email} (intent: ${classification.intent})`);
 
-              await supabase.from('crm_activities').insert({
+              await consignerActivite(supabase, {
                 prospect_id: prospect.id,
                 type: 'email',
                 description: `Auto-reponse envoyee (intent: ${classification.intent})`,

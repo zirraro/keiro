@@ -399,6 +399,18 @@ node scripts/verifier-ecran-sujet.mjs || {
   exit 1
 }
 
+# Même logique, côté CRM. Le 14 août : 467 mails envoyés, zéro ouverture et zéro
+# clic dans l'historique, parce qu'une contrainte CHECK périmée rejetait 40 des
+# 51 types d'activité que le code écrit — sans que personne lise le refus. Ce
+# contrôle confronte les types du code à la règle de la base, à chaque
+# déploiement. Un agent qui invente un type casse le déploiement au lieu de
+# perdre son historique en silence.
+node scripts/verifier-types-activite.mjs || {
+  echo "🚨 Le code écrit des types d'activité que la base refuse."
+  echo "   L'historique CRM serait perdu sans erreur visible. Corriger avant de déployer."
+  exit 1
+}
+
 echo "▶ back-test des fonctions"
 if ! node scripts/back-test.mjs "https://keiroai.com" "$EXPECTED_SHA"; then
   echo "🚨 Le commit est bien en ligne, mais des FONCTIONS sont cassées."
