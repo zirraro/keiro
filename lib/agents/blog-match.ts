@@ -12,7 +12,20 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export interface BlogMatch { title: string; slug: string; excerpt?: string; content?: string }
+/**
+ * ⚠️ La colonne s'appelle content_html, PAS content.
+ *
+ * Erreur commise le 14 août au matin : en ajoutant le corps de l'article au
+ * select, j'ai écrit  de mémoire. PostgREST répond alors 42703 sur la
+ * requête ENTIÈRE — pickBlogArticleForType rendait null, et le bloc « guide
+ * gratuit » avait purement disparu de tous les mails. Le mail partait quand
+ * même, sans sa valeur : la panne était invisible côté expéditeur.
+ *
+ * Vérifié en base : id, slug, title, meta_title, meta_description,
+ * content_html, excerpt, keywords_*, schema_faq, internal_links, status,
+ * published_at, views, org_id.
+ */
+export interface BlogMatch { title: string; slug: string; excerpt?: string; content_html?: string }
 
 /** Mots-clés métier → aide au matching des slugs/keywords d'articles. */
 function typeTokens(type: string | null | undefined): string[] {
@@ -50,25 +63,35 @@ export async function pickBlogArticleForType(
 
   // 1. Match par slug (les slugs contiennent le métier : ...-fleuriste-...).
   for (const tok of tokens) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('blog_posts')
-      .select('title, slug, excerpt, content')
+      .select('title, slug, excerpt, content_html')
       .eq('status', 'published')
       .ilike('slug', `%${tok}%`)
       .order('published_at', { ascending: false })
       .limit(1);
+    // On LIT l'erreur. Une requête refusée rend data=null, exactement comme
+    // « aucun résultat » — c'est ainsi qu'un nom de colonne faux a fait
+    // disparaître le bloc article de tous les mails sans qu'aucun log ne le
+    // dise. Un silence de la base n'est pas une absence de données.
+    if (error) console.error('[blogMatch] requête refusée :', error.code, error.message);
     if (data && data[0]) return data[0] as BlogMatch;
   }
 
   // 2. Match par mot-clé primaire.
   for (const tok of tokens) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('blog_posts')
-      .select('title, slug, excerpt, content')
+      .select('title, slug, excerpt, content_html')
       .eq('status', 'published')
       .ilike('keywords_primary', `%${tok}%`)
       .order('published_at', { ascending: false })
       .limit(1);
+    // On LIT l'erreur. Une requête refusée rend data=null, exactement comme
+    // « aucun résultat » — c'est ainsi qu'un nom de colonne faux a fait
+    // disparaître le bloc article de tous les mails sans qu'aucun log ne le
+    // dise. Un silence de la base n'est pas une absence de données.
+    if (error) console.error('[blogMatch] requête refusée :', error.code, error.message);
     if (data && data[0]) return data[0] as BlogMatch;
   }
 
@@ -129,7 +152,7 @@ function premierTiers(contenu: string, mots = 180): string {
 
 export function blogValueBlockHtml(article: BlogMatch): string {
   const url = `https://keiroai.com/blog/${article.slug}`;
-  const extrait = premierTiers(article.content || article.excerpt || '');
+  const extrait = premierTiers(article.content_html || article.excerpt || '');
   const paragraphes = extrait
     .split(/(?<=\.)\s+(?=[A-ZÀ-Ü])/)
     .reduce((acc: string[], phrase, i) => {

@@ -9069,7 +9069,19 @@ RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN A
   const VALID_PILLARS_D = ['tips', 'demo', 'social_proof', 'trends'];
   const PILLAR_MAP_D: Record<string, string> = { giving_value: 'tips', educational: 'tips', cta: 'demo', behind_the_scenes: 'demo', pain_point: 'tips' };
   const rawPlatformD = (post.platform || platform).toLowerCase();
-  const rawFormatD = (post.format || schedule.format).toLowerCase().replace('carousel', 'carrousel');
+  /**
+   * Le format DEMANDÉ gagne, y compris à l'enregistrement.
+   *
+   * Constaté au back-test du 14 août : trois appels demandant image, carrousel
+   * puis reel ont tous rendu « carrousel ». `forceFormat` était bien appliqué
+   * plus haut, pour construire le prompt (ligne ~7791) — mais ici on relisait
+   * `post.format`, c'est-à-dire le format que le MODÈLE avait décidé. La
+   * consigne servait à écrire, puis se faisait oublier au moment d'enregistrer.
+   *
+   * Conséquence concrète : impossible de demander un reel pour le voir. Le
+   * fondateur teste ses formats un par un, et recevait trois fois le même.
+   */
+  const rawFormatD = (forceFormat || post.format || schedule.format).toLowerCase().replace('carousel', 'carrousel');
   const safePlatform = VALID_PLATFORMS_D.includes(rawPlatformD) ? rawPlatformD : platform;
   const safeFormat = VALID_FORMATS_D.includes(rawFormatD) ? rawFormatD : schedule.format;
   const rawPillarD = (post.pillar || pillar || 'tips').toLowerCase();

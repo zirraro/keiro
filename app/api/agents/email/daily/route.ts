@@ -591,16 +591,39 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}
         continue;
       }
 
+      // ── Le bouton de vente ne s'affiche PAS au premier mail ──
+      //
+      // Constaté au back-test du 14 août : le modèle avait parfaitement suivi
+      // la nouvelle doctrine — « les fleurs coupées sur fond blanc, c'est ce que
+      // tout le monde fait… tu peux tester demain avec ton téléphone » — et le
+      // gabarit HTML collait quand même dessous « Essaie gratuitement », « 3 min,
+      // gratuit, sans carte » et « +200 entrepreneurs utilisent KeiroAI ».
+      //
+      // Le texte respectait la règle, l'enveloppe la contredisait. Le prospect,
+      // lui, ne lit pas deux couches : il voit un mail qui donne un conseil et
+      // qui vend dans la même respiration, ce qui annule le conseil.
+      //
+      // C'est le même piège que d'habitude : une règle posée dans le prompt et
+      // démentie par le code autour. La doctrine ne tient que si TOUT le mail y
+      // obéit, pas seulement la partie écrite par le modèle.
+      // Le modèle ne renvoie que {id, subject, body} : l'étape se relit dans la
+      // liste des prospects, via l'id. Sans ça, `email.step` serait toujours
+      // undefined et le bloc disparaîtrait de TOUS les mails, y compris ceux
+      // qui doivent vendre.
+      const etapeDuProspect = prospects.find(p => p.prospect.id === email.id)?.step ?? 1;
+      const etapeQuiVend = etapeDuProspect >= 2;
+      const blocVente = etapeQuiVend ? `
+<p style="margin:20px 0 6px;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Essaie gratuitement</a></p>
+<p style="margin:0 0 14px;text-align:center;font-size:12px;color:#9ca3af;">Génère tes premiers visuels en 3 min — gratuit, sans carte</p>
+<p style="margin:14px 0;font-size:13px;color:#6b7280;border-left:3px solid #0c1a3a;padding-left:12px;">+200 entrepreneurs utilisent KeiroAI pour leur marketing.</p>` : '';
+
       // Build HTML version
       const htmlBody = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
 <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;">
 <div style="max-width:600px;margin:0 auto;padding:20px;">
 <div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">
-${sanitizeEmailBodyToParagraphs(email.body)}
-<p style="margin:20px 0 6px;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Essaie gratuitement</a></p>
-<p style="margin:0 0 14px;text-align:center;font-size:12px;color:#9ca3af;">Génère tes premiers visuels en 3 min — gratuit, sans carte</p>
-<p style="margin:14px 0;font-size:13px;color:#6b7280;border-left:3px solid #0c1a3a;padding-left:12px;">+200 entrepreneurs utilisent KeiroAI pour leur marketing.</p>
+${sanitizeEmailBodyToParagraphs(email.body)}${blocVente}
 </div>
 <div style="padding:12px;text-align:center;color:#9ca3af;font-size:11px;">
 <a href="https://keiroai.com" style="color:#0c1a3a;text-decoration:none;">keiroai.com</a> · <a href="https://keiroai.com/unsubscribe" style="color:#c0c0c0;">Se désinscrire</a>
