@@ -1747,22 +1747,67 @@ function extractSeedanceVideoUrl(data: any): string | null {
  * précis, on remonte au pro par la variable d'environnement plutôt que par un
  * commit.
  */
-// ── Retour au modèle VÉRIFIÉ, en attendant de connaître le nom exact du léger ──
+// ═══════════════════════════════════════════════════════════════════════════
+// Le modèle vidéo, tranché sur mesures — pas sur souvenir
+// ═══════════════════════════════════════════════════════════════════════════
 //
-// J ai basculé sur 'seedance-1-0-lite-t2v-250428' pour économiser l audio qu on
-// jette de toute façon — le raisonnement du fondateur était juste. Mais j ai
-// écrit ce nom de mémoire, sans le vérifier auprès du fournisseur, et le reel
-// suivant est sorti SANS vidéo.
+// ── Ce qui s'était passé ──
 //
-// Un identifiant de modèle inventé ne provoque pas d erreur visible : l appel
-// échoue, le repli silencieux prend la main, et on livre un reel vide. C est
-// exactement le genre de panne qui ne se voit qu en regardant le résultat.
+// Le fondateur a raison sur le principe : on payait un modèle qui produit du
+// son, et on jetait ce son pour le remplacer par une musique Jamendo. J'ai donc
+// basculé sur 'seedance-1-0-lite-t2v-250428'… un nom écrit de mémoire, jamais
+// vérifié. Le reel suivant est sorti SANS vidéo : l'appel échouait, le repli
+// silencieux prenait la main, et personne ne voyait d'erreur. (Le modèle existe
+// bien au catalogue, mais il est en retrait et notre compte n'y a pas accès —
+// ce qui revient au même.)
 //
-// On revient donc au modèle dont on sait qu il fonctionne. L économie reste à
-// faire — elle passe par la variable d environnement, le jour où le nom exact
-// du modèle léger aura été confirmé dans la console du fournisseur. Économiser
-// sur une supposition coûte plus cher que de ne pas économiser.
+// ── Ce qu'on a mesuré, le 14 août 2026, sur la même scène ──
+//
+//   modèle                        durée   tokens    piste audio   prix /M
+//   seedance-1-5-pro-251215       122 s   108 900   OUI (aac)     1,20 $
+//   seedance-1-0-pro-fast-251015   25 s   103 818   aucune        1,00 $
+//   seedance-1-0-pro-250528        42 s   103 818   aucune        2,50 $
+//
+// Coût réel d'un reel de 5 s en 720p : 0,131 $ en 1.5 pro, 0,104 $ en pro-fast.
+// L'écart est de 2,7 centimes, soit 21 % — pas la moitié du budget qu'on
+// imaginait. La raison : 1.5 pro coûte DÉJÀ moins de la moitié du prix de 1.0
+// pro au token. Le prix du son était déjà payé, et il était bas.
+//
+// ── Et la qualité, elle, n'est pas comparable ──
+//
+// Sur un brief « gros plan, café qui coule dans la tasse, faible profondeur de
+// champ » : 1.5 pro filme le café qui coule, en gros plan, avec la crème qui se
+// forme. Les deux modèles 1.0 cadrent large, ne versent rien, et mettent un
+// VISAGE dans le champ — ce qu'on s'interdit précisément parce qu'un visage
+// généré se repère au premier coup d'œil.
+//
+// Économiser 2,7 centimes pour livrer un plan qui ne raconte pas la scène
+// demandée, c'est le mauvais côté de l'arbitrage : « la qualité et la
+// délivrabilité en priorité ».
+//
+// ── Ce qu'on garde donc, et ce qu'on coupe ──
+//
+// On garde 1.5 pro. On coupe le son À LA SOURCE avec `generate_audio: false`,
+// vérifié : le fichier revient sans piste audio. Ça ne change pas la facture
+// (108 900 tokens dans les deux cas), mais ça règle une vraie gêne — le
+// fondateur signalait des bruits de clavier et de cuisine désagréables. Le son
+// ne peut plus fuiter jusqu'au client si l'étape musique échoue.
+//
+// SEEDANCE_MODEL reste là pour basculer sans redéployer si les prix bougent.
 const MODELE_VIDEO = process.env.SEEDANCE_MODEL || 'seedance-1-5-pro-251215';
+
+/**
+ * Le son du modèle, coupé à la source.
+ *
+ * Testé le 14 août sur les cinq façons plausibles de le demander : les drapeaux
+ * dans le prompt (`--audio false`, `--audio off`) sont acceptés sans effet — la
+ * vidéo revient avec sa piste. Seul le CHAMP JSON `generate_audio: false` la
+ * supprime réellement.
+ *
+ * Un paramètre accepté n'est pas un paramètre appliqué : c'est pour ça qu'on l'a
+ * vérifié au ffprobe plutôt qu'au code de retour.
+ */
+const CORPS_VIDEO_SANS_SON = { generate_audio: false } as const;
 
 /**
  * Ce qu'on ajoute au brief vidéo pour que le modèle léger tienne le niveau.
@@ -1940,6 +1985,7 @@ Output ONLY the video prompt, nothing else.`,
         body: JSON.stringify({
           model: MODELE_VIDEO,
           content: [{ type: 'text', text: formattedPrompt }],
+          ...CORPS_VIDEO_SANS_SON,
         }),
       });
 
@@ -2132,7 +2178,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
         const seedanceRes = await fetch(SEEDANCE_T2V_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: MODELE_VIDEO, content: [{ type: 'text', text: formattedPrompt }] }),
+          body: JSON.stringify({ model: MODELE_VIDEO, content: [{ type: 'text', text: formattedPrompt }], ...CORPS_VIDEO_SANS_SON }),
         });
         if (!seedanceRes.ok) throw new Error(`Seedance HTTP ${seedanceRes.status}`);
         const seedanceData = await seedanceRes.json();
@@ -2319,6 +2365,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
           body: JSON.stringify({
             model: MODELE_VIDEO,
             content: [{ type: 'text', text: formattedPrompt }],
+            ...CORPS_VIDEO_SANS_SON,
           }),
         });
 
