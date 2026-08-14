@@ -37,7 +37,7 @@ import { directiveGeneration } from '@/lib/visuals/exigences-reseau';
 import { doctrineContenu } from '@/lib/agents/doctrine-contenu';
 import { promptSpecialise, exempleAbouti } from '@/lib/agents/prompts-format';
 import { blocMetierEnScene } from '@/lib/agents/metier-mis-en-scene';
-import { filtrerActualites, blocPertinence } from '@/lib/agents/pertinence-actualite';
+import { filtrerActualites, blocPertinence, actualiteExceptionnelle, blocActualitePrioritaire } from '@/lib/agents/pertinence-actualite';
 
 // ──────────────────────────────────────
 // 2026-06-03 v2 — Smart LLM router for Lena.
@@ -7823,6 +7823,8 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
 
   // ── LOAD TRENDS & NEWS for content inspiration ──
   let trendsContext = '';
+  // Le bloc de l actualité prioritaire, quand il y en a une. Vide sinon.
+  let actualitePrioritaire = '';
   let trendsTrendItems: string[] = [];
   let trendsNewsItems: string[] = [];
   let trendsUpcomingEvents: string[] = [];
@@ -7958,6 +7960,23 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     const metierPourActu = metierEnScene || signatureMetier || detectedBusinessType || (clientSettings as any)?.business_type;
     trendsTrendItems = filtrerActualites(filteredTrends, metierPourActu);
     trendsNewsItems = filtrerActualites(newsItems, metierPourActu);
+
+    // ── Une actualité forte passe avant le tour de rotation ──
+    //
+    // Fondateur, 2026-08-14 : « si l agent estime qu une actualité est super
+    // importante pour surfer dessus, il l utilise et ça passe avant, même si on
+    // dépasse les 2 fois sur 7. »
+    //
+    // La rotation règle l ordinaire ; elle ne doit pas empêcher de saisir ce qui
+    // compte. Une canicule annoncée ou une grève de transports change la journée
+    // du commerçant AUJOURD HUI, et le même post publié trois jours plus tard ne
+    // vaut plus rien.
+    const exceptionnelle = actualiteExceptionnelle([...trendsNewsItems, ...trendsTrendItems], metierPourActu);
+    if (exceptionnelle && pillar !== "trends") {
+      console.log(`[Content] actualité prioritaire — pilier basculé sur tendance : ${exceptionnelle.titre.slice(0, 70)}`);
+      pillar = "trends";
+    }
+    if (exceptionnelle) actualitePrioritaire = blocActualitePrioritaire(exceptionnelle);
 
     // Event calendar — key dates to leverage in content
     const now = new Date();
@@ -8640,7 +8659,7 @@ CLIENT QUI SERT PLUSIEURS MÉTIERS — ÉCRIS DEPUIS LA SCÈNE :
  prompts avaient fini par se contredire.)
 
 ${metierEnScene ? blocMetierEnScene(metierEnScene as any) : ''}
-${doctrineContenu()}
+${actualitePrioritaire}${doctrineContenu()}
 ${promptSpecialise(platform, format)}
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).

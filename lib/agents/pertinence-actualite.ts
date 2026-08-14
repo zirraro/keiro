@@ -246,3 +246,77 @@ export function blocPertinence(metier?: string | null): string {
     '',
   ].join('\n');
 }
+
+/**
+ * Une actualité assez FORTE pour passer avant le tour de rotation.
+ *
+ * ── Pourquoi ──
+ *
+ * Fondateur, 2026-08-14 : « je veux que l'agent contenu vérifie quotidiennement
+ * les actualités, et s'il estime qu'une actualité est super importante pour
+ * surfer dessus, il l'utilise et ça passe avant, même si on dépasse les 2 fois
+ * sur 7. »
+ *
+ * La rotation protège d'un excès — deux jours d'actualité sur sept, pour ne pas
+ * transformer le compte en revue de presse. Mais une canicule annoncée ou une
+ * grève de transports ne demande pas la permission au calendrier : elle change
+ * la journée du commerçant AUJOURD'HUI, et un post publié trois jours plus tard
+ * ne vaut plus rien.
+ *
+ * Une règle de cadence ne doit jamais empêcher de saisir ce qui compte. Elle
+ * règle l'ordinaire ; l'exceptionnel la dépasse, sinon ce n'est pas une
+ * stratégie, c'est un tourniquet.
+ *
+ * ── Pourquoi cette liste-là, et pas un jugement de modèle ──
+ *
+ * On pourrait demander à un modèle « cette actualité est-elle importante ? ».
+ * Il répondrait oui trop souvent — c'est exactement le travers qu'on corrige
+ * depuis trois jours. Les événements retenus ici ont un point commun
+ * vérifiable : ils modifient physiquement la journée d'un commerce, ils sont
+ * datés, et personne ne les discute. Une liste courte et sûre vaut mieux qu'un
+ * arbitrage flou.
+ */
+const IMPACT_FORT: Array<{ motif: RegExp; pourquoi: string }> = [
+  { motif: /\b(canicule|alerte rouge|vague de chaleur|38|39|40)\s*(°|degr)/i, pourquoi: 'la chaleur change ce qu\'on achète et à quelle heure on sort' },
+  { motif: /\b(canicule|vague de chaleur)\b/i, pourquoi: 'la chaleur change ce qu\'on achète et à quelle heure on sort' },
+  { motif: /\b(gr[èe]ve|blocage|manifestation)\b.*\b(transport|train|m[ée]tro|bus|routier)\b/i, pourquoi: 'l\'affluence du centre-ville s\'effondre ou se déplace' },
+  { motif: /\b(tempête|inondation|neige|verglas|alerte météo)\b/i, pourquoi: 'les déplacements et les livraisons sont touchés' },
+  { motif: /\b(jour f[ée]ri[ée]|pont du|fermeture exceptionnelle)\b/i, pourquoi: 'les horaires et l\'affluence changent ce jour-là' },
+  { motif: /\b(rentr[ée]e scolaire|premier jour d'[ée]cole)\b/i, pourquoi: 'un pic de demande daté, sur presque tous les commerces' },
+];
+
+/**
+ * Renvoie la première actualité à impact fort pour ce métier, ou null.
+ *
+ * On ne cherche que dans les actualités DÉJÀ triées pour le métier : une grève
+ * de transports concerne un commerce de centre-ville, pas un artisan qui se
+ * déplace. Le tri par métier reste le premier filtre.
+ */
+export function actualiteExceptionnelle(
+  itemsDejaTries: string[],
+  metier?: string | null,
+): { titre: string; pourquoi: string } | null {
+  for (const t of itemsDejaTries || []) {
+    for (const { motif, pourquoi } of IMPACT_FORT) {
+      if (motif.test(t)) return { titre: t, pourquoi };
+    }
+  }
+  return null;
+}
+
+/** Ce qu'on dit au générateur quand une actualité passe avant son tour. */
+export function blocActualitePrioritaire(a: { titre: string; pourquoi: string }): string {
+  return [
+    '',
+    '━━━ CETTE ACTUALITÉ PASSE AVANT LE RESTE ━━━',
+    `« ${a.titre} »`,
+    `Pourquoi elle prime : ${a.pourquoi}.`,
+    '',
+    'Elle change la journée de ce commerce MAINTENANT, et un post publié dans',
+    'trois jours ne vaudra plus rien. Le post porte donc dessus — sur ce que ça',
+    "change pour lui cette semaine, et sur ce que ses clients doivent savoir ou",
+    'faire. Pas un commentaire de l\'événement : ce qu\'il en découle chez lui.',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    '',
+  ].join('\n');
+}
