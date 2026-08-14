@@ -1228,6 +1228,15 @@ async function publishToInstagram(
                 .eq('id', post.id);
             } catch {}
           }
+          // On REND LA MAIN sur la réservation. Sans ça, le post reste
+          // « publishing » pour toujours : le cron ne reprend que les posts
+          // approuvés, et celui-ci n'y revient jamais.
+          //
+          // Constaté le 14 août : 44 posts coincés dans cet état, dont un
+          // depuis le 18 juin. Deux mois de contenu qui ne partira pas et que
+          // rien ne signale — un client qui ne reçoit pas ce qu'il paie, sans
+          // erreur nulle part.
+          await releaseClaimOnFailure();
           return {
             success: false,
             error: `daily_cap_reached:${publishedToday}/${dailyLimit}`,
@@ -1277,6 +1286,9 @@ async function publishToInstagram(
           if (minutes < ECART_MINIMAL_MINUTES && !leverPlafondJournalier) {
               const attente = Math.ceil(ECART_MINIMAL_MINUTES - minutes);
               console.warn(`[Content] rafale évitée : dernière publication il y a ${Math.round(minutes)} min, on attend encore ${attente} min`);
+              // Même raison : on attend, on ne confisque pas. Le post doit
+              // repartir au prochain créneau, pas rester réservé.
+              await releaseClaimOnFailure();
               return {
                 success: false,
                 error: `espacement_insuffisant:${Math.round(minutes)}min_attendre_${attente}min`,

@@ -247,6 +247,59 @@ export async function GET(req: NextRequest) {
   const supabase = sb();
   const cible = req.nextUrl.searchParams.get('user_id');
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // Les réservations abandonnées, rendues avant tout le reste
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // ── Ce qu'on a trouvé le 14 août ──
+  //
+  // 44 posts en statut « publishing », dont un depuis le 18 juin. Deux mois.
+  //
+  // Le statut « publishing » est une RÉSERVATION : on le pose avant de parler
+  // au réseau social, pour que deux exécutions ne publient pas le même post en
+  // même temps. Il doit être rendu quoi qu'il arrive. Or plusieurs sorties
+  // anticipées — plafond journalier atteint, espacement insuffisant — ne le
+  // rendaient pas. Le post restait réservé pour toujours.
+  //
+  // Et il ne repart jamais tout seul : le cron ne reprend que les posts
+  // programmés ou approuvés. Un post confisqué est un post perdu, sans erreur,
+  // sans alerte, sans que le client sache qu'il ne recevra rien.
+  //
+  // ── Pourquoi un balai en plus du correctif ──
+  //
+  // Les sorties fautives sont corrigées à la source. Mais une réservation peut
+  // aussi se perdre autrement : un processus tué en plein vol, un
+  // redéploiement au mauvais moment, un délai réseau. Le correctif traite les
+  // causes connues ; le balai traite celles qu'on ne connaît pas encore.
+  //
+  // Deux heures de seuil : très au-delà de la plus lente de nos publications
+  // (un reel TikTok prend quelques minutes), assez court pour rattraper la
+  // journée même.
+  let reservationsRendues = 0;
+  try {
+    const limite = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+    const { data: bloques } = await supabase
+      .from('content_calendar')
+      .select('id')
+      .eq('status', 'publishing')
+      .lt('updated_at', limite)
+      .limit(500);
+    if (bloques && bloques.length > 0) {
+      const { error } = await supabase
+        .from('content_calendar')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .in('id', bloques.map((b: any) => b.id))
+        .eq('status', 'publishing'); // on ne touche qu'à ce qui est ENCORE réservé
+      if (error) console.error('[catchup] libération des réservations impossible :', error.message);
+      else {
+        reservationsRendues = bloques.length;
+        console.warn(`[catchup] ${reservationsRendues} réservation(s) abandonnée(s) rendues — ces posts repartiront au prochain créneau`);
+      }
+    }
+  } catch (e: any) {
+    console.error('[catchup] balai des réservations en échec :', e?.message);
+  }
+
   let requete = supabase
     .from('profiles')
     .select('id, subscription_plan, is_admin')
