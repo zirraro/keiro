@@ -49,6 +49,31 @@ git pull --rebase
 EXPECTED_SHA="$(git rev-parse --short=7 HEAD)"
 echo "▶ target commit: $EXPECTED_SHA"
 
+# ── Ne pas redéployer ce qui est déjà en ligne ──
+#
+# Fondateur, 2026-08-14 : « je trouve que les déploiements sont longs, ça
+# fonctionne bien ? »
+#
+# Mesuré : 9 minutes du commit à la mise en ligne, et 54 commits poussés en
+# deux jours. Comme deux déploiements ne peuvent pas tourner ensemble — ils se
+# marcheraient dessus pendant le git pull — ils s'empilent, et le dernier
+# poussé attend que tous les précédents aient fini.
+#
+# Or ils sont pour la plupart INUTILES. Chaque déploiement fait un git pull et
+# construit le dernier état de la branche : quand cinq sont en file, le premier
+# livre déjà le code des cinq, et les quatre suivants recompilent à l'identique
+# pendant trente-six minutes pour ne rien changer.
+#
+# On sort donc immédiatement quand le commit visé est DÉJÀ celui qui tourne. La
+# file se vide en quelques secondes au lieu de plusieurs heures, sans toucher à
+# la protection contre les déploiements simultanés.
+SHA_EN_LIGNE="$(curl -s --max-time 10 https://keiroai.com/api/version 2>/dev/null | sed -n 's/.*"shortSha":"\([^"]*\)".*/\1/p' || true)"
+if [ -n "$SHA_EN_LIGNE" ] && [ "$SHA_EN_LIGNE" = "$EXPECTED_SHA" ]; then
+  echo "✅ $EXPECTED_SHA est déjà en ligne — déploiement redondant, on rend la main."
+  echo "   (un push plus récent a déjà livré ce code)"
+  exit 0
+fi
+
 echo "▶ npm ci"
 npm ci --no-audit --no-fund
 
