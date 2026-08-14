@@ -4894,10 +4894,24 @@ async function POSTInterne(request: NextRequest) {
               }
             }
 
-            // Réparation impossible ou insuffisante : là seulement, on retient.
+            // ── Un post irrécupérable est ABANDONNÉ, pas rangé en brouillon ──
+            //
+            // Fondateur, 2026-08-14 : « ceux qui ont obtenu de mauvaises notes,
+            // ne les garde pas en brouillon, on n en veut pas. »
+            //
+            // Il a raison, et c est le même arbitrage qu il avait déjà rendu le
+            // 12 août. Le brouillon est l espace de TRAVAIL du client : y déposer
+            // des posts que cinq réparations n ont pas sauvés les mélange à ce
+            // qu il est en train d écrire, et laisse croire qu ils attendent une
+            // décision. Ils n en attendent aucune.
+            //
+            //  est l état d abandon prévu par le schéma. La ligne reste
+            // avec son motif — on n efface jamais le travail d un client — mais
+            // elle sort du calendrier et du brouillon. Le créneau revient à la
+            // génération du jour, qui produit au standard actuel.
             if (!repareEtValide) {
             await supabase.from('content_calendar').update({
-              status: 'draft',
+              status: 'skipped',
               publish_diagnostic: verdict.diagnostic,
               updated_at: new Date().toISOString(),
             }).eq('id', body.postId);
