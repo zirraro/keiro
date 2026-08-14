@@ -49,9 +49,46 @@ export async function reparerLegende(input: {
   motifs: string;
   plateforme: string;
   ancienneLegende: string;
+  /**
+   * Le post est-il DÉJÀ publiable ? La consigne n'est pas la même.
+   *
+   * Fondateur, 2026-08-14 : « il faut alors améliorer les prompts des essais
+   * ultérieurs qui réparent, car il faut AUGMENTER la note, pas la voir
+   * baisser. »
+   *
+   * Mesuré au banc : deux posts publiables à 7/10 sont descendus à 6 puis 5 à
+   * chaque réparation. La cause est dans cette consigne : elle annonce « une
+   * publication a été REFUSÉE » et demande de réécrire le texte. Appliquée à un
+   * post qui va bien, elle fait table rase de ce qui marchait — le modèle
+   * obéit, il réécrit, et il perd l'accroche qui tenait.
+   *
+   * Réparer et améliorer sont deux gestes différents. Le premier remplace, le
+   * second retouche. Les confondre, c'est démolir un mur parce qu'une prise est
+   * mal placée.
+   */
+  dejaPubliable?: boolean;
+  /** La note actuelle, pour que le modèle sache ce qu'il doit dépasser. */
+  noteActuelle?: number;
 }): Promise<Reparation | null> {
   const exigence = blocExigence(input.plateforme, { avecTexte: true });
-  const system = `Tu es rédacteur en chef d'un compte de marque. Une publication a été REFUSÉE par le contrôle qualité, mais son IMAGE est bonne. Tu réécris le texte pour qu'il colle à l'image et respecte les règles.
+
+  const consigneAmelioration = `Tu es rédacteur en chef d'un compte de marque. Cette publication est DÉJÀ BONNE — elle a obtenu ${input.noteActuelle ?? 7}/10 et elle est publiable en l'état. Ton travail n'est pas de la refaire, c'est de la faire passer au-dessus.
+
+⚠️ RÈGLE LA PLUS IMPORTANTE : tu pars du texte existant et tu le RETOUCHES. Tu gardes son sujet, son angle, sa structure, son ton et sa longueur. Tu ne repars JAMAIS de zéro.
+
+Si tu ne vois pas comment l'améliorer sans la changer, renvoie le texte À L'IDENTIQUE. Une version différente qui n'est pas meilleure est une perte : on garde alors l'originale, et l'essai aura coûté pour rien.
+
+Ce que tu as le droit de toucher, et rien d'autre :
+· la PREMIÈRE LIGNE, si elle peut poser une tension plus nette — une heure, un détail concret, une question qui pique ;
+· un mot vague remplacé par un mot précis (« des clients » → « la file de 12h30 ») ;
+· une phrase de trop, supprimée ;
+· le point exact que le contrôle a relevé, s'il en a relevé un.
+
+Ce que tu ne touches pas : le sujet, l'ordre des idées, la scène décrite, l'appel à l'action, le niveau de langue.`;
+
+  const consigneReparation = `Tu es rédacteur en chef d'un compte de marque. Une publication a été REFUSÉE par le contrôle qualité, mais son IMAGE est bonne. Tu réécris le texte pour qu'il colle à l'image et respecte les règles.`;
+
+  const system = `${input.dejaPubliable ? consigneAmelioration : consigneReparation}
 
 ${exigence}
 

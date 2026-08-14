@@ -119,6 +119,26 @@ export async function reparerJusquAuNiveau(
     // Le post est déjà livrable : on ne dépasse pas le plafond de confort.
     if (verdict.publiable && essai > PLAFOND_CONFORT) break;
 
+    // ── Ne pas réécrire à l aveugle un post qui va bien ──
+    //
+    // Mesuré au banc le 2026-08-14 : deux posts publiables à 7/10 ont consommé
+    // deux réparations chacun, qui les ont fait descendre à 6 puis 5. Les deux
+    // fois, la version d origine a été gardée — donc quatre réparations payées
+    // pour aucun gain.
+    //
+    // La cause est logique : quand le contrôle ne NOMME aucun défaut, le
+    // réparateur n a rien à corriger. Il réécrit au jugé et abîme ce qui
+    // marchait. On ne peut pas réparer une chose qu on ne sait pas nommer.
+    //
+    // On ne tente donc une amélioration de confort que s il existe un motif
+    // précis sur lequel travailler. Un post publiable sans reproche part tel
+    // quel : viser 8 ne justifie pas de dépenser sans direction.
+    const motifsExploitables = (((verdict.details as any)?.reasons) || []).filter(Boolean);
+    if (verdict.publiable && motifsExploitables.length === 0) {
+      journal.push(`essai ${essai} — non tenté : publiable à ${note}/10 et aucun défaut nommé, rien à corriger`);
+      break;
+    }
+
     const d = (verdict.details || {}) as any;
     const imageEnCause = d.imageUsable === false
       || (d.reasons || []).some((r: string) => /image/i.test(String(r)));
@@ -156,6 +176,11 @@ export async function reparerJusquAuNiveau(
     // ── Sinon le texte, réécrit à partir de ce que l'image montre ──
     if (!progres) {
       const mieux = await reparerLegende({
+        // On dit au réparateur DANS QUEL SENS il travaille : retoucher un post qui
+        // va bien, ou refaire un post refusé. Sans cette distinction il repart de
+        // zéro à chaque fois et détruit ce qui marchait — mesuré, 7 → 6 → 5.
+        dejaPubliable: !!verdict.publiable,
+        noteActuelle: note,
         descriptionImage: String(d.imageDescription || ''),
         motifs: [
           verdict.publiable
