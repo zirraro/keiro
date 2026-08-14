@@ -62,8 +62,30 @@ const ARK_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions
  */
 export const MODELE_DEEPSEEK = process.env.DEEPSEEK_MODEL || 'deepseek-v3-2-251201';
 
+/**
+ * La clé ARK, résolue comme partout ailleurs dans le code.
+ *
+ * ── Le piège évité de justesse ──
+ *
+ * La première version testait `process.env.SEEDREAM_API_KEY || ARK_API_KEY`.
+ * Or app/api/agents/content/route.ts résout la même clé avec un repli EN DUR,
+ * ce qui veut dire que la variable d'environnement n'est pas forcément posée
+ * sur le serveur — les images marchent grâce au repli, pas grâce à l'env.
+ *
+ * Conséquence si on ne l'aligne pas : `deepseekDisponible()` rend false sur le
+ * VPS, DeepSeek ne démarre jamais, tout reste sur Gemini — et comme le repli
+ * fonctionne, personne ne s'aperçoit que le primaire n'a jamais été branché.
+ * C'est exactement le scénario qui a caché Claude pendant quatorze jours.
+ *
+ * Constaté au back-test : zéro appel « ark » après déploiement. On résout donc
+ * la clé de la même façon que le reste du code, pas d'une façon à soi.
+ */
+function cleArk(): string {
+  return (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c').trim();
+}
+
 export function deepseekDisponible(): boolean {
-  return !!(process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY);
+  return !!cleArk();
 }
 
 export async function callDeepSeek(opts: {
@@ -73,13 +95,13 @@ export async function callDeepSeek(opts: {
   temperature?: number;
 }): Promise<string> {
   // La clé est celle d'ARK, déjà en place pour les images et les vidéos.
-  const cle = process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY;
+  const cle = cleArk();
   if (!cle) throw new Error('Clé ARK absente — DeepSeek indisponible');
 
   const debut = Date.now();
   const r = await fetch(ARK_URL, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${cle.trim()}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${cle}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODELE_DEEPSEEK,
       messages: [
