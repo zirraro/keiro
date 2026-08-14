@@ -188,6 +188,37 @@ export async function reparerJusquAuNiveau(
 
   if (!verdict.publiable) {
     journal.push(`épuisé après ${PLAFOND_SAUVETAGE} essais — on livre la meilleure version (${note}/10) plutôt que rien`);
+
+    // ── Cinq essais ratés : ce n est plus un aléa ──
+    //
+    // Fondateur, 2026-08-14 : « au-delà de 5, l administrateur reçoit une alerte,
+    // ça veut dire qu il y a un problème plus grave à aller creuser. Mais
+    // normalement, surtout avec le temps, on devrait réussir en 1 ou 2 essais
+    // maximum. »
+    //
+    // Il a raison de poser le seuil ici. Un échec isolé, c est le hasard d une
+    // génération ; cinq d affilée sur le même post, c est que quelque chose en
+    // amont est cassé — un brief impossible, un métier mal détecté, un juge qui
+    // exige l inatteignable. Aucune boucle de réparation ne corrige ça, et
+    // continuer à réessayer ne ferait que payer la même erreur.
+    //
+    // L alerte remonte en  : c est le canal que lit le digest
+    // administrateur, donc le fondateur la verra le lendemain matin sans avoir à
+    // la chercher.
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'content', action: 'reparation_epuisee', status: 'error',
+        user_id: post.user_id || undefined,
+        error_message: `${PLAFOND_SAUVETAGE} réparations sans succès sur ${post.platform}/${post.format} — note finale ${note}/10`,
+        data: {
+          post_id: post.id, reseau: post.platform, format: post.format,
+          note_finale: note, journal,
+          motifs: ((verdict.details as any)?.reasons || []).slice(0, 3),
+          a_creuser: "Cinq essais sans succès : chercher en amont — brief impossible, métier mal détecté, ou exigence du contrôle inatteignable pour ce format.",
+        },
+        created_at: new Date().toISOString(),
+      });
+    } catch { /* l alerte ne bloque jamais la livraison */ }
   }
 
   // ── Consigner ce qui a coûté des essais, pour en consommer moins demain ──
