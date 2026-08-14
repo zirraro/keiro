@@ -186,6 +186,16 @@ Puis évalue quatre points :
    Pour un service ou une PME, une personne au travail, un lieu professionnel, un outil ou un écran lisible sont des sujets PARFAITEMENT concrets. Ne pénalise jamais l'absence d'objet physique : ce qui compte est qu'on identifie une activité réelle.
    Le seul vrai critère : l'image montre-t-elle une SCÈNE ou un OBJET identifiable, ou juste un symbole décoratif ?
 
+4 ter. LE PORTRAIT POSÉ — le « modèle de banque d'images »
+   L'image se réduit-elle au PORTRAIT d'une personne qui regarde l'objectif en souriant, sans que rien ne se passe dans ses mains ?
+
+   ⛔ REFUSE : un boulanger en toque, bras croisés, sourire large, face caméra. Une coiffeuse qui pose devant son salon. Un artisan qui fixe l'objectif, outil à la main mais immobile.
+   ✅ ACCEPTE : la même personne EN TRAIN de travailler — les mains qui façonnent, le geste en cours, le regard sur l'ouvrage. Le visage peut être visible, il n'est simplement pas le sujet.
+
+   Pourquoi c'est un vrai défaut et pas une préférence. Un visage généré qui pose est reconnu en une seconde par n'importe quel utilisateur d'Instagram — c'est LA signature de l'image de synthèse. Et le commerçant ne peut pas le publier : ce n'est ni lui, ni son équipe, ni personne de sa boutique. Il ne peut donc rien en dire de vrai.
+
+   Un plan de travail vaut toujours mieux qu'un portrait : on y voit le métier, pas un mannequin.
+
 4 bis. DU TEXTE DANS L'IMAGE — ÉLIMINATOIRE
    Y a-t-il du texte LISIBLE sur l'image : une enseigne, un panneau, une ardoise, une étiquette de prix, un écran, un logo avec des mots ?
    Regarde le fond autant que le premier plan : c'est là qu'il apparaît.
