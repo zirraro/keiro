@@ -9146,7 +9146,23 @@ RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN A
   // Generate visual or video using KeiroAI's own tech (proof of product!)
   const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
   const postPlatform = post.platform || platform;
-  const postFormat = post.format || schedule.format;
+  /**
+   * Le format qui décide de la génération doit être CELUI QU'ON A ENREGISTRÉ.
+   *
+   * Deuxième moitié du même défaut, trouvée au back-test suivant. J'avais
+   * corrigé le format à l'enregistrement (safeFormat, plus haut) sans corriger
+   * la décision de produire une vidéo, qui relisait `post.format` — le format
+   * choisi par le modèle.
+   *
+   * Résultat pire qu'avant : la base annonçait « reel » et la ligne n'avait
+   * aucune vidéo. Un reel sans vidéo se publie en image et le client reçoit
+   * autre chose que ce qui était prévu.
+   *
+   * La leçon est la même qu'ailleurs aujourd'hui : quand une valeur fait
+   * autorité, tout le monde doit la relire au même endroit. Deux lectures du
+   * « format » à deux endroits finissent toujours par diverger.
+   */
+  const postFormat = safeFormat;
   // Any reel/video format (TikTok or Instagram) gets the full video+narration pipeline
   const needsVideo = postFormat === 'video' || postFormat === 'reel';
 
