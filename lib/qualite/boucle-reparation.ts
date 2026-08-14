@@ -74,7 +74,29 @@ export async function reparerJusquAuNiveau(
 ): Promise<ResultatBoucle> {
   const VISE = opts.vise ?? 8;
   const estVideo = !!post.video_url || ['reel', 'video'].includes(String(post.format || ''));
-  const MAX = estVideo ? 2 : 3;
+
+  // ── Deux plafonds, parce qu on ne recommence pas pour la même raison ──
+  //
+  // Fondateur, 2026-08-14 : « si une note est inférieure à 6, on autorise à
+  // réessayer, mais on track le nombre pour essayer de les réduire au minimum,
+  // et on met un garde-fou à 5. On prend le meilleur des 5 essais, images et
+  // reels confondus. »
+  //
+  // La distinction est juste. Recommencer pour passer de 6 à 8, c est du confort :
+  // le post est déjà livrable, chaque essai supplémentaire est une dépense
+  // volontaire, et le plafond serré s applique — trois pour une image, deux pour
+  // un reel, parce qu une vidéo coûte des minutes de calcul.
+  //
+  // Recommencer parce qu on est SOUS 6, c est autre chose : sans réparation on
+  // livre du mauvais ou rien. Là on s autorise jusqu à cinq, quel que soit le
+  // format — le coût d un essai de plus est dérisoire face à un client qui
+  // reçoit un post raté, ou pas de post du tout.
+  //
+  // Cinq et pas davantage : au-delà, l échec ne vient plus du hasard mais du
+  // brief, et s acharner ne fait que payer la même erreur cinq fois. Le
+  // garde-fou existe pour arrêter l acharnement, pas pour empêcher de réussir.
+  const PLAFOND_CONFORT = estVideo ? 2 : 3;
+  const PLAFOND_SAUVETAGE = 5;
 
   const journal: string[] = [];
   let hook = post.hook ?? null;
@@ -92,8 +114,10 @@ export async function reparerJusquAuNiveau(
   let essaiGagnant: number | null = verdict.publiable ? 1 : null;
   journal.push(`essai 1 — ${note || '?'}/10 ${verdict.publiable ? 'publiable' : 'refusé'}`);
 
-  for (let essai = 2; essai <= MAX; essai++) {
+  for (let essai = 2; essai <= PLAFOND_SAUVETAGE; essai++) {
     if (verdict.publiable && note >= VISE) break;
+    // Le post est déjà livrable : on ne dépasse pas le plafond de confort.
+    if (verdict.publiable && essai > PLAFOND_CONFORT) break;
 
     const d = (verdict.details || {}) as any;
     const imageEnCause = d.imageUsable === false
@@ -163,7 +187,40 @@ export async function reparerJusquAuNiveau(
   }
 
   if (!verdict.publiable) {
-    journal.push(`épuisé après ${MAX} essais — on livre la meilleure version (${note}/10) plutôt que rien`);
+    journal.push(`épuisé après ${PLAFOND_SAUVETAGE} essais — on livre la meilleure version (${note}/10) plutôt que rien`);
+  }
+
+  // ── Consigner ce qui a coûté des essais, pour en consommer moins demain ──
+  //
+  // Fondateur, 2026-08-14 : « on track le nombre pour essayer de les réduire au
+  // minimum, et on essaie de comprendre ce qui s est mal déroulé pour éviter que
+  // ça se reproduise. »
+  //
+  // Sans cette trace, chaque réparation est un incident isolé : on paie, ça
+  // passe, on oublie. Avec elle, on peut lire la semaine et voir que six
+  // réparations sur dix venaient du même défaut de brief — et corriger la CAUSE
+  // plutôt que de financer la conséquence.
+  //
+  // C est la seule façon de faire baisser le nombre d essais : le plafond limite
+  // la dépense, il ne l évite pas.
+  if (journal.length > 1) {
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'content', action: 'reparation_effectuee', status: 'ok',
+        user_id: post.user_id || undefined,
+        data: {
+          post_id: post.id, reseau: post.platform, format: post.format,
+          essais: journal.length, essai_gagnant: essaiGagnant,
+          note_finale: note, publiable: !!verdict.publiable,
+          // Le motif du PREMIER refus : c est lui qui a déclenché la dépense,
+          // pas les suivants.
+          cause_initiale: (journal[0] || '').replace(/^essai 1 — /, ''),
+          motifs_initiaux: ((verdict.details as any)?.reasons || []).slice(0, 3),
+          journal,
+        },
+        created_at: new Date().toISOString(),
+      });
+    } catch { /* la trace ne bloque jamais la livraison */ }
   }
 
   return {
