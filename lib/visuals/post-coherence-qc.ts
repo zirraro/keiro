@@ -87,6 +87,8 @@ export interface CoherenceVerdict {
     implausibleClaim: boolean;
     offTopic: boolean;
     emptyVisual: boolean;
+    /** Du texte lisible dans l'image : éliminatoire, jamais rattrapable. */
+    texteDansImage: boolean;
     hashtagMismatch: boolean;
     /** Le post s'accroche à une actualité ou un événement sans lien réel. */
     forcedNewsLink: boolean;
@@ -184,6 +186,17 @@ Puis évalue quatre points :
    Pour un service ou une PME, une personne au travail, un lieu professionnel, un outil ou un écran lisible sont des sujets PARFAITEMENT concrets. Ne pénalise jamais l'absence d'objet physique : ce qui compte est qu'on identifie une activité réelle.
    Le seul vrai critère : l'image montre-t-elle une SCÈNE ou un OBJET identifiable, ou juste un symbole décoratif ?
 
+4 bis. DU TEXTE DANS L'IMAGE — ÉLIMINATOIRE
+   Y a-t-il du texte LISIBLE sur l'image : une enseigne, un panneau, une ardoise, une étiquette de prix, un écran, un logo avec des mots ?
+   Regarde le fond autant que le premier plan : c'est là qu'il apparaît.
+
+   Pourquoi c'est éliminatoire et pas une simple gêne. Le texte est le seul défaut qu'on ne rattrape pas en réécrivant la légende. Il invente une enseigne que le commerce ne porte pas, un prix qu'il ne pratique pas, un mot qui souvent n'existe dans aucune langue. Un commerçant qui reçoit une photo de SA boutique avec le nom d'une autre ne publiera pas — et il aura raison.
+
+   ✅ N'est PAS du texte : des lettres floues au troisième plan qu'on ne peut pas lire, un motif qui évoque vaguement de l'écriture sans être déchiffrable, un logo réduit à une forme.
+   ⛔ EST du texte : tout mot ou nombre qu'on peut LIRE, même petit, même partiellement.
+
+   Quand tu en vois, mets texte_dans_image à true. Ne te contente pas de le mentionner dans les raisons : c'est le drapeau qui bloque la publication.
+
 5. HASHTAGS À CÔTÉ
    Les hashtags annoncent-ils un sujet, un métier ou un lieu absent du post ?
 
@@ -233,6 +246,20 @@ const TOOL = {
       image_usable: { type: 'boolean', description: "L'image mérite d'être publiée avec une autre légende" },
       off_topic: { type: 'boolean', description: "L'image n'illustre pas le propos" },
       empty_visual: { type: 'boolean', description: 'Pictogramme ou symbole abstrait isolé, sans contenu' },
+      /**
+       * Le juge ne regardait pas le texte DANS l'image — trou constaté au banc.
+       *
+       * 14 août 2026 : sur une image portant une enseigne « SANDWICHES » bien
+       * lisible, le juge a listé « texte lisible » dans ses remarques… et rendu
+       * 7/10 PASSE. Il voyait le défaut, mais rien ne le rendait éliminatoire,
+       * alors il le comptait comme une gêne parmi d'autres.
+       *
+       * Or c'est le seul défaut qu'on ne peut pas rattraper : tout le travail
+       * du negative prompt vise à l'éviter, un mot inventé sur une devanture
+       * fait passer le commerce pour ce qu'il n'est pas, et le texte généré est
+       * souvent du charabia. Il doit bloquer, pas coûter un point.
+       */
+      texte_dans_image: { type: 'boolean', description: "Du texte LISIBLE apparaît dans l'image (enseigne, panneau, étiquette, ardoise, écran). Les lettres illisibles ou floues au second plan ne comptent pas." },
       hashtag_mismatch: { type: 'boolean', description: 'Les hashtags annoncent un sujet absent' },
       forced_news_link: {
         type: 'boolean',
@@ -255,7 +282,7 @@ const TOOL = {
       hook_score: { type: 'number', description: "Force de la première ligne sur 10 : retient-elle le lecteur ?" },
       reasons: { type: 'array', items: { type: 'string' }, description: "Motifs de rejet en français, du plus grave au moins grave. Vide UNIQUEMENT si le post est bon. Dès que la note est sous le seuil ou qu'un défaut est signalé, ce tableau DOIT contenir au moins un motif : un refus sans motif ne peut être ni expliqué au client ni corrigé, et il ne nous apprend rien." },
     },
-    required: ['image_description', 'score', 'invented_client', 'implausible_claim', 'image_usable', 'off_topic', 'empty_visual', 'hashtag_mismatch', 'forced_news_link', 'hook_score', 'reasons'],
+    required: ['image_description', 'score', 'invented_client', 'implausible_claim', 'image_usable', 'off_topic', 'empty_visual', 'texte_dans_image', 'hashtag_mismatch', 'forced_news_link', 'hook_score', 'reasons'],
   },
 };
 
@@ -499,6 +526,7 @@ export async function assessPostCoherence(input: {
       implausibleClaim: !!v.implausible_claim,
       offTopic: !!v.off_topic,
       emptyVisual: !!v.empty_visual,
+      texteDansImage: !!v.texte_dans_image,
       hashtagMismatch: !!v.hashtag_mismatch,
       forcedNewsLink: !!v.forced_news_link,
       weakHook: (Number(v.hook_score) || 0) < 6,
@@ -554,7 +582,7 @@ export async function assessPostCoherence(input: {
     // soleil » est une excellente accroche pour un fleuriste. Le juge n'a pas à
     // trancher à la place du métier : il retire des points, il ne condamne pas.
     const eliminatoire = flags.inventedClient || flags.implausibleClaim
-      || flags.offTopic || flags.emptyVisual;
+      || flags.offTopic || flags.emptyVisual || flags.texteDansImage;
 
     // ── L'actualité n'est plus un motif de sanction ──
     //

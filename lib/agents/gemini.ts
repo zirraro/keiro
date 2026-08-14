@@ -104,6 +104,63 @@ interface GeminiOptions {
  * Returns the text response or throws on error.
  */
 export async function callGemini({ system, message, maxTokens = 2000, thinking = false }: GeminiOptions): Promise<string> {
+  // ══════════════════════════════════════════════════════════════════════════
+  // DeepSeek d'abord, Gemini en filet — sur TOUS les chemins texte
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Fondateur, 2026-08-14 : « on met DeepSeek partout, tous les chemins où
+  // Gemini est, mais on vérifie sur toutes ses routes qu'il soit bien
+  // effectivement plus efficace, intelligent. »
+  //
+  // ── Ce que la vérification a donné ──
+  //
+  // Banc du 14 août, sept tâches réelles, deux tirages chacune, contrôles
+  // mécaniques (formules bannies, longueur, registre, JSON, chiffres exacts) :
+  //
+  //   deepseek-v3-2      14/14 conformes · 250 tokens · 3 138 ms
+  //   gemini-2.5-flash   10/14 conformes · 242 tokens ·   770 ms
+  //
+  // Les quatre échecs de Gemini sont des refus d'obéir, pas des maladresses :
+  // trois phrases là où le DM en autorise deux ; une formule bannie dans une
+  // réponse d'avis Google, deux fois sur deux. DeepSeek suit la consigne.
+  //
+  // Sur le fond, l'écart se voit aussi. Sur un avis « rendez-vous à 9h, voiture
+  // prise à 11h30 », Gemini répond « nous prenons note de votre attente
+  // prolongée » ; DeepSeek répond « vous avez raison, votre véhicule a été pris
+  // en charge avec un délai que nous n'aurions pas dû vous imposer sans
+  // information ». La deuxième reconnaît le fait, la première l'enregistre.
+  //
+  // ── Le prix de ce choix, dit franchement ──
+  //
+  // DeepSeek est QUATRE FOIS plus lent : 3,1 s contre 0,8 s. Sur un agent qui
+  // écrit, ça ne se voit pas. Sur le chat en direct, le visiteur attend. C'est
+  // le seul point qui pourrait faire revenir en arrière, et il se mesure : les
+  // durées sont journalisées par route dans api_cost_events.
+  //
+  // ── Ce qui n'est PAS redirigé, et pourquoi ──
+  //
+  // · callGeminiWithSearch — la recherche ancrée est une capacité Google.
+  //   DeepSeek n'a pas accès au web : le rediriger rendrait des réponses
+  //   inventées à la place de résultats réels.
+  // · jugerAvecVision — DeepSeek v3-2 est TEXTE SEUL. Un juge qui ne voit pas
+  //   l'image noterait au hasard. Le juge reste sur Gemini, qui s'est d'ailleurs
+  //   montré le plus discriminant au banc (notes 6 à 10, quand les modèles
+  //   ByteDance ne descendent jamais sous 8 et mettent 12 à 15 secondes).
+  //
+  // Retour en arrière immédiat : DEEPSEEK_PARTOUT=0 sur le serveur.
+  if (process.env.DEEPSEEK_PARTOUT !== '0') {
+    try {
+      const { callDeepSeek, deepseekDisponible } = await import('./deepseek');
+      if (deepseekDisponible()) {
+        return await callDeepSeek({ system, message, maxTokens });
+      }
+    } catch (e: any) {
+      // On ne relance pas : Gemini prend la suite juste en dessous. Une panne
+      // du nouvel étage ne doit jamais empêcher un agent de livrer.
+      console.warn(`[Gemini] DeepSeek a échoué, repli Gemini : ${e?.message?.slice(0, 160)}`);
+    }
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY non configurée');

@@ -97,7 +97,23 @@ export async function callDeepSeek(opts: {
     throw new Error(`DeepSeek ${r.status} — ${String(data?.error?.message || '').slice(0, 200)}`);
   }
 
-  const texte = data?.choices?.[0]?.message?.content?.trim() || '';
+  let texte = data?.choices?.[0]?.message?.content?.trim() || '';
+
+  /**
+   * La clôture markdown, retirée quand elle enveloppe TOUTE la réponse.
+   *
+   * Nos appelants demandent souvent du JSON strict. Les deux modèles répondent
+   * volontiers ```json { … } ``` — Gemini le faisait déjà, et vingt-cinq
+   * endroits du code retirent la clôture chacun de leur côté. Ceux qui ne le
+   * font pas plantent au JSON.parse.
+   *
+   * On le fait une fois ici plutôt que d'attendre de découvrir lequel des
+   * appelants avait oublié. Condition stricte : la réponse ENTIÈRE doit être un
+   * seul bloc clôturé — sinon on abîmerait un article de blog qui contient
+   * légitimement un extrait de code.
+   */
+  const bloc = texte.match(/^```(?:json|javascript|js)?\s*\n([\s\S]*?)\n?```$/);
+  if (bloc) texte = bloc[1].trim();
 
   // On trace la dépense comme les autres, avec le client et l'agent : une ligne
   // de coût sans attribution finit en « inconnu » et ne sert à personne.
