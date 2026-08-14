@@ -49,6 +49,41 @@ async function probeDuration(filePath: string): Promise<number> {
   }
 }
 
+/**
+ * Le cadre — mesuré, pas jugé.
+ *
+ * ── Ce qui est arrivé le 14 août ──
+ *
+ * Un reel destiné à TikTok est sorti en 1280 × 720, horizontal. Le contrôle de
+ * reel l'a laissé passer sans une remarque : il regarde des images extraites,
+ * et une image extraite d'une vidéo horizontale ne dit rien de travers — les
+ * mains sont à leur place, il n'y a pas de texte, l'action est cohérente.
+ *
+ * ── Pourquoi on le mesure au lieu de le demander au modèle ──
+ *
+ * Un rapport de dimensions est un nombre. Le demander à un modèle de vision,
+ * c'est payer un appel pour obtenir une réponse moins fiable que `ffprobe`, et
+ * accepter qu'il se trompe un jour sur deux. La règle est absolue et objective
+ * — reel, story, TikTok : tout est vertical — donc elle se vérifie, elle ne se
+ * juge pas.
+ *
+ * C'est la même leçon que partout ailleurs aujourd'hui : ce qui peut être
+ * constaté ne doit pas être confié à une opinion.
+ */
+async function probeCadre(filePath: string): Promise<{ largeur: number; hauteur: number } | null> {
+  try {
+    const { stdout } = await execAsync(
+      `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${filePath}"`,
+      { timeout: 10000 },
+    );
+    const [l, h] = stdout.trim().split(',').map((n) => parseInt(n, 10));
+    if (!Number.isFinite(l) || !Number.isFinite(h)) return null;
+    return { largeur: l, hauteur: h };
+  } catch {
+    return null;
+  }
+}
+
 async function extractFrame(filePath: string, outPath: string, atSeconds: number): Promise<boolean> {
   try {
     await execAsync(
@@ -97,6 +132,19 @@ export async function reviewGeneratedReel(input: {
     if (!res.ok) return { verdict: 'pass' };
     await writeFile(local, Buffer.from(await res.arrayBuffer()));
 
+    // Le cadre d'abord : inutile de payer un appel de vision pour une vidéo
+    // qu'on ne publiera pas de toute façon.
+    const cadre = await probeCadre(local);
+    if (cadre && cadre.largeur >= cadre.hauteur) {
+      const ratio = `${cadre.largeur}×${cadre.hauteur}`;
+      console.warn(`[reel-qa] cadre horizontal ${ratio} — refusé avant même l'analyse d'image`);
+      return {
+        verdict: 'hard_fail',
+        issue: `vidéo horizontale (${ratio}) — sur TikTok et en reel elle s'affiche en timbre-poste entre deux bandes noires`,
+        confidence: 1,
+      };
+    }
+
     const dur = await probeDuration(local);
     const t1 = Math.max(0.4, dur * 0.20);
     const t2 = Math.max(0.5, dur * 0.50);
@@ -128,6 +176,12 @@ HARD FAILS (reel must NOT ship — ALL of these mean hard_fail):
 - Body parts in impossible positions (hands with 7 fingers, two left feet, head detached).
 - Subject IDENTITY changes between frames when it shouldn't (different person mid-clip).
 - Severe motion artefacts: melting faces, morphing furniture, disintegrating tools.
+- A SCREEN is the subject: a laptop, phone or monitor fills the frame, or the shot is built around what is displayed on it. We sell to shopkeepers and craftspeople — the subject is their trade, their hands, their place. A screen may appear at the edge; it must never be what the shot is about.
+- The shot reads as a FILM, not as a business's own footage: heavy chiaroscuro, a single hard key light on a face in darkness, cinematic colour grading, a person looking distressed or intense. A bakery posting on Instagram does not shoot like a thriller. If the frame would look at home in a movie trailer, it does not belong on this account.
+
+SPECIAL CARE ON FACES:
+- A person AT WORK is welcome — hands kneading, a stylist mid-gesture, a mechanic under a bonnet. That is the trade, and it is what we want.
+- A tight PORTRAIT of a generated face, staring at the camera or at a screen, with no work happening, is a hard fail. It reads as a stock model, the client cannot claim it is anyone in their shop, and viewers spot it instantly.
 
 SOFT FAILS (reviewable, may still ship):
 - Slightly off proportions but the action reads.

@@ -9282,6 +9282,49 @@ RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN A
         // Update format in DB so auto-publish won't try reel again
         await supabase.from('content_calendar').update({ format: 'post', updated_at: new Date().toISOString() }).eq('id', inserted.id);
       }
+
+      // ── Le reel est contrôlé MAINTENANT, pas au moment de partir ──
+      //
+      // Le contrôle de reel existait déjà, mais uniquement sur le chemin de
+      // publication. Un reel raté restait donc en brouillon sans note et sans
+      // diagnostic, et on ne découvrait le problème qu'au moment de le publier
+      // — trop tard pour le refaire, et contraire à la règle du fondateur :
+      // « ceux qui ont obtenu des mauvaises notes, ne les garde pas en
+      // brouillon, on n'en veut pas ».
+      //
+      // Le reel du 14 août l'a montré : un visage généré en gros plan, éclairé
+      // comme un thriller, avec un écran pour sujet. Il a dormi en brouillon
+      // sans qu'aucune note ne le signale.
+      //
+      // Contrôler ici coûte un appel de vision par reel, et évite de livrer —
+      // ou de garder — ce qu'on n'aurait pas montré à un client.
+      if (videoUrl) {
+        try {
+          const { reviewGeneratedReel } = await import('@/lib/visuals/reel-qa');
+          const qa = await reviewGeneratedReel({
+            videoUrl,
+            postId: inserted.id,
+            visualBrief: post.visual_description || post.hook || visualDesc || '',
+            businessType: (clientSettings as any)?.business_type || undefined,
+            clientLanguage: (clientSettings as any)?.language || (clientSettings as any)?.brand_language || 'fr',
+          });
+          if (qa.verdict === 'hard_fail') {
+            // On ne jette pas le travail : l'image de couverture reste
+            // publiable, et un post image tenu vaut mieux qu'un reel abîmé.
+            console.warn(`[Content] reel refusé au contrôle (${qa.issue}) — on retombe sur l'image de couverture`);
+            videoUrl = null;
+            await supabase.from('content_calendar').update({
+              format: 'post',
+              publish_diagnostic: `reel écarté au contrôle : ${String(qa.issue || '').slice(0, 200)}`,
+              updated_at: new Date().toISOString(),
+            }).eq('id', inserted.id);
+          }
+        } catch (e: any) {
+          // Un contrôle indisponible ne bloque pas la livraison — mais il se
+          // voit dans les logs, au lieu de passer pour un succès.
+          console.warn('[Content] contrôle du reel indisponible :', e?.message?.slice(0, 140));
+        }
+      }
     } else {
       // Image-based post — three-way choice when the client has
       // uploaded their own photos:
