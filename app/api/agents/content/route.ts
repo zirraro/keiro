@@ -1747,7 +1747,22 @@ function extractSeedanceVideoUrl(data: any): string | null {
  * précis, on remonte au pro par la variable d'environnement plutôt que par un
  * commit.
  */
-const MODELE_VIDEO = process.env.SEEDANCE_MODEL || 'seedance-1-0-lite-t2v-250428';
+// ── Retour au modèle VÉRIFIÉ, en attendant de connaître le nom exact du léger ──
+//
+// J ai basculé sur 'seedance-1-0-lite-t2v-250428' pour économiser l audio qu on
+// jette de toute façon — le raisonnement du fondateur était juste. Mais j ai
+// écrit ce nom de mémoire, sans le vérifier auprès du fournisseur, et le reel
+// suivant est sorti SANS vidéo.
+//
+// Un identifiant de modèle inventé ne provoque pas d erreur visible : l appel
+// échoue, le repli silencieux prend la main, et on livre un reel vide. C est
+// exactement le genre de panne qui ne se voit qu en regardant le résultat.
+//
+// On revient donc au modèle dont on sait qu il fonctionne. L économie reste à
+// faire — elle passe par la variable d environnement, le jour où le nom exact
+// du modèle léger aura été confirmé dans la console du fournisseur. Économiser
+// sur une supposition coûte plus cher que de ne pas économiser.
+const MODELE_VIDEO = process.env.SEEDANCE_MODEL || 'seedance-1-5-pro-251215';
 
 /**
  * Ce qu'on ajoute au brief vidéo pour que le modèle léger tienne le niveau.
