@@ -1860,6 +1860,28 @@ const CORPS_VIDEO_SANS_SON = process.env.SEEDANCE_AUDIO === '1'
 const DEFINITION_VIDEO = '--resolution 720p';
 
 /**
+ * Le cadre vertical, écrit noir sur blanc lui aussi.
+ *
+ * ── Ce qu'on a reçu au back-test ──
+ *
+ * Le reel TikTok généré le 14 août est sorti en 1280 × 720 : HORIZONTAL. Sur
+ * TikTok, une vidéo horizontale s'affiche en timbre-poste entre deux bandes
+ * noires. C'est la pire chose qu'on puisse envoyer à un compte dont on essaie
+ * justement de relancer la portée.
+ *
+ * ── Pourquoi ça arrivait ──
+ *
+ * Trois endroits soumettent une vidéo. Un seul passait `--ratio` ; les deux
+ * autres laissaient le défaut du fournisseur, qui est le 16:9 du cinéma. Même
+ * défaut que pour la définition, découvert le même jour : ce qu'on ne dit pas,
+ * quelqu'un d'autre le décide à notre place.
+ *
+ * Tous nos formats vidéo sont verticaux — reel Instagram, reel TikTok, story.
+ * Il n'y a donc pas de cas à arbitrer : on l'écrit partout.
+ */
+const CADRE_VIDEO = '--ratio 9:16';
+
+/**
  * Ce qu'on ajoute au brief vidéo pour que le modèle léger tienne le niveau.
  *
  * Fondateur, 2026-08-13 : « 1.0 doit produire du top aussi ! »
@@ -2025,7 +2047,7 @@ Output ONLY the video prompt, nothing else.`,
     // --- Fallback to Seedance T2V ---
     try {
       console.log('[Content] Kling failed — falling back to Seedance T2V...');
-      const formattedPrompt = `${videoPrompt}. ${PRECISION_VIDEO} --camerafixed false --duration 10 ${DEFINITION_VIDEO}`;
+      const formattedPrompt = `${videoPrompt}. ${PRECISION_VIDEO} --camerafixed false --duration 10 ${DEFINITION_VIDEO} ${CADRE_VIDEO}`;
       const seedanceRes = await fetch(SEEDANCE_API_URL, {
         method: 'POST',
         headers: {
@@ -2405,7 +2427,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       console.log('[Content] Kling failed — falling back to Seedance T2V...');
       try {
         const seedanceDur = Math.min(duration, 10); // Seedance max ~10s per segment
-        const formattedPrompt = `${videoPrompt} --camerafixed false --duration ${seedanceDur} ${DEFINITION_VIDEO}`;
+        const formattedPrompt = `${videoPrompt} --camerafixed false --duration ${seedanceDur} ${DEFINITION_VIDEO} ${CADRE_VIDEO}`;
         const seedanceRes = await fetch(SEEDANCE_API_URL, {
           method: 'POST',
           headers: {
