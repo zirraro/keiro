@@ -1807,7 +1807,22 @@ const MODELE_VIDEO = process.env.SEEDANCE_MODEL || 'seedance-1-5-pro-251215';
  * Un paramètre accepté n'est pas un paramètre appliqué : c'est pour ça qu'on l'a
  * vérifié au ffprobe plutôt qu'au code de retour.
  */
-const CORPS_VIDEO_SANS_SON = { generate_audio: false } as const;
+/**
+ * Fondateur, 2026-08-14 : « restons sur 1.5 pro mais sans le son ; l'avantage,
+ * on le réactive quand on veut. »
+ *
+ * D'où un interrupteur plutôt qu'une constante. `SEEDANCE_AUDIO=1` sur le
+ * serveur rend le son au modèle, sans redéploiement — le jour où on voudra du
+ * son natif plutôt qu'une musique Jamendo posée par-dessus, c'est une variable
+ * à changer, pas un commit à préparer.
+ *
+ * Par défaut, le son est coupé : il ne coûte rien de moins de le garder
+ * (108 900 tokens dans les deux cas), mais il évite les bruits de clavier et de
+ * cuisine qui remontaient jusqu'au client quand l'étape musique échouait.
+ */
+const CORPS_VIDEO_SANS_SON = process.env.SEEDANCE_AUDIO === '1'
+  ? {}
+  : { generate_audio: false } as const;
 
 /**
  * La définition, écrite noir sur blanc à chaque appel.

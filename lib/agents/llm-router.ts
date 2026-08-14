@@ -41,9 +41,20 @@ export type TaskComplexity =
   | 'standard'    // default complexity, balanced
   | 'complex';    // brief multi-univers, news mix, client photos remix, sales closing
 
+/**
+ * Quel étage prend le relais quand Claude n'est pas joignable.
+ *
+ * Fondateur, 2026-08-14 : « Gemini est rodé, donc à prix égal autant garder
+ * Gemini — sauf si DeepSeek a montré être meilleur, alors go. »
+ *
+ * Le repli n'est donc pas un réglage global : c'est une décision par tâche,
+ * prise sur mesure. Un agent n'y passe qu'après être passé au banc.
+ */
 interface RouterDecision {
   provider: 'anthropic' | 'gemini';
   claudeModel?: string; // sonnet-4 or haiku-4
+  /** 'deepseek' seulement là où il a été mesuré meilleur que Gemini. */
+  repliQualite?: 'deepseek' | 'gemini';
   reason: string;
 }
 
@@ -57,6 +68,27 @@ export function pickModel(agent: AgentName, complexity: TaskComplexity = 'standa
     return {
       provider: 'anthropic',
       claudeModel: 'claude-sonnet-4-6',
+      // ── Toute la voie Sonnet bascule sur DeepSeek ──
+      //
+      // Fondateur, 2026-08-14 : « si Sonnet et DeepSeek sont équivalents, mais
+      // DeepSeek au prix de Gemini, il me semble plus judicieux de remplacer
+      // tout ce qu'on peut par DeepSeek, et en repli uniquement Gemini. »
+      //
+      // Le raisonnement est bon : ces quatre agents ont été routés sur Sonnet
+      // parce que la nuance décide du résultat commercial. Depuis que le crédit
+      // Anthropic est coupé, ils tournaient sur Gemini Flash — le modèle des
+      // tâches simples. Entre deux modèles au même prix, on prend celui qui
+      // raisonne le mieux.
+      //
+      // Réserve honnête, posée une fois : le banc du 14 août compare DeepSeek à
+      // GEMINI, pas à Sonnet — Claude n'étant pas joignable, l'équivalence avec
+      // Sonnet reste une hypothèse. Sur la tâche mesurée (premier mail de
+      // prospection, six prospects), DeepSeek gagne à coût identique : il part
+      // des chiffres de la fiche là où Gemini reste au conditionnel et sort du
+      // sujet. On généralise donc sur un pari raisonné, pas sur une preuve.
+      //
+      // Gemini reste dessous : si DeepSeek tombe, rien ne s'arrête.
+      repliQualite: 'deepseek',
       reason: `${agent}_always_sonnet (sales/strategy quality critical)`,
     };
   }
@@ -75,6 +107,11 @@ export function pickModel(agent: AgentName, complexity: TaskComplexity = 'standa
       return {
         provider: 'anthropic',
         claudeModel: 'claude-sonnet-4-6',
+        // Même bascule que les quatre autres : un brief qui mêle l'actualité au
+        // métier du client est précisément le cas où la réflexion compte, et
+        // c'est celui qui arrive le plus souvent chez nous puisque l'actualité
+        // est notre différenciant.
+        repliQualite: 'deepseek',
         reason: 'lena_complex_brief (multi-source mix or news integration → Sonnet directs Bytedance better)',
       };
     }
@@ -135,6 +172,9 @@ export async function smartLlmCall(opts: {
     message: opts.message,
     maxTokens: opts.maxTokens,
     claudeModel: decision.claudeModel,
+    // Sans ça, la décision du routeur reste lettre morte : la chaîne de repli
+    // ne saurait pas quel étage l'agent veut, et retomberait sur Gemini.
+    repliQualite: decision.repliQualite,
     callTag: opts.callTag,
   });
   return { text: r.text, provider: r.provider, modelUsed: r.modelUsed, reason: decision.reason + (r.fallbackReason ? ` (${r.fallbackReason})` : '') };

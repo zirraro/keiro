@@ -26,6 +26,26 @@ export interface LlmCallOptions {
   claudeModel?: string;
   // Force a single provider (no fallback)
   providerOnly?: 'anthropic' | 'gemini';
+  /**
+   * Quel étage prend le relais quand Claude n'est pas joignable.
+   *
+   * Fondateur, 2026-08-14 : « Gemini est rodé, donc à prix égal autant garder
+   * Gemini — sauf si DeepSeek a montré être meilleur, alors go. »
+   *
+   * C'est la bonne règle : nos prompts ont été corrigés pendant des mois contre
+   * les travers propres à Gemini. Changer de modèle invalide ce réglage, et un
+   * modèle « meilleur dans l'absolu » peut rendre moins bien sur un prompt
+   * taillé pour un autre. On ne bascule donc que là où la mesure le justifie,
+   * une tâche à la fois.
+   *
+   * Mesuré à ce jour — 6 prospects, contrôles automatiques, tâche « premier
+   * mail de prospection » : les deux sont 6/6 conformes pour un coût identique
+   * (420 vs 436 tokens), mais Gemini reste au conditionnel et sort du sujet
+   * (il conseille d'offrir un café à un garagiste dont on doit soigner la
+   * présence en ligne), là où DeepSeek part des chiffres de la fiche et donne
+   * un geste précis. D'où : Hugo bascule, les autres attendent leur banc.
+   */
+  repliQualite?: 'deepseek' | 'gemini';
   // Tag for logging
   callTag?: string;
   // 2026-06-09 — Enable Anthropic prompt caching on the system prompt
@@ -78,7 +98,7 @@ export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCall
   if (!ANTHROPIC_KEY) {
     try {
       const { callDeepSeek, deepseekDisponible, MODELE_DEEPSEEK } = await import('./deepseek');
-      if (deepseekDisponible()) {
+      if (opts.repliQualite === 'deepseek' && deepseekDisponible()) {
         const text = await callDeepSeek({ system: opts.system, message: opts.message, maxTokens: opts.maxTokens ?? 2000 });
         return { text, provider: 'ark', modelUsed: MODELE_DEEPSEEK, fallbackReason: 'pas_de_cle_anthropic', durationMs: Date.now() - start };
       }
@@ -177,7 +197,7 @@ export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCall
   // revient, les agents le retrouvent sans qu'on touche à quoi que ce soit.
   try {
     const { callDeepSeek, deepseekDisponible, MODELE_DEEPSEEK } = await import('./deepseek');
-    if (deepseekDisponible()) {
+    if (opts.repliQualite === 'deepseek' && deepseekDisponible()) {
       const text = await callDeepSeek({ system: opts.system, message: opts.message, maxTokens: opts.maxTokens ?? 2000 });
       return {
         text,
