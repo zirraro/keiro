@@ -1810,6 +1810,41 @@ const MODELE_VIDEO = process.env.SEEDANCE_MODEL || 'seedance-1-5-pro-251215';
 const CORPS_VIDEO_SANS_SON = { generate_audio: false } as const;
 
 /**
+ * La définition, écrite noir sur blanc à chaque appel.
+ *
+ * ── Ce que ça coûte, mesuré le 14 août sur la même scène ──
+ *
+ *   480p / 5 s     50 638 tokens    0,061 $
+ *   720p / 5 s    108 900 tokens    0,131 $
+ *   1080p / 5 s   245 025 tokens    0,294 $
+ *   720p / 10 s   216 900 tokens    0,260 $
+ *
+ * La facture suit les pixels × les images : passer de 720p à 1080p la multiplie
+ * par 2,25, redescendre en 480p la divise par deux. C'est de LOIN le premier
+ * levier de coût — bien avant le choix du modèle, où l'écart entre 1.5 pro et
+ * le modèle rapide n'est que de 2,7 centimes.
+ *
+ * ── Pourquoi l'écrire alors que le défaut est déjà 720p ──
+ *
+ * Deux de nos trois appels ne précisaient rien et prenaient le défaut du
+ * fournisseur. Vérifié aujourd'hui : c'est bien 720p. Mais un défaut est une
+ * décision prise par quelqu'un d'autre, qui peut changer sans nous prévenir —
+ * et le jour où il passerait en 1080p, la facture doublerait en silence et
+ * personne ne saurait pourquoi. On ne laisse pas le fournisseur choisir ce
+ * qu'on paie.
+ *
+ * ── Pourquoi 720p et pas 480p ──
+ *
+ * 480p coûte moitié moins et tient étonnamment bien à l'image. Mais un fichier
+ * de 496 × 864 arrive en dessous de ce que TikTok et Instagram considèrent
+ * comme de la HD, et les deux réseaux pondèrent la qualité technique dans la
+ * distribution. Économiser six centimes pour se faire moins pousser serait le
+ * mauvais côté de l'arbitrage — surtout avec l'historique de portée qu'on a sur
+ * TikTok.
+ */
+const DEFINITION_VIDEO = '--resolution 720p';
+
+/**
  * Ce qu'on ajoute au brief vidéo pour que le modèle léger tienne le niveau.
  *
  * Fondateur, 2026-08-13 : « 1.0 doit produire du top aussi ! »
@@ -1975,7 +2010,7 @@ Output ONLY the video prompt, nothing else.`,
     // --- Fallback to Seedance T2V ---
     try {
       console.log('[Content] Kling failed — falling back to Seedance T2V...');
-      const formattedPrompt = `${videoPrompt}. ${PRECISION_VIDEO} --camerafixed false --duration 10`;
+      const formattedPrompt = `${videoPrompt}. ${PRECISION_VIDEO} --camerafixed false --duration 10 ${DEFINITION_VIDEO}`;
       const seedanceRes = await fetch(SEEDANCE_API_URL, {
         method: 'POST',
         headers: {
@@ -2173,7 +2208,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       try {
         const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
         const segDuration = scenes[0].duration >= 10 ? 10 : 5;
-        const formattedPrompt = `${scenes[0].prompt.substring(0, 200)}. ${PRECISION_VIDEO} --camerafixed false --ratio ${aspectRatio} --duration ${segDuration}`;
+        const formattedPrompt = `${scenes[0].prompt.substring(0, 200)}. ${PRECISION_VIDEO} --camerafixed false --ratio ${aspectRatio} --duration ${segDuration} ${DEFINITION_VIDEO}`;
         const SEEDANCE_T2V_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
         const seedanceRes = await fetch(SEEDANCE_T2V_URL, {
           method: 'POST',
@@ -2355,7 +2390,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       console.log('[Content] Kling failed — falling back to Seedance T2V...');
       try {
         const seedanceDur = Math.min(duration, 10); // Seedance max ~10s per segment
-        const formattedPrompt = `${videoPrompt} --camerafixed false --duration ${seedanceDur}`;
+        const formattedPrompt = `${videoPrompt} --camerafixed false --duration ${seedanceDur} ${DEFINITION_VIDEO}`;
         const seedanceRes = await fetch(SEEDANCE_API_URL, {
           method: 'POST',
           headers: {

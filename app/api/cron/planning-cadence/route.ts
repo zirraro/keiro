@@ -177,8 +177,25 @@ const PRIX_PLAN: Record<string, number> = {
  * l'oublier ferait sous-estimer la cadence soutenable.
  */
 const COUT_EUR_PUBLICATION: Record<string, number> = {
-  tiktok: 0.31 + 0.02,      // vidéo 5 s + modèle
-  instagram: 0.045 + 0.02,  // image + modèle
+  // ── Mesuré, plus estimé (2026-08-14) ──
+  //
+  // La ligne TikTok portait 0,31 € « vidéo 5 s », un chiffre posé de mémoire.
+  // Mesuré chez le fournisseur sur la scène de référence, avec le modèle et la
+  // définition qu'on utilise vraiment (seedance-1-5-pro, 720p, 1,20 $/M) :
+  //
+  //     5 s   108 900 tokens = 0,131 $ = 0,12 €
+  //    10 s   216 900 tokens = 0,260 $ = 0,24 €
+  //
+  // Nos reels font 10 s. Le vrai coût est donc 0,24 €, pas 0,31 € — soit 29 %
+  // de moins que ce que cette borne supposait.
+  //
+  // Ce n'est pas un détail comptable : cette valeur BRIDE la cadence des
+  // clients. Surestimer le coût d'une vidéo, c'est publier moins que ce que
+  // l'abonnement paie réellement, et priver le client de portée pour protéger
+  // une marge qui n'était pas menacée. Une estimation prudente n'est pas neutre
+  // quand elle sert de plafond.
+  tiktok: 0.24 + 0.02,      // vidéo 10 s en 720p (mesurée) + modèle
+  instagram: 0.045 + 0.02,  // image + modèle — à mesurer de la même façon
   linkedin: 0.045 + 0.02,
 };
 
