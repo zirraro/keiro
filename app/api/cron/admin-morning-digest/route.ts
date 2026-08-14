@@ -734,6 +734,14 @@ export async function GET(req: NextRequest) {
   const { blocSuiviProspection } = await import('@/lib/agents/suivi-prospection');
   const prospectionHtml = await blocSuiviProspection(supabase);
 
+  // Claude répond-il encore ? Découvert le 14 août : crédit épuisé depuis le
+  // 1er, soit quatorze jours pendant lesquels Hugo, Jade, Ami, Noah et le juge
+  // visuel ont tourné en repli Gemini sans que personne le sache. Un repli qui
+  // marche trop bien devient invisible — on le rend bruyant.
+  const { sonderAnthropic, blocModeleIndisponibleHtml } = await import('@/lib/admin/sonde-modeles');
+  const etatClaude = await sonderAnthropic().catch(() => null);
+  const modeleHtml = blocModeleIndisponibleHtml(etatClaude);
+
   const adminHtml = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
     <div style="background:#0c1a3a;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0;">
       <h2 style="margin:0;font-size:18px;">☀️ Service Health — Rapport matin</h2>
@@ -742,6 +750,7 @@ export async function GET(req: NextRequest) {
       </div>
     </div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-top:0;padding:20px 22px;">
+      ${modeleHtml}
       ${totalP0 > 0 ? `<div style="background:#fef2f2;border:2px solid #dc2626;border-radius:10px;padding:14px;margin:0 0 16px;">
         <strong style="color:#991b1b;font-size:14px;">🚨 ${totalP0} bloquant${totalP0 > 1 ? 's' : ''} à fixer AVANT les briefs clients (7h)</strong>
         <div style="font-size:12px;color:#7f1d1d;margin-top:4px;">Sans fix, ces clients vont voir leur agent ne pas exécuter aujourd'hui.</div>
@@ -784,11 +793,17 @@ export async function GET(req: NextRequest) {
   </div>`;
 
   // 2026-06-03 — Multi-provider fallback (Brevo API → Resend → Brevo SMTP)
-  const subject = totalP0 > 0
-    ? `🚨 P0 KeiroAI matin — ${totalP0} bloquant${totalP0 > 1 ? 's' : ''} avant briefs clients`
-    : totalIssues > 0
-      ? `⚠️ KeiroAI matin — ${totalIssues} point${totalIssues > 1 ? 's' : ''} à surveiller`
-      : `☀️ KeiroAI matin — RAS`;
+  // Le crédit épuisé passe devant tout le reste dans l'objet. C'est la seule
+  // panne qui dégrade TOUS les agents à la fois, et la seule qu'on peut manquer
+  // deux semaines de suite : le repli fonctionne, donc rien n'a l'air cassé.
+  // Elle doit se lire dans la liste des mails, sans ouvrir.
+  const subject = (etatClaude && !etatClaude.disponible && process.env.CLAUDE_DESACTIVE !== '1')
+    ? `🚨 Claude indisponible — les agents sont en repli${etatClaude.creditEpuise ? ' (crédit épuisé)' : ''}`
+    : totalP0 > 0
+      ? `🚨 P0 KeiroAI matin — ${totalP0} bloquant${totalP0 > 1 ? 's' : ''} avant briefs clients`
+      : totalIssues > 0
+        ? `⚠️ KeiroAI matin — ${totalIssues} point${totalIssues > 1 ? 's' : ''} à surveiller`
+        : `☀️ KeiroAI matin — RAS`;
   const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
   const result = await sendEmailWithFallback({
     to: ADMIN_EMAIL,

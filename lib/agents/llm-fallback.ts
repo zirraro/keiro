@@ -38,7 +38,7 @@ export interface LlmCallOptions {
 
 export interface LlmCallResult {
   text: string;
-  provider: 'anthropic' | 'gemini';
+  provider: 'anthropic' | 'gemini' | 'ark';
   modelUsed: string;
   fallbackReason?: string;
   durationMs: number;
@@ -62,9 +62,31 @@ export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCall
 
   // Caller can force a single provider — useful for non-fallbackable calls
   // (e.g. JSON-structured outputs where Gemini might format differently).
-  if (opts.providerOnly === 'gemini' || !ANTHROPIC_KEY) {
+  if (opts.providerOnly === 'gemini') {
     const text = await callGemini({ system: opts.system, message: opts.message, maxTokens: opts.maxTokens ?? 2000 });
     return { text, provider: 'gemini', modelUsed: 'gemini-pro-1.5', durationMs: Date.now() - start };
+  }
+
+  // ── Sans clé Anthropic, on ne saute PAS directement à Gemini ──
+  //
+  // Cette ligne disait `|| !ANTHROPIC_KEY` et envoyait tout sur Gemini Flash
+  // dès que la clé manquait. C'est ce raccourci qui a fait tourner Hugo, Jade,
+  // Ami et Noah sur le modèle des tâches simples pendant deux semaines.
+  //
+  // On passe désormais par l'étage DeepSeek, qui tient le niveau et se facture
+  // sur le compte ByteDance déjà approvisionné.
+  if (!ANTHROPIC_KEY) {
+    try {
+      const { callDeepSeek, deepseekDisponible, MODELE_DEEPSEEK } = await import('./deepseek');
+      if (deepseekDisponible()) {
+        const text = await callDeepSeek({ system: opts.system, message: opts.message, maxTokens: opts.maxTokens ?? 2000 });
+        return { text, provider: 'ark', modelUsed: MODELE_DEEPSEEK, fallbackReason: 'pas_de_cle_anthropic', durationMs: Date.now() - start };
+      }
+    } catch (e: any) {
+      console.warn(`[llm-fallback] DeepSeek indisponible sans clé Claude : ${e?.message?.slice(0, 160)}`);
+    }
+    const text = await callGemini({ system: opts.system, message: opts.message, maxTokens: opts.maxTokens ?? 2000 });
+    return { text, provider: 'gemini', modelUsed: 'gemini-pro-1.5', fallbackReason: 'pas_de_cle_anthropic', durationMs: Date.now() - start };
   }
 
   // 2026-06-09 — Prompt caching : Anthropic charges 10× LESS on cached
@@ -136,7 +158,40 @@ export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCall
     console.warn(`[llm-fallback] Claude network error — switching to Gemini: ${e?.message?.slice(0, 200)}`);
   }
 
-  // Gemini fallback
+  // ── Étage intermédiaire : DeepSeek, avant de tomber sur Gemini ──
+  //
+  // Fondateur, 2026-08-14 : « Anthropic n'a pas de crédit, et en plus c'est
+  // très cher, et il faut mettre les sous en avance — c'est compliqué. »
+  //
+  // Ce n'est donc pas une panne à réparer mais un choix à respecter. Sauf que
+  // le repli existant envoyait Hugo, Jade, Ami et Noah — les quatre agents
+  // routés « toujours Sonnet » parce que la nuance ferme la vente — sur Gemini
+  // Flash, le modèle qu'on avait choisi pour les tâches SIMPLES. Deux semaines
+  // de prospection et de contenu sont sorties comme ça, sans que rien le dise.
+  //
+  // DeepSeek v3.2 tient le niveau sur nos briefs (mesuré le 14 août) et passe
+  // par le compte ByteDance qui paie déjà Seedream et Seedance : pas de
+  // nouveau fournisseur, pas de nouvelle avance de trésorerie.
+  //
+  // L'ordre reste Claude → DeepSeek → Gemini. Le jour où le crédit Anthropic
+  // revient, les agents le retrouvent sans qu'on touche à quoi que ce soit.
+  try {
+    const { callDeepSeek, deepseekDisponible, MODELE_DEEPSEEK } = await import('./deepseek');
+    if (deepseekDisponible()) {
+      const text = await callDeepSeek({ system: opts.system, message: opts.message, maxTokens: opts.maxTokens ?? 2000 });
+      return {
+        text,
+        provider: 'ark',
+        modelUsed: MODELE_DEEPSEEK,
+        fallbackReason: 'claude_unavailable',
+        durationMs: Date.now() - start,
+      };
+    }
+  } catch (e: any) {
+    console.warn(`[llm-fallback] DeepSeek indisponible — on descend sur Gemini : ${e?.message?.slice(0, 160)}`);
+  }
+
+  // Gemini fallback — dernier recours
   try {
     const text = await callGemini({ system: opts.system, message: opts.message, maxTokens: opts.maxTokens ?? 2000 });
     return {

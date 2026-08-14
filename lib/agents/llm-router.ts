@@ -108,7 +108,8 @@ export async function smartLlmCall(opts: {
   message: string;
   maxTokens?: number;
   callTag?: string;
-}): Promise<{ text: string; provider: 'anthropic' | 'gemini'; modelUsed: string; reason: string }> {
+  // 'ark' = l'étage DeepSeek, intercalé quand Claude est hors circuit.
+}): Promise<{ text: string; provider: 'anthropic' | 'gemini' | 'ark'; modelUsed: string; reason: string }> {
   const decision = pickModel(opts.agent, opts.complexity);
 
   if (decision.provider === 'gemini') {

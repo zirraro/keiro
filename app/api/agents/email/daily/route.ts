@@ -1235,6 +1235,44 @@ async function sendEmail(
         template.htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f4f4f7;"><div style="max-width:600px;margin:0 auto;padding:20px;"><div style="background:#fff;padding:24px 20px;border:1px solid #e5e7eb;border-radius:8px;">${textToParagraphs(fb)}<p style="margin:20px 0;text-align:center;"><a href="https://keiroai.com/generate" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;">Découvrir KeiroAI</a></p></div></div></body></html>`;
         console.warn(`[EmailDaily] Corps IA irrécupérable pour ${prospect.email} → fallback template statique`);
       }
+      // ── (2 bis) Les formules interdites, retirées pour de bon ──
+      //
+      // Le prompt interdit « cordialement », « n'hésitez pas », « cher »
+      // depuis des mois. Une interdiction dans un prompt n'est pas une règle,
+      // c'est une prière : mesuré le 14 août sur trois tirages par modèle, elle
+      // passe une fois sur trois dès qu'on change de modèle. Et on vient
+      // justement d'ajouter un étage de repli.
+      //
+      // On coupe donc mécaniquement. Une formule corporate en fin de mail
+      // annule le travail du reste : c'est le mot qui dit « publipostage ».
+      {
+        const FORMULES = [
+          [/\s*(?:bien\s+)?cordialement\s*,?/gi, ''],
+          [/\s*bien\s+à\s+(?:vous|toi)\s*,?/gi, ''],
+          [/\s*au\s+plaisir\s+de\s+(?:vous\s+lire|vous\s+rencontrer)\s*,?/gi, ''],
+          [/n['’]hésitez\s+pas\s+à\s+/gi, ''],
+          [/n['’]hésite\s+pas\s+à\s+/gi, ''],
+          [/\s*je\s+me\s+permets\s+de\s+/gi, ' '],
+          [/\s*dans\s+l['’]attente\s+de\s+votre\s+retour\s*,?/gi, ''],
+        ] as Array<[RegExp, string]>;
+
+        const nettoyer = (t: string) => {
+          let s = String(t || '');
+          for (const [re, par] of FORMULES) s = s.replace(re, par);
+          // Le retrait laisse parfois une ligne vide ou une virgule orpheline.
+          return s.replace(/^[ \t]*,[ \t]*$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+        };
+
+        const avantTexte = template.textBody || '';
+        const avantHtml = template.htmlBody || '';
+        template.textBody = nettoyer(avantTexte);
+        template.htmlBody = nettoyer(avantHtml);
+        template.subject = nettoyer(template.subject || '');
+        if (template.textBody !== avantTexte || template.htmlBody !== avantHtml) {
+          console.warn(`[EmailDaily] formule corporate retirée du mail à ${prospect.email}`);
+        }
+      }
+
       // (3) Dernier recours : skip si vraiment rien (ne devrait plus arriver)
       if (visibleOf(template.htmlBody).length < 40) {
         return { success: false, error: 'broken_body_skipped' };
