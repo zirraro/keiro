@@ -933,7 +933,26 @@ async function sendEmail(
   template: { subject: string; htmlBody: string; textBody: string },
   category: string,
   clientUserId?: string | null,
-): Promise<{ success: boolean; messageId?: string; error?: string; provider?: string }> {
+  /**
+   * Construire le mail COMPLET sans l'envoyer.
+   *
+   * ── Pourquoi ce paramètre existe ──
+   *
+   * Le mode brouillon capturait le mail bien avant cette fonction : il rendait
+   * le texte du modèle, et rien de ce qu'on ajoute ici — le tiers d'article, le
+   * retrait des formules bannies, le visuel personnalisé. Le fondateur relisait
+   * donc un brouillon qui n'était PAS le mail envoyé.
+   *
+   * Constaté au back-test du 14 août : j'ai cru pendant un moment que le bloc
+   * article avait disparu de la production, alors qu'il manquait seulement dans
+   * l'aperçu. Un aperçu qui ment fait perdre plus de temps qu'il n'en fait
+   * gagner — et pire, il aurait pu cacher une vraie panne.
+   *
+   * Le brouillon passe désormais par le même assemblage que l'envoi. Seul le
+   * dernier geste, remettre le mail au fournisseur, est sauté.
+   */
+  sansEnvoyer = false,
+): Promise<{ success: boolean; messageId?: string; error?: string; provider?: string; template?: { subject: string; htmlBody: string; textBody: string } }> {
   try {
     // Final safety checks
     if (template.textBody.includes('{{') || template.subject.includes('{{')) {
@@ -1351,6 +1370,15 @@ async function sendEmail(
         }
       }
     } catch { /* visuel best-effort — ne bloque jamais l'envoi */ }
+
+    // ── Mode aperçu : le mail est prêt, on s'arrête avant de le remettre ──
+    //
+    // Tout ce qui précède a été fait — tiers d'article, retrait des formules
+    // bannies, visuel personnalisé. Le brouillon rendu ici est donc, au
+    // caractère près, ce que le prospect aurait reçu.
+    if (sansEnvoyer) {
+      return { success: true, provider: 'apercu', template };
+    }
 
     // Priority 1: Gmail API (client's own email) — if connected
     const ownerUserId = clientUserId || prospect.user_id || prospect.created_by || null;
@@ -2412,15 +2440,19 @@ async function GETInterne(request: NextRequest) {
         }, Math.floor(Math.random() * 3));
 
         if (draftMode) {
-          // Save as draft for review — don't send
+          // On fait tourner l'assemblage COMPLET sans envoyer : le brouillon
+          // relu doit être le mail, pas son brouillon de brouillon.
+          const apercu = await sendEmail(prospect, step, template, category, clientUserId, true)
+            .catch((e: any) => ({ success: false, error: e?.message, template: undefined as any }));
+          const finalise = (apercu as any).template || template;
           drafts.push({
             prospect_id: prospect.id,
             email: prospect.email,
             company: prospect.company || '',
             step,
             category,
-            subject: template.subject,
-            body: template.htmlBody,
+            subject: finalise.subject,
+            body: finalise.htmlBody,
             ai_generated: !!aiEmail,
           });
           results.push({
