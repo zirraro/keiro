@@ -161,7 +161,11 @@ async function callGeminiWithRetry(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+    // Cet appel est compté plus bas, avec le client et l'agent auxquels
+    // l'imputer. Le compteur global doit donc le laisser passer, sinon il
+    // l'enregistre une seconde fois — ce qu'il a fait pendant des mois.
+    __keiroDejaCompte: true,
+  } as any);
 
   if (!response.ok) {
     const errText = await response.text();
@@ -193,7 +197,16 @@ async function callGeminiWithRetry(
   try {
     const { logApiCost, geminiCostEur } = await import('@/lib/admin/api-cost-logger');
     const usage = data.usageMetadata || {};
-    const modelStr = body.model || '';
+    // ── Le modèle est dans l'URL, pas dans le corps ──
+    //
+    // L'ancienne ligne lisait `body.model`, un champ que l'API REST de Gemini
+    // n'utilise pas : le modèle fait partie du chemin. `modelStr` valait donc
+    // toujours '', ne contenait jamais « flash », et TOUS nos appels étaient
+    // facturés au tarif Pro — trois fois trop cher.
+    //
+    // C'est ce qui a fait de « pro_normal » la première ligne du rapport de
+    // coûts, à 42 % du total, alors qu'on n'appelle jamais Pro.
+    const modelStr = GEMINI_API_URL.match(/models\/([^:]+):/)?.[1] || body.model || '';
     const model = modelStr.includes('flash') ? 'flash' : 'pro';
     const costEur = geminiCostEur({
       input_tokens: usage.promptTokenCount || 0,
@@ -291,6 +304,10 @@ async function callGeminiChatWithRetry(
   thinking: boolean,
   attempt = 0,
 ): Promise<string> {
+  // ⚠️ PAS de marqueur `__keiroDejaCompte` ici : contrairement à
+  // callGeminiWithRetry, cette fonction ne journalise pas son coût elle-même.
+  // C'est le compteur global qui s'en charge. Le marquer ferait disparaître la
+  // dépense du chat au lieu de corriger un doublon.
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

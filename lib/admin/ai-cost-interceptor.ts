@@ -132,6 +132,22 @@ export function installerCompteurIA(): void {
     const estIA = /api\.anthropic\.com|generativelanguage\.googleapis\.com/.test(url);
     if (!estIA) return fetchOriginal(entree, options);
 
+    // ── L'appelant compte déjà cet appel ──
+    //
+    // Constaté le 2026-08-14 : CHAQUE appel Gemini était enregistré deux fois,
+    // à quelques millisecondes d'écart, avec le même nombre de tokens — une
+    // fois ici, une fois dans lib/agents/gemini.ts. Et le doublon était facturé
+    // au tarif Pro alors que l'appel part en Flash, soit un facteur 3.
+    //
+    // Résultat : 31,48 € de dépense fantôme sur sept jours, la plus grosse
+    // ligne du rapport de coûts, entièrement inventée. Toutes les décisions
+    // prises dessus — le pilote de marge, les alertes de dérive, l'idée qu'il
+    // fallait changer de modèle de texte — reposaient sur un chiffre faux.
+    //
+    // Un marqueur sur l'objet d'options suffit à trancher, et il ne part pas
+    // sur le réseau : `fetch` ignore les propriétés qu'il ne connaît pas.
+    if (options?.__keiroDejaCompte) return fetchOriginal(entree, options);
+
     // On capture la pile AVANT l'appel : après, le contexte est perdu.
     const pile = new Error().stack || '';
     const debut = Date.now();

@@ -198,6 +198,45 @@ async function generateAIEmails(
     } catch (e: any) { console.warn('[EmailDaily] email learnings load failed:', e?.message); }
   }
 
+  // ── Ce qu'on a déjà dit à ce prospect ──
+  //
+  // Fondateur, 2026-08-13 : le mail 1 donne de la valeur, le mail 2 parle de
+  // Keiro « sur le problème identifié ». Cette consigne est intenable si le
+  // modèle qui écrit le mail 2 ne sait pas ce que le mail 1 a dit : il
+  // rattacherait Keiro à un problème inventé, et le prospect verrait qu'on ne
+  // se souvient pas de lui.
+  //
+  // On relit donc le dernier mail envoyé, et on le pose dans la fiche. C'est
+  // aussi ce que le fondateur voulait consigner côté CRM — « les mails envoyés
+  // et valeurs/sujets partagés » : la donnée existait déjà dans
+  // crm_activities.data, personne ne la relisait.
+  const derniersMails = new Map<string, { subject: string; extrait: string; article?: string }>();
+  if (supabaseClient) {
+    const aRelancer = prospects.filter(p => p.step >= 2).map(p => p.prospect.id);
+    if (aRelancer.length > 0) {
+      try {
+        const { data: envois } = await supabaseClient
+          .from('crm_activities')
+          .select('prospect_id, data, created_at')
+          .eq('type', 'email')
+          .in('prospect_id', aRelancer)
+          .order('created_at', { ascending: false })
+          .limit(400);
+        for (const e of envois || []) {
+          if (derniersMails.has(e.prospect_id)) continue; // le plus récent d'abord
+          const corps = String(e.data?.body || '').replace(/\s+/g, ' ').trim();
+          derniersMails.set(e.prospect_id, {
+            subject: String(e.data?.subject || ''),
+            // Le constat vit dans les premières phrases : c'est là qu'on
+            // observe quelque chose sur son commerce.
+            extrait: corps.slice(0, 400),
+            article: e.data?.article_titre,
+          });
+        }
+      } catch (e: any) { console.warn('[EmailDaily] historique des envois indisponible:', e?.message); }
+    }
+  }
+
   // Build batch prompt with rich prospect data
   const prospectList = prospects.map((p, i) => {
     const pr = p.prospect;
@@ -219,7 +258,15 @@ async function generateAIEmails(
 - Engagement: ${pr.last_email_opened_at ? 'A OUVERT un email précédent' : 'N\'a JAMAIS ouvert'} ${pr.last_email_clicked_at ? '+ A CLIQUÉ' : ''} ${pr.last_email_replied_at ? '+ A RÉPONDU' : ''}
 - Score prospect: ${pr.score || 0}/100 (${pr.temperature || 'cold'})
 - Réseaux: ${socialInfo.length > 0 ? socialInfo.join(' | ') : 'aucun trouvé'}
-- Source: ${pr.source || 'import'}`;
+- Source: ${pr.source || 'import'}${(() => {
+      const p1 = derniersMails.get(pr.id);
+      if (!p1) return '';
+      return `
+- CE QU'ON LUI A DÉJÀ ÉCRIT (objet : "${p1.subject}")${p1.article ? ` · article partagé : "${p1.article}"` : ''}
+  « ${p1.extrait} »
+  ⚠️ Reprends LE CONSTAT de ce mail. Ne repars pas de zéro, ne répète pas le
+  conseil déjà donné, ne redis pas bonjour comme si c'était un premier contact.`;
+    })()}`;
   }).join('\n\n');
 
   try {
@@ -302,19 +349,48 @@ PERSONNALISATION INTELLIGENTE :
 - Si prospect est un restaurant : ROI = couverts, si coach : ROI = clients bookés, si boutique : ROI = passage en magasin
 - Si score >50 (chaud) : sois plus direct et propose un appel
 
-STRUCTURE EMAIL PARFAIT (step 1) — DOIT ÊTRE NATUREL :
-Exemple de bon email :
+═══════════════════════════════════════════════════════════════════════
+STEP 1 — DE LA VALEUR, RIEN D'AUTRE. AUCUNE VENTE.
+═══════════════════════════════════════════════════════════════════════
+
+Règle du fondateur (2026-08-13) : « le 1er mail on donne de la valeur
+seulement, en lien avec le business du prospect ; puis le 2ème mail on
+communique plus sur Keiro, sur le problème identifié. »
+
+Le premier mail ne vend RIEN. Il ne mentionne ni KeiroAI, ni outil, ni
+essai, ni démo, ni prix. Tu n'as pas encore le droit de demander quoi que
+ce soit : tu ne t'es pas encore rendu utile.
+
+Ce que tu fais à la place : tu OBSERVES quelque chose de précis sur SON
+commerce, et tu lui donnes un conseil qu'il peut appliquer ce soir, tout
+seul, sans toi. Un conseil qui vaut le coup même s'il ne répond jamais.
+
+Un tiers d'un article du blog est ajouté sous ton texte automatiquement —
+ton mail doit AMENER à cette lecture, pas la répéter. Deux ou trois
+phrases qui posent le constat, puis on laisse l'article faire le reste.
+
+Exemple de bon step 1 :
 "Salut Marie,
 
-Je suis tombé sur ton resto l'autre jour, franchement la carte a l'air top. Par contre sur Insta c'est un peu vide et je me suis dit que ça pouvait te coûter des couverts.
+Je suis tombé sur ton resto l'autre jour — la carte donne envie. J'ai
+juste regardé ton Insta après, et tes plats sont photographiés de haut,
+en pleine lumière. C'est le réflexe de tout le monde, et c'est ce qui
+aplatit une assiette.
 
-On a un outil qui génère des visuels pro de tes plats en 3 min, sans photographe. Quelques restaus dans ton coin l'utilisent déjà.
+À hauteur d'assiette, avec la lumière qui vient du côté, le même plat
+prend du relief. Tu peux tester ce soir avec ton téléphone, ça ne coûte
+rien.
 
-Tu veux que je te montre ce que ça donne ?
+Hugo"
 
-Hugo
+Puis STOP. Pas de « tu veux que je te montre », pas de P.S. avec un lien
+vers un essai, pas de signature d'entreprise. Le seul lien du mail est
+celui de l'article, et il est déjà ajouté sous ta signature.
 
-P.S. Tu peux tester gratuitement, 3 visuels en 5 min : https://keiroai.com/generate"
+⚠️ Le CONSTAT que tu poses dans ce mail est important : c'est LUI que le
+step 2 reprendra pour parler de Keiro. Nomme un problème précis et vrai,
+pas un reproche vague. « tes plats sont photographiés de haut » se
+reprend ; « ta com' manque de peps » ne se reprend pas.
 
 Pas de bullet points, pas de stats forcées, pas de "saviez-vous que 72%...", juste une conversation naturelle entre deux personnes.
 
@@ -322,7 +398,36 @@ SIGNATURE — TU DOIS SIGNER "Hugo" à la fin (ou "Hugo ✌️" en step 3, "Hugo
 
 P.S. — Tu PEUX ajouter un P.S. si ça booste la conversion (essai gratuit, lien direct, urgence légère). Une seule P.S. max. Jamais deux P.S. dans le même email. Le P.S. doit être COURT et apporter de la valeur, pas être un slogan.
 
-STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + social proof ("des restos comme toi utilisent déjà..."). Signe "Hugo".
+═══════════════════════════════════════════════════════════════════════
+STEP 2 (J+3) — KEIRO, SUR LE PROBLÈME QUE TU AS NOMMÉ AU STEP 1
+═══════════════════════════════════════════════════════════════════════
+
+C'est ici, et seulement ici, que KeiroAI entre. Et pas comme un produit
+en général : comme la réponse au problème PRÉCIS que tu as identifié dans
+le premier mail.
+
+La structure : tu rappelles le constat en une phrase, tu dis que c'est
+exactement ce qu'on fait faire à la machine, et tu proposes de lui
+montrer sur SON commerce.
+
+Exemple, en suite du step 1 sur les photos prises de haut :
+"Salut Marie,
+
+Je te reparle des photos prises de haut — c'est le truc qui revient le
+plus souvent, et c'est aussi le plus pénible à corriger tous les jours
+quand on a un service à assurer.
+
+C'est ce qu'on fait chez KeiroAI : les visuels de tes plats sont générés
+à la bonne hauteur, avec la bonne lumière, sans que tu aies à y penser.
+Des restos de ta taille l'utilisent déjà.
+
+Je te montre ce que ça donne sur ta carte ?
+
+Hugo"
+
+⚠️ Si tu ne peux pas rattacher Keiro au constat du step 1, ne l'invente
+pas : reprends le constat et propose simplement de lui montrer. Un pitch
+générique après un premier mail utile détruit le crédit qu'il t'a donné.
 STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Hugo ✌️".
 STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
@@ -1136,27 +1241,35 @@ async function sendEmail(
       }
     }
 
-    // VALEUR GRATUITE = ARTICLE DE BLOG (founder 03/07). À partir du step 2
-    // (doctrine : PAS de lien dans le 1er email), on ajoute un bloc « guide
-    // gratuit » qui pointe vers l'article du blog KeiroAI correspondant au
-    // métier du prospect → il lit l'article complet sur keiroai.com → puis
-    // l'essai. Donner de la valeur sans rien demander = celui qui aide est
-    // celui qu'on rappelle. Ajouté APRÈS la garde (HTML déjà validé propre).
-    if (step >= 2) {
-      try {
-        const artSb = getSupabaseAdmin();
-        const article = await pickBlogArticleForType(artSb, prospect.type || autoCategorizeProspect(prospect));
-        if (article) {
-          const htmlBlock = blogValueBlockHtml(article);
-          if (/<\/body>/i.test(template.htmlBody)) {
-            template.htmlBody = template.htmlBody.replace(/<\/body>/i, `${htmlBlock}</body>`);
-          } else {
-            template.htmlBody = template.htmlBody + htmlBlock;
-          }
-          template.textBody = (template.textBody || '') + blogValueBlockText(article);
+    // ── L'article, DÈS le premier mail ──
+    //
+    // La doctrine précédente disait « pas de lien dans le 1er email » et
+    // n'attachait l'article qu'à partir du step 2. Elle est renversée par la
+    // consigne du fondateur du 2026-08-13 : « le 1er mail on donne de la valeur
+    // seulement, en lien avec le business du prospect ; puis le 2ème mail on
+    // communique plus sur Keiro sur le problème identifié. »
+    //
+    // Le premier mail EST le mail de valeur. Ne rien y mettre à lire, c'était
+    // promettre de l'aide et n'en donner qu'au deuxième envoi — c'est-à-dire à
+    // ceux qui restent, pas à ceux qu'on veut convaincre.
+    //
+    // Le lien n'est plus un appel à l'action déguisé : depuis qu'un tiers de
+    // l'article est dans le mail, cliquer c'est finir une lecture commencée.
+    let articlePartage: { title: string; slug: string } | null = null;
+    try {
+      const artSb = getSupabaseAdmin();
+      const article = await pickBlogArticleForType(artSb, prospect.type || autoCategorizeProspect(prospect));
+      if (article) {
+        articlePartage = { title: article.title, slug: article.slug };
+        const htmlBlock = blogValueBlockHtml(article);
+        if (/<\/body>/i.test(template.htmlBody)) {
+          template.htmlBody = template.htmlBody.replace(/<\/body>/i, `${htmlBlock}</body>`);
+        } else {
+          template.htmlBody = template.htmlBody + htmlBlock;
         }
-      } catch { /* bloc article best-effort, ne bloque pas l'envoi */ }
-    }
+        template.textBody = (template.textBody || '') + blogValueBlockText(article);
+      }
+    } catch { /* bloc article best-effort, ne bloque pas l'envoi */ }
 
     // VISUEL À L'ENGAGEMENT (founder 14/07) : si le prospect a CLIQUÉ depuis le
     // dernier envoi (forte intention), on lui JOINT un visuel perso de SON
@@ -1398,7 +1511,13 @@ async function sendEmail(
     await consignerActivite(supabase, {
       prospect_id: prospect.id,
       type: 'email',
-      description: `Email step ${step} envoyé: "${template.subject}"`,
+      // La fiche CRM doit dire ce qu'on a envoyé ET ce qu'on a donné.
+      // Fondateur 2026-08-13 : « consigner dans la fiche client les mails
+      // envoyés et valeurs/sujets partagés ». L'objet seul ne dit pas si on
+      // a rendu service — le titre de l'article, si.
+      description: articlePartage
+        ? `Mail ${step} — "${template.subject}" · valeur partagée : ${articlePartage.title}`
+        : `Mail ${step} — "${template.subject}"`,
       data: {
         message_id: messageId,
         step,
@@ -1409,6 +1528,11 @@ async function sendEmail(
         provider,
         ai_generated: true,
         strategy: 'value_first', // founder 2026-06-25 — pour mesurer l'impact (open/reply) de l'approche value-first
+        // Relu au mail suivant pour rattacher Keiro au constat déjà posé,
+        // et affiché tel quel dans la fiche prospect.
+        article_titre: articlePartage?.title || null,
+        article_slug: articlePartage?.slug || null,
+        intention: step === 1 ? 'valeur_pure' : step === 2 ? 'keiro_sur_le_constat' : 'relance',
       },
       created_at: now,
     });
