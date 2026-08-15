@@ -5405,7 +5405,21 @@ async function POSTInterne(request: NextRequest) {
 
         // Publish directly instead of delegating (avoids losing userId in CRON call)
         if (psPost.platform === 'instagram' || !psPost.platform) {
-          const igResult = await publishToInstagram({ ...psPost, visual_url: psPost.visual_url }, supabase, orgId, postUserId);
+          /**
+           * La levée d'espacement est TRANSMISE ici aussi.
+           *
+           * Constaté le 15 août : le fondateur demande à voir un exemplaire de
+           * chaque format tout de suite, j'envoie `leverPlafond: true`, et le
+           * garde-fou répond quand même « espacement insuffisant ». Le drapeau
+           * existait, la fonction savait le lire, `republish_single` le passait
+           * — mais `publish_single`, le chemin qu'utilise le bouton « publier
+           * maintenant », l'oubliait.
+           *
+           * Une option qu'on ne peut pas exercer n'existe pas. Et c'est la
+           * troisième fois aujourd'hui qu'une valeur se perd entre deux
+           * chemins qui font la même chose.
+           */
+          const igResult = await publishToInstagram({ ...psPost, visual_url: psPost.visual_url }, supabase, orgId, postUserId, body.leverPlafond === true);
           if (igResult.success) {
             await supabase.from('content_calendar').update({
               instagram_permalink: igResult.permalink,
@@ -5422,7 +5436,9 @@ async function POSTInterne(request: NextRequest) {
         const psResult = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || `https://${process.env.VERCEL_URL}`}/api/agents/content?user_id=${postUserId || ''}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'republish_single', postId: publishPostId }),
+          // La levée suit la délégation : sans elle, TikTok redemanderait un
+          // plafond que le fondateur vient d'écarter en connaissance de cause.
+          body: JSON.stringify({ action: 'republish_single', postId: publishPostId, leverPlafond: body.leverPlafond === true }),
         }).then(r => r.json()).catch(() => ({ ok: false }));
 
         return NextResponse.json(psResult);
