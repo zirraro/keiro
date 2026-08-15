@@ -234,7 +234,29 @@ export async function GET(request: NextRequest) {
   function getClientsWithAgent(agentId: string): string[] {
     return clientUserIds.filter(uid => {
       const cfg = clientAgentConfigs[uid]?.[agentId];
-      let isActive = cfg?.auto_mode === true || cfg?.setup_completed === true;
+      /**
+       * ── Un agent activé que le répartiteur ne voyait pas ──
+       *
+       * Le test ne connaissait que `auto_mode` et `setup_completed`. Or les
+       * écrans d'agent écrivent aussi `active: true` dans la même
+       * configuration — trois clés pour dire la même chose, écrites par des
+       * chemins différents à des époques différentes.
+       *
+       * Constaté le 16 août : sur 36 configurations, 8 étaient marquées
+       * activées et invisibles du planificateur. Le SEO du compte vitrine
+       * portait `active: true`, 8 articles/mois, mode notify — une
+       * configuration complète, jamais appelée. Le digest le signalait DOWN et
+       * je cherchais un créneau manquant : les deux étaient vrais.
+       *
+       * Même cause pour `whatsapp` et `tiktok_comments`, tous deux en « aucune
+       * activité 24h » dans le digest. Ils ne dormaient pas : personne ne les
+       * appelait.
+       *
+       * On accepte donc les trois clés. Le plafond par plan s'applique ensuite
+       * comme avant — reconnaître une activation n'accorde aucun droit
+       * supplémentaire.
+       */
+      let isActive = cfg?.auto_mode === true || cfg?.setup_completed === true || cfg?.active === true || cfg?.enabled === true;
       // instagram_comments always travels with dm_instagram — if the
       // client activated DM Jade, they implicitly want comment auto-reply
       // on too. Saves them from a second activation step in the UI.
