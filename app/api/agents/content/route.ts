@@ -1935,11 +1935,12 @@ const PRECISION_VIDEO = [
   //
   // On interdit donc le plan qui produit le défaut, plutôt que d'espérer que le
   // modèle le réussisse. Un geste tenu vaut mieux qu'une goutte ratée.
-  'AVOID entirely: close-ups of a single falling droplet, splashes, drips down',
-  'a glass, liquid stretching or bouncing. These read as fake within one frame.',
-  'If liquid must appear, show a steady continuous pour into a container, filmed',
-  'wide enough that no single drop is the subject — or show the glass already',
-  'full and still. Never isolate a drop.',
+  // ⚠️ Formulé en POSITIF. Fondateur, 2026-08-15 : « attention à la négation,
+  // le modèle de génération peut ne pas comprendre, on a déjà eu le problème ».
+  // Nommer la goutte pour l'interdire, c'est la mettre dans la scène. On décrit
+  // le plan voulu, qui exclut le défaut par construction.
+  'Any drink is shown already full and at rest, or poured as one steady stream from a',
+  'framing wide enough to see the whole gesture. Dry, clean surface around it.',
 ].join(' ');
 
 async function bakeMusicOnVideo(
@@ -2227,7 +2228,7 @@ RÈGLES ABSOLUES :
 - Précise la PALETTE : "warm honey tones, deep mahogany wood, soft cream accents"
 - JAMAIS de texte, lettres, mots, logos, panneaux dans la vidéo
 - JAMAIS de visages en gros plan (l'IA fait des visages artificiels) — mains, silhouettes, plans larges
-- JAMAIS de gros plan sur une GOUTTE, une éclaboussure, un liquide qui coule le long d'un verre. Les modèles vidéo ratent la physique des fluides : la goutte reste accrochée par un fil, rebondit en amorti, s'étire comme du gel. C'est LE défaut qui se repère en une image. Si un liquide doit apparaître : un versement continu dans un récipient, filmé assez large pour qu'aucune goutte ne soit le sujet — ou le verre déjà plein et immobile.
+- LIQUIDES : décris-les TOUJOURS au repos ou en versement continu large — « le verre déjà plein, posé sur le comptoir », « un filet régulier versé dans la tasse, la main et le récipient dans le cadre ». Ne demande jamais un gros plan de goutte : les modèles ratent la physique des fluides, et nommer la goutte suffit à la faire apparaître.
 - EN ANGLAIS uniquement
 - 200-350 caractères
 

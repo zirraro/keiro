@@ -266,11 +266,25 @@ export const REALISME_VIDEO = [
   // La parade n'est pas de mieux le demander, c'est de ne pas le demander : on
   // interdit le plan qui produit le défaut plutôt que d'espérer qu'il réussisse.
   // Un geste tenu vaut mieux qu'une goutte ratée.
-  'FLUIDS — the tell that gives generated footage away: NEVER isolate a single droplet,',
-  'a splash, a drip running down a glass, or liquid caught mid-fall. Generated fluids cling',
-  'by invisible threads, bounce on landing, and stretch like gel. If liquid appears, film a',
-  'steady continuous pour into a container, wide enough that no single drop is the subject —',
-  'or show the glass already full and still.',
+  // ⚠️ FORMULÉ EN POSITIF, ET C'EST DÉLIBÉRÉ.
+  //
+  // Fondateur, 2026-08-15 : « attention à la négation, le modèle de génération
+  // peut ne pas comprendre, on a déjà eu le problème ».
+  //
+  // Il a raison, et ma première version faisait exactement la faute : « NEVER
+  // isolate a single droplet ». Un modèle d'image traite une description, pas
+  // une interdiction — nommer la goutte, même pour la refuser, c'est la mettre
+  // dans la scène. C'est le même mécanisme que « ne pense pas à un éléphant ».
+  //
+  // On décrit donc CE QU'ON VEUT VOIR. Le plan demandé exclut le défaut par
+  // construction : si le verre est déjà plein et posé, il n'y a pas de goutte
+  // en vol à rater.
+  'LIQUIDS — how to film them so they hold up:',
+  'A glass, a cup or a bottle is shown ALREADY FULL and at rest on the surface, or a',
+  'steady unbroken stream is poured into a container from a wide framing where the whole',
+  'gesture is visible — the hand, the vessel and the container all in shot.',
+  'Keep the surface around it dry and clean.',
+  'Frame the drink as part of the scene, at the scale a person sees it from across a table.',
 ].join('\n');
 
 /**
