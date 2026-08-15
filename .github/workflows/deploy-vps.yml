@@ -40,7 +40,21 @@ jobs:
     # l'éteindre.
     if: "!contains(github.event.head_commit.message, '[secours]')"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # ── Pourquoi 35 et non 20 ──
+    #
+    # Constaté le 15 août : quatre déploiements d'affilée annulés à la minute
+    # 20, tous au même endroit. Ce n'était pas une panne — le VPS travaillait
+    # encore. La compilation Next dépasse désormais la limite, et GitHub coupe.
+    #
+    # Le symptôme était trompeur : la version en ligne restait bloquée sur un
+    # commit ancien alors que le build passait en local et que rien n'échouait.
+    # Il faut aller lire le statut des exécutions pour comprendre — « cancelled »
+    # et non « failure », donc aucune alerte, aucun message d'erreur.
+    #
+    # On relève la limite pour que la production reçoive à nouveau le code. La
+    # vraie question — pourquoi le build a-t-il grossi — reste ouverte, et elle
+    # se traite avec des mesures, pas en rognant sur le temps accordé.
+    timeout-minutes: 35
 
     steps:
       # ── Pourquoi une nouvelle tentative ──
@@ -68,7 +82,7 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
-          command_timeout: 18m
+          command_timeout: 30m
           # `deploy.sh` fait tout : build propre, vérification des manifestes,
           # rechargement pm2, puis contrôle que l'URL publique sert bien le
           # commit attendu. Il échoue AVANT le rechargement si quelque chose
@@ -99,7 +113,7 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
-          command_timeout: 18m
+          command_timeout: 30m
           script: |
             set -e
             cd /opt/keiro
@@ -120,7 +134,7 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
-          command_timeout: 18m
+          command_timeout: 30m
           script: |
             set -e
             cd /opt/keiro

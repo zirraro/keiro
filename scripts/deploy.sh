@@ -42,7 +42,27 @@ done
 # On les remet dans l'état du dépôt : le build les régénère de toute façon.
 git checkout -- next-env.d.ts tsconfig.json 2>/dev/null || true
 
-echo "▶ git pull --rebase"
+# ── Chronométrage des étapes ──
+#
+# Le 15 août, quatre déploiements ont été annulés à la minute 20 sans qu'aucun
+# message ne dise où le temps était passé. Le statut affiché était « cancelled »
+# et non « failure » : aucune alerte, aucune erreur, et la version en ligne
+# restait bloquée sur un commit ancien pendant que le build passait en local.
+#
+# Un déploiement qui dépasse doit pouvoir se lire. On chronomètre chaque étape.
+_TETAPE=$(date +%s)
+_NOM_ETAPE=""
+etape() {
+  local maintenant
+  maintenant=$(date +%s)
+  if [ -n "$_NOM_ETAPE" ]; then
+    echo "   ⏱  $_NOM_ETAPE : $((maintenant - _TETAPE))s"
+  fi
+  _NOM_ETAPE="$1"
+  _TETAPE=$maintenant
+  echo "▶ $1"
+}
+etape "git pull --rebase"
 git pull --rebase
 
 # Normalise to 7 chars to match /api/version's shortSha.
@@ -74,7 +94,7 @@ if [ -n "$SHA_EN_LIGNE" ] && [ "$SHA_EN_LIGNE" = "$EXPECTED_SHA" ]; then
   exit 0
 fi
 
-echo "▶ npm ci"
+etape "npm ci"
 npm ci --no-audit --no-fund
 
 # ── Migrations de base de données ──
@@ -99,7 +119,7 @@ npm ci --no-audit --no-fund
 # journal, mais jamais bloquer la mise en ligne d'un correctif sans rapport.
 # Le 11 août, l'absence du module pg — dépendance de développement, donc
 # absente en production — a fait échouer tout un déploiement.
-echo "▶ migrations"
+etape "migrations"
 node --env-file=.env.local scripts/migrer.mjs || node scripts/migrer.mjs || echo "⚠ migrations non appliquées — le déploiement continue"
 
 # Build PROPRE, jamais incrémental.
@@ -141,7 +161,7 @@ if [ -d .next/static ]; then
   cp -rn .next/static/. "$ANCIENS/" 2>/dev/null || true
 fi
 
-echo "▶ build propre (suppression de .next)"
+etape "build propre"
 # Une seconde tentative, parce que le build échoue parfois sans raison.
 #
 # 2026-08-11 : « Build error occurred / SyntaxError: Unexpected end of JSON
@@ -392,7 +412,7 @@ fi
 # l'image ? » avait été affaibli sans que personne ne le voie, parce qu'il
 # vivait dans une route de huit mille lignes et que rien ne le rejouait. Une
 # règle de qualité sans cas de test se dégrade en silence.
-echo "▶ règles de qualité (hors ligne)"
+etape "règles de qualité"
 node scripts/verifier-ecran-sujet.mjs || {
   echo "🚨 Le détecteur d'écran-sujet ne passe plus ses cas de référence."
   echo "   Des briefs à écran repartiraient en génération. Corriger avant de déployer."
@@ -411,7 +431,7 @@ node scripts/verifier-types-activite.mjs || {
   exit 1
 }
 
-echo "▶ back-test des fonctions"
+etape "back-test des fonctions"
 if ! node scripts/back-test.mjs "https://keiroai.com" "$EXPECTED_SHA"; then
   echo "🚨 Le commit est bien en ligne, mais des FONCTIONS sont cassées."
   echo "   L'application tourne : ne pas la redémarrer à l'aveugle, corriger le code."
