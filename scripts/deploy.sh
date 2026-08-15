@@ -456,6 +456,12 @@ node scripts/verifier-ecran-sujet.mjs || {
 # contrôle confronte les types du code à la règle de la base, à chaque
 # déploiement. Un agent qui invente un type casse le déploiement au lieu de
 # perdre son historique en silence.
+node scripts/verifier-chemins-publication.mjs || {
+  echo "🚨 Un chemin de publication manuel perd la levée de plafond."
+  echo "   Le fondateur ne pourra pas publier à la demande, sans savoir pourquoi."
+  exit 1
+}
+
 node scripts/verifier-types-activite.mjs || {
   echo "🚨 Le code écrit des types d'activité que la base refuse."
   echo "   L'historique CRM serait perdu sans erreur visible. Corriger avant de déployer."

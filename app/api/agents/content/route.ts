@@ -5329,7 +5329,10 @@ async function POSTInterne(request: NextRequest) {
 
         // Publish to Instagram
         if (singlePost.platform === 'instagram') {
-          const igResult = await publishToInstagram({ ...singlePost, visual_url: singleVisualUrl }, supabase, orgId, userId);
+          // Cinquième occurrence du même oubli, trouvée par le contrôle qu'on
+          // vient d'écrire : la levée doit circuler sur TOUS les appels d'une
+          // action manuelle, pas seulement celui auquel on pense.
+          const igResult = await publishToInstagram({ ...singlePost, visual_url: singleVisualUrl }, supabase, orgId, userId, body.leverPlafond === true);
           if (igResult.success) {
             await supabase.from('content_calendar').update({
               instagram_permalink: igResult.permalink,
@@ -5346,7 +5349,26 @@ async function POSTInterne(request: NextRequest) {
 
         // Publish to TikTok
         if (singlePost.platform === 'tiktok') {
-          const ttResult = await publishToTikTok({ ...singlePost, visual_url: singleVisualUrl }, supabase);
+          /**
+           * ── La levée manquait ICI, et c'est le chemin qu'on emprunte ──
+           *
+           * Fondateur, 15 août : « attention, quand tu dis "je force TikTok sur
+           * le chemin direct", ça doit être le chemin habituel ».
+           *
+           * Il a raison, et le diagnostic lui donne doublement raison. SIX
+           * endroits appellent publishToTikTok ; un seul transmettait la levée
+           * du plafond. `republish_single` — celui qu'emprunte la publication
+           * manuelle d'un post — ne la passait pas. Le drapeau partait bien du
+           * script, traversait la route, et se perdait sur la dernière ligne.
+           *
+           * C'est la quatrième fois aujourd'hui qu'une valeur se perd entre
+           * deux chemins qui font la même chose : le format, le réseau, la
+           * levée sur Instagram, et maintenant la levée sur TikTok. Le même
+           * défaut, quatre fois — et à chaque fois invisible, parce qu'un
+           * paramètre absent ne lève aucune erreur : il vaut `undefined`, donc
+           * `false`, donc « garde-fou actif ».
+           */
+          const ttResult = await publishToTikTok({ ...singlePost, visual_url: singleVisualUrl }, supabase, body.leverPlafond === true);
           if (ttResult.success) {
             await supabase.from('content_calendar').update({
               tiktok_publish_id: ttResult.publish_id,
