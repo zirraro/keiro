@@ -132,9 +132,13 @@ export async function appelerModele(
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
+      // Cet appel est compté juste en dessous, avec son étiquette et son agent.
+      // Sans ce marqueur, le compteur global l'enregistre une SECONDE fois —
+      // 62 doublons relevés sur une seule vague le 15 août.
+      __keiroDejaCompte: true,
         headers: { 'x-api-key': cleA, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify(corps),
-      });
+      } as any);
       if (res.ok) {
         const j = await res.json();
         void logApiCost({
@@ -231,6 +235,10 @@ export async function appelerModele(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleG}`,
       {
         method: 'POST',
+      // Cet appel est compté juste en dessous, avec son étiquette et son agent.
+      // Sans ce marqueur, le compteur global l'enregistre une SECONDE fois —
+      // 62 doublons relevés sur une seule vague le 15 août.
+      __keiroDejaCompte: true,
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: texteSysteme(corps.system) ? { parts: [{ text: texteSysteme(corps.system) }] } : undefined,
@@ -247,7 +255,7 @@ export async function appelerModele(
               : {}),
           },
         }),
-      },
+      } as any,
     );
     if (!res.ok) {
       console.error(`[modele] ${etiquette} — Gemini refuse aussi (${res.status})`);
@@ -258,7 +266,7 @@ export async function appelerModele(
       provider: 'gemini', kind: etiquette, agent: options.agent || 'system',
       units: j.usageMetadata?.totalTokenCount || 0,
       cost_eur: ((j.usageMetadata?.promptTokenCount || 0) * 0.3 + (j.usageMetadata?.candidatesTokenCount || 0) * 2.5) / 1e6 * 0.92,
-    });
+    } as any);
 
     const txt = (j.candidates?.[0]?.content?.parts || []).map((p: any) => p.text).filter(Boolean).join('');
     if (!txt) {

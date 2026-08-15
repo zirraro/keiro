@@ -330,6 +330,10 @@ export async function jugerAvecVision(opts: {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
+      // Cet appel est compté juste en dessous, avec son étiquette et son agent.
+      // Sans ce marqueur, le compteur global l'enregistre une SECONDE fois —
+      // 62 doublons relevés sur une seule vague le 15 août.
+      __keiroDejaCompte: true,
         headers: { 'x-api-key': cleAnthropic, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6', max_tokens: maxTokens, system,
@@ -339,7 +343,7 @@ export async function jugerAvecVision(opts: {
             { type: 'text', text: texte },
           ] }],
         }),
-      });
+      } as any);
       if (res.ok) {
         const j = await res.json();
         // Le coût de CE module n'était pas tracé — comme les 24 autres points
@@ -375,6 +379,10 @@ export async function jugerAvecVision(opts: {
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleGemini}`,
       {
         method: 'POST',
+      // Cet appel est compté juste en dessous, avec son étiquette et son agent.
+      // Sans ce marqueur, le compteur global l'enregistre une SECONDE fois —
+      // 62 doublons relevés sur une seule vague le 15 août.
+      __keiroDejaCompte: true,
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
@@ -394,7 +402,7 @@ export async function jugerAvecVision(opts: {
             responseSchema: versSchemaGemini(tool.input_schema),
           },
         }),
-      },
+      } as any,
     );
     if (!res.ok) {
       console.error(`[QC] Gemini refuse aussi (${res.status}) — post non contrôlé`);
@@ -405,7 +413,7 @@ export async function jugerAvecVision(opts: {
       provider: 'gemini', kind: 'qc_coherence_vision', agent: 'content',
       units: j.usageMetadata?.totalTokenCount || 0,
       cost_eur: ((j.usageMetadata?.promptTokenCount || 0) * 0.3 + (j.usageMetadata?.candidatesTokenCount || 0) * 2.5) / 1e6 * 0.92,
-    });
+    } as any);
     const txt = (j.candidates?.[0]?.content?.parts || []).map((p: any) => p.text).filter(Boolean).join('');
     if (!txt) { console.error('[QC] Gemini a répondu sans contenu'); return null; }
     return JSON.parse(txt);
