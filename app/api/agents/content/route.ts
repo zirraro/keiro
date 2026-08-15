@@ -2044,7 +2044,32 @@ Output ONLY the video prompt, nothing else.`,
       maxTokens: 200,
     });
 
-    const videoPrompt = (optimizedPrompt || visualDescription).substring(0, 250);
+    let videoPrompt = (optimizedPrompt || visualDescription).substring(0, 250);
+    // ── L'écran n'est pas le sujet, y compris en vidéo ──
+    //
+    // Cette garde existait pour les images et pas pour les vidéos. Résultat,
+    // le 15 août : les deux reels Instagram refusés par le contrôle pour
+    // « the core subject is a screen », après qu'on ait payé la génération.
+    // Le contrôle faisait son travail, mais trop tard — et le format reel
+    // était perdu, remplacé par une simple image.
+    //
+    // On corrige à la source : si le brief fait d'un écran le sujet, on le
+    // réécrit vers le geste de métier avant d'envoyer quoi que ce soit.
+    try {
+      const { ecranEstLeSujet } = await import('@/lib/visuals/ecran-sujet');
+      if (ecranEstLeSujet(videoPrompt)) {
+        const reecrit = await callClaude({
+          system: 'Tu réécris un brief vidéo. La version reçue fait d\'un écran (ordinateur, téléphone, tableau de bord) le sujet du plan. Remplace-le par le GESTE DE MÉTIER dont parle le brief : des mains au travail, un outil, une matière, un lieu professionnel. Garde la lumière, le rythme et l\'intention. Réponds par le brief réécrit, en anglais, sans préambule.',
+          message: videoPrompt,
+          maxTokens: 300,
+        });
+        if (reecrit && reecrit.length > 25 && !ecranEstLeSujet(reecrit)) {
+          console.log('[Content] brief vidéo réécrit : l\'écran n\'est plus le sujet');
+          videoPrompt = reecrit.substring(0, videoPrompt.length > 300 ? 400 : 250);
+        }
+      }
+    } catch { /* la garde ne bloque jamais une génération */ }
+
     console.log(`[Content] Generating video: "${videoPrompt.substring(0, 80)}..."`);
 
     const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
@@ -2239,7 +2264,32 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       maxTokens: 400,
     });
 
-    const videoPrompt = (videoPromptRaw || visualDescription).substring(0, 400);
+    let videoPrompt = (videoPromptRaw || visualDescription).substring(0, 400);
+    // ── L'écran n'est pas le sujet, y compris en vidéo ──
+    //
+    // Cette garde existait pour les images et pas pour les vidéos. Résultat,
+    // le 15 août : les deux reels Instagram refusés par le contrôle pour
+    // « the core subject is a screen », après qu'on ait payé la génération.
+    // Le contrôle faisait son travail, mais trop tard — et le format reel
+    // était perdu, remplacé par une simple image.
+    //
+    // On corrige à la source : si le brief fait d'un écran le sujet, on le
+    // réécrit vers le geste de métier avant d'envoyer quoi que ce soit.
+    try {
+      const { ecranEstLeSujet } = await import('@/lib/visuals/ecran-sujet');
+      if (ecranEstLeSujet(videoPrompt)) {
+        const reecrit = await callClaude({
+          system: 'Tu réécris un brief vidéo. La version reçue fait d\'un écran (ordinateur, téléphone, tableau de bord) le sujet du plan. Remplace-le par le GESTE DE MÉTIER dont parle le brief : des mains au travail, un outil, une matière, un lieu professionnel. Garde la lumière, le rythme et l\'intention. Réponds par le brief réécrit, en anglais, sans préambule.',
+          message: videoPrompt,
+          maxTokens: 300,
+        });
+        if (reecrit && reecrit.length > 25 && !ecranEstLeSujet(reecrit)) {
+          console.log('[Content] brief vidéo réécrit : l\'écran n\'est plus le sujet');
+          videoPrompt = reecrit.substring(0, videoPrompt.length > 300 ? 400 : 250);
+        }
+      }
+    } catch { /* la garde ne bloque jamais une génération */ }
+
     console.log(`[Content] Video prompt (${duration}s): "${videoPrompt.substring(0, 100)}..."`);
 
     // Step 3: Decompose into scenes via Claude
@@ -2399,7 +2449,32 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       maxTokens: 200,
     });
 
-    const videoPrompt = (videoPromptRaw || visualDescription).substring(0, 250);
+    let videoPrompt = (videoPromptRaw || visualDescription).substring(0, 250);
+    // ── L'écran n'est pas le sujet, y compris en vidéo ──
+    //
+    // Cette garde existait pour les images et pas pour les vidéos. Résultat,
+    // le 15 août : les deux reels Instagram refusés par le contrôle pour
+    // « the core subject is a screen », après qu'on ait payé la génération.
+    // Le contrôle faisait son travail, mais trop tard — et le format reel
+    // était perdu, remplacé par une simple image.
+    //
+    // On corrige à la source : si le brief fait d'un écran le sujet, on le
+    // réécrit vers le geste de métier avant d'envoyer quoi que ce soit.
+    try {
+      const { ecranEstLeSujet } = await import('@/lib/visuals/ecran-sujet');
+      if (ecranEstLeSujet(videoPrompt)) {
+        const reecrit = await callClaude({
+          system: 'Tu réécris un brief vidéo. La version reçue fait d\'un écran (ordinateur, téléphone, tableau de bord) le sujet du plan. Remplace-le par le GESTE DE MÉTIER dont parle le brief : des mains au travail, un outil, une matière, un lieu professionnel. Garde la lumière, le rythme et l\'intention. Réponds par le brief réécrit, en anglais, sans préambule.',
+          message: videoPrompt,
+          maxTokens: 300,
+        });
+        if (reecrit && reecrit.length > 25 && !ecranEstLeSujet(reecrit)) {
+          console.log('[Content] brief vidéo réécrit : l\'écran n\'est plus le sujet');
+          videoPrompt = reecrit.substring(0, videoPrompt.length > 300 ? 400 : 250);
+        }
+      }
+    } catch { /* la garde ne bloque jamais une génération */ }
+
     console.log(`[Content] Video prompt: "${videoPrompt.substring(0, 100)}..."`);
 
     // ── Pre-flight validator — économise ~0,30 €/clip sur prompt cassé.
