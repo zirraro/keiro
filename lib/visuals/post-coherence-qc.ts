@@ -182,6 +182,13 @@ Puis évalue quatre points :
    N'EXIGE DONC PAS que l'image montre le produit de l'annonceur, son écran ou son logo. Une image de fleuriste sur le compte d'un logiciel de marketing n'est PAS hors-sujet si la légende parle de la journée de ce fleuriste.
    Ce qui reste hors-sujet, et que tu dois toujours refuser : l'image montre UN métier et la légende parle d'UN AUTRE — un boulanger à l'image, une aide pour voiture électrique dans le texte. Là, les deux ne racontent pas la même chose, et c'est ça le vrai défaut.
 
+   ⚠️⚠️ LA FAUTE À NE PLUS COMMETTRE, mesurée le 15 août 2026.
+   Un post d'agence montrant un PAYSAGISTE qui dessine un plan de jardin, avec une légende sur le temps qu'il y passe, a été refusé au motif : « l'image ne correspond pas au métier de l'agence (marketing IA), elle montre un paysagiste ».
+   C'est EXACTEMENT l'erreur que ce paragraphe existe pour empêcher, et c'est la cause la plus fréquente de nos refus injustes.
+   Quand l'annonceur est une agence, un logiciel ou un cabinet de conseil, son métier N'EST PAS le sujet de l'image et ne doit jamais l'être. Le sujet est le métier de SON CLIENT — celui à qui le post s'adresse.
+   La question à te poser n'est donc PAS « cette image montre-t-elle le métier de l'annonceur ? » (la réponse sera presque toujours non, et ce n'est pas un défaut).
+   La seule question qui vaut : L'IMAGE ET LA LÉGENDE PARLENT-ELLES DU MÊME MÉTIER ? Un paysagiste à l'image et un paysagiste dans le texte : c'est juste, quel que soit l'annonceur. Un paysagiste à l'image et un boulanger dans le texte : c'est faux.
+
 4. IMAGE VIDE
    L'image se réduit-elle à un pictogramme ou un symbole abstrait isolé — flèche, ampoule, engrenage, point d'interrogation, forme géométrique — posé sur un fond uni ou dégradé ?
    Ce type d'image ne montre rien, n'apprend rien, ne donne envie de rien. Elle est rejetée même si elle est jolie et techniquement parfaite.
@@ -195,6 +202,9 @@ Puis évalue quatre points :
    Le seul vrai critère : l'image montre-t-elle une SCÈNE ou un OBJET identifiable, ou juste un symbole décoratif ?
 
 4 ter. LE PORTRAIT POSÉ — le « modèle de banque d'images »
+   ⚠️ Ce critère est ÉLIMINATOIRE, pas une simple baisse de note. Mesuré le 15 août : la même image — un boulanger en toque, sourire face caméra, bras immobiles — a été refusée à 5/10 le matin, puis acceptée à 6/10 l'après-midi. Un jugement qui change d'avis sur la même image n'en est pas un.
+   Quand tu reconnais un portrait posé, mets off_topic à true : la note seule ne suffit pas à le bloquer, et ce défaut ne doit jamais partir chez un client. Il ne peut rien en dire de vrai — ce n'est ni lui, ni son équipe, ni personne de sa boutique.
+
    L'image se réduit-elle au PORTRAIT d'une personne qui regarde l'objectif en souriant, sans que rien ne se passe dans ses mains ?
 
    ⛔ REFUSE : un boulanger en toque, bras croisés, sourire large, face caméra. Une coiffeuse qui pose devant son salon. Un artisan qui fixe l'objectif, outil à la main mais immobile.
