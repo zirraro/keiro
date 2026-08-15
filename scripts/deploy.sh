@@ -94,8 +94,39 @@ if [ -n "$SHA_EN_LIGNE" ] && [ "$SHA_EN_LIGNE" = "$EXPECTED_SHA" ]; then
   exit 0
 fi
 
-etape "npm ci"
-npm ci --no-audit --no-fund
+etape "dépendances"
+# ── On ne réinstalle QUE si les dépendances ont changé ──
+#
+# Fondateur, 15 août 2026 : « ça doit pas mettre 15 min, c'est 5 min max un
+# déploiement ». Il a raison.
+#
+# `npm ci` efface node_modules et réinstalle TOUT, à chaque déploiement. Sur ce
+# projet c'est plusieurs minutes — pour un résultat identique dans l'immense
+# majorité des cas, puisqu'on déploie surtout du code applicatif et que le
+# package-lock ne bouge presque jamais.
+#
+# On compare donc l'empreinte du package-lock à celle de la dernière
+# installation réussie. Identique → on garde node_modules tel quel. Différente
+# ou absente → on réinstalle, comme avant.
+#
+# Le garde-fou reste entier : si node_modules manque ou si le lock a bougé d'un
+# octet, l'installation complète a lieu. On ne devine pas, on compare.
+EMPREINTE_LOCK="$(sha256sum package-lock.json 2>/dev/null | cut -d' ' -f1)"
+EMPREINTE_POSEE="$(cat node_modules/.keiro-lock-empreinte 2>/dev/null || true)"
+
+if [ -d node_modules ] && [ -n "$EMPREINTE_LOCK" ] && [ "$EMPREINTE_LOCK" = "$EMPREINTE_POSEE" ]; then
+  echo "   dépendances inchangées — installation ignorée"
+else
+  if [ -z "$EMPREINTE_POSEE" ]; then
+    echo "   première installation ou empreinte absente"
+  else
+    echo "   package-lock modifié — réinstallation complète"
+  fi
+  npm ci --no-audit --no-fund
+  # L'empreinte n'est posée QU'APRÈS une installation réussie : si npm échoue,
+  # le prochain déploiement réinstallera au lieu de croire que tout est en place.
+  printf '%s' "$EMPREINTE_LOCK" > node_modules/.keiro-lock-empreinte
+fi
 
 # ── Migrations de base de données ──
 #
