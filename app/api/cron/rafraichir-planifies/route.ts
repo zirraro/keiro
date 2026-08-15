@@ -524,6 +524,11 @@ export async function GET(req: NextRequest) {
           format: frais.format || 'post',
           griefs: (d.reasons || [verdict.diagnostic]).slice(0, 3).join(' · '),
           userId: frais.user_id || null,
+          // Ces deux-là décident entre retoucher et refaire : sans l'image
+          // actuelle il n'y a rien à retoucher, sans la note on ne sait pas
+          // s'il reste assez de bon pour valoir la peine d'être gardé.
+          visuelActuel: frais.visual_url || null,
+          note: (d as any)?.score ?? null,
         });
         if (neuf) {
           await supabase.from('content_calendar').update({

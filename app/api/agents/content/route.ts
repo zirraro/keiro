@@ -6480,14 +6480,57 @@ Instructions de modification : ${body.instructions}`,
       }
 
       case 'generate_visual': {
-        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
-        const { data: postForVisual } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
-        if (!postForVisual) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
-        const desc = postForVisual.visual_description || postForVisual.hook || postForVisual.caption;
+        /**
+         * Deux usages, et le second manquait.
+         *
+         * L'appel d'origine part d'un POST existant : il relit sa description
+         * et remplace son visuel. C'est ce dont a besoin l'interface.
+         *
+         * La réparation, elle, a besoin d'autre chose : fabriquer une image à
+         * partir d'une description qu'elle vient de composer, éventuellement en
+         * RETOUCHANT l'image refusée plutôt qu'en la refaisant. Sans ça, mon
+         * module de réparation appelait cette route sans postId et recevait un
+         * 400 — il rendait null, l'appelant retombait sur le chemin suivant, et
+         * la réparation par l'image n'a jamais tourné une seule fois.
+         *
+         * Une route qui refuse poliment est un chemin mort qu'aucun test ne
+         * signale : elle répond, elle ne plante pas, et rien ne se passe.
+         */
+        const descriptionFournie = typeof body.visual_description === 'string' ? body.visual_description.trim() : '';
+        const referenceFournie = typeof body.reference_image_url === 'string' ? body.reference_image_url : '';
+
+        if (!body.postId && !descriptionFournie) {
+          return NextResponse.json({ ok: false, error: 'postId ou visual_description requis' }, { status: 400 });
+        }
+
+        let desc = descriptionFournie;
+        let formatVisuel = String(body.format || 'post');
+        let postForVisual: any = null;
+
+        if (body.postId) {
+          const { data } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+          if (!data) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+          postForVisual = data;
+          if (!desc) desc = data.visual_description || data.hook || data.caption;
+          formatVisuel = String(body.format || data.format || 'post');
+        }
         if (!desc) return NextResponse.json({ ok: false, error: 'No visual description' }, { status: 400 });
-        const url = await generateVisual(desc, postForVisual.format || 'post');
+
+        // Avec une image de référence, on RETOUCHE : la force basse garde la
+        // scène et corrige le traitement. Sans référence, on fabrique à neuf.
+        const url = referenceFournie
+          ? await generateVisualFromReference(
+              referenceFournie,
+              desc,
+              formatVisuel,
+              Number.isFinite(Number(body.strength)) ? Number(body.strength) : 0.3,
+            )
+          : await generateVisual(desc, formatVisuel);
+
         if (!url) return NextResponse.json({ ok: false, error: 'Visual generation failed' }, { status: 500 });
-        await supabase.from('content_calendar').update({ visual_url: url, updated_at: new Date().toISOString() }).eq('id', body.postId);
+        if (postForVisual) {
+          await supabase.from('content_calendar').update({ visual_url: url, updated_at: new Date().toISOString() }).eq('id', postForVisual.id);
+        }
         return NextResponse.json({ ok: true, visual_url: url });
       }
 
