@@ -136,6 +136,51 @@ export async function getValidToken(supabase: any, userId: string): Promise<stri
     return tokens.access_token;
   } catch (e: any) {
     console.error('[GoogleBusiness] Token refresh failed:', e.message);
+
+    /**
+     * ── Une connexion morte doit CESSER de se dire vivante ──
+     *
+     * Fondateur, 2026-08-15 : « la fiche établissement, je suis connecté mais
+     * elle n'apparaît toujours pas ».
+     *
+     * Diagnostic : les jetons étaient bien en base, connexion faite le 10 août.
+     * Mais le rafraîchissement rendait `invalid_grant` — le jeton de
+     * rafraîchissement est mort. Cinq jours de vie, ce qui correspond à un
+     * écran de consentement Google en mode « Test » : dans ce mode Google
+     * invalide les jetons au bout de sept jours.
+     *
+     * L'interface, elle, continuait d'afficher « connecté » : les jetons sont
+     * en base, donc la page les croit valides. Le client voit une connexion
+     * établie et une fiche vide, sans aucun moyen de comprendre — et surtout
+     * sans savoir qu'il suffit de se reconnecter.
+     *
+     * On efface donc les jetons quand Google les refuse définitivement. Le
+     * panneau repasse en « non connecté », le bouton de connexion réapparaît,
+     * et le client peut agir. Un état faux est pire qu'un état négatif.
+     *
+     * On ne touche à rien sur une panne PASSAGÈRE (réseau, 5xx) : seul
+     * `invalid_grant` — le refus définitif — déclenche l'effacement.
+     */
+    const definitif = /invalid_grant|invalid_request|unauthorized_client/i.test(String(e?.message || ''));
+    if (definitif) {
+      try {
+        await supabase.from('profiles').update({
+          google_business_access_token: null,
+          google_business_refresh_token: null,
+          google_business_token_expiry: null,
+        }).eq('id', userId);
+        await supabase.from('agent_logs').insert({
+          agent: 'gmaps', action: 'google_reconnexion_requise', status: 'error',
+          user_id: userId,
+          error_message: 'Google a refusé le jeton de rafraîchissement (invalid_grant) — connexion effacée, le client doit se reconnecter',
+          data: {
+            cause_probable: "écran de consentement OAuth en mode Test : Google invalide les jetons de rafraîchissement au bout de 7 jours. La publication de l'écran de consentement supprime cette expiration.",
+          },
+          created_at: new Date().toISOString(),
+        });
+        console.warn('[GoogleBusiness] jetons effacés — le panneau affichera « non connecté » au lieu de mentir');
+      } catch { /* l'effacement ne doit jamais faire échouer l'appelant */ }
+    }
     return null;
   }
 }
