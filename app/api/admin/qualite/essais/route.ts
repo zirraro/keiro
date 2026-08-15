@@ -67,6 +67,19 @@ export async function GET(req: NextRequest) {
   const reparations = (logs || []).filter(l => (l as any).action === 'reparation_effectuee');
   const epuisements = (logs || []).filter(l => (l as any).action === 'reparation_epuisee');
 
+  // Les verdicts, mis à plat : c'est sur eux qu'on répond au « pourquoi ».
+  const verdicts = (logs || [])
+    .filter(l => (l as any).action === 'qc_verdict')
+    .map(l => {
+      const d = (l as any).data || {};
+      return {
+        publiable: d.publiable === true,
+        note: typeof d.note === 'number' ? d.note : null,
+        motifs: Array.isArray(d.motifs) ? d.motifs : [],
+        points_forts: Array.isArray(d.points_forts) ? d.points_forts : [],
+      };
+    });
+
   if (reparations.length === 0 && duPremierCoup === 0) {
     return NextResponse.json({
       ok: true, fenetre_jours: jours,
@@ -158,5 +171,75 @@ export async function GET(req: NextRequest) {
     causes_les_plus_couteuses: [...causes.entries()]
       .sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([motif, n]) => ({ motif, occurrences: n })),
+
+    // ── Pourquoi ça bloque, et pourquoi ça passe ──
+    //
+    // Fondateur, 2026-08-15 : « les notes sur celles qui ne passent pas,
+    // pourquoi ; et celles qui passent, pourquoi pertinentes. Comme ça on
+    // traque et on s'améliore. »
+    //
+    // Compter les essais dit COMBIEN on rate. Ça ne dit pas quoi corriger.
+    // Grouper les motifs par fréquence, si : quand « l'image est hors-sujet »
+    // revient trente fois et « accroche molle » deux fois, on sait où porter
+    // l'effort, et on cesse de deviner.
+    //
+    // Et l'autre moitié compte autant : on n'apprenait RIEN des réussites. Le
+    // juge dit maintenant ce qui fait la qualité d'un post accepté — on peut
+    // le refaire à dessein au lieu d'espérer que ça se reproduise.
+    pourquoi_ca_bloque: regrouperMotifs(verdicts.filter(v => !v.publiable).flatMap(v => v.motifs)),
+    pourquoi_ca_passe: regrouperMotifs(verdicts.filter(v => v.publiable).flatMap(v => v.points_forts)),
+    notes: {
+      refuses: distribution(verdicts.filter(v => !v.publiable).map(v => v.note)),
+      acceptes: distribution(verdicts.filter(v => v.publiable).map(v => v.note)),
+    },
   });
+}
+
+/**
+ * Regroupe des phrases libres par thème.
+ *
+ * Le juge écrit en langage naturel : « l'image est hors-sujet », « l'image ne
+ * montre pas le métier », « l'image n'illustre pas le propos » disent la même
+ * chose en trois formulations. Les compter séparément donnerait trois causes
+ * mineures là où il y en a une majeure — et on corrigerait la mauvaise.
+ */
+function regrouperMotifs(motifs: string[]): Array<{ theme: string; occurrences: number; exemple: string }> {
+  const THEMES: Array<[RegExp, string]> = [
+    [/hors-sujet|n['’]illustre|ne montre pas|ne correspond pas|autre métier/i, "l'image ne parle pas du même sujet que le texte"],
+    [/accroche|première ligne|hook/i, "l'accroche ne retient pas"],
+    [/texte|enseigne|panneau|lisible/i, "du texte est apparu dans l'image"],
+    [/portrait|pose|sourit|regarde l['’]objectif/i, 'un portrait posé au lieu du geste de métier'],
+    [/hashtag/i, 'les hashtags ne collent pas au post'],
+    [/inventé|invente|client nommé/i, 'un client ou un fait inventé'],
+    [/chiffre|aberrant|invraisemblable|%/i, 'un chiffre invraisemblable'],
+    [/générique|banal|vague|généralité/i, 'le propos reste générique'],
+    [/actualité|événement|saison/i, "le lien à l'actualité"],
+    [/fumée|buée|scintill|effet|saturé|couleur/i, 'des effets ou des couleurs en trop'],
+    [/geste|action|scène vivante|au travail/i, 'le geste de métier est montré'],
+    [/lumière|naturel|texture|grain/i, 'une lumière et une matière crédibles'],
+    [/précis|concret|détail|heure/i, 'un détail concret plutôt qu\'une généralité'],
+  ];
+  const compte = new Map<string, { n: number; exemple: string }>();
+  for (const m of motifs) {
+    const texte = String(m || '');
+    if (!texte) continue;
+    const theme = THEMES.find(([re]) => re.test(texte))?.[1] || 'autre';
+    const e = compte.get(theme) || { n: 0, exemple: texte.slice(0, 160) };
+    e.n++;
+    compte.set(theme, e);
+  }
+  return [...compte.entries()]
+    .sort((a, b) => b[1].n - a[1].n)
+    .map(([theme, v]) => ({ theme, occurrences: v.n, exemple: v.exemple }));
+}
+
+/** La répartition des notes, pour voir si on progresse en niveau et pas seulement en taux. */
+function distribution(notes: number[]): Record<string, number> {
+  const d: Record<string, number> = {};
+  for (const n of notes) {
+    if (typeof n !== 'number') continue;
+    const k = String(Math.round(n));
+    d[k] = (d[k] || 0) + 1;
+  }
+  return d;
 }

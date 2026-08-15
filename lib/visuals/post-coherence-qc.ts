@@ -97,6 +97,14 @@ export interface CoherenceVerdict {
   };
   /** 0-10 — force de l'accroche seule (première ligne, 3 premières secondes). */
   hookScore: number;
+  /**
+   * Ce qui fait la qualité du post — pour apprendre des réussites.
+   *
+   * Fondateur, 2026-08-15 : « celles qui passent, pourquoi pertinentes ; comme
+   * ça on traque et on s améliore ». On ne refait pas à dessein ce qu on n a
+   * pas su nommer.
+   */
+  pointsForts: string[];
 }
 
 const MODEL = 'claude-sonnet-4-6';
@@ -290,9 +298,22 @@ const TOOL = {
         ].join('\n'),
       },
       hook_score: { type: 'number', description: "Force de la première ligne sur 10 : retient-elle le lecteur ?" },
+      /**
+       * Ce qui FAIT que le post tient — pas seulement ce qui cloche.
+       *
+       * Fondateur, 2026-08-15 : « les notes sur celles qui ne passent pas,
+       * pourquoi ; et celles qui passent, pourquoi pertinentes. Comme ça on
+       * traque et on s améliore. »
+       *
+       * Le juge ne disait rien des réussites : sur un post accepté, le tableau
+       * des motifs restait vide. On savait donc pourquoi on écartait, jamais
+       * pourquoi on gardait — et on ne peut pas refaire à dessein ce qu on n a
+       * pas su nommer.
+       */
+      points_forts: { type: 'array', items: { type: 'string' }, description: "Ce qui fait la qualité de ce post, en français : l accroche qui pose une tension précise, le geste montré, le lien juste entre image et texte. UN à TROIS points, concrets et citables. À remplir MÊME quand la note est basse : un post refusé a presque toujours quelque chose de bon à garder pour la réparation." },
       reasons: { type: 'array', items: { type: 'string' }, description: "Motifs de rejet en français, du plus grave au moins grave. Vide UNIQUEMENT si le post est bon. Dès que la note est sous le seuil ou qu'un défaut est signalé, ce tableau DOIT contenir au moins un motif : un refus sans motif ne peut être ni expliqué au client ni corrigé, et il ne nous apprend rien." },
     },
-    required: ['image_description', 'score', 'invented_client', 'implausible_claim', 'image_usable', 'off_topic', 'empty_visual', 'texte_dans_image', 'hashtag_mismatch', 'forced_news_link', 'hook_score', 'reasons'],
+    required: ['image_description', 'score', 'invented_client', 'implausible_claim', 'image_usable', 'off_topic', 'empty_visual', 'texte_dans_image', 'hashtag_mismatch', 'forced_news_link', 'hook_score', 'reasons', 'points_forts'],
   },
 };
 
@@ -599,8 +620,28 @@ export async function assessPostCoherence(input: {
     // bien tourné fonctionne — et « ta com' est sèche comme une plante en plein
     // soleil » est une excellente accroche pour un fleuriste. Le juge n'a pas à
     // trancher à la place du métier : il retire des points, il ne condamne pas.
+    /**
+     * ── La story porte NOTRE texte, et c'est voulu ──
+     *
+     * Constaté le 15 août, en faisant juger une vraie vague : une story notée
+     * 4/10 et refusée pour « texte illisible sur l'image ». Or ce texte, c'est
+     * l'incrustation qu'on ajoute nous-mêmes — « Ton équipe, pas ton business. »
+     * — et une story sans accroche incrustée ne se lit pas : elle passe en trois
+     * secondes, sans son la plupart du temps.
+     *
+     * Ma règle d'hier interdisait le texte partout. Elle visait le texte
+     * INVENTÉ par le modèle d'image — une enseigne, un prix, du charabia — pas
+     * celui qu'on pose délibérément par-dessus. Interdire les deux, c'est
+     * rendre le format story impossible.
+     *
+     * Sur les autres formats la règle reste entière : un mot dans une image
+     * générée est un mot qu'on ne maîtrise pas.
+     */
+    const estStory = String(input.format || '').toLowerCase() === 'story';
+    const texteIndesirable = flags.texteDansImage && !estStory;
+
     const eliminatoire = flags.inventedClient || flags.implausibleClaim
-      || flags.offTopic || flags.emptyVisual || flags.texteDansImage;
+      || flags.offTopic || flags.emptyVisual || texteIndesirable;
 
     // ── L'actualité n'est plus un motif de sanction ──
     //
@@ -626,6 +667,36 @@ export async function assessPostCoherence(input: {
 
     const pass = !eliminatoire && noteFinale >= plancher;
 
+    /**
+     * ── Un drapeau qui bloque doit dire pourquoi ──
+     *
+     * Constaté le 15 août : un reel noté 8/10, sans un seul motif, refusé avec
+     * « le contrôle a refusé sans motif explicite (note 8/10 — sous le seuil) ».
+     * Le message était trompeur — 8 est bien au-dessus du plancher de 6. Ce qui
+     * bloquait, c'était un drapeau éliminatoire levé par le modèle sans qu'il
+     * l'ait répété dans ses motifs.
+     *
+     * On ne peut pas exiger du modèle qu'il soit deux fois d'accord avec
+     * lui-même. On traduit donc chaque drapeau en motif : le client sait ce
+     * qu'on lui reproche, la réparation sait quoi corriger, et le journal
+     * cesse d'accuser un seuil qui n'y était pour rien.
+     */
+    const motifsModele = Array.isArray(v.reasons) ? v.reasons.map((r: any) => String(r).slice(0, 240)) : [];
+    const motifsDesDrapeaux: string[] = [];
+    if (flags.inventedClient) motifsDesDrapeaux.push('Un client nommé est présenté comme réel alors qu\'il est inventé.');
+    if (flags.implausibleClaim) motifsDesDrapeaux.push('Une affirmation ou un chiffre invraisemblable est avancé.');
+    if (flags.offTopic) motifsDesDrapeaux.push('L\'image n\'illustre pas le propos de la légende.');
+    if (flags.emptyVisual) motifsDesDrapeaux.push('L\'image se réduit à un symbole ou un pictogramme, sans scène ni objet identifiable.');
+    if (texteIndesirable) motifsDesDrapeaux.push('Du texte lisible apparaît dans l\'image générée — enseigne, panneau ou étiquette qu\'on ne maîtrise pas.');
+
+    // Les motifs du modèle d'abord : ils sont plus précis que nos libellés.
+    // Ceux des drapeaux ne s'ajoutent que s'ils n'ont pas déjà été dits.
+    const reasons = [...motifsModele];
+    for (const m of motifsDesDrapeaux) {
+      const deja = motifsModele.some((r: any) => r.toLowerCase().slice(0, 30) === m.toLowerCase().slice(0, 30));
+      if (!deja) reasons.push(m);
+    }
+
     return {
       pass,
       // Une image vide n'est jamais récupérable ; tout le reste des défauts
@@ -634,7 +705,8 @@ export async function assessPostCoherence(input: {
       score,
       hookScore,
       imageDescription: String(v.image_description || '').slice(0, 400),
-      reasons: Array.isArray(v.reasons) ? v.reasons.map((r: any) => String(r).slice(0, 240)) : [],
+      reasons,
+      pointsForts: Array.isArray(v.points_forts) ? v.points_forts.map((r: any) => String(r).slice(0, 200)).slice(0, 3) : [],
       flags,
     };
   } catch {

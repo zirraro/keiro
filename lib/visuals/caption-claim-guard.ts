@@ -63,7 +63,25 @@ const MOTIFS: Array<{ re: RegExp; quoi: string }> = [
     quoi: 'chiffre aberrant : hors de toute proportion pour un commerce',
   },
   {
-    re: /\b([1-9]\d|[6-9])\s?h(?:eures)?\s+(?:économisées|economisees|gagnées|gagnees|par semaine)/i,
+    /**
+     * ── « par semaine » n'était pas à sa place dans cette liste ──
+     *
+     * L'alternative disait (économisées | gagnées | PAR SEMAINE). « par
+     * semaine » se retrouvait donc au même rang qu'un verbe d'économie, et
+     * n'importe quelle durée hebdomadaire déclenchait le blocage.
+     *
+     * Constaté le 15 août : « Tu passes 10h par semaine à dessiner des plans de
+     * jardin » — un post pour un paysagiste — refusé pour « gain de temps
+     * aberrant ». Or ce n'est pas une promesse, c'est une observation sur le
+     * métier du lecteur, et c'est exactement l'accroche qu'on veut : concrète,
+     * chiffrée, vraie.
+     *
+     * Ce qui engage la marque, c'est le VERBE : « 10h économisées » promet
+     * quelque chose, « 10h passées » décrit une situation. On exige donc le
+     * verbe, et « par semaine » redevient ce qu'il est — une précision de
+     * durée, pas une affirmation.
+     */
+    re: /\b([1-9]\d|[6-9])\s?h(?:eures)?\s+(?:économisées|economisees|gagnées|gagnees)/i,
     quoi: 'gain de temps aberrant',
   },
 ];

@@ -217,6 +217,10 @@ export async function controlerAvantPublication(
             post_id: post.id, reseau: post.platform, note: coh.score,
             format: post.format, publiable: coh.pass,
             motifs: (coh.reasons || []).slice(0, 3),
+            // Ce qui MARCHE, enregistré au même endroit que ce qui cloche :
+            // sans ça on ne saurait que corriger, jamais reproduire.
+            points_forts: ((coh as any).pointsForts || []).slice(0, 3),
+            note_accroche: coh.hookScore,
             flags: Object.entries(coh.flags || {}).filter(([, v]) => v).map(([k]) => k),
           },
           created_at: new Date().toISOString(),
