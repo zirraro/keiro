@@ -260,7 +260,24 @@ export async function ecarterSansNotifier(
   await supabase.from('agent_logs').insert({
     agent: 'content',
     action: 'post_ecarte_qc',
-    status: 'error',
+    /**
+     * Un refus du contrôle qualité n'est pas une panne de l'agent.
+     *
+     * Ces lignes partaient en `error`, et l'agent ops compte tout `error` comme
+     * une erreur d'exécution : le digest du 15 août annonçait « Content agent
+     * en erreur, 7/283 runs », puis son analyse automatique inventait une cause
+     * — un filtre DALL-E, un fichier `image-generation.ts` qui n'existe pas,
+     * une fonction `generateSafeImagePrompt` jamais écrite. Le fondateur reçoit
+     * alors une consigne de correction sur du code imaginaire.
+     *
+     * La vérité tenait en une ligne : le juge a fait son travail et refusé une
+     * image incohérente. C'est le système qui fonctionne, pas qui tombe.
+     *
+     * En `warning`, l'information reste — un créneau non rempli mérite d'être
+     * vu, la doctrine est de toujours livrer — mais elle cesse de se faire
+     * passer pour une panne.
+     */
+    status: 'warning',
     user_id: userId,
     data: { post_id: postId, motif, detail, notification_client: false },
     created_at: new Date().toISOString(),

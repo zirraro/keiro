@@ -2011,6 +2011,31 @@ async function GETInterne(request: NextRequest) {
         return (b.score || 0) - (a.score || 0);
       });
 
+      /**
+       * ── Les adresses génériques passent après, et sont plafonnées ──
+       *
+       * Mesuré le 16 août sur 3 423 prospects : les `contact@`/`info@` font
+       * 69,9 % d'échec contre 11,7 % pour les nominatives, et ouvrent deux fois
+       * moins. Elles pèsent 60 % du volume envoyé et 90 % des échecs.
+       *
+       * Ce n'est pas seulement du gâchis : 1 100 adresses mortes disent à Gmail
+       * qu'on envoie à l'aveugle, et la réputation qui en résulte fait tomber en
+       * indésirable les nominatives — celles qui ouvrent à 17,5 %. On perd les
+       * bonnes adresses à cause des mauvaises.
+       *
+       * Le contrôle MX plus bas ne peut rien ici : ces domaines ont un MX
+       * valide, c'est la boîte qui n'existe pas.
+       */
+      const { ordonnerFileEnvoi } = await import('@/lib/email/adresse-generique');
+      const avantPlafond = prospects.length;
+      const { file: fileOrdonnee, generiquesEcartees } = ordonnerFileEnvoi(prospects, remainingQuota);
+      prospects.length = 0;
+      prospects.push(...fileOrdonnee);
+      if (generiquesEcartees > 0) {
+        // Un plafond qu'on ne journalise pas se lit comme « tout a été traité ».
+        console.warn(`[EmailDaily] ${generiquesEcartees} adresse(s) générique(s) reportée(s) — plafond à 25 % de l'envoi (file ${avantPlafond} → ${prospects.length}). Elles repasseront demain, derrière les nominatives.`);
+      }
+
       const verifiedCount = prospects.filter(p => p.verified).length;
       const newCount = prospects.filter(p => !p.email_sequence_status || p.email_sequence_status === 'not_started').length;
       const followUpCount = prospects.filter(p => p.email_sequence_status === 'in_progress').length;

@@ -232,7 +232,11 @@ export async function reparerJusquAuNiveau(
     // la chercher.
     try {
       await supabase.from('agent_logs').insert({
-        agent: 'content', action: 'reparation_epuisee', status: 'error',
+        // `warning` et non `error` : cinq réparations sans succès, c'est le
+        // contrôle qui tient sa ligne, pas l'agent qui tombe. En `error`, ces
+        // lignes faisaient chuter le taux de succès de l'agent content et
+        // déclenchaient une analyse de panne sur un code imaginaire.
+        agent: 'content', action: 'reparation_epuisee', status: 'warning',
         user_id: post.user_id || undefined,
         error_message: `${PLAFOND_SAUVETAGE} réparations sans succès sur ${post.platform}/${post.format} — note finale ${note}/10`,
         data: {

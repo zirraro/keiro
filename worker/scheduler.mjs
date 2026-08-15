@@ -70,6 +70,20 @@ const GLOBAL_SCHEDULE = [
   { cron: '20 14 * * *',  path: '/api/cron/generation-fraiche?reseau=tiktok',    label: 'Génération fraîche — TikTok' },
   { cron: '20 19 * * *',  path: '/api/cron/generation-fraiche?reseau=linkedin',  label: 'Génération fraîche — LinkedIn' },
 
+  // ── SEO : déclaré partout, planifié nulle part ──
+  //
+  // `seo` figurait bien dans AGENT_ENDPOINTS et l'agent ops connaissait même sa
+  // « cadence Mon/Wed/Fri » — sauf qu'aucun créneau ne l'appelait. L'agent
+  // n'avait jamais tourné. Le digest le signalait DOWN depuis des jours, et son
+  // analyse automatique concluait « la logique de détection ne tient pas compte
+  // de la cadence » : elle accusait l'alerte plutôt que la panne. L'alerte
+  // disait vrai, et sa formulation — en citant une cadence qui n'existait dans
+  // aucun fichier — a envoyé chercher le défaut du mauvais côté.
+  //
+  // Lundi, mercredi, vendredi à 11 h : la cadence que tout le monde croyait
+  // déjà en place existe maintenant pour de bon.
+  { cron: '0 11 * * 1,3,5', slot: 'seo', label: 'SEO (Théo) — Mon/Wed/Fri' },
+
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   // Inbound email poll every 2h (8 fires/day) so prospect replies get
   // classified and auto-responded within ~2h instead of waiting for the

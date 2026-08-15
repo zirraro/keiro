@@ -406,7 +406,7 @@ Tu dois produire un JSON STRICT de cette forme :
       "agents": ["agent_id", ...],
       "impact": "combien de clients/runs/erreurs touchés",
       "explanation": "1 paragraphe clair sur POURQUOI ça casse — français simple. COMMENCE par citer le message d'erreur EXACT observé, entre guillemets. Ensuite seulement, propose une cause : présente-la comme une hypothèse (« probablement », « à vérifier ») et non comme un fait, sauf si le message d'erreur la prouve directement. Un diagnostic affirmé à tort fait perdre des heures : le 2026-08-02, un « fetch failed » a été attribué au réseau alors que l'API répondait en 0,4 s.",
-      "fix": "recommandation CODE précise et actionnable (fichier(s), fonction(s), changement à faire)",
+      "fix": "recommandation actionnable. Ne cite un chemin de fichier ou un nom de fonction QUE si tu l'as lu dans les logs fournis. Sinon décris le changement sans nommer de fichier — « côté génération d'images », pas « dans lib/agents/content/image-generation.ts ». Le 2026-08-15, un fix citait un fichier, une fonction et un fournisseur d'images qui n'existent dans aucun dépôt : la recommandation était impossible à appliquer, et le vrai défaut est resté.",
       "affected_files": ["chemins EXACTS de fichiers dont tu es certain qu'ils existent — dans le doute, laisse le tableau vide plutôt que de deviner un nom plausible"]
     }
   ],

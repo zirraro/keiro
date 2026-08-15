@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
     'onboarding', 'retention',
     'publish_scheduled', 'tiktok_publish',
     'evening_prep',
-    'gmaps', 'whatsapp_followup',
+    'gmaps', 'whatsapp_followup', 'seo',
     'discovery', 'discovery_2', 'discovery_3', 'discovery_4', 'discovery_5', 'discovery_6',
   ]);
 
@@ -151,6 +151,8 @@ export async function GET(request: NextRequest) {
       'early_morning', 'morning', 'midday', 'evening',
       'morning_prep', 'content_2', 'discovery', 'discovery_2',
       'ceo_evening', 'community', 'retention', 'gmaps', 'comptable', 'email_warm_2',
+      // L'agent SEO est vendu à partir du plan Pro (minPlan fait foi).
+      'seo',
     ]),
     // Business: all batches
     business: new Set([
@@ -162,7 +164,7 @@ export async function GET(request: NextRequest) {
       'discovery', 'discovery_2', 'discovery_3',
       'ceo', 'ceo_evening', 'ceo_night',
       'community', 'evening_prep',
-      'retention', 'gmaps', 'comptable',
+      'retention', 'gmaps', 'comptable', 'seo',
       'publish_scheduled', 'tiktok_publish',
     ]),
   };
@@ -1281,6 +1283,24 @@ export async function GET(request: NextRequest) {
       // Théo SEO Fiche — optimise la description de la fiche Google (gate qualité,
       // Pro+, auto-throttle 7j, mode auto ou proposition selon le client).
       await callForEachClient('GBP SEO Optimize', '/api/agents/gbp-optimize', 'GET', undefined, 'gmaps');
+      break;
+
+    case 'seo':
+      /**
+       * ── L'agent SEO n'avait jamais tourné ──
+       *
+       * `seo` existait dans AGENT_ENDPOINTS du worker, l'agent ops connaissait
+       * même sa « cadence Mon/Wed/Fri » — mais aucun créneau ne l'appelait, et
+       * le répartiteur ne connaissait pas ce nom. Trois fichiers d'accord sur
+       * l'existence d'une planification que personne n'avait écrite.
+       *
+       * Le digest le signalait DOWN, et son analyse automatique accusait la
+       * détection plutôt que la panne. L'alerte disait vrai.
+       *
+       * Par client et filtré sur l'agent : le SEO se vend à partir du plan Pro,
+       * et un client qui ne l'a pas activé ne doit pas le déclencher.
+       */
+      await callForEachClient('SEO (Théo)', '/api/agents/seo', 'GET', undefined, 'seo');
       break;
 
     case 'comptable':
