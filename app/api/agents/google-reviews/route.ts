@@ -212,13 +212,53 @@ export async function GET(req: NextRequest) {
     let fichePublique: any = null;
     try {
       const { searchBusiness, getBusinessProfile } = await import('@/lib/apis/google-business');
+
+      /**
+       * ── La fiche CHOISIE par le client fait autorité ──
+       *
+       * Deviner à partir du nom de l'entreprise ne pouvait pas marcher : le
+       * fondateur a connecté « Le Repère de l'Autisme » et son dossier dit
+       * « KeiroAI ». Deux noms sans rapport — et la recherche automatique
+       * rendait « Kayro.ai », une société parisienne homonyme.
+       *
+       * Quand il a désigné sa fiche une fois (via /api/agents/fiche-google),
+       * on s'en sert directement : plus de recherche, plus d'homonyme
+       * possible, plus de garde de correspondance à faire jouer.
+       */
+      const { data: choisi } = await supabase
+        .from('profiles')
+        .select('google_place_id, google_place_nom')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (choisi?.google_place_id) {
+        const detail = await getBusinessProfile(choisi.google_place_id);
+        if (detail) {
+          fichePublique = {
+            source: 'places',
+            nom: detail.name || choisi.google_place_nom,
+            adresse: detail.address,
+            telephone: detail.phone,
+            site: detail.website,
+            note: detail.rating,
+            nombreAvis: detail.totalReviews,
+            categorie: Array.isArray(detail.categories) ? detail.categories[0] : detail.categories,
+            horaires: detail.hours,
+            photos: detail.photos,
+          };
+          console.log(`[GoogleReviews] fiche choisie par le client : ${detail.name}`);
+        }
+      }
+
       const { data: dossier } = await supabase
         .from('business_dossiers')
         .select('company_name, address, city, website_url')
         .eq('user_id', user.id)
         .maybeSingle();
       const nom = dossier?.company_name || (profile as any).company_name || null;
-      if (nom) {
+      // Recherche automatique uniquement en dernier recours, et toujours sous
+      // la garde de correspondance : c'est un pis-aller, pas une source sûre.
+      if (!fichePublique && nom) {
         const ville = dossier?.city || dossier?.address || '';
         const trouves = await searchBusiness(nom, ville);
         const premier = Array.isArray(trouves) ? trouves[0] : null;
@@ -310,11 +350,32 @@ export async function GET(req: NextRequest) {
       // quota metric 'Requests'... } » en plein milieu de son tableau de bord.
       // On traduit les causes connues en une phrase qui lui dit quoi faire —
       // ou, quand il n'a rien à faire, qu'il n'a rien à faire.
-      message: diagnostic.erreur
+      /**
+       * ── Trois situations, trois messages ──
+       *
+       * Fondateur, 15 août, deux fois : « ça ne s'affiche toujours pas ».
+       *
+       * Le panneau disait invariablement « Google n'a pas encore ouvert
+       * l'accès à ses données » — ce qui laisse croire que la fiche existe et
+       * qu'on attend une autorisation. Vérification faite pour KeiroAI :
+       * AUCUNE fiche Google n'existe. Les recherches rendent Kayro.ai puis
+       * Kiiro, deux entreprises différentes, et le domaine ne rend rien.
+       *
+       * Il n'y a donc rien à attendre : il faut CRÉER la fiche. Un message qui
+       * dit « patiente » à quelqu'un qui doit agir lui fait perdre des
+       * semaines.
+       *
+       * · fiche trouvée sur Places → on l'affiche (lecture seule) ;
+       * · erreur d'API (quota, droits) → on explique l'attente ;
+       * · rien trouvé nulle part → on dit de la créer, avec le lien.
+       */
+      message: fichePublique
+        ? null
+        : diagnostic.erreur
         ? messageClient(diagnostic.erreur)
         : (diagnostic.comptes === 0
           ? "Aucun compte Google Business n'est rattaché à l'adresse Google que tu as connectée. Vérifie que tu t'es connecté avec le compte qui gère la fiche."
-          : 'Google Business connecté, mais aucun établissement trouvé sur ce compte. Crée/réclame ta fiche sur business.google.com, puis recharge — Théo la détectera automatiquement.'),
+          : "Ton compte Google est bien connecté, mais aucune fiche établissement ne lui est rattachée — et on n'en trouve pas non plus sur Google Maps à ton nom. Il faut la créer : c'est gratuit, ça prend dix minutes sur business.google.com, et c'est elle qui te fait apparaître dans les recherches locales. Dès qu'elle existe, Théo la détecte tout seul."),
     });
   }
 

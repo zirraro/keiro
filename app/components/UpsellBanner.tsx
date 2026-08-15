@@ -79,7 +79,20 @@ export default function UpsellBanner() {
             Pack +500 crédits · €19
           </a>
           <a
-            href="/tarifs?upgrade_from=${encodeURIComponent(s.subscription_plan)}"
+            /**
+             * ── Deux fautes sur une seule ligne, et c'était le bouton de montée en gamme ──
+             *
+             * 1. La page s'appelle /pricing, pas /tarifs. Le lien rendait un 404 —
+             *    vérifié en direct sur le site.
+             * 2. Le `${…}` était écrit dans une chaîne JSX ordinaire, pas dans un
+             *    littéral de gabarit : l'expression partait TELLE QUELLE dans l'URL.
+             *    Le client cliquait vers « /tarifs?upgrade_from=${encodeURI… ».
+             *
+             * C'est le chemin par lequel un client passe au plan supérieur. Il ne
+             * menait nulle part, et rien ne le signalait : un lien mort ne lève
+             * aucune erreur côté serveur, il fait juste partir le client.
+             */
+            href={`/pricing?upgrade_from=${encodeURIComponent(s.subscription_plan || '')}`}
             className="bg-white/20 border border-white/30 text-white font-semibold px-4 py-2 rounded-lg text-sm hover:bg-white/30 whitespace-nowrap"
           >
             Passer au plan supérieur
