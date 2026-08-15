@@ -67,6 +67,12 @@ export async function regenererVisuelDepuisLegende(input: {
         "· Un écran n'est jamais le sujet.",
         '· Lumière naturelle identifiable, couleurs sobres, grain fin. Jamais de rendu 3D, jamais de peau lissée.',
         "· Pas d'effets appuyés : ni buée de trop, ni fumée théâtrale, ni poussière scintillante.",
+        // Troisième couche de la même règle. Le fondateur a posé l'ordre le
+        // 15 août : « régler le problème à la source, donc sur le modèle et le
+        // prompt, les prompts ensuite le juge puis les prompts de réparation ».
+        // Une règle qui ne vit que dans la génération se perd dès qu'on refait
+        // un visuel : la réparation repartirait sur le défaut qu'elle corrige.
+        "· Jamais de gros plan sur une goutte, une éclaboussure ou un liquide qui coule le long d'un verre : la physique des fluides est ce que les modèles ratent le plus visiblement. Un versement continu filmé large, ou le verre déjà plein et immobile.",
       ].join('\n'),
       message: brief,
       maxTokens: 400,

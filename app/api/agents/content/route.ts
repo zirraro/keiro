@@ -1921,6 +1921,25 @@ const PRECISION_VIDEO = [
   'Real materials and real hands. No text, no logo, no interface on screen.',
   'Keep effects minimal: no added steam, sparkle, bokeh circles or haze unless',
   'the scene truly produces them, and then keep them faint.',
+  // ── Les liquides, réglés À LA SOURCE ──
+  //
+  // Fondateur, 2026-08-15, sur un reel publié : « on voit une goutte accrochée
+  // au verre qui tombe en amorti sur la table avec un fil, ça fait IA et mal
+  // fait ». Il a raison, et le juge n'avait pas ce critère — je l'ai ajouté.
+  //
+  // Mais le juge arrive trop tard : il refuse, on regénère, on repaie. Sa
+  // demande est explicite et juste — régler le problème à la source, c'est-à-dire
+  // dans le brief. Les modèles vidéo ratent la physique des fluides quand on
+  // leur demande un gros plan sur une goutte ou une éclaboussure ; la parade
+  // n'est pas de mieux le demander, c'est de NE PAS le demander.
+  //
+  // On interdit donc le plan qui produit le défaut, plutôt que d'espérer que le
+  // modèle le réussisse. Un geste tenu vaut mieux qu'une goutte ratée.
+  'AVOID entirely: close-ups of a single falling droplet, splashes, drips down',
+  'a glass, liquid stretching or bouncing. These read as fake within one frame.',
+  'If liquid must appear, show a steady continuous pour into a container, filmed',
+  'wide enough that no single drop is the subject — or show the glass already',
+  'full and still. Never isolate a drop.',
 ].join(' ');
 
 async function bakeMusicOnVideo(
@@ -2208,6 +2227,7 @@ RÈGLES ABSOLUES :
 - Précise la PALETTE : "warm honey tones, deep mahogany wood, soft cream accents"
 - JAMAIS de texte, lettres, mots, logos, panneaux dans la vidéo
 - JAMAIS de visages en gros plan (l'IA fait des visages artificiels) — mains, silhouettes, plans larges
+- JAMAIS de gros plan sur une GOUTTE, une éclaboussure, un liquide qui coule le long d'un verre. Les modèles vidéo ratent la physique des fluides : la goutte reste accrochée par un fil, rebondit en amorti, s'étire comme du gel. C'est LE défaut qui se repère en une image. Si un liquide doit apparaître : un versement continu dans un récipient, filmé assez large pour qu'aucune goutte ne soit le sujet — ou le verre déjà plein et immobile.
 - EN ANGLAIS uniquement
 - 200-350 caractères
 

@@ -253,6 +253,24 @@ export const REALISME_VIDEO = [
   'NOT: slow-motion glamour, speed ramps, colour grading with orange-and-teal, lens flares,',
   'bloom, motion graphics, text overlays, logo animations, stock-footage staging, or the',
   'glossy look of an advert. Documentary before commercial, always.',
+  '',
+  // ── Le défaut qui trahit une vidéo générée avant tous les autres ──
+  //
+  // Fondateur, 2026-08-15, sur un reel publié : « on voit une goutte accrochée
+  // au verre qui tombe en amorti sur la table avec un fil, ça fait IA et mal
+  // fait ». Il a raison : la physique des fluides est ce que les modèles ratent
+  // le plus visiblement, et une seule goutte suffit à décrédibiliser tout le
+  // plan — pour des commerces qui vendent de la vraie nourriture et de vraies
+  // boissons, c'est rédhibitoire.
+  //
+  // La parade n'est pas de mieux le demander, c'est de ne pas le demander : on
+  // interdit le plan qui produit le défaut plutôt que d'espérer qu'il réussisse.
+  // Un geste tenu vaut mieux qu'une goutte ratée.
+  'FLUIDS — the tell that gives generated footage away: NEVER isolate a single droplet,',
+  'a splash, a drip running down a glass, or liquid caught mid-fall. Generated fluids cling',
+  'by invisible threads, bounce on landing, and stretch like gel. If liquid appears, film a',
+  'steady continuous pour into a container, wide enough that no single drop is the subject —',
+  'or show the glass already full and still.',
 ].join('\n');
 
 /**
