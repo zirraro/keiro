@@ -214,7 +214,7 @@ export async function GET(req: NextRequest) {
       const { searchBusiness, getBusinessProfile } = await import('@/lib/apis/google-business');
       const { data: dossier } = await supabase
         .from('business_dossiers')
-        .select('company_name, address, city')
+        .select('company_name, address, city, website_url')
         .eq('user_id', user.id)
         .maybeSingle();
       const nom = dossier?.company_name || (profile as any).company_name || null;
@@ -224,7 +224,58 @@ export async function GET(req: NextRequest) {
         const premier = Array.isArray(trouves) ? trouves[0] : null;
         if (premier?.placeId) {
           const detail = await getBusinessProfile(premier.placeId);
-          if (detail) {
+
+          /**
+           * ══════════════════════════════════════════════════════════════════
+           * On n'affiche JAMAIS la fiche d'un autre commerce
+           * ══════════════════════════════════════════════════════════════════
+           *
+           * Constaté à la seconde où j'ai testé : la recherche « KeiroAI » rend
+           * « Keiro », 420 E 3rd St, Los Angeles, 4,5★ sur 4 avis. Un homonyme
+           * à l'autre bout du monde.
+           *
+           * Sans garde, le commerçant verrait cette fiche présentée comme la
+           * sienne — avec une note et des avis qui ne sont pas les siens. C'est
+           * strictement pire que le panneau vide qu'on voulait remplacer : un
+           * écran vide se comprend, une fiche fausse se croit.
+           *
+           * On exige donc DEUX signaux concordants, pas un :
+           *   · le NOM se ressemble vraiment (pas juste un préfixe commun) ;
+           *   · ET le site web ou la ville correspond.
+           *
+           * Le site est le signal le plus sûr : deux commerces peuvent porter le
+           * même nom, jamais le même domaine. En l'absence des deux, on préfère
+           * ne rien montrer — et le dire.
+           */
+          const normaliser = (v: string) => String(v || '')
+            .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '');
+          const domaine = (v: string) => String(v || '').toLowerCase()
+            .replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+
+          const nomAttendu = normaliser(nom);
+          const nomTrouve = normaliser(detail?.name || '');
+          // Le nom doit correspondre franchement : l'un contient l'autre ET la
+          // différence de longueur reste faible. « keiro » vs « keiroai » passe
+          // ce test, mais « keiro » vs « keirobistrotlyon » ne le passe pas.
+          const nomProche = !!nomAttendu && !!nomTrouve
+            && (nomTrouve.includes(nomAttendu) || nomAttendu.includes(nomTrouve))
+            && Math.abs(nomTrouve.length - nomAttendu.length) <= 4;
+
+          const siteAttendu = domaine(dossier?.website_url || (profile as any)?.website_url || '');
+          const siteTrouve = domaine(detail?.website || '');
+          const memeSite = !!siteAttendu && !!siteTrouve && siteAttendu === siteTrouve;
+
+          const villeAttendue = normaliser(dossier?.city || '');
+          const memeVille = !!villeAttendue && normaliser(detail?.address || '').includes(villeAttendue);
+
+          const certain = nomProche && (memeSite || memeVille);
+
+          if (detail && !certain) {
+            console.warn(`[GoogleReviews] fiche Places ÉCARTÉE : « ${detail.name} » (${detail.address}) ne correspond pas assez à « ${nom} » — on n'affiche pas la fiche d'un autre`);
+          }
+
+          if (detail && certain) {
             fichePublique = {
               source: 'places',
               nom: detail.name,
