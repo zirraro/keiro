@@ -52,7 +52,22 @@ function LoginPageInner() {
     }
   };
 
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  /**
+   * ── Le visiteur qui vient s'inscrire arrivait sur un formulaire de connexion ──
+   *
+   * L'inscription n'a pas de page à elle : elle vit ici, dans un onglet fermé
+   * par défaut. Rien dans l'URL ne pouvait l'ouvrir. Un prospect venu du mur
+   * d'essai gratuit — celui qui vient justement de décider de créer un compte —
+   * atterrissait donc sur « Se connecter », et devait comprendre tout seul
+   * qu'il fallait d'abord basculer d'onglet.
+   *
+   * C'est la friction la plus chère du parcours : elle frappe exactement les
+   * gens qui ont déjà dit oui. Le mode se lit maintenant dans l'URL, et
+   * `/signup` y renvoie.
+   */
+  const [mode, setMode] = useState<'login' | 'signup'>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'login',
+  );
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

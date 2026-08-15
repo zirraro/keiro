@@ -468,6 +468,17 @@ node scripts/verifier-types-activite.mjs || {
   exit 1
 }
 
+# Un lien mort sur le parcours ne se voit nulle part : pas d'erreur serveur,
+# pas de journal, pas d'alerte. Le bouton « Créer mon compte gratuit » pointait
+# sur une page inexistante depuis le 26 avril — quatre mois, sur la page
+# d'accueil et sur /generate, c'est-à-dire sur les deux seuls endroits où un
+# prospect dit oui. Huit comptes en tout, aucun depuis trente jours.
+node scripts/verifier-liens-internes.mjs || {
+  echo "🚨 Un lien interne mène à une page qui n'existe pas."
+  echo "   Le visiteur qui clique tombe sur une erreur, et rien ne le signale."
+  exit 1
+}
+
 etape "back-test des fonctions"
 if ! node scripts/back-test.mjs "https://keiroai.com" "$EXPECTED_SHA"; then
   echo "🚨 Le commit est bien en ligne, mais des FONCTIONS sont cassées."
