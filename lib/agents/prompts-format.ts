@@ -144,11 +144,96 @@ On s'adresse à des pairs, qui jugent d'abord le sérieux.
  * À placer près de la consigne de sortie : la position pèse autant que le
  * contenu, et ces règles-ci doivent être lues juste avant d'écrire.
  */
+/**
+ * Ce que le format devient SUR CE RÉSEAU — la case précise de la matrice.
+ *
+ * ── Pourquoi cette couche existe ──
+ *
+ * Fondateur, 2026-08-15 : « étant donné qu'on a des reels sur Insta, TikTok et
+ * LinkedIn, il faut un prompt reel PAR RÉSEAU, comme il faut un prompt carrousel
+ * et image par réseau ! »
+ *
+ * Le montage précédent additionnait deux blocs : les codes du réseau, puis les
+ * règles du format. Le bloc REEL était donc le même partout — alors qu'un reel
+ * TikTok, un reel Instagram et une vidéo LinkedIn n'ont ni la même ouverture,
+ * ni le même rythme, ni la même fin. Additionner deux généralités ne produit pas
+ * une consigne précise : ça produit une moyenne.
+ *
+ * On garde donc les deux blocs — ils portent ce qui ne change pas — et on ajoute
+ * la case : en quoi CE format est différent SUR CE réseau. Trois lignes, pas
+ * trente : ce qui change, et rien d'autre.
+ */
+const MATRICE: Record<Reseau, Partial<Record<'image' | 'carrousel' | 'reel' | 'story', string>>> = {
+  instagram: {
+    reel: `━━━ CE REEL PART SUR INSTAGRAM ━━━
+· On ouvre sur une IMAGE tenue, nette, cadrée — le lecteur arrive du fil, il
+  juge la photographie avant le propos.
+· Le rythme est posé : un mouvement lent qui laisse voir la matière. Pas de
+  coupe sèche toutes les demi-secondes.
+· La couverture compte autant que la vidéo : la première image doit tenir seule
+  en vignette dans la grille.`,
+    carrousel: `━━━ CE CARROUSEL PART SUR INSTAGRAM ━━━
+· La première diapositive est une VITRINE : elle se suffit, même si personne ne
+  fait défiler.
+· Chaque diapositive avance d'un cran — jamais une reformulation de la
+  précédente. Si on peut en retirer une sans rien perdre, il faut la retirer.
+· La dernière porte l'action, formulée simplement.`,
+    image: `━━━ CETTE IMAGE PART SUR INSTAGRAM ━━━
+· Elle doit tenir en VIGNETTE : lisible à la taille d'un timbre dans la grille.
+· Un sujet unique, un point de netteté évident, un fond qui ne discute pas.
+· La lumière est construite : on doit pouvoir nommer d'où elle vient.`,
+    story: `━━━ CETTE STORY PART SUR INSTAGRAM ━━━
+· L'accroche est INCRUSTÉE sur l'image, en trois ou quatre mots — la plupart
+  regardent sans le son.
+· Un seul message, lisible en une seconde, au centre du cadre.`,
+  },
+
+  tiktok: {
+    reel: `━━━ CE REEL PART SUR TIKTOK ━━━
+· On entre DANS le geste dès la première image — pas de plan d'établissement,
+  pas de vue d'ensemble avant d'arriver au sujet.
+· Le brut l'emporte : caméra tenue à la main, cadrage imparfait, lieu réel avec
+  son désordre. Un plan trop propre est lu comme une publicité et scrollé.
+· Une seule action, filmée en continu. La coupe se justifie ou n'existe pas.
+· La dernière seconde dit quoi faire, à voix haute ou en une ligne.`,
+    carrousel: `━━━ CE CARROUSEL PART SUR TIKTOK ━━━
+· Le format photo y est un DIAPORAMA : il défile vite, souvent en musique.
+· Chaque image doit se comprendre sans texte long — une idée, une image.
+· La première décide de tout : elle doit surprendre, pas résumer.`,
+    image: `━━━ CETTE IMAGE PART SUR TIKTOK ━━━
+· Verticale, plein cadre, sujet centré et proche : elle est vue en plein écran,
+  jamais en vignette.
+· Le naturel prime sur la composition parfaite.`,
+  },
+
+  linkedin: {
+    reel: `━━━ CETTE VIDÉO PART SUR LINKEDIN ━━━
+· On y regarde une DÉMONSTRATION, pas une accroche : le geste professionnel, la
+  méthode, le poste de travail.
+· Rythme calme, plan tenu, aucune musique tape-à-l'œil. Le fond porte le propos.
+· La plupart regardent sans le son et en défilant : ce qui compte doit se
+  comprendre à l'image seule.`,
+    carrousel: `━━━ CE CARROUSEL PART SUR LINKEDIN ━━━
+· C'est le format ROI ici : on y apprend quelque chose, diapositive après
+  diapositive.
+· Une idée par diapositive, énoncée comme un titre, démontrée en une phrase.
+· Un chiffre, une méthode ou une erreur constatée valent mieux qu'une promesse.`,
+    image: `━━━ CETTE IMAGE PART SUR LINKEDIN ━━━
+· Registre documentaire : l'atelier, la ligne de production, l'équipe en
+  situation. Quelque chose qu'un professionnel reconnaît comme vrai.
+· Sobre avant spectaculaire — le léché est lu comme une publicité.`,
+  },
+};
+
 export function promptSpecialise(reseau?: string | null, format?: string | null): string {
   const r = normaliserReseau(reseau);
   const f = normaliserFormat(format);
   const blocFormat = f === 'carrousel' ? CARROUSEL : f === 'reel' ? REEL : f === 'story' ? STORY : IMAGE_UNIQUE;
-  return ['', RESEAU[r], '', blocFormat, ''].join('\n');
+  // La case de la matrice arrive EN DERNIER, donc au plus près de la consigne
+  // d'écriture : c'est la règle la plus précise, elle doit être la dernière lue.
+  const cle = f === 'carrousel' ? 'carrousel' : f === 'reel' ? 'reel' : f === 'story' ? 'story' : 'image';
+  const cas = MATRICE[r]?.[cle] || '';
+  return ['', RESEAU[r], '', blocFormat, '', cas, ''].join('\n');
 }
 
 /**

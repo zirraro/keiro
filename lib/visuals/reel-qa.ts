@@ -119,6 +119,19 @@ export async function reviewGeneratedReel(input: {
   visualBrief?: string;        // what the reel was supposed to show
   businessType?: string;
   clientLanguage?: string;     // 2026-06-08: 'fr' | 'en' | etc — used to flag foreign-script text
+  /**
+   * Le réseau de destination.
+   *
+   * Fondateur, 2026-08-15 : « c'est pour ça, les formats et spécificités, qu'on
+   * a des prompts par réseau social ».
+   *
+   * Le contrôle jugeait sans savoir où le reel allait partir. Or les codes ne
+   * sont pas les mêmes : TikTok récompense le brut, tenu à la main, tourné vite
+   * — un plan trop léché y sonne faux. Instagram accepte, et attend même, une
+   * finition plus soignée. Une seule grille pour les deux sanctionne l'un ou
+   * laisse passer chez l'autre.
+   */
+  plateforme?: string | null;
 }): Promise<ReelQaVerdict> {
   if (!process.env.ANTHROPIC_API_KEY) return { verdict: 'pass' };
   const tmp = tmpdir();
@@ -192,9 +205,57 @@ export async function reviewGeneratedReel(input: {
     const clientLang = (input.clientLanguage || 'fr').toLowerCase();
     const expectedScript = clientLang === 'fr' || clientLang === 'en' || clientLang === 'es' || clientLang === 'de' || clientLang === 'it' || clientLang === 'pt' ? 'Latin alphabet only' : 'client language script only';
 
+    /**
+     * Les codes ne sont pas les mêmes d'un réseau à l'autre.
+     *
+     * Fondateur, 2026-08-15 : « c'est pour ça, les formats et spécificités,
+     * qu'on a des prompts par réseau social ».
+     *
+     * Le contrôle jugeait à l'aveugle. Il a refusé deux reels Instagram pour
+     * « overly cinematic, looking like a film » — un motif qui n'aurait de sens
+     * sur aucun des deux réseaux, et surtout pas sur TikTok où le brut fait
+     * l'authenticité. Une seule grille pour deux réseaux sanctionne l'un ou
+     * laisse passer chez l'autre.
+     */
+    const reseau = String(input.plateforme || '').toLowerCase();
+    const codeReseau = reseau.includes('tiktok')
+      ? [
+          'DESTINATION: TikTok.',
+          'The codes here reward the RAW: handheld, filmed fast, imperfect framing, a real place with',
+          'its mess left in. A shot that looks produced, lit by a crew and colour-graded, reads as an',
+          'advert and gets scrolled past. Judge accordingly: roughness is not a defect here, polish is',
+          'the suspicious thing.',
+        ].join(' ')
+      : [
+          'DESTINATION: Instagram Reels.',
+          'A more finished look is accepted and even expected — considered framing, controlled light,',
+          'a clean edit. Craft is not a defect here. What still fails is the same as everywhere:',
+          'the machine showing through.',
+        ].join(' ');
+
     const system = `You are a senior video editor reviewing a generated short-form reel BEFORE it ships to the client's social media. You see 3 keyframes (early / middle / late) from the same reel.
 
+${codeReseau}
+
 Your single job: catch PHYSICAL or LOGICAL errors that would embarrass the client. NOT aesthetic preferences. Specific things to flag:
+
+━━━ CE QUI DOIT BLOQUER, ET CE QUI NE DOIT PAS ━━━
+
+Fondateur, 2026-08-15 : « ce qui doit bloquer, c'est le contenu — pertinent ou
+pas, lien business, lien cible » et « looking like a film ce n'est pas
+rédhibitoire, c'est tout ce qui ressemble à de l'IA qui l'est ».
+
+Deux questions décident, et rien d'autre :
+
+  1. EST-CE QUE ÇA PARLE DE CE COMMERCE, À SA CLIENTÈLE ? Un plan magnifique
+     qui montre un autre métier que celui annoncé ne sert à rien. Un plan
+     ordinaire qui montre le bon geste au bon public fait le travail.
+
+  2. EST-CE QUE LA MACHINE SE VOIT ? Pas le style — la fabrication.
+
+Ce qui ne bloque JAMAIS : l'ambiance, le contraste, l'étalonnage, un cadrage
+audacieux, un plan sombre, un rythme lent. Ce sont des choix, et de bons
+réalisateurs les font exprès. Ne juge pas le goût, juge la matière et le sens.
 
 HARD FAILS (reel must NOT ship — ALL of these mean hard_fail):
 - ⚠️ ANY VISIBLE TEXT, CHARACTER, GLYPH OR LETTER ANYWHERE IN THE FRAME. This includes: Chinese / Japanese / Korean / Cyrillic / Arabic / Devanagari / Thai / any non-Latin script when the client speaks ${clientLang}, gibberish words, broken neon signs, AI-hallucinated captions, watermarks, logos with readable text, menu boards. Even ONE foreign character = hard_fail. The brief explicitly required ZERO text. Expected script if any text accidentally appears: ${expectedScript}. Client language: ${clientLang.toUpperCase()}.
@@ -210,7 +271,14 @@ HARD FAILS (reel must NOT ship — ALL of these mean hard_fail):
 - Subject IDENTITY changes between frames when it shouldn't (different person mid-clip).
 - Severe motion artefacts: melting faces, morphing furniture, disintegrating tools.
 - A SCREEN is the subject: a laptop, phone or monitor fills the frame, or the shot is built around what is displayed on it. We sell to shopkeepers and craftspeople — the subject is their trade, their hands, their place. A screen may appear at the edge; it must never be what the shot is about.
-- The shot reads as a FILM, not as a business's own footage: heavy chiaroscuro, a single hard key light on a face in darkness, cinematic colour grading, a person looking distressed or intense. A bakery posting on Instagram does not shoot like a thriller. If the frame would look at home in a movie trailer, it does not belong on this account.
+- ⚠️ IT LOOKS GENERATED. This is the real disqualifier — not the style, the FAKENESS. A dramatic, high-contrast, cinematic shot is perfectly fine and often desirable: film-makers light like that on purpose. What is never acceptable is the machine showing through:
+  · skin that is waxy, poreless or plastic; faces smoothed to porcelain;
+  · hands or faces that morph, extra fingers, features that drift between frames;
+  · light with no source, or shadows that contradict the light that is there;
+  · everything impossibly clean, symmetrical and new — no wear, no crumbs, no fingerprints;
+  · subjects that slide rather than walk, objects that float or hang without support;
+  · that oversaturated neon-CGI sheen, or a blur that no lens produces.
+  Judge the TEXTURE and the PHYSICS, never the mood. A moody, grainy, hard-lit shot with real skin and real weight is a good shot. A bright, cheerful, perfectly smooth one is the fake.
 
 SPECIAL CARE ON FACES:
 - A person AT WORK is welcome — hands kneading, a stylist mid-gesture, a mechanic under a bonnet. That is the trade, and it is what we want.

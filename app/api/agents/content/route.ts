@@ -3741,6 +3741,9 @@ async function GETInterne(request: NextRequest) {
                 visualBrief: fullPost.visual_description || fullPost.hook || '',
                 businessType: clientSettings?.business_type || undefined,
                 clientLanguage: (clientSettings as any)?.language || (clientSettings as any)?.brand_language || 'fr',
+            // Sans le réseau, le contrôle juge un reel TikTok avec les codes
+            // d'Instagram — et refuse du brut qui est justement ce qu'on veut.
+            plateforme: postPlatform,
               });
               if (qa.verdict === 'hard_fail') {
                 console.warn(`[Content] Reel QA HARD FAIL for ${post.id}: ${qa.issue}. Downgrading to still post.`);
@@ -3907,6 +3910,7 @@ async function GETInterne(request: NextRequest) {
                 postId: post.id,
                 visualBrief: fullPost.visual_description || fullPost.hook || '',
                 businessType: clientSettings?.business_type || undefined,
+                plateforme: fullPost.platform || post.platform,
               });
               console.log(`[Content] pre-publish reel QA: ${rqa.verdict} — ${rqa.issue || 'ok'}`);
               if (rqa.verdict === 'hard_fail') {
@@ -6149,6 +6153,7 @@ async function POSTInterne(request: NextRequest) {
                 postId: post.id,
                 visualBrief: post.visual_description || post.hook || '',
                 businessType: clientSettings?.business_type || undefined,
+                plateforme: post.platform,
               });
               if (qa.verdict === 'hard_fail') {
                 console.warn(`[Content] cron Reel QA HARD FAIL for ${post.id}: ${qa.issue}. Downgrading to still post.`);
@@ -9499,6 +9504,9 @@ RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN A
             visualBrief: post.visual_description || post.hook || visualDesc || '',
             businessType: (clientSettings as any)?.business_type || undefined,
             clientLanguage: (clientSettings as any)?.language || (clientSettings as any)?.brand_language || 'fr',
+            // Sans le réseau, le contrôle juge un reel TikTok avec les codes
+            // d'Instagram — et refuse du brut qui est justement ce qu'on veut.
+            plateforme: postPlatform,
           });
           if (qa.verdict === 'hard_fail') {
             // On ne jette pas le travail : l'image de couverture reste
