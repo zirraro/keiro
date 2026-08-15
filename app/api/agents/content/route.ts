@@ -2614,6 +2614,21 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
 
     // Step 5: Cache the video to Supabase Storage for permanent URL
     if (videoUrl) {
+      // Le coût vidéo se journalise sur TOUS les chemins, pas seulement TikTok.
+      // Sans ça, la dépense la plus chère à l'unité est la moins visible — et
+      // on finit par lire une absence de ligne comme une absence de génération.
+      try {
+        const { logApiCost, PROVIDER_EUR } = await import('@/lib/admin/api-cost-logger');
+        void logApiCost({
+          provider: 'seedance',
+          kind: 'video_5s',
+          units: 1,
+          cost_eur: PROVIDER_EUR.seedance_10s,
+          agent: 'content',
+          metadata: { chemin: 'reel_instagram' },
+        }).catch(() => {});
+      } catch { /* la trace ne bloque jamais une livraison */ }
+
       const videoId = `reel-${Date.now()}`;
       const cachedUrl = await cacheVideoToStorage(videoUrl, videoId);
       const finalUrl = cachedUrl || videoUrl;
@@ -9418,7 +9433,28 @@ RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN A
    */
   const postFormat = safeFormat;
   // Any reel/video format (TikTok or Instagram) gets the full video+narration pipeline
-  const needsVideo = postFormat === 'video' || postFormat === 'reel';
+  /**
+   * ── Le quota vidéo était calculé et jamais appliqué ──
+   *
+   * `videoQuotaExhausted` est renseigné plus haut — un appel à checkVideoQuota,
+   * un avertissement dans les logs — puis la variable n'est LUE nulle part. Le
+   * quota image, lui, est bien appliqué à six endroits.
+   *
+   * Conséquence : un client pouvait produire autant de vidéos qu'il voulait
+   * au-delà de son forfait. C'est le média le plus cher à l'unité (0,26 € les
+   * dix secondes contre 0,03 € une image), donc le trou de marge le plus large
+   * du produit — et parfaitement silencieux, puisque le contrôle s'exécutait
+   * bel et bien avant d'être ignoré.
+   *
+   * Quand le quota est atteint, on ne bloque pas la livraison : on livre le
+   * post en IMAGE. Le client reçoit son contenu, la marge tient, et la bannière
+   * d'upsell lui propose de passer au plan supérieur. Ne rien livrer serait
+   * pire que livrer un format plus simple.
+   */
+  if (videoQuotaExhausted && (postFormat === 'video' || postFormat === 'reel')) {
+    console.warn(`[Content] quota vidéo atteint — ${postFormat} livré en image pour ${String(userId).slice(0, 8)}`);
+  }
+  const needsVideo = (postFormat === 'video' || postFormat === 'reel') && !videoQuotaExhausted;
 
   let visualUrl: string | null = null;
   let videoUrl: string | null = null;
