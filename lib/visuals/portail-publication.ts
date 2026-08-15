@@ -246,6 +246,59 @@ export async function controlerAvantPublication(
           motifs.push(`Le contrôle a refusé sans motif explicite (note ${coh.score}/10 — sous le seuil). Défaut de jugement signalé.`);
           console.warn(`[Portail] refus SANS MOTIF sur ${post.id} (note ${coh.score}) — le juge doit toujours dire pourquoi`);
         }
+        /**
+         * ── Toujours du haut niveau, mais toujours quelque chose ──
+         *
+         * Fondateur, 2026-08-15 : « attention à ne pas être trop dur, toujours
+         * délivrer du top qualité mais aussi TOUJOURS délivrer. »
+         *
+         * Les deux moitiés de la phrase se contredisent en apparence. Elles se
+         * résolvent en distinguant deux natures de défaut.
+         *
+         * Ce qui doit BLOQUER, quoi qu'il arrive : un client nommé qui n'existe
+         * pas, un chiffre aberrant, une enseigne inventée dans l'image, une
+         * image qui montre un autre métier, une image vide. Ceux-là font MENTIR
+         * le commerçant. Publier vaut alors moins que se taire — le premier
+         * client qui demande la référence le met en défaut.
+         *
+         * Ce qui ne doit PAS bloquer : une accroche tiède, un propos un peu
+         * général, un lien image-texte qui demande un effort. Ce sont des
+         * défauts de DEGRÉ. Un post correct publié vaut infiniment mieux qu'un
+         * créneau vide — le client paie pour une présence, et l'algorithme
+         * sanctionne le silence bien plus qu'une publication moyenne.
+         *
+         * Le digest du 15 août montrait douze publications « retenues par le
+         * contrôle », donc douze créneaux où le client n'a rien reçu. Après
+         * réparation, une note de 5 sans défaut grave doit partir.
+         */
+        const defautGrave = !!(coh.flags?.inventedClient || coh.flags?.implausibleClaim
+          || coh.flags?.offTopic || coh.flags?.emptyVisual
+          || (coh.flags?.texteDansImage && String(post.format || '').toLowerCase() !== 'story'));
+
+        const dejaRepare = /qc_repare|qc_legende_reecrite|qc_visuel_refait/.test(String((post as any).publish_diagnostic || ''));
+
+        if (!defautGrave && dejaRepare) {
+          console.warn(`[Portail] ${post.id} publié à ${coh.score}/10 : aucun défaut grave après réparation — un créneau vide coûte plus cher`);
+          supabase.from('agent_logs').insert({
+            agent: 'content', action: 'qc_livre_malgre_note', status: 'warning',
+            user_id: post.user_id || undefined,
+            data: {
+              post_id: post.id, reseau: post.platform, format: post.format,
+              note: coh.score, motifs: motifs.slice(0, 3),
+              pourquoi: "aucun défaut éliminatoire après réparation — on livre plutôt que de laisser le créneau vide",
+            },
+            created_at: new Date().toISOString(),
+          }).then(() => {}, () => {});
+          return {
+            publiable: true,
+            diagnostic: `qc_livre_a_${coh.score}: ${motifs[0] || 'sans défaut grave'}`.slice(0, 500),
+            details: {
+              score: coh.score, reasons: motifs, hookScore: coh.hookScore, flags: coh.flags,
+              imageUsable: coh.imageUsable, imageDescription: coh.imageDescription,
+            },
+          };
+        }
+
         return {
           publiable: false,
           code: 'coherence',
