@@ -2335,7 +2335,16 @@ async function generateVideoWithNarration(
   visualDescription: string,
   caption: string,
   format: string = 'reel',
-  duration: number = 5
+  duration: number = 5,
+  /**
+   * De quoi parle le reel, et pour quel métier — pour choisir la musique.
+   *
+   * Sans ce contexte, la sélection Jamendo tourne à vide et tous les reels
+   * repartent avec la même ambiance : une boulangerie à l'aube et un bar un
+   * soir de match sur le même morceau. C'est le défaut qu'on avait déjà corrigé
+   * côté TikTok ; ce chemin-ci ne recevait rien du tout.
+   */
+  contexteMusique?: { pilier?: string | null; metier?: string | null },
 ): Promise<{ videoUrl: string | null; coverUrl: string | null }> {
   try {
     console.log(`[Content] === VIDEO PIPELINE (Seedance T2V + Kling fallback) ===`);
@@ -2512,8 +2521,29 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       const videoId = `reel-${Date.now()}`;
       const cachedUrl = await cacheVideoToStorage(videoUrl, videoId);
       const finalUrl = cachedUrl || videoUrl;
-      console.log(`[Content] === VIDEO PIPELINE COMPLETE: ${finalUrl.substring(0, 80)} ===`);
-      return { videoUrl: finalUrl, coverUrl: imageUrl };
+
+      /**
+       * ── La musique, sur CE chemin aussi ──
+       *
+       * Fondateur, 2026-08-15 : « en plus y'avait pas de son, 0 ! Il faut une
+       * musique, au minimum un son, quelque chose ! »
+       *
+       * Il a raison, et c'est ma régression. J'ai coupé le son du modèle
+       * (generate_audio: false) pour supprimer les bruits de clavier et de
+       * cuisine qu'il signalait. Mais seuls les chemins TikTok posaient ensuite
+       * une musique Jamendo — celui-ci, qui produit les reels Instagram, rendait
+       * la vidéo telle quelle.
+       *
+       * Résultat : avant, un reel avec un bruit désagréable ; après, un reel
+       * MUET. Un reel muet est pire — sur Instagram et TikTok, le son porte
+       * l'attention, et une vidéo silencieuse se fait dépasser.
+       *
+       * Couper une source sans brancher la suivante, c'est ne rien avoir
+       * réparé du tout.
+       */
+      const avecMusique = await bakeMusicOnVideo(finalUrl, contexteMusique);
+      console.log(`[Content] === VIDEO PIPELINE COMPLETE: ${String(avecMusique).substring(0, 80)} ===`);
+      return { videoUrl: avecMusique || finalUrl, coverUrl: imageUrl };
     }
 
     // Video generation failed entirely — return cover image anyway
@@ -9291,7 +9321,10 @@ RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN A
         visualDesc,
         post.caption || visualDesc,
         postFormat,
-        5
+        5,
+        // Le pilier et le métier décident de l'ambiance musicale. Sans eux, tous
+        // les reels repartent avec le même morceau.
+        { pilier: safePillar, metier: detectedBusinessType || (clientSettings as any)?.business_type || null },
       );
       videoUrl = videoResult.videoUrl;
       visualUrl = videoResult.coverUrl;

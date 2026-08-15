@@ -145,6 +145,32 @@ export async function reviewGeneratedReel(input: {
       };
     }
 
+    /**
+     * Un reel MUET ne part pas.
+     *
+     * Fondateur, 2026-08-15 : « en plus y'avait pas de son, 0 ! Il faut une
+     * musique, au minimum un son, quelque chose ! »
+     *
+     * Sur Instagram et TikTok, le son porte l'attention : une vidéo silencieuse
+     * se fait dépasser dans le fil. Et le silence ne se voit pas — il ne
+     * ressemble à rien, aucune image extraite ne le montre, aucune erreur ne le
+     * signale. C'est exactement pour ça qu'un reel muet a été publié.
+     *
+     * Comme le cadre, ça se mesure : une piste audio est là ou elle n'est pas.
+     */
+    const pisteAudio = await execAsync(
+      `ffprobe -v error -select_streams a -show_entries stream=codec_name -of csv=p=0 "${local}"`,
+      { timeout: 10000 },
+    ).then(({ stdout }) => stdout.trim()).catch(() => '');
+    if (!pisteAudio) {
+      console.warn('[reel-qa] aucune piste audio — refusé avant l\'analyse d\'image');
+      return {
+        verdict: 'hard_fail',
+        issue: 'reel muet : aucune piste audio. Sur Instagram et TikTok le son porte l\'attention, une vidéo silencieuse se fait dépasser',
+        confidence: 1,
+      };
+    }
+
     const dur = await probeDuration(local);
     const t1 = Math.max(0.4, dur * 0.20);
     const t2 = Math.max(0.5, dur * 0.50);
@@ -173,6 +199,13 @@ Your single job: catch PHYSICAL or LOGICAL errors that would embarrass the clien
 HARD FAILS (reel must NOT ship — ALL of these mean hard_fail):
 - ⚠️ ANY VISIBLE TEXT, CHARACTER, GLYPH OR LETTER ANYWHERE IN THE FRAME. This includes: Chinese / Japanese / Korean / Cyrillic / Arabic / Devanagari / Thai / any non-Latin script when the client speaks ${clientLang}, gibberish words, broken neon signs, AI-hallucinated captions, watermarks, logos with readable text, menu boards. Even ONE foreign character = hard_fail. The brief explicitly required ZERO text. Expected script if any text accidentally appears: ${expectedScript}. Client language: ${clientLang.toUpperCase()}.
 - An action and its effect don't match (scissors cutting empty air, chef stirring an empty pan, brush painting nothing).
+- ⚠️ BROKEN PHYSICS ON LIQUIDS AND SMALL OBJECTS. Look closely at every drop, splash, pour and falling object. Flag as hard_fail when:
+  · a droplet hangs off a glass or a bottle and stays attached by a visible thread or filament as it falls;
+  · a drop lands and bounces, wobbles or settles slowly instead of splashing or spreading;
+  · liquid moves like gel or elastic — stretching, snapping back, holding a shape it could not hold;
+  · a stream of liquid detaches from its source, floats, or pours upward;
+  · anything falls too slowly, drifts sideways with no cause, or lands without disturbing what it lands on.
+  This is the single most recognisable AI tell in food and drink footage. A viewer who spots one drop behaving wrongly distrusts the whole video — and these clips are for shops selling real food and real drinks. Look at the LAST frames especially: artefacts accumulate as the clip goes on.
 - Body parts in impossible positions (hands with 7 fingers, two left feet, head detached).
 - Subject IDENTITY changes between frames when it shouldn't (different person mid-clip).
 - Severe motion artefacts: melting faces, morphing furniture, disintegrating tools.
