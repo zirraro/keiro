@@ -64,13 +64,43 @@ function setCache(key: string, data: unknown): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * La clé Places, résolue comme partout ailleurs dans le projet.
+ *
+ * ── Pourquoi ce n'était pas le cas ──
+ *
+ * Ce module exigeait GOOGLE_PLACES_API_KEY. La variable posée sur le serveur
+ * s'appelle GOOGLE_MAPS_API_KEY. `isGoogleBusinessConfigured()` rendait donc
+ * false, `getBusinessProfile()` rendait null immédiatement, et la fiche
+ * établissement restait vide — alors que la clé était là et que l'appel Places
+ * fonctionne parfaitement quand on le fait à la main.
+ *
+ * Le fondateur a signalé trois fois « la fiche ne s'affiche pas ». Trois
+ * causes se sont succédé : le mauvais nom d'entreprise cherché, un homonyme
+ * qui aurait été affiché à sa place, et enfin ceci — un nom de variable.
+ *
+ * C'est le même défaut que DeepSeek ce matin : un module qui résout une clé
+ * D'UNE FAÇON À LUI, pendant que le reste du code en utilise une autre. Le
+ * service semble « non configuré » alors que tout est en place, et rien ne
+ * lève d'erreur : la fonction rend simplement null.
+ */
+const NOMS_DE_CLE = ['GOOGLE_PLACES_API_KEY', 'GOOGLE_MAPS_API_KEY', 'GOOGLE_API_KEY'] as const;
+
+function clePlaces(): string | null {
+  for (const nom of NOMS_DE_CLE) {
+    const v = process.env[nom];
+    if (v) return v;
+  }
+  return null;
+}
+
 export function isGoogleBusinessConfigured(): boolean {
-  return !!process.env.GOOGLE_PLACES_API_KEY;
+  return !!clePlaces();
 }
 
 function getApiKey(): string {
-  const key = process.env.GOOGLE_PLACES_API_KEY;
-  if (!key) throw new Error('GOOGLE_PLACES_API_KEY is not configured');
+  const key = clePlaces();
+  if (!key) throw new Error(`Aucune clé Places configurée (cherchée sous ${NOMS_DE_CLE.join(', ')})`);
   return key;
 }
 
