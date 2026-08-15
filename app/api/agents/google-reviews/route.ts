@@ -180,11 +180,77 @@ export async function GET(req: NextRequest) {
   }
 
   if (!locationId) {
+    /**
+     * ══════════════════════════════════════════════════════════════════════
+     * La fiche s'affiche même quand l'API Business est fermée
+     * ══════════════════════════════════════════════════════════════════════
+     *
+     * Fondateur, 2026-08-15 : « fais bien qu'elle s'affiche dans l'espace
+     * Théo, super important ».
+     *
+     * Jusqu'ici, pas d'établissement lisible par l'API Business Profile = pas
+     * de fiche du tout. Le commerçant se connecte, voit « connecté », et un
+     * panneau vide avec un message d'attente. Or l'accès à cette API est un
+     * dossier ouvert chez Google, qui peut prendre des semaines : on ne peut
+     * pas laisser l'écran vide en attendant.
+     *
+     * ── Ce qu'on affiche à la place ──
+     *
+     * Sa fiche PUBLIQUE, celle que ses clients voient sur Maps, lue par
+     * l'API Places — que nous utilisons déjà tous les jours pour la
+     * prospection, et qui n'a rien à voir avec l'autorisation en attente.
+     * Nom, adresse, téléphone, note, nombre d'avis, horaires, catégorie.
+     *
+     * ── Ce que ça ne remplace pas, et qu'on ne prétend pas ──
+     *
+     * Places donne à LIRE, jamais à ÉCRIRE. Théo ne pourra répondre aux avis
+     * ni corriger les horaires qu'une fois l'accès Business accordé. La fiche
+     * est donc marquée `source: 'places'` pour que l'interface dise
+     * clairement ce qui marche et ce qui attend encore — un affichage qui
+     * laisserait croire que tout fonctionne serait pire que le panneau vide.
+     */
+    let fichePublique: any = null;
+    try {
+      const { searchBusiness, getBusinessProfile } = await import('@/lib/apis/google-business');
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('company_name, address, city')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const nom = dossier?.company_name || (profile as any).company_name || null;
+      if (nom) {
+        const ville = dossier?.city || dossier?.address || '';
+        const trouves = await searchBusiness(nom, ville);
+        const premier = Array.isArray(trouves) ? trouves[0] : null;
+        if (premier?.placeId) {
+          const detail = await getBusinessProfile(premier.placeId);
+          if (detail) {
+            fichePublique = {
+              source: 'places',
+              nom: detail.name,
+              adresse: detail.address,
+              telephone: detail.phone,
+              site: detail.website,
+              note: detail.rating,
+              nombreAvis: detail.totalReviews,
+              categorie: Array.isArray(detail.categories) ? detail.categories[0] : detail.categories,
+              horaires: detail.hours,
+              photos: detail.photos,
+            };
+            console.log(`[GoogleReviews] fiche publique servie via Places pour ${nom}`);
+          }
+        }
+      }
+    } catch (e: any) {
+      console.warn('[GoogleReviews] fiche publique indisponible :', String(e?.message || e).slice(0, 160));
+    }
+
     return NextResponse.json({
       ok: true,
       connected: true,
       reviews: [],
       needsLocation: true,
+      fiche: fichePublique,
       businessType: profile.business_type || null,
       diagnostic,
       // Le diagnostic brut reste pour NOUS (champ diagnostic), jamais dans le

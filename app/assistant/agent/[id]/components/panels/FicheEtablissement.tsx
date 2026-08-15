@@ -36,6 +36,15 @@ export interface Fiche {
   telephone?: string | null;
   site?: string | null;
   horaires?: string[] | null;
+  /**
+   * D'où vient la fiche affichée.
+   *
+   * 'places' = lue sur la fiche PUBLIQUE via l'API Places, en attendant que
+   * Google ouvre l'accès en écriture au Business Profile. Le commerçant voit
+   * son établissement, mais Théo ne peut pas encore répondre ni corriger — et
+   * l'interface doit le dire, pas le laisser deviner.
+   */
+  source?: 'places' | 'business' | null;
 }
 
 /** Exemple réaliste, montré tant que la fiche réelle n'est pas lisible. */
@@ -110,6 +119,23 @@ export function CarteFiche({
   // le produit à quelqu'un qui n'a rien branché — le montrer à quelqu'un de
   // connecté lui fait croire qu'on a lu la mauvaise fiche.
   const exemple = !connecte && !fiche?.nom;
+  /**
+   * La fiche lue sur Maps, en attendant l'accès en écriture.
+   *
+   * Fondateur, 2026-08-15 : « fais bien qu'elle s'affiche dans l'espace Théo,
+   * super important ».
+   *
+   * Tant que Google n'a pas ouvert l'API Business Profile, on ne peut ni
+   * répondre aux avis ni corriger les horaires. Mais on peut LIRE la fiche
+   * publique — celle que ses clients voient — via l'API Places, qu'on utilise
+   * déjà tous les jours. Le commerçant retrouve donc son établissement à
+   * l'écran au lieu d'un message d'attente.
+   *
+   * On le dit clairement plutôt que de laisser croire que tout marche : un
+   * affichage qui ment sur ce qui est actif serait pire que le panneau vide.
+   */
+  const lueSurMaps = (fiche as any)?.source === 'places';
+
   if (connecte && !fiche?.nom) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4">
@@ -137,7 +163,7 @@ export function CarteFiche({
               </span>
             )}
           </div>
-          {f.categorie && <p className="text-white/50 text-xs mt-0.5">{f.categorie}</p>}
+          {f.categorie && <p className="text-white/50 text-xs mt-0.5">{Array.isArray(f.categorie) ? (f.categorie as any[])[0] : f.categorie}</p>}
         </div>
         {typeof f.note === 'number' && (
           <div className="text-left sm:text-right flex-shrink-0 flex sm:block items-baseline gap-2">
@@ -149,6 +175,17 @@ export function CarteFiche({
           </div>
         )}
       </div>
+
+      {lueSurMaps && (
+        <div className="mb-3 rounded-lg border border-sky-400/25 bg-sky-500/[0.06] px-3 py-2">
+          <p className="text-sky-200/90 text-[12px] leading-relaxed">
+            Voici ta fiche telle que tes clients la voient sur Google Maps.
+            Théo la lit déjà — il pourra <strong>répondre à tes avis</strong> et
+            <strong> corriger tes infos</strong> dès que Google nous ouvre l'accès en écriture.
+            La demande est déposée, tu n'as rien à faire.
+          </p>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[13px]">
         {f.adresse && <div className="text-white/70">📍 {f.adresse}</div>}
@@ -169,7 +206,7 @@ export function CarteFiche({
           Ce que Théo tient à jour
         </div>
         <ul className="text-white/60 text-[13px] space-y-1">
-          <li>· Répond aux nouveaux avis, chaque jour</li>
+          <li>{lueSurMaps ? '· Répondra aux nouveaux avis dès l\'accès accordé' : '· Répond aux nouveaux avis, chaque jour'}</li>
           <li>· Réécrit la description avec les mots que cherchent tes clients</li>
           <li>· Te signale un horaire ou une info qui ne correspond plus</li>
         </ul>
