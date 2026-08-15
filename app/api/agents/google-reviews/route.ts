@@ -60,6 +60,31 @@ function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
+/**
+ * Google rend ses catégories en clé technique : « association_or_organization »,
+ * « bakery », « hair_care ». Affiché tel quel sur le tableau de bord d'un
+ * commerçant, ça ressemble à une fuite de code.
+ */
+function lisibleCategorie(brut?: string | null): string | null {
+  if (!brut) return null;
+  const CONNUES: Record<string, string> = {
+    association_or_organization: 'Association',
+    point_of_interest: 'Établissement',
+    establishment: 'Établissement',
+    bakery: 'Boulangerie',
+    restaurant: 'Restaurant',
+    hair_care: 'Salon de coiffure',
+    beauty_salon: 'Institut de beauté',
+    car_repair: 'Garage',
+    florist: 'Fleuriste',
+    cafe: 'Café',
+    store: 'Commerce',
+  };
+  if (CONNUES[brut]) return CONNUES[brut];
+  // À défaut : on rend la clé lisible plutôt que de la cacher.
+  return brut.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+}
+
 export async function GET(req: NextRequest) {
   // Support CRON_SECRET for scheduled calls
   const cronSecret = process.env.CRON_SECRET;
@@ -242,8 +267,14 @@ export async function GET(req: NextRequest) {
             site: detail.website,
             note: detail.rating,
             nombreAvis: detail.totalReviews,
-            categorie: Array.isArray(detail.categories) ? detail.categories[0] : detail.categories,
-            horaires: detail.hours,
+            categorie: lisibleCategorie(Array.isArray(detail.categories) ? detail.categories[0] : detail.categories),
+            // Le panneau fait `horaires.map(...)` : il lui faut un TABLEAU.
+            // `detail.hours` est un objet jour → horaire, et React n'affiche
+            // rien d'un objet — la section aurait simplement disparu, sans
+            // erreur ni trace. On convertit ici, une fois.
+            horaires: detail.hours && typeof detail.hours === 'object'
+              ? Object.entries(detail.hours).map(([jour, h]) => `${jour} : ${h}`)
+              : null,
             photos: detail.photos,
           };
           console.log(`[GoogleReviews] fiche choisie par le client : ${detail.name}`);
@@ -324,8 +355,14 @@ export async function GET(req: NextRequest) {
               site: detail.website,
               note: detail.rating,
               nombreAvis: detail.totalReviews,
-              categorie: Array.isArray(detail.categories) ? detail.categories[0] : detail.categories,
-              horaires: detail.hours,
+              categorie: lisibleCategorie(Array.isArray(detail.categories) ? detail.categories[0] : detail.categories),
+              // Le panneau fait `horaires.map(...)` : il lui faut un TABLEAU.
+            // `detail.hours` est un objet jour → horaire, et React n'affiche
+            // rien d'un objet — la section aurait simplement disparu, sans
+            // erreur ni trace. On convertit ici, une fois.
+            horaires: detail.hours && typeof detail.hours === 'object'
+              ? Object.entries(detail.hours).map(([jour, h]) => `${jour} : ${h}`)
+              : null,
               photos: detail.photos,
             };
             console.log(`[GoogleReviews] fiche publique servie via Places pour ${nom}`);

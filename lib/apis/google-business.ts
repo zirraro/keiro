@@ -204,6 +204,9 @@ export async function getBusinessProfile(placeId: string): Promise<BusinessProfi
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': getApiKey(),
         'X-Goog-FieldMask': DETAIL_FIELDS,
+        // Sans cet en-tête, Google répond dans SA langue : le commerçant
+        // français lisait « Monday · 8:00 AM » sur son propre tableau de bord.
+        'Accept-Language': 'fr-FR',
       },
     });
 
