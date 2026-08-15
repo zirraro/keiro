@@ -9549,9 +9549,42 @@ RAPPEL FINAL : "visual_description" et chaque "visual" de slide s'écrivent EN A
 
       // If video failed but we have a cover image, downgrade to image post
       if (!videoUrl && visualUrl) {
-        console.log('[Content] Video generation failed — publishing as image post instead of reel');
-        // Update format in DB so auto-publish won't try reel again
-        await supabase.from('content_calendar').update({ format: 'post', updated_at: new Date().toISOString() }).eq('id', inserted.id);
+        /**
+         * ── Un repli silencieux empêche de comprendre pourquoi il a lieu ──
+         *
+         * Ce repli est BON : un post image livré vaut mieux qu'un créneau vide.
+         * Mais il ne laissait aucune trace en base — juste une ligne de log
+         * perdue parmi des milliers, et un format passé de « reel » à « post ».
+         *
+         * Conséquence vécue le 15 août : trois reels Instagram de suite livrés
+         * en image, et impossible de dire pourquoi. J'ai d'abord accusé le
+         * quota, puis le contrôle de reel, puis l'absence de génération — trois
+         * hypothèses, aucune vérifiable, parce que le seul témoin était une
+         * ligne de console déjà effacée.
+         *
+         * On écrit donc le motif là où on le lira : dans la fiche du post, et
+         * dans le journal des agents que lit le rapport du matin. Un repli qui
+         * se répète est un incident ; un repli qu'on ne voit pas est une
+         * fonctionnalité perdue en silence.
+         */
+        console.warn(`[Content] vidéo non produite pour ${inserted.id} — livré en image (Kling ET Seedance ont échoué ou rendu vide)`);
+        await supabase.from('content_calendar').update({
+          format: 'post',
+          publish_diagnostic: 'reel_sans_video: Kling et Seedance n\'ont rendu aucune vidéo — livré en image plutôt que rien',
+          updated_at: new Date().toISOString(),
+        }).eq('id', inserted.id);
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content', action: 'reel_degrade_en_image', status: 'warning',
+            user_id: userId || undefined,
+            error_message: 'Aucun fournisseur vidéo n\'a rendu de fichier — le reel est livré en image',
+            data: {
+              post_id: inserted.id, reseau: postPlatform, format_demande: postFormat,
+              a_creuser: 'Vérifier dans l\'ordre : crédit du fournisseur, identifiant de modèle, délai dépassé sur le sondage de tâche.',
+            },
+            created_at: new Date().toISOString(),
+          });
+        } catch { /* la trace ne bloque jamais la livraison */ }
       }
 
       // ── Le reel est contrôlé MAINTENANT, pas au moment de partir ──
