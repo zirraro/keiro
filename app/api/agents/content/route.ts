@@ -10363,7 +10363,31 @@ RÈGLES ABSOLUES :
           } else {
             publicationError = igResult.error;
             visualUpdate.status = 'publish_failed';
+            /**
+             * ── L'erreur existait, elle ne survivait pas à la requête ──
+             *
+             * On écrivait `publish_failed` et on gardait la raison dans une
+             * variable locale, jamais persistée. La fiche du post portait donc
+             * un échec sans motif, `publish_error` vide, aucune ligne dans le
+             * journal des agents — et le digest comptait un « écarté sans
+             * motif » de plus.
+             *
+             * Constaté le 16 août en publiant une story à la demande : échec
+             * enregistré, cause introuvable, et il a fallu relire le code pour
+             * découvrir qu'elle n'était simplement écrite nulle part.
+             */
+            visualUpdate.publish_error = String(igResult.error || 'échec Instagram sans message').slice(0, 500);
+            visualUpdate.publish_diagnostic = `publication_instagram_echouee: ${String(igResult.error || 'sans message').slice(0, 400)}`;
             console.warn(`[Content] Instagram publish failed for daily post ${inserted.id}: ${igResult.error}`);
+            try {
+              await supabase.from('agent_logs').insert({
+                agent: 'content', action: 'publication_echouee', status: 'error',
+                user_id: userId || undefined,
+                error_message: String(igResult.error || 'échec Instagram sans message').slice(0, 500),
+                data: { post_id: inserted.id, reseau: 'instagram', format: postFormat },
+                created_at: new Date().toISOString(),
+              });
+            } catch { /* la trace ne bloque jamais la suite */ }
           }
         } else if (postPlatform === 'tiktok') {
           const ttResult = await publishToTikTok(
@@ -10373,10 +10397,40 @@ RÈGLES ABSOLUES :
           if (ttResult.success) {
             tiktokPublishId = ttResult.publish_id;
             if (ttResult.publish_id) visualUpdate.tiktok_publish_id = ttResult.publish_id;
+            /**
+             * ── Un TikTok publié restait « approuvé » ──
+             *
+             * La branche Instagram passe le post en `published` ; celle-ci ne
+             * le faisait pas. Le post gardait donc son identifiant de
+             * publication ET un statut de post en attente : le planificateur
+             * pouvait le reprendre et le publier une seconde fois.
+             *
+             * Or republier à l'identique ne fait pas de vues — la plateforme
+             * reconnaît le fichier — et c'est précisément ce qui a bridé un
+             * compte en juin. Le garde anti-doublon le rattrapait, mais il ne
+             * devrait pas avoir à le faire.
+             *
+             * Constaté le 16 août : un TikTok soumis avec son publish_id,
+             * toujours en `approved` une heure plus tard.
+             */
+            visualUpdate.status = 'published';
+            visualUpdate.published_at = new Date().toISOString();
             console.log(`[Content] Daily post published to TikTok: ${ttResult.publish_id}`);
           } else {
             publicationError = ttResult.error;
             visualUpdate.status = 'publish_failed';
+            // La raison de l'échec s'écrit dans la ligne, pas seulement en mémoire.
+            visualUpdate.publish_error = String(ttResult.error || 'échec TikTok sans message').slice(0, 500);
+            visualUpdate.publish_diagnostic = `publication_tiktok_echouee: ${String(ttResult.error || 'sans message').slice(0, 400)}`;
+            try {
+              await supabase.from('agent_logs').insert({
+                agent: 'content', action: 'publication_echouee', status: 'error',
+                user_id: userId || undefined,
+                error_message: String(ttResult.error || 'échec TikTok sans message').slice(0, 500),
+                data: { post_id: inserted.id, reseau: 'tiktok', format: postFormat },
+                created_at: new Date().toISOString(),
+              });
+            } catch { /* la trace ne bloque jamais la suite */ }
             console.warn(`[Content] TikTok publish failed for daily post ${inserted.id}: ${ttResult.error}`);
           }
         }
