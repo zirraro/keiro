@@ -84,6 +84,16 @@ const GLOBAL_SCHEDULE = [
   // déjà en place existe maintenant pour de bon.
   { cron: '0 11 * * 1,3,5', slot: 'seo', label: 'SEO (Théo) — Mon/Wed/Fri' },
 
+  // ── Reprendre ce que le juge a écarté ──
+  //
+  // Un refus qualité passait le post en `skipped`, et plus rien ne le
+  // regardait. Le 16 août : dix-huit posts programmés, deux publiés, neuf
+  // écartés — neuf créneaux vides définitifs. On repasse deux fois par jour
+  // pour refaire l'image et reprogrammer au lendemain. À 21 h 40, après le
+  // dernier passage de publication, pour reprendre la journée entière.
+  { cron: '40 21 * * *', path: '/api/cron/rattraper-ecartes', label: 'Rattrapage des posts écartés (soir)' },
+  { cron: '40 6 * * *',  path: '/api/cron/rattraper-ecartes', label: 'Rattrapage des posts écartés (matin)' },
+
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   // Inbound email poll every 2h (8 fires/day) so prospect replies get
   // classified and auto-responded within ~2h instead of waiting for the
