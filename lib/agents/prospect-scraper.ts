@@ -164,6 +164,47 @@ export async function scrapeWebsite(url: string): Promise<Partial<BusinessNotes>
       contact.email = nominative || candidats[0];
     }
 
+    /**
+     * ── L'email n'est presque jamais sur la page d'accueil ──
+     *
+     * Mesuré le 16 août sur vingt sites de la base : 18 répondent, et 14
+     * n'affichent AUCUNE adresse sur leur accueil. Le scraper concluait « rien
+     * à récolter » et passait au suivant. D'où 308 fiches enrichies sur 13 961,
+     * et 6 500 prospects qui ont un site web et pas d'email.
+     *
+     * Un commerçant met son adresse sur sa page contact — et surtout dans ses
+     * MENTIONS LÉGALES, que la loi française lui impose de publier avec les
+     * coordonnées de l'éditeur. C'est la page la plus fiable du web marchand
+     * français : elle existe presque toujours, et elle contient presque
+     * toujours un email.
+     *
+     * On ne suit ces pages QUE si l'accueil n'a rien donné, et on s'arrête à la
+     * première qui répond : deux requêtes de plus au pire, sur un hôte qu'on
+     * vient déjà de solliciter poliment.
+     */
+    if (!contact.email) {
+      const base = new URL(normalized);
+      const PAGES_CONTACT = ['/contact', '/contactez-nous', '/nous-contacter', '/mentions-legales', '/mentions-legales.html', '/legal'];
+      for (const chemin of PAGES_CONTACT) {
+        try {
+          const cible = new URL(chemin, base.origin).toString();
+          if (!(await lectureAutorisee(cible))) continue;
+          const r2 = await requetePolie(cible, { timeoutMs: 5000 });
+          if (!r2 || !r2.ok) continue;
+          const h2 = await r2.text();
+          if (!h2 || h2.length < 200) continue;
+          const bruts = h2.match(/(?:^|[^a-zA-Z0-9._%+-])([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g) || [];
+          const c2 = bruts
+            .map((m) => m.replace(/^[^a-zA-Z0-9]+/, '').toLowerCase())
+            .filter((e) => !/noreply|no-reply|example\.|sentry|wixpress|wixstudio|godaddy|\.(png|jpg|jpeg|gif|webp|svg)$/i.test(e));
+          if (c2.length === 0) continue;
+          const { estAdresseGenerique } = await import('@/lib/email/adresse-generique');
+          contact.email = c2.find((e) => !estAdresseGenerique(e)) || c2[0];
+          break;
+        } catch { /* une page absente n'est pas une erreur : on essaie la suivante */ }
+      }
+    }
+
     // Address: look for postal-code patterns (5 digits) or common
     // schema.org/json-ld snippets
     const addrPatterns = [

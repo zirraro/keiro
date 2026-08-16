@@ -112,13 +112,35 @@ export async function POST(req: NextRequest) {
     if (!p.business_notes) return true;
     if (!p.last_enriched_at) return true;
     return p.last_enriched_at < since14d;
-  }).slice(0, 30); // hard cap per run
+  });
+  /**
+   * ── Le plafond disait 200, il valait 30 ──
+   *
+   * La lecture a été portée à 200 par passage le 10 août, avec un commentaire
+   * promettant « le gisement se traite en un mois ». Le traitement, lui, est
+   * resté bloqué à `.slice(0, 30)` : une demi-correction, l'intention à un
+   * endroit et la contrainte à un autre. Résultat mesuré le 16 août : 308
+   * fiches enrichies sur 13 961, alors que 8 219 sont éligibles.
+   *
+   * On borne désormais par le TEMPS, pas par un nombre. C'est le temps qui
+   * contraint réellement — la route est bornée à 300 s — et un compteur en dur
+   * se désaccorde du reste dès qu'on touche à autre chose, comme ici.
+   */
+  const BUDGET_MS = 240_000;
+  const debutMs = Date.now();
 
   let enriched = 0;
   let skipped = 0;
   const now = new Date().toISOString();
 
+  let arreteParLeTemps = 0;
   for (const p of needsEnrich) {
+    if (Date.now() - debutMs > BUDGET_MS) {
+      // Un plafond qu'on ne journalise pas se lit comme « tout a été traité ».
+      arreteParLeTemps = needsEnrich.length - (enriched + skipped);
+      console.warn(`[ScrapeEnrich] budget de ${BUDGET_MS / 1000}s atteint — ${arreteParLeTemps} prospect(s) reportés au passage suivant`);
+      break;
+    }
     try {
       const notes = await harvestBusinessNotes(supabase, {
         website: p.website,
@@ -221,7 +243,7 @@ export async function POST(req: NextRequest) {
     });
   } catch { /* audit non-fatal */ }
 
-  return NextResponse.json({ ok: true, candidates: needsEnrich.length, enriched, skipped });
+  return NextResponse.json({ ok: true, candidates: needsEnrich.length, enriched, skipped, reportes: arreteParLeTemps });
 }
 
 export async function GET(req: NextRequest) {
