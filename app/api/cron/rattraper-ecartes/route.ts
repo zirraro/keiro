@@ -75,7 +75,21 @@ export async function GET(req: NextRequest) {
   const reparables = (ecartes || []).filter((p: any) => {
     const d = String(p.publish_diagnostic || '');
     if (!/^qc_/.test(d)) return false;
-    return !/qc_doublon/.test(d);
+    if (/qc_doublon/.test(d)) return false;
+    /**
+     * ── Un échec de rattrapage ne se retente pas indéfiniment ──
+     *
+     * `qc_rattrapage_sans_succes` commence par `qc_` : sans cette ligne, un
+     * post que la reprise n'a pas su sauver revenait à chaque passage, et on
+     * régénérait son image toutes les douze heures pour rien. Huit
+     * irrécupérables au premier essai, soit seize générations perdues par jour,
+     * et le tas grossit à chaque tour.
+     *
+     * Une réparation qui a échoué sur un visuel refait et un jugement complet
+     * n'échouera pas différemment demain avec le même texte.
+     */
+    if (/qc_rattrapage_sans_succes/.test(d)) return false;
+    return true;
   });
 
   console.log(`[Rattrapage] ${reparables.length} refus réparable(s) sur ${(ecartes || []).length} écarté(s) depuis le ${depuis}`);
@@ -85,9 +99,56 @@ export async function GET(req: NextRequest) {
   let irrecuperables = 0;
   let reportes = 0;
   const exemples: any[] = [];
-  // Combien de posts déjà replacés par réseau — c'est ce compteur qui évite
-  // d'empiler deux publications au même créneau du même réseau.
-  const poses = new Map<string, number>();
+  /**
+   * ── L'occupation réelle du calendrier, pas seulement celle de ce passage ──
+   *
+   * Premier jet : un compteur qui repartait de zéro à chaque exécution. Le
+   * passage du soir replaçait donc des posts sur les créneaux que celui du
+   * matin venait de remplir — la salve revenait par la porte de derrière, deux
+   * fois par jour.
+   *
+   * On lit ce qui est DÉJÀ programmé sur les quinze prochains jours, tous
+   * statuts encore en course confondus. Un créneau occupé par une publication
+   * normale l'est tout autant que par un rattrapage.
+   */
+  const dansQuinzeJours = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const { data: dejaPlaces } = await supabase
+    .from('content_calendar')
+    .select('platform, scheduled_date, scheduled_time')
+    .in('status', ['approved', 'pending_approval', 'draft'])
+    .gte('scheduled_date', aujourdhui)
+    .lte('scheduled_date', dansQuinzeJours)
+    .limit(1000);
+
+  const occupes = new Set<string>();
+  const parJour = new Map<string, number>();
+  for (const d of (dejaPlaces || []) as any[]) {
+    const r = String(d.platform || '').toLowerCase();
+    const cle = `${d.scheduled_date}|${r}`;
+    occupes.add(`${cle}|${String(d.scheduled_time || '').slice(0, 8)}`);
+    parJour.set(cle, (parJour.get(cle) || 0) + 1);
+  }
+
+  /** Le premier créneau libre pour ce réseau, en ouvrant des jours au besoin. */
+  function prochainCreneauLibre(reseau: string): { date: string; heure: string } | null {
+    const CRENEAUX = ['09:15:00', '11:00:00', '12:30:00', '17:45:00', '19:30:00'];
+    const cap = reseau === 'tiktok' ? 2 : 5;
+    for (let j = 1; j <= 14; j++) {
+      const date = new Date(Date.now() + j * 86400000).toISOString().slice(0, 10);
+      const cle = `${date}|${reseau}`;
+      if ((parJour.get(cle) || 0) >= cap) continue;
+      for (const heure of CRENEAUX) {
+        if (occupes.has(`${cle}|${heure}`)) continue;
+        occupes.add(`${cle}|${heure}`);
+        parJour.set(cle, (parJour.get(cle) || 0) + 1);
+        return { date, heure };
+      }
+    }
+    // Quatorze jours pleins : mieux vaut laisser le post écarté que de le
+    // pousser dans une journée déjà saturée.
+    return null;
+  }
 
   for (const p of reparables as any[]) {
     if (Date.now() - debut > budgetMs) {
@@ -155,14 +216,17 @@ export async function GET(req: NextRequest) {
        * jour de plus dès que la journée est pleine. Le plafond suit la cadence
        * réelle : deux par jour sur TikTok, cinq sur Instagram.
        */
-      const CRENEAUX = ['09:15:00', '11:00:00', '12:30:00', '17:45:00', '19:30:00'];
       const reseau = String(p.platform || '').toLowerCase();
-      const capJour = reseau === 'tiktok' ? 2 : 5;
-      const posesReseau = poses.get(reseau) || 0;
-      const jourIndex = Math.floor(posesReseau / capJour);
-      const heure = CRENEAUX[posesReseau % Math.min(capJour, CRENEAUX.length)];
-      const demain = new Date(Date.now() + (jourIndex + 1) * 86400000).toISOString().slice(0, 10);
-      poses.set(reseau, posesReseau + 1);
+      const creneau = prochainCreneauLibre(reseau);
+      if (!creneau) {
+        // Le calendrier est plein sur quinze jours : on ne force pas, et on le
+        // dit. Un post poussé dans une journée saturée devient une salve.
+        console.warn(`[Rattrapage] ${p.id} : aucun créneau libre sur 14 j pour ${reseau} — laissé écarté`);
+        reportes++;
+        continue;
+      }
+      const demain = creneau.date;
+      const heure = creneau.heure;
 
       await supabase.from('content_calendar').update({
         status: 'approved',
