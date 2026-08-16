@@ -70,6 +70,15 @@ export interface PostAControler {
   video_url?: string | null;
   platform: string;
   format?: string | null;
+  /**
+   * Les diapositives d'un carrousel.
+   *
+   * Sans elles, le contrôle ne voyait que `visual_url`, c'est-à-dire la
+   * couverture : quatre diapositives sur cinq partaient sans avoir jamais été
+   * regardées.
+   */
+  slides?: string[] | null;
+  business_type?: string | null;
 }
 
 const PUBLIABLE: VerdictPortail = { publiable: true };
@@ -161,6 +170,20 @@ export async function controlerAvantPublication(
           }
         } catch { /* le contrôle fonctionne sans, simplement moins bien informé */ }
       }
+      /**
+       * ── Un carrousel se juge en entier ──
+       *
+       * Le contrôle qui suit ne regarde que `visual_url`, la couverture. Un
+       * carrousel du 16 août est parti avec cinq diapositives dont quatre
+       * n'avaient jamais été vues : sujets sans rapport entre eux ni avec la
+       * légende, et `publish_diagnostic` vide — rien ne signalait qu'on n'avait
+       * rien vérifié.
+       *
+       * On regarde donc les diapositives ensemble, avant tout le reste : si
+       * l'une parle d'autre chose, ou si la suite n'a pas de fil, le post ne
+       * part pas. C'est un défaut grave — un carrousel décousu se fait quitter
+       * à la deuxième image, et la rétention décide de la portée.
+       */
       const coh = await assessPostCoherence({
         visualUrl: post.visual_url,
         caption: post.caption || '',

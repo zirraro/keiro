@@ -1571,6 +1571,9 @@ async function publishToInstagram(
           diapositives: slides,
           premiereImage: post.visual_url!,
           businessType: businessTypeForVisuals,
+          // Sans la légende, le juge visuel ne peut pas dire si les images
+          // en parlent — c'est tout l'objet du contrôle ajouté le 16 août.
+          legende: [(post as any).hook, (post as any).caption].filter(Boolean).join('\n'),
           sceneClient: sceneSignature,
           maximum: 10,
           // Un texte incrusté voulu n'est pas un défaut de génération : sans cette
@@ -3157,6 +3160,11 @@ async function publishToTikTok(
           diapositives: ttSlides,
           premiereImage: visualUrl!,
           businessType: profilVisuel.businessType,
+          // TikTok passe par le même constructeur qu'Instagram, donc par le même
+          // juge visuel. Oublier la légende ici, c'est désactiver le contrôle sur
+          // la moitié des carrousels sans qu'aucune erreur ne le signale — le
+          // défaut que ce fichier documente déjà trois fois.
+          legende: [(post as any).hook, (post as any).caption].filter(Boolean).join('\n'),
           sceneClient: profilVisuel.sceneClient,
           maximum: 5,
           // Un texte incrusté voulu n'est pas un défaut de génération : sans cette
@@ -3512,7 +3520,14 @@ async function GETInterne(request: NextRequest) {
             if (isNoContentUserId(userId)) {
               console.log(`[Content] compte interne ${userId} — publication ignorée (post ${post.id})`);
               await supabase.from('content_calendar')
-                .update({ status: 'skipped', qa_notes: 'compte interne : ni génération ni publication' })
+                .update({
+                  status: 'skipped',
+                  qa_notes: 'compte interne : ni génération ni publication',
+                  // Le motif va aussi dans le diagnostic : c'est la colonne que
+                  // lisent le digest et la reprise. Sans elle, un écart parfaitement
+                  // légitime se compte comme « écarté sans motif ».
+                  publish_diagnostic: 'compte_interne: ni génération ni publication sur ce compte',
+                })
                 .eq('id', post.id);
               continue;
             }
@@ -3538,7 +3553,25 @@ async function GETInterne(request: NextRequest) {
               const used = await countPublishedToday(supabase, userId || '', postPlatform, ['story','photo']);
               if (used >= cap) {
                 console.warn(`[Content] Cadence cap: ${postPlatform} ${fmt} ${used}/${cap} (plan ${effectivePlan}) — skip post ${post.id}.`);
-                await supabase.from('content_calendar').update({ status: 'skipped', qa_notes: `cadence_cap_reached:${effectivePlan}:${postPlatform}_${fmt}_${used}/${cap}` }).eq('id', post.id);
+                /**
+                 * ── Le motif s'écrit là où on le relit ──
+                 *
+                 * Ces écarts ne renseignaient que `qa_notes`. Or le digest, la
+                 * reprise des posts écartés et le tableau de bord lisent tous
+                 * `publish_diagnostic` : vingt-cinq posts sur sept jours
+                 * apparaissaient donc « écartés sans motif », et je les ai
+                 * cherchés comme une panne silencieuse alors que la raison
+                 * était écrite dans une colonne que personne ne consulte.
+                 *
+                 * Le préfixe compte : `cadence_` et non `qc_`, pour que la
+                 * reprise ne tente pas de réparer une décision de forfait —
+                 * il n'y a rien à réparer, la cadence du plan est atteinte.
+                 */
+                await supabase.from('content_calendar').update({
+                  status: 'skipped',
+                  qa_notes: `cadence_cap_reached:${effectivePlan}:${postPlatform}_${fmt}_${used}/${cap}`,
+                  publish_diagnostic: `cadence_plan_atteinte: ${used}/${cap} ${fmt} sur ${postPlatform} — plafond du plan ${effectivePlan}`,
+                }).eq('id', post.id);
                 continue;
               }
             } else {
@@ -3548,7 +3581,11 @@ async function GETInterne(request: NextRequest) {
               const feedCap = postPlatform === 'instagram' ? cadence.ig : postPlatform === 'tiktok' ? cadence.tt : cadence.li;
               if (usedFeed >= feedCap) {
                 console.warn(`[Content] Cadence cap: ${postPlatform} feed ${usedFeed}/${feedCap} (plan ${effectivePlan}) — skip post ${post.id}.`);
-                await supabase.from('content_calendar').update({ status: 'skipped', qa_notes: `cadence_cap_reached:${effectivePlan}:${postPlatform}_feed_${usedFeed}/${feedCap}` }).eq('id', post.id);
+                await supabase.from('content_calendar').update({
+                  status: 'skipped',
+                  qa_notes: `cadence_cap_reached:${effectivePlan}:${postPlatform}_feed_${usedFeed}/${feedCap}`,
+                  publish_diagnostic: `cadence_plan_atteinte: ${usedFeed}/${feedCap} publications sur ${postPlatform} — plafond du plan ${effectivePlan}`,
+                }).eq('id', post.id);
                 continue;
               }
               // Weekly cap on expensive video/reel

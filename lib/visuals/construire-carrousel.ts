@@ -41,6 +41,8 @@ export interface OptionsCarrousel {
   /** L'URL de la première image, déjà générée. */
   premiereImage: string;
   businessType?: string | null;
+  /** La légende que le lecteur aura sous les yeux — le juge visuel en a besoin. */
+  legende?: string | null;
   /** La scène décrite par le client lui-même, si elle existe. */
   sceneClient?: string | null;
   /** Combien d'images au total, première comprise. */
@@ -160,6 +162,45 @@ export async function construireCarrousel(o: OptionsCarrousel): Promise<Resultat
         const url = await o.genererVisuel(diapoRealiste(briefDiapoAncre(variation, contrat, images.length + 1)), 'carrousel');
         if (url) images.push(url);
       } catch { /* on continue : livrer prime */ }
+    }
+  }
+
+  /**
+   * ── Le dernier regard : les IMAGES ensemble, face à la légende ──
+   *
+   * Tout ce qui précède contrôle chaque diapositive contre SON PROPRE brief, et
+   * la série au niveau des TEXTES. Deux briefs cohérents peuvent pourtant donner
+   * deux images sans rapport, et personne ne regardait l'ensemble.
+   *
+   * Le fondateur, le 16 août, sur un carrousel parti le matin même : « les
+   * images ne sont pas liées, aucune logique avec le texte ». C'était exact, et
+   * aucun contrôle de la chaîne ne pouvait le voir — le juge visuel ne recevait
+   * que la couverture, et les diapositives suivantes partaient sans qu'aucun
+   * œil, humain ou non, ne les ait jamais regardées ensemble.
+   *
+   * On écarte la diapositive fautive plutôt que le carrousel : deux images qui
+   * tiennent valent mieux qu'un créneau vide, et c'est déjà la règle appliquée
+   * plus haut pour les briefs.
+   */
+  if (images.length >= 2 && o.legende) {
+    try {
+      const { jugerImagesDeLaSerie } = await import('./carousel-coherence');
+      const v = await jugerImagesDeLaSerie({ images, legende: o.legende, metier: o.businessType });
+      if (v && v.horsSujet.length > 0) {
+        const garde = images.filter((_, i) => !v.horsSujet.includes(i));
+        // Il faut au moins deux images pour qu'un carrousel reste un carrousel.
+        if (garde.length >= 2) {
+          for (const i of v.horsSujet) ecartees.push({ numero: i + 1, motif: v.motifs[0] || "hors-sujet à l'image" });
+          console.warn(`[Carrousel] série jugée ${v.note}/10 — diapositive(s) ${v.horsSujet.map((i) => i + 1).join(', ')} écartée(s) : ${v.motifs[0] || 'hors-sujet'}`);
+          images.length = 0;
+          images.push(...garde);
+        } else {
+          console.warn(`[Carrousel] série jugée ${v.note}/10, mais moins de deux diapositives tiendraient — on garde tout plutôt que de ne rien livrer`);
+        }
+      }
+    } catch (e: any) {
+      // Une panne de vision ne vide pas un créneau.
+      console.warn('[Carrousel] jugement visuel de la série indisponible :', e?.message);
     }
   }
 

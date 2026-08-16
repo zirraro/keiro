@@ -455,3 +455,126 @@ export function briefDiapoAncre(
 ): string {
   return `${briefDiapo.trim()} — DIAPOSITIVE ${numero} d'une série. ${contrat}`;
 }
+
+/**
+ * ── Juger les IMAGES de la série, pas seulement leurs briefs ──
+ *
+ * Tout ce qui précède raisonne sur des TEXTES : les briefs proposés par le
+ * modèle, comparés par mots-clés. C'est utile et gratuit, et ça rattrape le
+ * cupcake au milieu des fleurs.
+ *
+ * Mais deux briefs cohérents peuvent donner deux images qui n'ont rien à voir.
+ * Chaque diapositive est bien contrôlée à la génération — contre SON PROPRE
+ * brief. Personne ne regarde jamais l'ensemble, ni le lien avec la légende que
+ * le lecteur a sous les yeux.
+ *
+ * Constaté le 16 août sur un carrousel publié le matin même, cinq
+ * diapositives : « les images ne sont pas liées, aucune logique avec le texte ».
+ * C'était vrai, et rien dans la chaîne ne pouvait le voir — le juge visuel ne
+ * recevait que la couverture.
+ *
+ * Un seul appel, toutes les images ensemble : les juger une par une coûterait
+ * autant d'appels et ne dirait toujours rien de leur enchaînement, qui est la
+ * moitié du sujet.
+ */
+export interface VerdictSerieVisuelle {
+  note: number;
+  motifs: string[];
+  /** Index (0-based) des diapositives qui parlent d'autre chose. */
+  horsSujet: number[];
+}
+
+export async function jugerImagesDeLaSerie(input: {
+  images: string[];
+  legende: string;
+  metier?: string | null;
+}): Promise<VerdictSerieVisuelle | null> {
+  const urls = (input.images || []).filter(Boolean).slice(0, 6);
+  if (urls.length < 2) return null;
+  const cle = process.env.GEMINI_API_KEY;
+  if (!cle) return null;
+
+  const { fetchImageBase64 } = await import('./post-coherence-qc');
+  const images: { data: string; mediaType: string }[] = [];
+  for (const u of urls) {
+    const img = await fetchImageBase64(u);
+    if (img) images.push(img);
+  }
+  if (images.length < 2) return null;
+
+  const consigne = [
+    "Tu juges les diapositives d'un CARROUSEL, dans leur ordre de lecture.",
+    input.metier ? `Le commerce : ${input.metier}.` : '',
+    '',
+    'Deux questions, et rien d\'autre :',
+    "1. Chaque diapositive parle-t-elle du sujet de la légende ? Une diapositive qui montre un autre métier, un autre lieu ou un autre propos décroche.",
+    "2. La suite se lit-elle d'un trait ? Un carrousel se parcourt en glissant : si la 2e image n'a aucun rapport avec la 1re, on quitte avant la 3e.",
+    '',
+    // Fondateur, 2026-08-15 : « looking like a film ce n'est pas rédhibitoire,
+    // c'est tout ce qui ressemble à de l'IA qui l'est. Ce qui doit bloquer,
+    // c'est le contenu pertinent ou pas, lien business, lien cible. »
+    "Un parti pris visuel fort n'est pas un défaut. Un changement de cadrage, de lumière ou d'angle entre les diapositives est NORMAL et souhaitable.",
+    "Ce qui bloque, c'est une image qui parle d'autre chose que la légende ou que le métier.",
+    '',
+    'Note sur 10 : 8+ tout tient et la suite se lit ; 6-7 une diapositive faible mais l\'ensemble tient ; 5 ou moins au moins une diapositive parle d\'autre chose.',
+  ].filter(Boolean).join('\n');
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cle}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: consigne }] },
+          contents: [{
+            role: 'user',
+            parts: [
+              ...images.map((i) => ({ inline_data: { mime_type: i.mediaType, data: i.data } })),
+              { text: `LÉGENDE :\n${String(input.legende || '').slice(0, 1000)}\n\nTu vois ${images.length} diapositives, dans l'ordre.` },
+            ],
+          }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 600,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'OBJECT',
+              properties: {
+                note: { type: 'NUMBER' },
+                motifs: { type: 'ARRAY', items: { type: 'STRING' } },
+                diapos_hors_sujet: { type: 'ARRAY', items: { type: 'NUMBER' } },
+              },
+              required: ['note', 'motifs', 'diapos_hors_sujet'],
+            },
+          },
+        }),
+      },
+    );
+    if (!res.ok) { console.warn('[Carrousel/vision] Gemini HTTP', res.status); return null; }
+    const j: any = await res.json();
+    try {
+      const { logApiCost } = await import('@/lib/admin/api-cost-logger');
+      void logApiCost({
+        provider: 'gemini', kind: 'qc_carrousel_serie', agent: 'content',
+        units: j.usageMetadata?.totalTokenCount || 0,
+        cost_eur: ((j.usageMetadata?.promptTokenCount || 0) * 0.3 + (j.usageMetadata?.candidatesTokenCount || 0) * 2.5) / 1e6 * 0.92,
+      } as any).catch(() => {});
+    } catch { /* la trace de coût ne bloque jamais un contrôle */ }
+    const txt = (j.candidates?.[0]?.content?.parts || []).map((p: any) => p.text).filter(Boolean).join('');
+    if (!txt) return null;
+    const v = JSON.parse(txt);
+    // Le modèle numérote à partir de 1 ; on rend des index de tableau.
+    const horsSujet = (Array.isArray(v.diapos_hors_sujet) ? v.diapos_hors_sujet : [])
+      .map((n: any) => Number(n) - 1)
+      .filter((n: number) => Number.isInteger(n) && n >= 0 && n < urls.length);
+    return {
+      note: Number(v.note ?? 0),
+      motifs: Array.isArray(v.motifs) ? v.motifs.filter(Boolean).slice(0, 4) : [],
+      horsSujet,
+    };
+  } catch (e: any) {
+    console.warn('[Carrousel/vision] échec :', e?.message);
+    return null;
+  }
+}
