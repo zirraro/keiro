@@ -130,6 +130,101 @@ export async function GET(req: NextRequest) {
     parJour.set(cle, (parJour.get(cle) || 0) + 1);
   }
 
+  /**
+   * ── Le calendrier se remet d'aplomb tout seul ──
+   *
+   * Constaté le 16 août en relisant la file : seize créneaux occupés deux fois
+   * et cinq journées au-dessus du plafond — dont trois publications Instagram
+   * à 12 h 30 le même jour. Ces collisions ne venaient PAS du rattrapage :
+   * c'est le pipeline normal qui les avait produites, chacun de ses chemins
+   * plaçant sans savoir ce que les autres avaient déjà posé.
+   *
+   * Je les ai défaites une fois à la main. Ça se reproduira, donc on le fait
+   * ici, à chaque passage : deux publications d'un même réseau ne partagent
+   * jamais une minute, et une journée ne dépasse jamais sa cadence — deux sur
+   * TikTok, cinq sur Instagram. Le surplus glisse au premier jour qui a de la
+   * place, et le contenu du pipeline garde sa place avant les rattrapages.
+   *
+   * C'est la salve qu'on évite : un compte a déjà été bridé pour 27 vidéos en
+   * cinq minutes.
+   */
+  async function reequilibrerCalendrier(): Promise<number> {
+    const CRENEAUX = ['09:15:00', '11:00:00', '12:30:00', '17:45:00', '19:30:00'];
+    const { data: file } = await supabase
+      .from('content_calendar')
+      .select('id, platform, scheduled_date, scheduled_time, publish_diagnostic')
+      .in('status', ['approved', 'pending_approval'])
+      .gte('scheduled_date', aujourdhui)
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true })
+      .limit(400);
+
+    const pris = new Set<string>();
+    const compte = new Map<string, number>();
+    const aDeplacer: any[] = [];
+    for (const p of (file || []) as any[]) {
+      const r = String(p.platform || '').toLowerCase();
+      const cap = r === 'tiktok' ? 2 : 5;
+      const jour = `${p.scheduled_date}|${r}`;
+      const minute = `${jour}|${String(p.scheduled_time || '').slice(0, 8)}`;
+      if (pris.has(minute) || (compte.get(jour) || 0) >= cap) { aDeplacer.push(p); continue; }
+      pris.add(minute);
+      compte.set(jour, (compte.get(jour) || 0) + 1);
+    }
+    // Un rattrapage cède le pas au contenu du planning normal.
+    aDeplacer.sort((a, b) =>
+      (/qc_rattrape/.test(b.publish_diagnostic || '') ? 1 : 0) - (/qc_rattrape/.test(a.publish_diagnostic || '') ? 1 : 0));
+
+    let deplaces = 0;
+    for (const p of aDeplacer) {
+      const r = String(p.platform || '').toLowerCase();
+      const cap = r === 'tiktok' ? 2 : 5;
+      let place: { d: string; h: string } | null = null;
+      for (let j = 1; j <= 40 && !place; j++) {
+        const d = new Date(Date.parse(p.scheduled_date) + j * 86400000).toISOString().slice(0, 10);
+        const jour = `${d}|${r}`;
+        if ((compte.get(jour) || 0) >= cap) continue;
+        for (const h of CRENEAUX) {
+          if (pris.has(`${jour}|${h}`)) continue;
+          pris.add(`${jour}|${h}`);
+          compte.set(jour, (compte.get(jour) || 0) + 1);
+          place = { d, h };
+          break;
+        }
+      }
+      if (!place) continue;
+      await supabase.from('content_calendar')
+        .update({ scheduled_date: place.d, scheduled_time: place.h, updated_at: new Date().toISOString() })
+        .eq('id', p.id);
+      deplaces++;
+    }
+    if (deplaces > 0) console.warn(`[Rattrapage] calendrier rééquilibré : ${deplaces} publication(s) déplacée(s) (créneau doublé ou cadence dépassée)`);
+    return deplaces;
+  }
+
+  const calendrierRemisDAplomb = await reequilibrerCalendrier();
+
+  // Le rééquilibrage vient de déplacer des publications : la carte d'occupation
+  // lue plus haut est périmée. On la refait, sinon on replacerait un rattrapage
+  // sur un créneau qu'on vient soi-même de libérer puis de reprendre.
+  if (calendrierRemisDAplomb > 0) {
+    const { data: relu } = await supabase
+      .from('content_calendar')
+      .select('platform, scheduled_date, scheduled_time')
+      .in('status', ['approved', 'pending_approval', 'draft'])
+      .gte('scheduled_date', aujourdhui)
+      .lte('scheduled_date', dansQuinzeJours)
+      .limit(1000);
+    occupes.clear();
+    parJour.clear();
+    for (const d of (relu || []) as any[]) {
+      const r = String(d.platform || '').toLowerCase();
+      const cle = `${d.scheduled_date}|${r}`;
+      occupes.add(`${cle}|${String(d.scheduled_time || '').slice(0, 8)}`);
+      parJour.set(cle, (parJour.get(cle) || 0) + 1);
+    }
+  }
+
   /** Le premier créneau libre pour ce réseau, en ouvrant des jours au besoin. */
   function prochainCreneauLibre(reseau: string): { date: string; heure: string } | null {
     const CRENEAUX = ['09:15:00', '11:00:00', '12:30:00', '17:45:00', '19:30:00'];
@@ -259,6 +354,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    calendrier_reequilibre: calendrierRemisDAplomb,
     examines: reparables.length,
     visuels_refaits: refaits,
     remis_en_ligne: republies,
