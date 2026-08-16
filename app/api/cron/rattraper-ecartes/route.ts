@@ -85,6 +85,9 @@ export async function GET(req: NextRequest) {
   let irrecuperables = 0;
   let reportes = 0;
   const exemples: any[] = [];
+  // Combien de posts déjà replacés par réseau — c'est ce compteur qui évite
+  // d'empiler deux publications au même créneau du même réseau.
+  const poses = new Map<string, number>();
 
   for (const p of reparables as any[]) {
     if (Date.now() - debut > budgetMs) {
@@ -136,16 +139,30 @@ export async function GET(req: NextRequest) {
       }
 
       /**
-       * Reprogrammé demain, pas tout de suite.
+       * ── Étalé sur plusieurs jours, jamais deux au même créneau ──
        *
-       * Republier au créneau d'origine, c'est publier en retard ; les remettre
-       * tous à la même heure, c'est une salve — et la salve fait chuter la
-       * portée, ce qu'on essaie précisément de réparer. On étale sur des heures
-       * distinctes du lendemain.
+       * Republier au créneau d'origine, c'est publier en retard. Tout remettre
+       * au lendemain, c'est une salve — et la salve fait chuter la portée,
+       * précisément ce qu'on essaie de réparer. Un compte a déjà été bridé pour
+       * ça : 27 vidéos en cinq minutes le 24 juin.
+       *
+       * Premier jet de ce fichier : je faisais tourner six créneaux avec
+       * `republies % 6`. Sur quinze posts, le rotor repasse — trois vidéos
+       * TikTok se sont retrouvées à 09 h 15 le même matin. Le commentaire
+       * disait « on étale » et le code empilait.
+       *
+       * On place donc au PLUS un post par réseau et par créneau, en ouvrant un
+       * jour de plus dès que la journée est pleine. Le plafond suit la cadence
+       * réelle : deux par jour sur TikTok, cinq sur Instagram.
        */
-      const CRENEAUX = ['09:15:00', '12:30:00', '17:45:00', '19:30:00', '11:00:00', '18:05:00'];
-      const demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-      const heure = CRENEAUX[republies % CRENEAUX.length];
+      const CRENEAUX = ['09:15:00', '11:00:00', '12:30:00', '17:45:00', '19:30:00'];
+      const reseau = String(p.platform || '').toLowerCase();
+      const capJour = reseau === 'tiktok' ? 2 : 5;
+      const posesReseau = poses.get(reseau) || 0;
+      const jourIndex = Math.floor(posesReseau / capJour);
+      const heure = CRENEAUX[posesReseau % Math.min(capJour, CRENEAUX.length)];
+      const demain = new Date(Date.now() + (jourIndex + 1) * 86400000).toISOString().slice(0, 10);
+      poses.set(reseau, posesReseau + 1);
 
       await supabase.from('content_calendar').update({
         status: 'approved',
