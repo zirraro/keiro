@@ -37,6 +37,10 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const userId: string | null = body?.user_id || null;
+  // Rattrapage ponctuel : ne relire que les prospects dont l'email est une
+  // adresse de service, pour tenter d'y substituer une nominative.
+  const cibleEmails = body?.cible === 'emails_generiques'
+    || req.nextUrl?.searchParams.get('cible') === 'emails_generiques';
 
   const supabase = sb();
   const since14d = new Date(Date.now() - 14 * 86400000).toISOString();
@@ -70,11 +74,35 @@ export async function POST(req: NextRequest) {
      * passage, le gisement se traite en un mois au lieu de plusieurs années.
      */
     .order('last_enriched_at', { ascending: true, nullsFirst: true })
-    .limit(200);
+    .limit(cibleEmails ? 1000 : 200);
 
   if (userId) q = q.eq('user_id', userId);
+  // En mode « adresses de service », on ne veut que les prospects qui ont déjà
+  // un email : c'est celui qu'on cherche à remplacer.
+  if (cibleEmails) q = q.not('email', 'is', null);
 
-  const { data: candidates } = await q;
+  const { data: candidatsBruts } = await q;
+
+  /**
+   * ── Une cible pour rattraper les adresses de service déjà en base ──
+   *
+   * Le balayage normal traite les jamais-enrichis d'abord, ce qui est juste :
+   * c'est là qu'on trouve des prospects neufs. Mais les 318 prospects qui ne
+   * portent qu'un `contact@` ont DÉJÀ été enrichis — ils sont donc en fin de
+   * file, à un mois de leur tour, alors que ce sont eux qui font 70 % des
+   * rebonds et qu'on manque d'adresses nominatives dès demain.
+   *
+   * `?cible=emails_generiques` les fait passer devant, une seule fois, sans
+   * changer la cadence de fond. On lit large et on filtre ici : « générique »
+   * est une règle de code, pas une colonne, donc la base ne peut pas trier
+   * dessus.
+   */
+  let candidates = candidatsBruts;
+  if (cibleEmails && candidatsBruts) {
+    const { estAdresseGenerique } = await import('@/lib/email/adresse-generique');
+    candidates = candidatsBruts.filter((p: any) => estAdresseGenerique(p.email)).slice(0, 200);
+    console.log(`[ScrapeEnrich] cible adresses de service : ${candidates.length} prospects sur ${candidatsBruts.length} relus`);
+  }
   if (!candidates || candidates.length === 0) {
     return NextResponse.json({ ok: true, enriched: 0, message: 'No candidates' });
   }
@@ -124,7 +152,35 @@ export async function POST(req: NextRequest) {
       const extracted = (notes as any).extractedContact;
       if (extracted) {
         if (extracted.phone && !p.phone) updates.phone = extracted.phone;
-        if (extracted.email && !(p as any).email) updates.email = extracted.email;
+        /**
+         * ── Une adresse de service se remplace par une personne ──
+         *
+         * La règle « on n'écrit que si le champ est vide » protège la saisie
+         * manuelle, et c'est juste. Mais elle gelait aussi les 318 prospects
+         * qui ne portent qu'un `contact@` : même si le site affiche
+         * `sophie.lemoine@…` sur sa page équipe, on ne l'aurait jamais repris.
+         *
+         * Or l'écart est mesuré : une adresse de service échoue à 69,9 % et
+         * ouvre à 8 %, une nominative échoue à 11,7 % et ouvre à 17,5 %.
+         * Remplacer, c'est récupérer un prospect qu'on avait de fait perdu.
+         *
+         * On ne remplace QUE dans ce sens — générique vers nominative, jamais
+         * l'inverse — et on garde l'ancienne dans les notes : si la nouvelle
+         * rebondit, on sait vers quoi revenir.
+         */
+        if (extracted.email) {
+          const actuelle = (p as any).email as string | null;
+          if (!actuelle) {
+            updates.email = extracted.email;
+          } else if (actuelle.toLowerCase() !== String(extracted.email).toLowerCase()) {
+            const { estAdresseGenerique } = await import('@/lib/email/adresse-generique');
+            if (estAdresseGenerique(actuelle) && !estAdresseGenerique(extracted.email)) {
+              updates.email = extracted.email;
+              updates.notes = `${(updates.notes as string) || ''}\n[Email ${now.slice(0, 10)}] adresse de service ${actuelle} remplacée par ${extracted.email} (nominative, six fois moins de rebonds).`.slice(0, 4000);
+              console.log(`[ScrapeEnrich] ${p.id} : ${actuelle} → ${extracted.email} (générique remplacée par nominative)`);
+            }
+          }
+        }
         if (extracted.address && !(p as any).address) updates.address = extracted.address;
         if (extracted.instagram && (!p.instagram || p.instagram === 'A_VERIFIER')) {
           updates.instagram = extracted.instagram;

@@ -126,10 +126,43 @@ export async function scrapeWebsite(url: string): Promise<Partial<BusinessNotes>
       contact.phone = normalized;
     }
 
-    // Email: extract first non-noreply / non-example address
-    const emailMatches = clean.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-    const goodEmail = emailMatches.find(e => !/noreply|no-reply|example\.|sentry|wixpress|wixstudio|godaddy/i.test(e));
-    if (goodEmail) contact.email = goodEmail.toLowerCase();
+    /**
+     * ── L'adresse nominative gagne sur l'adresse de service ──
+     *
+     * Mesuré le 16 août sur 3 423 prospects : une adresse `contact@` échoue à
+     * 69,9 % et ouvre à 8 %, une adresse nominative échoue à 11,7 % et ouvre à
+     * 17,5 %. Six fois plus d'échecs, deux fois moins de lectures.
+     *
+     * Or on retenait la PREMIÈRE adresse trouvée. Sur un site de commerce,
+     * `contact@` figure dans le pied de page de toutes les pages : il gagnait
+     * toujours, même quand une adresse nominative existait sur la page équipe
+     * ou dans une signature. On classait par ordre d'apparition dans le HTML,
+     * c'est-à-dire par hasard de mise en page.
+     *
+     * On classe maintenant par qualité : une personne d'abord, une boîte de
+     * service seulement à défaut. Les deux restent collectées — beaucoup de
+     * commerces n'ont que `contact@`, et le renoncer serait renoncer au
+     * prospect.
+     *
+     * ── La frontière de mot, et l'adresse qui n'a jamais existé ──
+     *
+     * La base contenait `maile-commerce@chezlecaviste.com`. Personne n'a jamais
+     * eu cette adresse : c'est du texte de page recollé, « …par mail » suivi de
+     * « e-commerce@… ». L'expression régulière n'avait pas de frontière à
+     * gauche, donc elle avalait les lettres qui précédaient. Chaque adresse
+     * ainsi fabriquée est un rebond garanti, et les rebonds se paient sur la
+     * réputation du domaine — donc sur les mails qui, eux, étaient bons.
+     */
+    const emailMatches = clean.match(/(?:^|[^a-zA-Z0-9._%+-])([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g) || [];
+    const candidats = emailMatches
+      .map((m) => m.replace(/^[^a-zA-Z0-9]+/, '').toLowerCase())
+      .filter((e) => !/noreply|no-reply|example\.|sentry|wixpress|wixstudio|godaddy|\.(png|jpg|jpeg|gif|webp|svg)$/i.test(e));
+
+    if (candidats.length > 0) {
+      const { estAdresseGenerique } = await import('@/lib/email/adresse-generique');
+      const nominative = candidats.find((e) => !estAdresseGenerique(e));
+      contact.email = nominative || candidats[0];
+    }
 
     // Address: look for postal-code patterns (5 digits) or common
     // schema.org/json-ld snippets
