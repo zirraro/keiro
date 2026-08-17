@@ -54,7 +54,25 @@ jobs:
     # On relève la limite pour que la production reçoive à nouveau le code. La
     # vraie question — pourquoi le build a-t-il grossi — reste ouverte, et elle
     # se traite avec des mesures, pas en rognant sur le temps accordé.
-    timeout-minutes: 35
+    # ── Mesuré le 17 août : la limite était SOUS la durée réelle ──
+    #
+    # Durées des six derniers déploiements RÉUSSIS : 7, 20, 21, 27, 34 et 36
+    # minutes. Pour une limite de 35. Autrement dit, un déploiement sur deux
+    # jouait sa survie à la minute près, et trois de suite ont été tués —
+    # `749cf0d`, `4c22a0e`, `9f0f6cf`, tous marqués « cancelled », c'est-à-dire
+    # sans alerte ni message d'erreur.
+    #
+    # J'ai d'abord accusé un bannissement SSH côté VPS, et demandé au fondateur
+    # de purger fail2ban. C'était faux : le démon répondait normalement. La
+    # première tentative échoue parfois, la seconde fait le vrai travail, et il
+    # ne lui reste plus assez de minutes pour finir. Le nom de l'étape — « après
+    # un refus de connexion » — m'a fait chercher du côté du réseau une panne
+    # qui était une panne de budget.
+    #
+    # 70 minutes laissent la place à une tentative perdue PUIS à un déploiement
+    # complet. La vraie question — pourquoi un build prend 30 minutes — reste
+    # ouverte, et se traite avec des mesures, pas en rognant le temps accordé.
+    timeout-minutes: 70
 
     steps:
       # ── Pourquoi une nouvelle tentative ──

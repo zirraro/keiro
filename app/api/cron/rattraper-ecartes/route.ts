@@ -202,6 +202,97 @@ export async function GET(req: NextRequest) {
     return deplaces;
   }
 
+  /**
+   * ── Le contrôle qualité doit passer LA VEILLE ──
+   *
+   * Fondateur, 17 août : « on doit publier ce qui est programmé, ça doit passer
+   * le juge et le contrôle qualité et être réparé bien avant, pas le jour même ».
+   *
+   * Il a raison, et c'est un défaut de conception, pas de barème. Aujourd'hui
+   * la porte qualité s'ouvre au moment de publier : un post refusé à 9 h 15 n'a
+   * plus une minute pour être réparé, donc le créneau est perdu. Le seul cron
+   * qui relit à l'avance ne vérifie que la FRAÎCHEUR du texte — dates et
+   * événements périmés — et ne regarde jamais l'image.
+   *
+   * Résultat mesuré le 17 août : vingt et un posts programmés, un publié.
+   *
+   * On juge donc les posts de DEMAIN ce soir, avec la même porte que la
+   * publication, et on répare tout de suite. Une image refaite à 21 h laisse
+   * douze heures de marge ; refaite à 9 h 15, elle arrive après le créneau.
+   *
+   * Ce qui passe est marqué : au matin, la publication retrouve un verdict
+   * frais et n'a pas à repayer un appel de vision.
+   */
+  async function preparerDemain(): Promise<{ examines: number; repares: number; encore_ko: number }> {
+    const demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const { data: aVenir } = await supabase
+      .from('content_calendar')
+      .select('id, user_id, hook, caption, hashtags, visual_url, video_url, platform, format, qa_notes, publish_diagnostic')
+      .in('status', ['approved', 'pending_approval'])
+      .eq('scheduled_date', demain)
+      .limit(40);
+
+    let examines = 0, repares = 0, encoreKo = 0;
+    const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
+
+    for (const p of (aVenir || []) as any[]) {
+      if (Date.now() - debut > budgetMs * 0.4) break;   // on garde du temps pour la reprise
+      // Déjà jugé bon ce soir : inutile de repayer une vision.
+      if (/\[pre-vol .*ok\]/.test(String(p.qa_notes || ''))) continue;
+      examines++;
+
+      let verdict = await controlerAvantPublication(supabase, p);
+      if (verdict.publiable) {
+        await supabase.from('content_calendar').update({
+          qa_notes: `${p.qa_notes ? p.qa_notes + '\n' : ''}[pre-vol ${demain}] ok`.slice(0, 4000),
+        }).eq('id', p.id);
+        continue;
+      }
+
+      // ── Refusé la veille : on a le temps de refaire l'image ──
+      const motifs = `${verdict.diagnostic || ''} ${((verdict.details as any)?.reasons || []).join(' ')}`;
+      if (griefVisuel(motifs) && p.visual_url && !p.video_url) {
+        try {
+          const { regenererVisuelDepuisLegende } = await import('@/lib/qualite/refaire-visuel');
+          const neuf = await regenererVisuelDepuisLegende({
+            hook: p.hook || '', caption: p.caption || '',
+            plateforme: p.platform, format: p.format || 'post',
+            griefs: motifs, userId: p.user_id || null,
+            visuelActuel: p.visual_url, note: Number((verdict.details as any)?.score) || null,
+          });
+          if (neuf) {
+            p.visual_url = neuf;
+            verdict = await controlerAvantPublication(supabase, p);
+          }
+        } catch { /* une panne de génération ne bloque pas la préparation */ }
+      }
+
+      if (verdict.publiable) {
+        repares++;
+        await supabase.from('content_calendar').update({
+          visual_url: p.visual_url,
+          qa_notes: `${p.qa_notes ? p.qa_notes + '\n' : ''}[pre-vol ${demain}] ok après réparation`.slice(0, 4000),
+          publish_diagnostic: 'pre_vol_repare: visuel refait la veille, jugé publiable',
+          updated_at: new Date().toISOString(),
+        }).eq('id', p.id);
+      } else {
+        encoreKo++;
+        // On le signale la VEILLE : il reste une journée pour agir, au lieu de
+        // découvrir le créneau vide le lendemain soir.
+        await supabase.from('content_calendar').update({
+          visual_url: p.visual_url,
+          publish_diagnostic: `pre_vol_ko: ${String(verdict.diagnostic || 'refusé').slice(0, 400)}`,
+          updated_at: new Date().toISOString(),
+        }).eq('id', p.id);
+      }
+    }
+
+    if (examines > 0) console.warn(`[Pré-vol ${demain}] ${examines} post(s) jugés · ${repares} réparés · ${encoreKo} encore refusés`);
+    return { examines, repares, encore_ko: encoreKo };
+  }
+
+  const preVol = await preparerDemain();
+
   const calendrierRemisDAplomb = await reequilibrerCalendrier();
 
   // Le rééquilibrage vient de déplacer des publications : la carte d'occupation
@@ -354,6 +445,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    pre_vol: preVol,
     calendrier_reequilibre: calendrierRemisDAplomb,
     examines: reparables.length,
     visuels_refaits: refaits,
