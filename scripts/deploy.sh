@@ -215,6 +215,23 @@ etape "build propre"
 # Le build va donc dans .next-build, et la bascule est un renommage : quelques
 # millisecondes au lieu de plusieurs minutes.
 rm -rf .next-build
+# ── Pourquoi le build durait trente minutes ──
+#
+# Fondateur, plusieurs fois : « je trouve que les déploiements sont longs, ça
+# doit pas mettre 15 min, c'est 5 min max ». J'ai d'abord rogné ailleurs —
+# `npm ci` conditionnel, minutage par étape — sans jamais mesurer le build
+# lui-même.
+#
+# Journal du 17 août, pendant un build : « Scavenge 2025.2 (2082.0) ->
+# 2018.8 MB, allocation failure », répété toutes les cinquante millisecondes.
+# Node tourne contre son plafond de tas par défaut (~2 Go) : il passe son temps
+# à ramasser la mémoire au lieu de compiler. Ce n'est pas un build lourd, c'est
+# un build à l'étroit.
+#
+# Le VPS a 7,7 Go dont près de 5 disponibles. Quatre suffisent largement et
+# laissent de la marge à l'application qui tourne pendant ce temps.
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}"
+echo "   mémoire allouée au build : $NODE_OPTIONS"
 if ! NEXT_DIST_DIR=.next-build npm run build; then
   echo "⚠ build en échec — seconde tentative (le build est non déterministe par moments)"
   rm -rf .next-build
