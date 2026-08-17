@@ -574,7 +574,43 @@ export async function jugerImagesDeLaSerie(input: {
       horsSujet,
     };
   } catch (e: any) {
-    console.warn('[Carrousel/vision] échec :', e?.message);
+    console.warn('[Carrousel/vision] Gemini en échec :', e?.message);
+  }
+
+  // ── Repli ARK : Gemini est géo-bloqué depuis le serveur ──
+  //
+  // Le 17 août, l'API AI Studio a commencé à répondre « User location is not
+  // supported » aux appels venant du VPS. Le juge principal a déjà son repli
+  // ARK ; celui-ci l'avait pas, il serait donc tombé en silence — et un
+  // carrousel non jugé, c'est précisément le défaut qu'on vient de corriger.
+  try {
+    const { cleArk } = await import('@/lib/agents/deepseek');
+    const res = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cleArk() },
+      body: JSON.stringify({
+        model: process.env.ARK_VISION_MODEL || 'seed-2-0-pro-260328',
+        messages: [
+          { role: 'system', content: consigne + String.fromCharCode(10) + String.fromCharCode(10) + 'Réponds UNIQUEMENT par un JSON { note: nombre, motifs: [texte], diapos_hors_sujet: [nombre] }.' },
+          { role: 'user', content: [
+            ...images.map((i) => ({ type: 'image_url', image_url: { url: 'data:' + i.mediaType + ';base64,' + i.data } })),
+            { type: 'text', text: 'LÉGENDE :' + String.fromCharCode(10) + String(input.legende || '').slice(0, 1000) },
+          ] },
+        ],
+        max_tokens: 700, temperature: 0, response_format: { type: 'json_object' },
+      }),
+    });
+    if (!res.ok) { console.warn('[Carrousel/vision] ARK HTTP', res.status); return null; }
+    const j: any = await res.json();
+    const brut = String(j.choices?.[0]?.message?.content || '').replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    if (!brut) return null;
+    const v = JSON.parse(brut);
+    const horsSujet = (Array.isArray(v.diapos_hors_sujet) ? v.diapos_hors_sujet : [])
+      .map((n: any) => Number(n) - 1)
+      .filter((n: number) => Number.isInteger(n) && n >= 0 && n < urls.length);
+    return { note: Number(v.note ?? 0), motifs: Array.isArray(v.motifs) ? v.motifs.filter(Boolean).slice(0, 4) : [], horsSujet };
+  } catch (e: any) {
+    console.warn('[Carrousel/vision] ARK en échec :', e?.message);
     return null;
   }
 }

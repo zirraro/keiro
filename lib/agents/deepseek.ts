@@ -80,7 +80,8 @@ export const MODELE_DEEPSEEK = process.env.DEEPSEEK_MODEL || 'deepseek-v3-2-2512
  * Constaté au back-test : zéro appel « ark » après déploiement. On résout donc
  * la clé de la même façon que le reste du code, pas d'une façon à soi.
  */
-function cleArk(): string {
+/** La clé ARK, partagée par DeepSeek et par le juge de vision de secours. */
+export function cleArk(): string {
   return (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c').trim();
 }
 
