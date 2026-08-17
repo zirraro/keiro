@@ -404,7 +404,8 @@ export async function jugerAvecVision(opts: {
 
   // ── 2. Gemini ──
   const cleGemini = process.env.GEMINI_API_KEY;
-  if (!cleGemini) { console.error('[QC] aucun modèle de vision disponible'); return null; }
+  // Pas de clé Gemini n'est plus une impasse : ARK prend le relais plus bas.
+  if (!cleGemini) console.warn('[QC] pas de clé Gemini — on passe directement à ARK');
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleGemini}`,
@@ -436,8 +437,20 @@ export async function jugerAvecVision(opts: {
       } as any,
     );
     if (!res.ok) {
-      console.error(`[QC] Gemini refuse aussi (${res.status}) — post non contrôlé`);
-      return null;
+      /**
+       * On tombe vers ARK au lieu de rendre les armes ici.
+       *
+       * Ce `return null` était écrit quand Gemini était le DERNIER recours :
+       * il n'y avait rien après, donc sortir ou continuer revenait au même.
+       * Depuis qu'ARK existe en troisième position, il court-circuitait tout —
+       * le repli était en place et inatteignable, et la production répondait
+       * « les deux fournisseurs sont en échec » alors que le troisième
+       * attendait dix lignes plus bas.
+       *
+       * Une sortie anticipée écrite pour un monde à deux recours devient un
+       * piège dès qu'on en ajoute un troisième.
+       */
+      throw new Error(`Gemini HTTP ${res.status}`);
     }
     const j = await res.json();
     void logApiCost({
@@ -446,7 +459,8 @@ export async function jugerAvecVision(opts: {
       cost_eur: ((j.usageMetadata?.promptTokenCount || 0) * 0.3 + (j.usageMetadata?.candidatesTokenCount || 0) * 2.5) / 1e6 * 0.92,
     } as any);
     const txt = (j.candidates?.[0]?.content?.parts || []).map((p: any) => p.text).filter(Boolean).join('');
-    if (!txt) { console.error('[QC] Gemini a répondu sans contenu'); return null; }
+    // Même raison que plus haut : on laisse ARK tenter sa chance.
+    if (!txt) throw new Error('Gemini a répondu sans contenu');
     return JSON.parse(txt);
   } catch (e: any) {
     console.error('[QC] Gemini en échec :', e?.message);
