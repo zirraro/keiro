@@ -88,7 +88,33 @@ export async function GET(req: NextRequest) {
   const { token, phone } = conf();
   if (!token) return NextResponse.json({ ok: false, error: 'WHATSAPP_ACCESS_TOKEN absent du serveur' });
   const waba = await trouverWaba(token, phone, conf().waba);
-  if (!waba) return NextResponse.json({ ok: false, error: 'compte professionnel WhatsApp introuvable' });
+  if (!waba) {
+    /**
+     * Une panne muette de plus si on s'arrête à « introuvable ».
+     *
+     * Trois causes possibles et indiscernables sans détail : le numéro n'est
+     * pas configuré, le jeton n'a pas le droit de lire le compte rattaché, ou
+     * Meta renvoie une erreur qu'on jette. On rend donc ce que Meta a dit.
+     */
+    let reponse = 'aucun appel effectué (WHATSAPP_PHONE_NUMBER_ID absent)';
+    if (phone) {
+      try {
+        const r = await fetch(`${GRAPH}/${phone}?fields=whatsapp_business_account,display_phone_number,verified_name`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        reponse = `HTTP ${r.status} — ${(await r.text()).slice(0, 300)}`;
+      } catch (e: any) {
+        reponse = `échec réseau : ${e?.message}`;
+      }
+    }
+    return NextResponse.json({
+      ok: false,
+      error: 'compte professionnel WhatsApp introuvable',
+      phone_number_id: phone || '(absent)',
+      waba_env: conf().waba || '(absent)',
+      reponse_meta: reponse,
+    });
+  }
 
   const { connus, erreur } = await etatMeta(token, waba);
   if (erreur) return NextResponse.json({ ok: false, waba, erreur });
