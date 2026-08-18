@@ -291,6 +291,122 @@ function HomeKeiroInner() {
       {/* QUIZ INTERACTIF — hidden for cleaner UX */}
       {false && <QuizAndCalculator />}
 
+      {/*
+        PREUVE CHIFFRÉE — pourquoi publier tous les jours
+
+        Fondateur, 17 août : « dans mon discours de vente je dis que ça permet
+        de publier tous les jours en auto, mais je ne sais pas si le rythme
+        quotidien est le meilleur. Il me faut des sources sérieuses, et
+        plusieurs, pour les mettre sur la page d'accueil comme preuve de
+        valeur. »
+
+        Le chiffre est contre-intuitif et c'est ce qui le rend convaincant :
+        publier plus souvent n'appauvrit pas la portée, il l'augmente. Buffer
+        le mesure sur 2,1 millions de publications de 102 000 comptes.
+
+        Ce qu'on N'AFFICHE PAS, et pourquoi : la tranche la plus haute étudiée
+        est « 10+ par semaine », soit environ 1,5 par jour. Les 5 publications
+        Instagram quotidiennes que le produit sait tenir sortent du champ
+        mesuré — aucune source ne les soutient, et l'historique du compte
+        vitrine les déconseille (portée effondrée en juin après une salve). On
+        promet donc le quotidien, qui est prouvé, et on garde le reste comme
+        capacité technique.
+
+        Les liens pointent vers nos propres articles, pas directement vers les
+        études : un visiteur qui reste lit notre analyse, et le temps passé sur
+        le site est ce que Google regarde.
+      */}
+      <section className="section-light section-divider" id="preuves">
+        <div className="mx-auto max-w-5xl px-6 py-10">
+          <p className="text-xs font-semibold tracking-wide uppercase text-[#6b9fd4] mb-2">
+            {locale === 'fr' ? 'Ce que disent les données' : 'What the data says'}
+          </p>
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">
+            {locale === 'fr'
+              ? 'Publier plus souvent n’appauvrit pas votre portée. Elle l’augmente.'
+              : 'Posting more often doesn’t dilute your reach. It increases it.'}
+          </h2>
+          <p className="text-sm text-neutral-600 mb-6 max-w-3xl">
+            {locale === 'fr'
+              ? 'C’est l’inverse de ce qu’on croit, et c’est mesuré : sur 2,1 millions de publications de 102 000 comptes Instagram, la portée par publication monte avec la cadence.'
+              : 'It’s the opposite of what most people assume, and it’s measured: across 2.1 million posts from 102,000 Instagram accounts, reach per post rises with frequency.'}
+          </p>
+
+          <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
+            <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              <thead className="bg-neutral-50 text-neutral-500">
+                <tr>
+                  <th className="text-left font-medium px-4 py-2.5">{locale === 'fr' ? 'Rythme' : 'Cadence'}</th>
+                  <th className="text-right font-medium px-4 py-2.5">{locale === 'fr' ? 'Portée par publication' : 'Reach per post'}</th>
+                  <th className="text-right font-medium px-4 py-2.5">{locale === 'fr' ? 'Croissance d’abonnés' : 'Follower growth'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { r: '1–2 / sem.', p: locale === 'fr' ? 'référence' : 'baseline', c: '+0,12 %', fort: false },
+                  { r: '3–5 / sem.', p: '+12 %', c: '+0,26 %', fort: false },
+                  { r: '6–9 / sem.', p: '+18 %', c: '+0,44 %', fort: false },
+                  { r: locale === 'fr' ? '10+ / sem. (quotidien)' : '10+ / week (daily)', p: '+24 %', c: '+0,66 %', fort: true },
+                ].map((l) => (
+                  <tr key={l.r} className={l.fort ? 'bg-emerald-50 font-semibold' : 'border-t border-neutral-100'}>
+                    <td className="px-4 py-2.5">{l.r}</td>
+                    <td className="px-4 py-2.5 text-right">{l.p}</td>
+                    <td className="px-4 py-2.5 text-right">{l.c}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-3 mt-5 text-sm">
+            <div className="rounded-xl bg-white border border-neutral-200 p-3.5">
+              <div className="font-bold text-lg">× 5,5</div>
+              <p className="text-neutral-600 text-xs leading-relaxed">
+                {locale === 'fr'
+                  ? 'de croissance au rythme quotidien, comparé à deux publications par semaine.'
+                  : 'more follower growth at a daily cadence than at two posts a week.'}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white border border-neutral-200 p-3.5">
+              <div className="font-bold text-lg">5 / {locale === 'fr' ? 'sem.' : 'week'}</div>
+              <p className="text-neutral-600 text-xs leading-relaxed">
+                {locale === 'fr'
+                  ? 'c’est la moyenne des marques sur Instagram et TikTok (70 M de publications analysées). Le quotidien vous place au-dessus du double.'
+                  : 'the average brand cadence on Instagram and TikTok (70M posts analysed). Daily puts you at more than double.'}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white border border-neutral-200 p-3.5">
+              <div className="font-bold text-lg">1–4 / {locale === 'fr' ? 'jour' : 'day'}</div>
+              <p className="text-neutral-600 text-xs leading-relaxed">
+                {locale === 'fr'
+                  ? 'la recommandation officielle de TikTok à ses créateurs.'
+                  : 'TikTok’s own official recommendation to creators.'}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-neutral-500 mt-5 leading-relaxed">
+            {locale === 'fr' ? 'Sources : ' : 'Sources: '}
+            <a href="https://buffer.com/resources/how-often-to-post-on-instagram/" target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-800">Buffer — 2,1 M publications</a>
+            {' · '}
+            <a href="https://www.socialinsider.io/social-media-benchmarks/instagram" target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-800">Socialinsider — 70 M publications</a>
+            {' · '}
+            <a href="https://www.dashsocial.com/blog/how-often-should-you-post-on-instagram" target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-800">Dash Social — 1,2 M publications</a>
+            {' · '}
+            <a href="https://buffer.com/resources/when-is-the-best-time-to-post-on-instagram/" target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-800">Buffer — 9,6 M publications</a>
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-3 items-center">
+            <a href="/blog" className="text-sm font-semibold text-[#0c1a3a] underline underline-offset-4 hover:opacity-70">
+              {locale === 'fr' ? 'Lire notre analyse complète de la cadence →' : 'Read our full cadence analysis →'}
+            </a>
+            <a href="/agents" className="text-sm text-neutral-600 underline underline-offset-4 hover:text-neutral-900">
+              {locale === 'fr' ? 'Comment Léna tient ce rythme pour vous' : 'How Léna holds that pace for you'}
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* VIDÉO WORKFLOW - Compact version */}
       <section className="section-light section-divider">
         <div className="mx-auto max-w-6xl px-6 py-8">
