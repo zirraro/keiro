@@ -161,8 +161,21 @@ export async function GET(req: NextRequest) {
       console.error('[LinkedInCallback] activation agent échouée (non bloquant):', activationError?.message);
     }
 
+    /**
+     * ── LinkedIn ne posait aucun marqueur de succès ──
+     *
+     * Instagram et TikTok en posent un (`just_connected`, `tt_connected`) : il
+     * dit au tableau de bord « la connexion vient d'aboutir » pendant les
+     * quelques secondes où l'écriture du jeton n'est pas encore visible en
+     * lecture. Sans lui, Léna affiche rouge juste après une autorisation
+     * réussie — le pire instant pour montrer un échec au client.
+     *
+     * LinkedIn n'en avait pas, et retombait sur une page intermédiaire au lieu
+     * de ramener dans Léna. Les trois réseaux se comportent maintenant pareil :
+     * retour direct chez Léna, sur l'onglet du réseau, avec le marqueur.
+     */
     return NextResponse.redirect(
-      `${baseUrl}/linkedin-callback?success=true&username=${encodeURIComponent(userInfo.name)}`
+      `${baseUrl}/assistant/agent/content?reseau=linkedin&just_connected=linkedin&username=${encodeURIComponent(userInfo.name)}`
     );
 
   } catch (error: any) {
