@@ -3539,6 +3539,31 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </p>
             </div>
 
+            {/*
+              \u2500\u2500 Trois portes, une seule page \u2500\u2500
+
+              Fondateur, 18 ao\u00fbt : \u00ab dommage de retirer l'\u00c9dition, car si
+              quelqu'un a une photo et veut la retoucher je veux que ce soit
+              directement faisable. J'aimerais une page, mais sans perdre aucune
+              des fonctionnalit\u00e9s d\u00e9j\u00e0 en place \u2014 juste une arborescence
+              pertinente sous une m\u00eame page bien pens\u00e9e. \u00bb
+
+              Il a raison, et ma correction pr\u00e9c\u00e9dente \u00e9tait incompl\u00e8te : en
+              sortant \u00ab \u00c9dition \u00bb du menu, j'avais bien supprim\u00e9 le choix
+              pr\u00e9matur\u00e9, mais j'avais aussi ferm\u00e9 la porte \u00e0 celui qui arrive
+              avec sa propre photo. Retirer une redondance ne doit pas retirer
+              un usage.
+
+              Cet \u00e9cran posait d\u00e9j\u00e0 la bonne question \u2014 \u00ab quel contenu voulez-
+              vous cr\u00e9er ? \u00bb \u2014 avec deux r\u00e9ponses. Il en manquait une
+              troisi\u00e8me, celle du client qui n'a rien \u00e0 g\u00e9n\u00e9rer parce qu'il a
+              d\u00e9j\u00e0 son image. Elle rejoint les deux autres, au m\u00eame niveau, au
+              m\u00eame endroit : le choix se fait une fois, ici, quand on sait ce
+              qu'on veut faire \u2014 et plus dans un menu, avant de le savoir.
+
+              Rien n'est perdu : Studio garde toutes ses fonctions, on y entre
+              simplement par la page o\u00f9 l'on est d\u00e9j\u00e0.
+            */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Card: Avec actualit\u00e9 */}
               <button
@@ -3620,6 +3645,37 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   {locale === 'fr' ? 'Commencer' : 'Start'} <span>→</span>
                 </div>
               </button>
+
+              {/*
+                Troisième porte : celui qui a déjà sa photo.
+
+                Sur toute la largeur (`sm:col-span-2`) et visuellement plus
+                sobre que les deux cartes de génération : c'est un chemin
+                légitime, pas l'usage principal. La hiérarchie se lit sans
+                lire — deux cartes pleines pour créer, une bande discrète pour
+                retoucher.
+              */}
+              <a
+                href="/studio"
+                className="sm:col-span-2 group flex items-center gap-4 bg-white rounded-2xl border-2 border-neutral-200 hover:border-[#0c1a3a] p-4 sm:p-5 text-left transition-all hover:shadow-lg min-h-[44px]"
+              >
+                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-500 group-hover:bg-[#0c1a3a]/10 group-hover:text-[#0c1a3a] transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-bold text-neutral-900">
+                    {locale === 'fr' ? "J'ai déjà ma photo" : 'I already have my photo'}
+                  </h3>
+                  <p className="text-sm text-neutral-600 leading-snug">
+                    {locale === 'fr'
+                      ? 'Retouchez-la directement : fonds, textes, styles, détourage.'
+                      : 'Retouch it directly: backgrounds, text, styles, cut-out.'}
+                  </p>
+                </div>
+                <span className="flex-shrink-0 text-neutral-400 group-hover:text-[#0c1a3a] transition-colors" aria-hidden>→</span>
+              </a>
             </div>
 
             {/* Daily tip + credits below — centered */}
