@@ -94,6 +94,12 @@ const GLOBAL_SCHEDULE = [
   { cron: '40 21 * * *', path: '/api/cron/rattraper-ecartes', label: 'Rattrapage des posts écartés (soir)' },
   { cron: '40 6 * * *',  path: '/api/cron/rattraper-ecartes', label: 'Rattrapage des posts écartés (matin)' },
 
+  // Un déploiement raté ne se signale pas tout seul : GitHub marque « cancelled »
+  // quand un job dépasse sa limite, ce qui n'est ni succès ni échec. Trois de
+  // suite sont passés inaperçus le 17 août. Ce contrôle compare le commit SERVI
+  // au dernier commit de la branche, toutes les heures.
+  { cron: '25 * * * *', path: '/api/cron/verifier-deploiement', label: 'La production sert-elle le dernier commit ?' },
+
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   // Inbound email poll every 2h (8 fires/day) so prospect replies get
   // classified and auto-responded within ~2h instead of waiting for the
