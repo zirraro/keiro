@@ -1404,32 +1404,26 @@ function NetworkStatsRow({ network, netStats, stats, sample }: { network: LenaNe
     return 0;
   })();
 
+  /**
+   * ── Deux chiffres, pas quatre ──
+   *
+   * Fondateur : « on avait dit qu'on mettait moins de stats car Ami regroupe,
+   * et je vois toujours pareil dans Léna. » C'était vrai : chaque réseau
+   * affichait encore quatre tuiles — publications, abonnés, likes, engagement.
+   *
+   * Trois d'entre elles sont des chiffres de vanité. Le client les regarde, ne
+   * peut rien en faire dans Léna, et les retrouve de toute façon consolidés
+   * chez Ami — dont c'est le métier de croiser les réseaux et d'en tirer une
+   * lecture. Les répéter ici, c'est occuper la place sans rien apprendre.
+   *
+   * Restent les deux seuls sur lesquels le client agit depuis cet écran : ce
+   * qui est PARTI, et ce qui est PROGRAMMÉ. Le second est même le plus utile —
+   * c'est celui qui dit si sa semaine est couverte.
+   */
   const cells: { label: string; value: string }[] = [
-    { label: 'Posts', value: fmt(postsValue) },
+    { label: 'Publiés', value: fmt(postsValue) },
+    { label: 'Programmés', value: fmt(netStats.scheduled || 0) },
   ];
-  if (network === 'instagram') {
-    cells.push(
-      { label: 'Followers', value: fmt(followersValue ?? 0) },
-      { label: 'Likes', value: fmt(netStats.likes || 0) },
-      { label: 'Engagement', value: `${netStats.engagement || 0}%` },
-    );
-  } else if (network === 'tiktok') {
-    cells.push(
-      { label: 'Followers', value: fmt(netStats.followers || 0) },
-      { label: 'Avg views', value: fmt(netStats.views || 0) },
-      { label: 'Engagement', value: `${netStats.engagement || 0}%` },
-    );
-  } else if (network === 'linkedin') {
-    cells.push(
-      { label: 'Connections', value: fmt(netStats.followers || 0) },
-      { label: 'Reactions', value: fmt(netStats.reactions || 0) },
-      { label: 'Engagement', value: `${netStats.engagement || 0}%` },
-    );
-  } else {
-    cells.push(
-      { label: 'Scheduled', value: fmt(netStats.scheduled || 0) },
-    );
-  }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {cells.map(c => (
