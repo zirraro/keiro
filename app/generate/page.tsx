@@ -3588,8 +3588,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </h3>
                 <p className="text-sm text-neutral-600 leading-relaxed mb-3">
                   {locale === 'fr'
-                    ? 'Surfez sur les tendances du moment. Les algorithmes favorisent les contenus li\u00e9s \u00e0 l\u2019actualit\u00e9.'
-                    : 'Ride the latest trends. Algorithms favor content tied to current events.'}
+                    ? 'Vous choisissez une actualité ou une fête du calendrier. On écrit le texte et on crée l’image autour.'
+                    : 'Pick a news item or a date on the calendar. We write the text and build the image around it.'}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   <span className="px-2 py-0.5 bg-[#0c1a3a]/5 text-[#0c1a3a] text-[10px] font-medium rounded-full">
@@ -3627,8 +3627,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </h3>
                 <p className="text-sm text-neutral-600 leading-relaxed mb-3">
                   {locale === 'fr'
-                    ? 'Cr\u00e9ez du contenu 100% centr\u00e9 sur votre business, votre expertise et vos valeurs.'
-                    : 'Create content 100% focused on your business, expertise and values.'}
+                    ? 'Vous dites ce que vous voulez montrer. On \u00e9crit le texte et on cr\u00e9e l\u2019image, sans partir d\u2019une actualit\u00e9.'
+                    : 'Tell us what you want to show. We write the text and build the image, with no news hook.'}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-medium rounded-full">
@@ -4053,13 +4053,39 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         {/* ═══ WIZARD PHASE: CONFIGURE — Business + Direction + G\u00e9n\u00e9ration ═══ */}
         {wizardPhase === 'configure' && (
           <div className="wizard-phase-enter">
-            {/* Phase indicator — compact stepper */}
+            {/*
+              ── Un vrai retour, pas une marche à la fois ──
+
+              Fondateur, 18 août : « quand je suis sur les étapes de création je
+              dois retourner étape par étape, 3 puis 2 puis 1, pour retourner à
+              la page avec les choix création et édition. J'aimerais un vrai
+              retour. »
+
+              La flèche ne remontait que d'un cran, et c'est juste quand on veut
+              corriger l'étape précédente. Mais quand on s'est trompé de MODE —
+              on voulait retoucher sa photo, on est parti en création libre —
+              remonter les marches une par une n'a aucun sens : on ne cherche
+              pas l'étape d'avant, on cherche la sortie.
+
+              Deux gestes distincts, donc deux boutons : la flèche recule d'un
+              pas, « Changer de mode » ramène au choix initial. C'est aussi la
+              seule façon d'atteindre la retouche quand on est engagé dans une
+              création — sinon la troisième porte devient invisible dès la
+              première étape franchie.
+            */}
             <div className="flex items-center gap-2 sm:gap-3 mb-5">
               <button
                 onClick={() => setWizardPhase(useNewsMode ? 'news-select' : 'entry')}
+                title={locale === 'fr' ? 'Étape précédente' : 'Previous step'}
                 className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors flex-shrink-0"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button
+                onClick={() => { setUseNewsMode(false); setWizardPhase('entry'); }}
+                className="flex-shrink-0 text-xs font-medium text-neutral-500 hover:text-[#0c1a3a] underline underline-offset-2 transition-colors min-h-[44px] flex items-center"
+              >
+                {locale === 'fr' ? 'Changer de mode' : 'Change mode'}
               </button>
               <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
                 {useNewsMode && (
