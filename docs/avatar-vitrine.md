@@ -65,6 +65,41 @@ devient nécessaire, et c'est le seul point qui demande un outil qu'on n'a pas.
 - **Le nom.** Nos agents en ont un — Léna, Jade, Hugo. Le porte-parole visible
   devrait suivre la même règle, sans jamais être présenté comme humain.
 
+## Ce que disent les fournisseurs, recherche du 19 août
+
+Fondateur : « l'avatar demande un super prompt ou un autre provider, ça se voit
+pas que c'est de l'IA justement, ultra réaliste et même en mouvement. »
+
+**La réponse est : un autre fournisseur, pas un meilleur prompt.** Seedream et
+Seedance produisent des scènes, pas des personnages qui tiennent d'un plan à
+l'autre. Aucune formulation ne compensera l'absence d'ancrage d'identité et de
+synchronisation labiale — c'est une capacité de modèle, pas une question de
+consigne.
+
+L'état de l'art, et il a bougé en avril 2026 :
+
+| fournisseur | ce qu'il fait le mieux | pour nous |
+|---|---|---|
+| **Hedra** (Character-3) | le mouvement le plus naturel **à partir d'une image** ; orienté créateurs et réseaux sociaux | le meilleur candidat : il part d'une image, donc de NOTRE planche de référence |
+| HeyGen (Avatar IV/V) | micro-expressions, meilleur en tête parlante | orienté avatars maison, moins libre sur le personnage |
+| Synthesia (Express-2) | corps entier, multi-caméra | orienté formation d'entreprise, ton corporate |
+
+**Le coût, chiffré.** Hedra facture 6 crédits par seconde ; l'offre Créateur
+donne 5 400 crédits pour 30 $, soit environ onze minutes de 720p par mois. Un
+reel de dix secondes coûte donc 60 crédits, à peu près **0,33 $** — comparable
+à nos 0,26 € de Seedance. Ajouter un personnage parlant ne double pas la
+facture, il la double au pire si on cumule scène et personnage.
+
+**Le point que personne ne cache, et qui décide.** Les tests comparatifs 2026
+convergent : même les meilleurs avatars **trahissent encore sur la parole rapide
+et les grands mouvements de tête**. Ils convainquent en publicité et en
+formation, pas sur un contenu qui doit paraître indiscutablement humain.
+
+Ça ne condamne pas l'idée, ça en fixe les règles de tournage : débit posé, tête
+quasi immobile, cadrage moyen plutôt que gros plan, plans courts. Autrement dit,
+exactement les contraintes qui rendent l'étape 1 (personnage muet) et l'étape 2
+(voix off) plus sûres que l'étape 3.
+
 ## Le gain attendu, honnêtement
 
 Un visage récurrent améliore la reconnaissance et la durée regardée : on
