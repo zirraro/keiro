@@ -5166,6 +5166,35 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       >
                         {t.generate.edit}
                       </button>
+                      {/*
+                        ── Retoucher est la suite de créer, pas une autre page ──
+
+                        Fondateur, 18 août : « on a tendance à aller voir
+                        Création alors que nous on met en avant les agents,
+                        peut-être regrouper Studio et Création. »
+
+                        En regardant les deux : `/studio` n'était atteignable
+                        QUE par le menu. Rien ici n'y menait. Un client qui
+                        venait de produire un visuel devait sortir, cliquer
+                        « Édition », et retrouver son image à la main — alors
+                        que Studio accepte déjà `?image=` depuis toujours et que
+                        personne ne s'en servait.
+
+                        Deux moitiés d'une même tâche, reliées seulement par le
+                        menu principal : ça oblige à choisir sa page AVANT de
+                        savoir ce qu'on veut faire. D'où l'atterrissage
+                        systématique sur Création, et l'onglet Agents noyé au
+                        milieu de six.
+
+                        L'onglet « Édition » disparaît donc du menu, et la
+                        retouche se prend ici, sur l'image qu'on vient de faire.
+                      */}
+                      <a
+                        href={`/studio?image=${encodeURIComponent(selectedEditVersion || generatedImageUrl || '')}`}
+                        className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm border border-neutral-300 text-neutral-700 text-center rounded-lg hover:bg-neutral-50 transition-colors font-medium min-h-[44px] flex items-center justify-center"
+                      >
+                        Retouche avancée
+                      </a>
                       {generationLimit.canDownload ? (
                       <button
                         onClick={() => handleDownloadImage(selectedEditVersion || generatedImageUrl || '', `keiro-visual-${Date.now()}.png`)}

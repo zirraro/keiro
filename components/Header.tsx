@@ -38,7 +38,6 @@ export default function Header() {
     { href: "/", label: t.nav.home },
     { href: user ? "/assistant" : "/agents", label: t.nav.assistant },
     { href: "/generate", label: t.nav.generate },
-    { href: "/studio", label: t.nav.studio },
     { href: "/library", label: t.nav.gallery },
     { href: "/blog", label: "Blog" },
     { href: "/pricing", label: t.nav.pricing, highlight: true },
