@@ -64,6 +64,25 @@ export async function GET(req: NextRequest) {
     out.ffmpeg = `INDISPONIBLE (${e?.message?.slice(0, 60)})`;
   }
 
+  /**
+   * L'appel réel, avec la vraie fonction et les vrais filtres.
+   *
+   * L'API brute répond — mais entre elle et la vidéo il y a deux tamis : la
+   * licence doit autoriser l'usage commercial, et la piste ne doit pas avoir
+   * servi récemment. Tester l'API sans tester ces filtres, c'est vérifier que
+   * le robinet coule sans regarder si le tuyau est bouché.
+   */
+  try {
+    const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
+    const mood: any = pickMoodFromContext({ businessType: 'restaurant' });
+    out.ambiance_choisie = String(mood);
+    const piste = await pickJamendoMusic({ mood, minDurationSec: 8 });
+    out.piste_retenue = piste?.url ? `${String(piste.url).slice(0, 70)}…` : 'AUCUNE — c\'est ici que la chaîne casse';
+    if (piste) out.piste_titre = `${piste.name || '?'} — ${piste.artist || '?'}`;
+  } catch (e: any) {
+    out.piste_retenue = `échec : ${e?.message}`;
+  }
+
   out.lecture = out.jamendo_cle === 'ABSENTE'
     ? "La clé Jamendo n'est pas posée sur le serveur : l'étape musique est sautée à chaque fois, et tous les reels partent muets."
     : out.jamendo_pistes > 0
