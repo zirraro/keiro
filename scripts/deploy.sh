@@ -490,6 +490,15 @@ node scripts/verifier-types-activite.mjs || {
 # sur une page inexistante depuis le 26 avril — quatre mois, sur la page
 # d'accueil et sur /generate, c'est-à-dire sur les deux seuls endroits où un
 # prospect dit oui. Huit comptes en tout, aucun depuis trente jours.
+# Studio et l'édition ont été regroupés : 197 éléments interactifs et 34 routes
+# d'API répartis sur deux pages. Le typecheck prouve que ça compile, pas qu'un
+# bouton aboutit — un `fetch` vers une route supprimée compile parfaitement.
+node scripts/inventaire-studio.mjs || {
+  echo "🚨 Un bouton de Studio appelle une route qui n'existe plus."
+  echo "   Il ne lèvera aucune erreur : il ne fera simplement rien."
+  exit 1
+}
+
 node scripts/verifier-liens-internes.mjs || {
   echo "🚨 Un lien interne mène à une page qui n'existe pas."
   echo "   Le visiteur qui clique tombe sur une erreur, et rien ne le signale."

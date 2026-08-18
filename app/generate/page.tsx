@@ -3657,16 +3657,16 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               */}
               <a
                 href="/studio"
-                className="sm:col-span-2 group flex items-center gap-4 bg-white rounded-2xl border-2 border-neutral-200 hover:border-[#0c1a3a] p-4 sm:p-5 text-left transition-all hover:shadow-lg min-h-[44px]"
+                className="sm:col-span-2 group flex items-center gap-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-300 hover:border-amber-500 p-5 text-left transition-all hover:shadow-xl hover:-translate-y-0.5 min-h-[44px]"
               >
-                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-500 group-hover:bg-[#0c1a3a]/10 group-hover:text-[#0c1a3a] transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-bold text-neutral-900">
-                    {locale === 'fr' ? "J'ai déjà ma photo" : 'I already have my photo'}
+                  <h3 className="text-lg font-bold text-neutral-900">
+                    {locale === 'fr' ? "J'ai déjà ma photo ou ma vidéo" : 'I already have my photo or video'}
                   </h3>
                   {/*
                     L'inventaire est exhaustif à dessein. Fondateur : « je veux
@@ -3683,7 +3683,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       : 'Retouch, text overlay, or animate into a video.'}
                   </p>
                 </div>
-                <span className="flex-shrink-0 text-neutral-400 group-hover:text-[#0c1a3a] transition-colors" aria-hidden>→</span>
+                <span className="flex-shrink-0 text-amber-600 font-bold group-hover:translate-x-0.5 transition-transform" aria-hidden>→</span>
               </a>
             </div>
 
