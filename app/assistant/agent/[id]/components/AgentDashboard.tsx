@@ -257,12 +257,33 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
   // WhatsApp : précharge le SDK Facebook dès l'ouverture du panneau Stella, pour
   // que FB.login soit appelable SYNCHRONEMENT au clic (sinon la popup est bloquée).
   useEffect(() => { if (agentId === 'whatsapp') preloadFbSdk(); }, [agentId]);
-  // Set global connection flags for child components
+  /**
+   * ── Rouge juste après une connexion réussie ──
+   *
+   * Fondateur, 18 août : « on doit avoir un OK vert si la connexion est
+   * réussie, et pas rouge alors qu'on est bien connecté. »
+   *
+   * Le moment exact où ça se produit : le retour d'OAuth. Le réseau vient
+   * d'être branché, la redirection ramène sur Léna, le tableau de bord
+   * recharge ses données — et lit un profil où l'écriture du jeton n'est pas
+   * encore visible. Il conclut « non connecté » et peint en rouge une
+   * connexion qui a parfaitement fonctionné. Le client, lui, vient de faire
+   * l'effort d'autoriser : lui montrer un échec à cet instant est le pire
+   * moment possible.
+   *
+   * Les deux chemins de retour posent un marqueur dans l'URL —
+   * `just_connected=instagram` côté Instagram, `tt_connected=1` côté TikTok.
+   * On le croit : il ne peut être écrit que par un rappel OAuth qui a réussi.
+   * Au rafraîchissement suivant, la base a rattrapé et c'est elle qui décide.
+   */
   if (typeof window !== 'undefined') {
-    (window as any).__igConnected = !!(data as any).connections?.instagram;
-    (window as any).__ttConnected = !!(data as any).connections?.tiktok;
-    (window as any).__liConnected = !!(data as any).connections?.linkedin;
-    (window as any).__gmailConnected = !!(data as any).connections?.gmail;
+    const p = new URLSearchParams(window.location.search);
+    const vientDeConnecter = p.get('just_connected') || '';
+    const c = (data as any).connections || {};
+    (window as any).__igConnected = !!c.instagram || vientDeConnecter === 'instagram';
+    (window as any).__ttConnected = !!c.tiktok || vientDeConnecter === 'tiktok' || p.get('tt_connected') === '1';
+    (window as any).__liConnected = !!c.linkedin || vientDeConnecter === 'linkedin';
+    (window as any).__gmailConnected = !!c.gmail || vientDeConnecter === 'gmail';
   }
   const config = AGENT_CONFIG[agentId];
   const isAdmin = !!(data as any).supervision?.isAdmin;
