@@ -73,9 +73,9 @@ const REVIEW_REQUEST: WaTemplate = {
   name: 'demande_avis', label: 'Demande d’avis (après passage)', category: 'UTILITY',
   params: ['prénom', 'nom du commerce', 'lien avis'],
   langs: {
-    fr: { body: 'Bonjour {{1}}, merci de votre visite chez {{2}} ! Si vous avez un instant, votre avis nous aide beaucoup : {{3}}', example: ['Marie', 'Studio Éclat', 'https://g.page/r/xxxx'] },
-    es: { body: 'Hola {{1}}, ¡gracias por su visita a {{2}}! Si tiene un momento, su opinión nos ayuda mucho: {{3}}', example: ['María', 'Studio Éclat', 'https://g.page/r/xxxx'] },
-    en: { body: 'Hello {{1}}, thank you for visiting {{2}}. If you have a moment, a review helps us a lot: {{3}}', example: ['Marie', 'Studio Éclat', 'https://g.page/r/xxxx'] },
+    fr: { body: 'Bonjour {{1}}, merci de votre visite chez {{2}} ! Si vous avez un instant, votre avis nous aide beaucoup : {{3}} Merci !', example: ['Marie', 'Studio Éclat', 'https://g.page/r/xxxx'] },
+    es: { body: 'Hola {{1}}, ¡gracias por su visita a {{2}}! Si tiene un momento, su opinión nos ayuda mucho: {{3}} ¡Gracias!', example: ['María', 'Studio Éclat', 'https://g.page/r/xxxx'] },
+    en: { body: 'Hello {{1}}, thank you for visiting {{2}}. If you have a moment, a review helps us a lot: {{3}} Thank you.', example: ['Marie', 'Studio Éclat', 'https://g.page/r/xxxx'] },
   },
 };
 
@@ -167,18 +167,18 @@ export const WA_TEMPLATES: Record<string, { match: string[]; templates: WaTempla
         name: 'sav_recu', label: 'Demande SAV reçue', category: 'UTILITY',
         params: ['prénom', 'produit/objet', 'référence dossier', 'délai'],
         langs: {
-          fr: { body: 'Bonjour {{1}}, nous avons bien reçu votre demande concernant {{2}}. Référence : {{3}}. Nous revenons vers vous sous {{4}}.', example: ['Marc', 'votre lave-linge', 'SAV-2087', '24h'] },
-          es: { body: 'Hola {{1}}, hemos recibido su solicitud sobre {{2}}. Referencia: {{3}}. Le responderemos en un plazo de {{4}}.', example: ['Marc', 'su lavadora', 'SAV-2087', '24h'] },
-          en: { body: 'Hello {{1}}, we have received your request about {{2}}. Reference: {{3}}. We will get back to you within {{4}}.', example: ['Marc', 'your washing machine', 'SAV-2087', '24 hours'] },
+          fr: { body: 'Bonjour {{1}}, nous avons bien reçu votre demande concernant {{2}}. Référence : {{3}}. Nous revenons vers vous sous {{4}}. À très vite.', example: ['Marc', 'votre lave-linge', 'SAV-2087', '24h'] },
+          es: { body: 'Hola {{1}}, hemos recibido su solicitud sobre {{2}}. Referencia: {{3}}. Le responderemos en un plazo de {{4}}. Hasta pronto.', example: ['Marc', 'su lavadora', 'SAV-2087', '24h'] },
+          en: { body: 'Hello {{1}}, we have received your request about {{2}}. Reference: {{3}}. We will get back to you within {{4}}. See you soon.', example: ['Marc', 'your washing machine', 'SAV-2087', '24 hours'] },
         },
       },
       {
         name: 'sav_pret', label: 'Réparation terminée', category: 'UTILITY',
         params: ['prénom', 'produit', 'référence', 'nom commerce', 'horaires'],
         langs: {
-          fr: { body: 'Bonjour {{1}}, votre {{2}} (dossier {{3}}) est réparé et prêt. Vous pouvez le récupérer chez {{4}} aux horaires {{5}}.', example: ['Marc', 'lave-linge', 'SAV-2087', 'ElectroPro', '9h-18h'] },
-          es: { body: 'Hola {{1}}, su {{2}} (expediente {{3}}) está reparado y listo. Puede recogerlo en {{4}} en horario {{5}}.', example: ['Marc', 'lavadora', 'SAV-2087', 'ElectroPro', '9h-18h'] },
-          en: { body: 'Hello {{1}}, your {{2}} (case {{3}}) has been repaired and is ready. You can collect it from {{4}}, open {{5}}.', example: ['Marc', 'washing machine', 'SAV-2087', 'ElectroPro', '9am-6pm'] },
+          fr: { body: 'Bonjour {{1}}, votre {{2}} (dossier {{3}}) est réparé et prêt. Vous pouvez le récupérer chez {{4}} aux horaires {{5}}. À très vite.', example: ['Marc', 'lave-linge', 'SAV-2087', 'ElectroPro', '9h-18h'] },
+          es: { body: 'Hola {{1}}, su {{2}} (expediente {{3}}) está reparado y listo. Puede recogerlo en {{4}} en horario {{5}}. Hasta pronto.', example: ['Marc', 'lavadora', 'SAV-2087', 'ElectroPro', '9h-18h'] },
+          en: { body: 'Hello {{1}}, your {{2}} (case {{3}}) has been repaired and is ready. You can collect it from {{4}}, open {{5}}. See you soon.', example: ['Marc', 'washing machine', 'SAV-2087', 'ElectroPro', '9am-6pm'] },
         },
       },
       {
@@ -217,9 +217,9 @@ export const WA_TEMPLATES: Record<string, { match: string[]; templates: WaTempla
         name: 'revision_rappel', label: 'Rappel révision / entretien', category: 'UTILITY',
         params: ['prénom', 'nom garage'],
         langs: {
-          fr: { body: 'Bonjour {{1}}, la révision de votre véhicule est bientôt due. Souhaitez-vous un rendez-vous chez {{2}} ?', example: ['Thomas', 'Garage Central'] },
-          es: { body: 'Hola {{1}}, la revisión de su vehículo se acerca. ¿Desea una cita en {{2}}?', example: ['Thomas', 'Garage Central'] },
-          en: { body: 'Hello {{1}}, your vehicle is due for a service soon. Would you like to book a slot at {{2}}?', example: ['Thomas', 'Garage Central'] },
+          fr: { body: 'Bonjour {{1}}, la révision de votre véhicule est bientôt due. Souhaitez-vous un rendez-vous chez {{2}} ? À très vite.', example: ['Thomas', 'Garage Central'] },
+          es: { body: 'Hola {{1}}, la revisión de su vehículo se acerca. ¿Desea una cita en {{2}}? Hasta pronto.', example: ['Thomas', 'Garage Central'] },
+          en: { body: 'Hello {{1}}, your vehicle is due for a service soon. Would you like to book a slot at {{2}}? See you soon.', example: ['Thomas', 'Garage Central'] },
         },
       },
     ],
@@ -259,9 +259,9 @@ export const WA_TEMPLATES: Record<string, { match: string[]; templates: WaTempla
         name: 'visite_confirmation', label: 'Confirmation de visite', category: 'UTILITY',
         params: ['prénom', 'référence/adresse bien', 'nom agence', 'date', 'heure', 'adresse rdv'],
         langs: {
-          fr: { body: 'Bonjour {{1}}, votre visite du bien {{2}} avec {{3}} est confirmée le {{4}} à {{5}}. Adresse : {{6}}.', example: ['Nadia', 'T3 rue des Lilas', 'Agence Horizon', 'samedi 26', '11h00', '12 rue des Lilas'] },
-          es: { body: 'Hola {{1}}, su visita del inmueble {{2}} con {{3}} está confirmada el {{4}} a las {{5}}. Dirección: {{6}}.', example: ['Nadia', 'piso 3 hab. calle Lilas', 'Agence Horizon', 'sábado 26', '11:00', '12 calle Lilas'] },
-          en: { body: 'Hello {{1}}, your viewing of {{2}} with {{3}} is confirmed for {{4}} at {{5}}. Address: {{6}}.', example: ['Nadia', 'the 2-bed on rue des Lilas', 'Agence Horizon', 'Saturday 26', '11:00 am', '12 rue des Lilas'] },
+          fr: { body: 'Bonjour {{1}}, votre visite du bien {{2}} avec {{3}} est confirmée le {{4}} à {{5}}. Adresse : {{6}}. À très vite.', example: ['Nadia', 'T3 rue des Lilas', 'Agence Horizon', 'samedi 26', '11h00', '12 rue des Lilas'] },
+          es: { body: 'Hola {{1}}, su visita del inmueble {{2}} con {{3}} está confirmada el {{4}} a las {{5}}. Dirección: {{6}}. Hasta pronto.', example: ['Nadia', 'piso 3 hab. calle Lilas', 'Agence Horizon', 'sábado 26', '11:00', '12 calle Lilas'] },
+          en: { body: 'Hello {{1}}, your viewing of {{2}} with {{3}} is confirmed for {{4}} at {{5}}. Address: {{6}}. See you soon.', example: ['Nadia', 'the 2-bed on rue des Lilas', 'Agence Horizon', 'Saturday 26', '11:00 am', '12 rue des Lilas'] },
         },
       },
       {
