@@ -1972,14 +1972,41 @@ async function bakeMusicOnVideo(
       businessType: contexte?.metier || undefined,
     });
     console.log(`[Content] ambiance musicale retenue : ${mood} (pilier ${contexte?.pilier || "?"}, métier ${contexte?.metier || "?"})`);
-    const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
-    if (music?.url) {
-      const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+    /**
+     * ── Une seule tentative, et le reel part muet pour toujours ──
+     *
+     * Fondateur, 18 août : « attention aux reels envoyés sur TikTok, ils
+     * doivent avoir du son. »
+     *
+     * Mesuré : les reels TikTok des 16 et 18 août portent `-silent-` dans leur
+     * nom et sonnent à −91 dB, soit le silence absolu. Or toute la chaîne
+     * fonctionne — clé Jamendo présente, piste rendue, ffmpeg installé,
+     * montage éprouvé en six secondes avec musique. Elle a donc échoué
+     * ponctuellement ce jour-là.
+     *
+     * Le défaut n'est pas la panne, c'est qu'UNE panne passagère suffisait à
+     * publier du silence définitivement. Un réseau qui bronche pendant le
+     * téléchargement de la piste, et le repli muet s'enclenche sans que
+     * personne ne le sache.
+     *
+     * On réessaie donc une fois, avec une autre piste — si la première URL est
+     * momentanément indisponible, la suivante ne le sera pas. Deux tentatives
+     * coûtent au pire douze secondes ; un reel muet sur TikTok, où le son est
+     * un signal de classement, ne coûte rien de moins que sa portée.
+     */
+    const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+    for (let essai = 1; essai <= 2; essai++) {
+      const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
+      if (!music?.url) {
+        console.warn(`[Content] essai ${essai}/2 — aucune piste retenue pour l'ambiance ${mood}`);
+        continue;
+      }
       const mix = await muxReelAudio({ videoUrl, musicUrl: music.url, postId: `t2v-${Date.now()}`, durationSec: 10 });
       if (mix.url && mix.url !== videoUrl) {
-        console.log('[Content] Music baked onto silent T2V video');
+        console.log(`[Content] musique posée sur la vidéo (essai ${essai}) : ${music.name || '?'}`);
         return mix.url;
       }
+      console.warn(`[Content] essai ${essai}/2 — montage sans effet (repli « ${(mix as any).fallback || 'inconnu'} »)`);
     }
   } catch (e: any) {
     console.warn('[Content] bakeMusicOnVideo failed:', e?.message);
@@ -2007,7 +2034,27 @@ async function bakeMusicOnVideo(
     const { ensureAudioTrack } = await import('@/lib/audio/reel-audio-mux');
     const muet = await ensureAudioTrack({ videoUrl, postId: `muet-${Date.now()}` });
     if (muet && muet !== videoUrl) {
-      console.log('[Content] musique indisponible — son du modèle remplacé par une piste silencieuse');
+      /**
+       * Un reel muet est un incident, pas une issue normale.
+       *
+       * Cette ligne ne partait qu'en console, où elle se perdait parmi des
+       * milliers d'autres. Résultat : deux reels TikTok publiés muets les 16 et
+       * 18 août sans que rien ne le signale — je ne l'ai découvert qu'en
+       * inspectant les noms de fichiers, parce que le fondateur avait un doute.
+       *
+       * Sur TikTok le son est un signal de classement : livrer du silence, c'est
+       * livrer une vidéo qui ne sera pas poussée. Ça mérite une ligne dans le
+       * journal des agents, que lit le rapport du matin.
+       */
+      console.warn('[Content] MUET — les deux tentatives de musique ont échoué, piste silencieuse posée');
+      try {
+        await getSupabaseAdmin().from('agent_logs').insert({
+          agent: 'content', action: 'reel_publie_muet', status: 'warning',
+          error_message: 'Aucune musique posée après deux tentatives — le reel part silencieux',
+          data: { video: String(videoUrl).slice(-60), pilier: contexte?.pilier || null, metier: contexte?.metier || null },
+          created_at: new Date().toISOString(),
+        });
+      } catch { /* la trace ne bloque jamais la livraison */ }
       return muet;
     }
   } catch { /* si même ça échoue, on garde la vidéo telle quelle */ }
