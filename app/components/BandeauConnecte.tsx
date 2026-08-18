@@ -57,20 +57,41 @@ export default function BandeauConnecte() {
 
   if (!connecte) return null;
 
+  /**
+   * ── Affirmer la connexion, pas la murmurer ──
+   *
+   * Fondateur, 18 août : « quand un client Keiro est connecté, mets plus en
+   * avant qu'il est connecté sur la page d'accueil. »
+   *
+   * La première version était une ligne grise qui se fondait dans l'en-tête —
+   * techniquement présente, visuellement absente. Or c'est le seul élément de
+   * la page qui s'adresse à LUI : tout le reste parle à un inconnu qu'il faut
+   * convaincre.
+   *
+   * Elle prend donc la couleur de la marque, une pastille verte qui dit l'état
+   * en un coup d'œil, et un bouton plein. Sur mobile le texte secondaire
+   * s'efface pour que le bouton reste entier — c'est lui qui compte.
+   */
   return (
-    <div className="w-full border-b border-white/10 bg-[#0c1a3a] light:bg-white">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
-        <p className="text-sm text-white/80 min-w-0 truncate">
-          {prenom ? (
-            <>Bon retour, <span className="font-semibold text-white">{prenom}</span>.</>
-          ) : (
-            <>Vous êtes connecté.</>
-          )}
-          <span className="hidden sm:inline text-white/50"> Vos agents ont continué sans vous.</span>
-        </p>
+    <div className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 shadow-sm">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="relative flex h-2.5 w-2.5 flex-shrink-0" aria-hidden>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+          </span>
+          <p className="text-sm text-white min-w-0 truncate">
+            {prenom ? (
+              <><span className="font-bold">{prenom}</span>, vos agents tournent.</>
+            ) : (
+              <span className="font-bold">Vos agents tournent.</span>
+            )}
+            <span className="hidden sm:inline text-white/75"> Ils ont continué pendant votre absence.</span>
+          </p>
+        </div>
         <a
           href="/assistant"
-          className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-semibold text-[#0c1a3a] hover:bg-white/90 active:scale-95 transition min-h-[40px]"
+          className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 active:scale-95 transition min-h-[44px]"
         >
           Mon espace
           <span aria-hidden>→</span>

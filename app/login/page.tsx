@@ -25,9 +25,26 @@ function LoginPageInner() {
   const paymentSuccess = searchParams.get('payment_success') === '1';
   const planFromUrl = searchParams.get('plan');
 
-  // Redirect après login : /generate par défaut
+  /**
+   * ── Après connexion, on arrive chez ses agents ──
+   *
+   * Fondateur, 18 août : « dès la connexion je dirigerais vers la page agent
+   * plutôt. »
+   *
+   * On atterrissait sur Studio, l'atelier de création. C'est un outil qu'on
+   * ouvre quand on a une intention précise, pas l'écran où l'on prend des
+   * nouvelles. L'espace agents, lui, répond à la question qu'on se pose en
+   * arrivant : qu'est-ce qui a tourné pendant mon absence ?
+   *
+   * Et c'est le produit. Diriger vers Studio à chaque connexion, c'est montrer
+   * l'outil à la place de l'équipe — la raison même pour laquelle le fondateur
+   * constate que les clients vont sur Création plutôt que sur Agents.
+   *
+   * Le paramètre `redirect` reste prioritaire : celui qui a été renvoyé vers
+   * la connexion depuis une page précise y retourne.
+   */
   const getRedirectUrl = () => {
-    const redirect = searchParams.get('redirect') || '/generate';
+    const redirect = searchParams.get('redirect') || '/assistant';
     const plan = searchParams.get('plan');
     return plan ? `${redirect}?plan=${plan}` : redirect;
   };
@@ -154,7 +171,7 @@ function LoginPageInner() {
         setSuccess(true);
         setError(t.login.activatingPlan);
         await claimStripePayment();
-        window.location.href = '/generate';
+        window.location.href = '/assistant';
         return;
       }
 
@@ -321,7 +338,7 @@ function LoginPageInner() {
           setSuccess(true);
           setError(t.login.activatingPlan);
           await claimStripePayment();
-          window.location.href = '/generate';
+          window.location.href = '/assistant';
           return;
         }
 
