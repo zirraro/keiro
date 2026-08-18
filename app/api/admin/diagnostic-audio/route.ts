@@ -83,6 +83,38 @@ export async function GET(req: NextRequest) {
     out.piste_retenue = `échec : ${e?.message}`;
   }
 
+  /**
+   * Le dernier maillon : le montage lui-même.
+   *
+   * La clé répond, la piste sort, ffmpeg est là — et pourtant les reels
+   * publiés sont muets à −91 dB. Il ne reste que `muxReelAudio`, qui
+   * télécharge la vidéo, télécharge la musique et les assemble. C'est le seul
+   * endroit non encore éprouvé, et il rend un `fallback` nommé quand il
+   * renonce : c'est ce nom qu'on veut lire.
+   */
+  if (req.nextUrl.searchParams.get('mux') === '1') {
+    try {
+      const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
+      const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+      const piste = await pickJamendoMusic({ mood: pickMoodFromContext({ businessType: 'restaurant' }) as any, minDurationSec: 8 });
+      const videoTest = req.nextUrl.searchParams.get('video') || '';
+      if (!piste?.url) out.mux = 'pas de piste à monter';
+      else if (!videoTest) out.mux = 'passer ?video=<url> pour éprouver le montage';
+      else {
+        const t0 = Date.now();
+        const mix = await muxReelAudio({ videoUrl: videoTest, musicUrl: piste.url, postId: `diag-${Date.now()}`, durationSec: 10 });
+        out.mux = {
+          secondes: Math.round((Date.now() - t0) / 1000),
+          avec_musique: mix.withMusic,
+          repli: (mix as any).fallback || '(aucun)',
+          url_changee: mix.url !== videoTest,
+        };
+      }
+    } catch (e: any) {
+      out.mux = `échec : ${e?.message}`;
+    }
+  }
+
   out.lecture = out.jamendo_cle === 'ABSENTE'
     ? "La clé Jamendo n'est pas posée sur le serveur : l'étape musique est sautée à chaque fois, et tous les reels partent muets."
     : out.jamendo_pistes > 0
