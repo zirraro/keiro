@@ -32,9 +32,20 @@ const GRAPH = 'https://graph.facebook.com/v21.0';
 function conf() {
   return {
     token: process.env.WHATSAPP_ACCESS_TOKEN || '',
-    // L'identifiant du compte professionnel se déduit du numéro quand il n'est
-    // pas fourni : une variable de moins à tenir à jour.
-    waba: process.env.WHATSAPP_WABA_ID || '',
+    /**
+     * L'identifiant du compte professionnel WhatsApp.
+     *
+     * Il existe depuis la mise en production de Stella le 20 juillet, mais il
+     * ne figurait nulle part dans le dépôt — ni en variable, ni en constante.
+     * J'ai donc demandé au fondateur de me le fournir alors qu'il avait déjà
+     * été établi ensemble. Il est ici, écrit et daté, pour que la question ne
+     * se repose pas.
+     *
+     * `1021417964095758` — compte de test de l'app KEIROAI, rattaché au numéro
+     * 1191984180673656. La variable d'environnement reste prioritaire : le jour
+     * où un compte de production remplace celui-ci, il suffit de la poser.
+     */
+    waba: process.env.WHATSAPP_WABA_ID || '1021417964095758',
     phone: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
   };
 }
