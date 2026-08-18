@@ -1,5 +1,6 @@
 'use client';
 import DemoLive from '@/components/DemoLive';
+import BandeauConnecte from '@/app/components/BandeauConnecte';
 
 import { useState } from 'react';
 import AgentDemoVideo from "@/components/AgentDemoVideo";
@@ -32,6 +33,7 @@ function HomeKeiroInner() {
       <div className="relative" style={{ zIndex: 2 }}>
 
       {/* HERO — always dark, even in light mode */}
+      <BandeauConnecte />
       <section className="hero-section relative bg-[#0c1a3a] px-4 sm:px-6 pt-10 sm:pt-16 pb-8 sm:pb-12">
         <div className="relative mx-auto max-w-6xl grid lg:grid-cols-12 gap-4 sm:gap-8 items-center">
           <div className="hero-copy lg:col-span-7">

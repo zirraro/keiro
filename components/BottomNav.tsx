@@ -119,11 +119,26 @@ export default function BottomNav() {
         ? 'bg-white/80 border-neutral-200/50'
         : 'bg-[#0c1a3a]/80 border-white/10'
     }`}>
-      {/* Settings gear button — opens popover for theme + language */}
-      <div ref={settingsRef} className="absolute -top-12 right-3">
+      {/*
+        ── L'écrou ne flotte plus par-dessus le contenu ──
+
+        Fondateur, 18 août : « sur mobile y'a un écrou transparent qui permet de
+        choisir mode clair ou sombre » — et il prend trop de place.
+
+        Il était posé en `absolute -top-12 right-3` : quarante-huit pixels
+        AU-DESSUS de la barre, donc flottant par-dessus la page, en permanence,
+        à l'endroit précis où le pouce lit le bas de l'écran. Un réglage qu'on
+        ouvre trois fois par an occupait le premier plan à chaque instant.
+
+        Il descend dans la barre, à la suite des onglets. Même geste pour
+        l'atteindre, zéro pixel de contenu masqué. La zone tactile passe à
+        44 pixels — le minimum pour un pouce, et ce qu'appliquent déjà les
+        autres boutons de l'application.
+      */}
+      <div ref={settingsRef} className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
         <button
           onClick={() => setSettingsOpen(!settingsOpen)}
-          className={`flex items-center justify-center w-9 h-9 backdrop-blur-sm border rounded-full shadow-md active:scale-95 transition-all ${
+          className={`flex items-center justify-center w-10 h-10 backdrop-blur-sm border rounded-full shadow-md active:scale-95 transition-all ${
             isLight
               ? 'bg-white/95 border-neutral-200 text-neutral-500 hover:bg-neutral-100'
               : 'bg-[#0c1a3a]/95 border-white/10 text-white/70 hover:bg-white/10'
@@ -181,7 +196,9 @@ export default function BottomNav() {
         )}
       </div>
 
-      <div className="flex justify-around items-center px-2 py-2 pb-[env(safe-area-inset-bottom,0.5rem)]">
+      {/* `pr-11` réserve la place de l'écrou : sans ça, le dernier onglet passe
+          dessous et devient à moitié cliquable. */}
+      <div className="flex justify-around items-center pl-2 pr-11 py-2 pb-[env(safe-area-inset-bottom,0.5rem)]">
         {navItems.map((item) => {
           // Un sous-écran reste dans son onglet : sur /assistant/crm, c'est
           // toujours « Agents » qui est allumé. Sans ce préfixe, la barre
