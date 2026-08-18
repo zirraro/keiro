@@ -203,15 +203,31 @@ export default function ClaraHelper() {
   const currentAgent = mode === 'wizard' ? inactiveAgents[currentWizardIndex] : null;
   const wizardDone = mode === 'wizard' && currentWizardIndex >= inactiveAgents.length;
 
-  // First time (many inactive agents) → center of page. After some setup → bottom left.
-  const isFirstTime = inactiveAgents.length >= 5;
-  const positionClass = isFirstTime
-    ? 'fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'
-    : 'fixed bottom-20 lg:bottom-6 left-4 lg:left-6 z-50';
+  /**
+   * ── Une aide ne bloque pas l'écran de celui qu'elle aide ──
+   *
+   * Fondateur, 18 août : « le chat des agents et le pop-up de notif prennent
+   * trop de place, ça doit pas apparaître tout le temps. »
+   *
+   * Ce panneau passait en PLEIN ÉCRAN — `fixed inset-0` avec un fond noir et un
+   * flou — dès que cinq agents étaient inactifs. C'est exactement le cas au
+   * lendemain d'une inscription : le client arrive pour voir son espace, et
+   * reçoit un mur. Sur mobile, il n'y a même plus rien d'autre à l'écran.
+   *
+   * Le pire dans un panneau bloquant, c'est qu'il ne laisse pas le choix
+   * d'ignorer : il faut agir sur lui avant de faire ce pour quoi on est venu.
+   * Une aide qui exige d'être traitée avant le travail n'est plus une aide.
+   *
+   * Il reste donc TOUJOURS dans le coin, sur une largeur bornée, et le contenu
+   * derrière lui demeure lisible et cliquable. La cadence d'apparition, elle,
+   * était déjà sage — vingtième visite, puis quarante jours, puis quatre-vingts,
+   * puis plus jamais.
+   */
+  const positionClass = 'fixed bottom-20 lg:bottom-6 left-4 lg:left-6 z-50 max-w-[calc(100vw-32px)]';
 
   return (
-    <div className={`${positionClass} animate-in ${isFirstTime ? 'zoom-in-95' : 'slide-in-from-bottom-3'} duration-300`}>
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-3 sm:p-5 w-[calc(100vw-32px)] sm:w-96 max-w-sm">
+    <div className={`${positionClass} animate-in slide-in-from-bottom-3 duration-300`}>
+      <div className="relative bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-3 sm:p-5 w-[calc(100vw-32px)] sm:w-96 max-w-sm">
         <button onClick={dismissAndCooldown} aria-label="Fermer" className="absolute top-1.5 right-1.5 p-1.5 text-white/45 hover:text-white/60 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
