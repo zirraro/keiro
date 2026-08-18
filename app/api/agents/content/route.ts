@@ -1944,6 +1944,30 @@ const PRECISION_VIDEO = [
   // le plan voulu, qui exclut le défaut par construction.
   'Any drink is shown already full and at rest, or poured as one steady stream from a',
   'framing wide enough to see the whole gesture. Dry, clean surface around it.',
+  /**
+   * ── L'horloge de rétention ──
+   *
+   * Tout ce qui précède décrit COMMENT filmer. Rien ne disait ce qui doit se
+   * passer QUAND. Nos reels recevaient donc une bonne accroche — un bon début —
+   * puis dix secondes laissées à elles-mêmes.
+   *
+   * Or l'accroche fait ouvrir, la structure fait rester, et c'est la durée
+   * regardée qui décide de la portée. On peut avoir la meilleure première
+   * phrase et perdre le spectateur à la quatrième seconde.
+   *
+   * Méthode reprise de `shixinzhang/tiktok-viral-hooks` (420 décorticages de
+   * vidéos virales, mise à jour quotidienne) : auditer une vidéo sur une
+   * horloge — les trois premières secondes, la rupture vers la septième, la
+   * fin qui tient. On en reprend la MÉTHODE, jamais les textes : sa licence de
+   * contenu est non commerciale, et nous avons déjà nos quarante-trois
+   * familles d'accroches.
+   *
+   * Trois moments et pas un découpage fin : nos reels tiennent en un plan
+   * continu de dix secondes, et multiplier les coupes trahit la génération.
+   */
+  'Timeline: 0-3s the very first frame already shows the subject mid-action, tight, readable with no sound.',
+  '3-7s the gesture progresses and reveals something unseen at the start — a texture, a detail, a result forming.',
+  '7-10s end on the finished state, sharp and held, an image that stands alone.',
 ].join(' ');
 
 async function bakeMusicOnVideo(
