@@ -39,8 +39,27 @@ function conf() {
   };
 }
 
+/**
+ * L'identifiant du compte professionnel, sans le demander au fondateur.
+ *
+ * Première tentative : le champ `whatsapp_business_account` du numéro. Meta l'a
+ * retiré — il répond « Tried accessing nonexisting field ». Ça se lit comme une
+ * erreur de configuration alors que c'est une évolution de leur API.
+ *
+ * La voie qui tient : interroger le JETON. `debug_token` rend les portées
+ * granulaires, et chacune porte la liste des comptes qu'elle autorise. Le
+ * compte WhatsApp y figure, quel que soit le numéro rattaché — et ça reste vrai
+ * si un second numéro apparaît un jour.
+ */
 async function trouverWaba(token: string, phone: string, waba: string): Promise<string | null> {
   if (waba) return waba;
+  try {
+    const r = await fetch(`${GRAPH}/debug_token?input_token=${encodeURIComponent(token)}&access_token=${encodeURIComponent(token)}`);
+    const j: any = await r.json();
+    const portees: any[] = j?.data?.granular_scopes || [];
+    const wa = portees.find((p) => /whatsapp_business_(management|messaging)/.test(String(p.scope)));
+    if (wa?.target_ids?.length) return String(wa.target_ids[0]);
+  } catch { /* on tente la voie suivante */ }
   if (!phone) return null;
   try {
     const r = await fetch(`${GRAPH}/${phone}?fields=whatsapp_business_account`, {
