@@ -3,7 +3,7 @@ import type { Translations } from '../types';
 export const en: Translations = {
   nav: {
     home: 'Home',
-    generate: 'Create',
+    generate: 'Studio',
     studio: 'Editing',
     gallery: 'Gallery & Posts',
     assistant: 'Agents',

@@ -3668,10 +3668,19 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   <h3 className="text-base font-bold text-neutral-900">
                     {locale === 'fr' ? "J'ai déjà ma photo" : 'I already have my photo'}
                   </h3>
+                  {/*
+                    L'inventaire est exhaustif à dessein. Fondateur : « je veux
+                    vraiment retrouver toutes les fonctions des deux anciennes
+                    pages. » L'ancienne page Édition en portait trois —
+                    Retouche, Texte, Vidéo — et ma première version en oubliait
+                    une : l'animation d'une photo en vidéo. Une porte qui
+                    n'annonce pas ce qu'il y a derrière n'est pas une porte, et
+                    la fonction se serait perdue sans disparaître du code.
+                  */}
                   <p className="text-sm text-neutral-600 leading-snug">
                     {locale === 'fr'
-                      ? 'Retouchez-la directement : fonds, textes, styles, détourage.'
-                      : 'Retouch it directly: backgrounds, text, styles, cut-out.'}
+                      ? 'Retouche, texte incrusté, ou animation en vidéo.'
+                      : 'Retouch, text overlay, or animate into a video.'}
                   </p>
                 </div>
                 <span className="flex-shrink-0 text-neutral-400 group-hover:text-[#0c1a3a] transition-colors" aria-hidden>→</span>
