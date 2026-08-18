@@ -1,3 +1,4 @@
+import { fetchIPv4 } from '@/lib/net/ipv4';
 /**
  * Hybrid AI helper for all agents.
  *
@@ -43,7 +44,7 @@ async function getCachedSystemPrompt(apiKey: string, systemPrompt: string): Prom
   if (systemPrompt.length < 1000) return null;
 
   try {
-    const response = await fetch(
+    const response = await fetchIPv4(
       `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${apiKey}`,
       {
         method: 'POST',

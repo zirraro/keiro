@@ -1,3 +1,4 @@
+import { fetchIPv4 } from '@/lib/net/ipv4';
 /**
  * Cohérence d'un carrousel — chaque diapositive doit parler du même commerce.
  *
@@ -520,7 +521,7 @@ export async function jugerImagesDeLaSerie(input: {
   ].filter(Boolean).join('\n');
 
   try {
-    const res = await fetch(
+    const res = await fetchIPv4(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cle}`,
       {
         method: 'POST',

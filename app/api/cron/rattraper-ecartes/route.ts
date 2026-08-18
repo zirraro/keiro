@@ -59,7 +59,20 @@ export async function GET(req: NextRequest) {
   const { data: ecartes, error } = await supabase
     .from('content_calendar')
     .select('id, user_id, hook, caption, hashtags, visual_url, video_url, platform, format, publish_diagnostic, scheduled_date, qa_notes')
-    .eq('status', 'skipped')
+    /**
+     * ── Un échec de publication est une livraison manquée, pas un incident clos ──
+     *
+     * La reprise ne regardait que les posts `skipped`. Le rapport du matin du
+     * 18 août liste pourtant trois livraisons manquées dont deux qu'elle ne
+     * pouvait pas voir : un `publish_failed` sur TikTok, et un post retenu pour
+     * doublon.
+     *
+     * Le fondateur : « je ne veux plus les voir apparaître, mets des garde-fous
+     * pour toujours délivrer ce qui est prévu, et à la qualité mise en place. »
+     * Un créneau vide reste un créneau vide, quel que soit le statut qui l'a
+     * produit.
+     */
+    .in('status', ['skipped', 'publish_failed'])
     .gte('scheduled_date', depuis)
     .is('video_url', null)
     .not('visual_url', 'is', null)
@@ -74,8 +87,18 @@ export async function GET(req: NextRequest) {
   // Un refus de qualité, pas une décision de cadence ni un doublon.
   const reparables = (ecartes || []).filter((p: any) => {
     const d = String(p.publish_diagnostic || '');
-    if (!/^qc_/.test(d)) return false;
-    if (/qc_doublon/.test(d)) return false;
+    /**
+     * ── Le doublon se répare, il ne se jette pas ──
+     *
+     * Je l'avais exclu en écrivant « republier un média déjà publié ne fait pas
+     * de vues, la plateforme reconnaît le fichier ». C'est vrai, et j'en tirais
+     * la mauvaise conclusion : on n'abandonne pas le créneau, on change
+     * l'image. Un visuel neuf n'est plus un doublon, et le post part.
+     *
+     * Le rapport du matin comptait donc ce créneau comme une livraison manquée
+     * — à juste titre, puisque personne ne repassait derrière.
+     */
+    if (!/^qc_/.test(d) && !/^publication_(instagram|tiktok)_echouee/.test(d) && !/^reel_sans_video/.test(d)) return false;
     /**
      * ── Un échec de rattrapage ne se retente pas indéfiniment ──
      *
@@ -346,8 +369,14 @@ export async function GET(req: NextRequest) {
     try {
       const motifs = String(p.publish_diagnostic || '');
 
-      // ── On refait l'image quand c'est elle qu'on reproche ──
-      if (griefVisuel(motifs)) {
+      /**
+       * ── On refait l'image quand c'est elle qu'on reproche ──
+       *
+       * Le doublon en fait partie : ce n'est pas un défaut de contenu, c'est un
+       * média déjà vu. Une image neuve lève le motif par construction, alors
+       * qu'aucune réécriture de légende ne le pourrait.
+       */
+      if (griefVisuel(motifs) || /qc_doublon/.test(motifs)) {
         const { regenererVisuelDepuisLegende } = await import('@/lib/qualite/refaire-visuel');
         const neuf = await regenererVisuelDepuisLegende({
           hook: p.hook || '',

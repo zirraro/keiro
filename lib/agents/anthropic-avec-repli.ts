@@ -1,3 +1,4 @@
+import { fetchIPv4 } from '@/lib/net/ipv4';
 /**
  * Passerelle Anthropic → Gemini, à la forme exacte de l'API Anthropic.
  *
@@ -231,7 +232,7 @@ export async function appelerModele(
   }
 
   try {
-    const res = await fetch(
+    const res = await fetchIPv4(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleG}`,
       {
         method: 'POST',

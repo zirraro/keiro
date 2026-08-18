@@ -1,3 +1,4 @@
+import { fetchIPv4 } from '@/lib/net/ipv4';
 /**
  * 2026-06-03 — Image provider router (cost optim sans perte qualité).
  *
@@ -76,7 +77,7 @@ async function generateWithGemini(opts: ImageGenOptions, size: string): Promise<
   const prompt = `${opts.prompt}. ${textRule} EDITORIAL DOCUMENTARY photograph: 50mm or 80mm prime lens, Kodak Portra 400 film aesthetic, natural diffused window light or golden hour (no studio strobes, no ring light), shallow depth of field, real candid moment, gentle 35mm grain, true-to-life muted colors. Real people with authentic skin texture and correct hands, diverse in age and origin, caught mid-action rather than posing. Absolutely NOT a 3D render, NOT an illustration, NOT a stock photo, no plastic or porcelain skin, no neon or oversaturated colors, no AI portrait artifacts.`;
 
   try {
-    const res = await fetch(
+    const res = await fetchIPv4(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`,
       {
         method: 'POST',

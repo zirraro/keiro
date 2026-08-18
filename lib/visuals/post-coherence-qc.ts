@@ -1,4 +1,5 @@
 import { logApiCost } from '@/lib/admin/api-cost-logger';
+import { fetchIPv4 } from '@/lib/net/ipv4';
 import { blocExigence } from './exigences-reseau';
 /**
  * Contrôle éditorial d'un post AVANT publication : l'image, la légende et les
@@ -407,7 +408,7 @@ export async function jugerAvecVision(opts: {
   // Pas de clé Gemini n'est plus une impasse : ARK prend le relais plus bas.
   if (!cleGemini) console.warn('[QC] pas de clé Gemini — on passe directement à ARK');
   try {
-    const res = await fetch(
+    const res = await fetchIPv4(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleGemini}`,
       {
         method: 'POST',
