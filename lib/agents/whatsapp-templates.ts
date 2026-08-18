@@ -399,6 +399,62 @@ export const WA_TEMPLATES: Record<string, { match: string[]; templates: WaTempla
       },
     ],
   },
+  /**
+   * ── Les modèles de KeiroAI pour sa propre prospection ──
+   *
+   * Fondateur, 18 août : « il me faudrait un template pour moi quand je
+   * prospecte, je vous envoie le lien pour l'essai 7 jours avec carte, comme ça
+   * ils gèrent à distance tout seuls pendant que je les ai en ligne. » Et :
+   * « des templates qui présentent Keiro, mais utiles et pertinents, pas juste
+   * spammer les gens — qui présentent la valeur. »
+   *
+   * D'où trois règles tenues ici, et une quatrième qui les commande :
+   *
+   *   · chaque message part d'un FAIT vérifiable sur le commerce du prospect —
+   *     un compte inactif, une fiche sans photo — et non d'une offre ;
+   *   · le chiffre cité est mesuré et sourcé (Buffer, 2,1 M de publications),
+   *     jamais une promesse de résultat ;
+   *   · une seule action proposée, et elle est réversible ;
+   *   · aucun message ne part sans que le prospect ait parlé le premier ou
+   *     donné son accord — c'est la règle WhatsApp, et c'est aussi ce qui
+   *     sépare un message utile d'un spam.
+   *
+   * Le premier est fait pour être envoyé PENDANT l'appel : le prospect ouvre le
+   * lien, entre sa carte et démarre pendant qu'on est encore en ligne. C'est là
+   * que la conversion se joue, pas dans une relance trois jours plus tard.
+   */
+  keiro: {
+    match: ['keiro', 'keiroai', 'prospection keiro'],
+    templates: [
+      {
+        name: 'keiro_essai_pendant_appel', label: 'Essai 7 jours — envoyé pendant l’appel', category: 'UTILITY',
+        params: ['prénom', 'lien d’essai', 'prénom de l’expéditeur'],
+        langs: {
+          fr: { body: 'Bonjour {{1}}, comme convenu à l’instant, voici le lien pour démarrer votre essai de 7 jours : {{2}} — vous gardez la main, l’annulation se fait en un clic depuis votre espace. Je reste en ligne si une question se pose. {{3}}', example: ['Camille', 'https://keiroai.com/essai', 'Victor'] },
+          es: { body: 'Hola {{1}}, como acabamos de hablar, aquí tiene el enlace para empezar su prueba de 7 días: {{2}} — usted mantiene el control, la cancelación se hace con un clic desde su espacio. Sigo al teléfono si surge alguna duda. {{3}}', example: ['Camille', 'https://keiroai.com/essai', 'Victor'] },
+          en: { body: 'Hello {{1}}, as we just discussed, here is the link to start your 7-day trial: {{2}} — you stay in control, and cancelling takes one click from your dashboard. I’m still on the line if anything comes up. {{3}}', example: ['Camille', 'https://keiroai.com/essai', 'Victor'] },
+        },
+      },
+      {
+        name: 'keiro_constat_compte', label: 'Constat sur le compte du prospect', category: 'UTILITY',
+        params: ['prénom', 'nom du commerce', 'constat précis', 'lien'],
+        langs: {
+          fr: { body: 'Bonjour {{1}}, j’ai regardé le compte de {{2}} avant de vous écrire : {{3}}. Les données de Buffer sur 2,1 millions de publications montrent qu’à rythme quotidien, chaque publication porte 24 % plus loin qu’à deux par semaine. Le détail est ici si le sujet vous parle : {{4}} — sinon dites-le, je n’insiste pas.', example: ['Camille', 'La Table d’Olivier', 'la dernière publication date du 3 juin', 'https://keiroai.com'] },
+          es: { body: 'Hola {{1}}, he mirado la cuenta de {{2}} antes de escribirle: {{3}}. Los datos de Buffer sobre 2,1 millones de publicaciones muestran que, con ritmo diario, cada publicación llega un 24 % más lejos que con dos por semana. El detalle está aquí si le interesa: {{4}} — si no, dígamelo y no insisto.', example: ['Camille', 'La Table d’Olivier', 'la última publicación es del 3 de junio', 'https://keiroai.com'] },
+          en: { body: 'Hello {{1}}, I looked at {{2}}’s account before writing: {{3}}. Buffer’s data on 2.1 million posts shows that at a daily cadence, each post reaches 24 % further than at two a week. The detail is here if it speaks to you: {{4}} — if not, just say so and I’ll leave it there.', example: ['Camille', 'La Table d’Olivier', 'the last post is from 3 June', 'https://keiroai.com'] },
+        },
+      },
+      {
+        name: 'keiro_apres_essai', label: 'Fin d’essai — ce qui a été produit', category: 'UTILITY',
+        params: ['prénom', 'nombre de publications', 'réseaux', 'lien espace'],
+        langs: {
+          fr: { body: 'Bonjour {{1}}, votre essai se termine bientôt. Pendant ces 7 jours, {{2}} publications sont parties sur {{3}}, sans que vous ayez eu à les écrire. Tout est visible dans votre espace : {{4}} — vous pouvez continuer, changer de formule ou arrêter, sans justification.', example: ['Camille', '14', 'Instagram et TikTok', 'https://keiroai.com/assistant'] },
+          es: { body: 'Hola {{1}}, su prueba termina pronto. Durante estos 7 días se publicaron {{2}} contenidos en {{3}}, sin que usted tuviera que escribirlos. Todo está en su espacio: {{4}} — puede continuar, cambiar de plan o parar, sin justificar nada.', example: ['Camille', '14', 'Instagram y TikTok', 'https://keiroai.com/assistant'] },
+          en: { body: 'Hello {{1}}, your trial ends soon. Over these 7 days, {{2}} posts went out on {{3}} without you having to write them. Everything is in your dashboard: {{4}} — you can continue, switch plan or stop, no explanation needed.', example: ['Camille', '14', 'Instagram and TikTok', 'https://keiroai.com/assistant'] },
+        },
+      },
+    ],
+  },
   service: {
     match: ['artisan', 'plombier', 'électricien', 'menuisier', 'coach', 'consultant', 'service', 'prestataire'],
     templates: [...APPOINTMENT_COMMON,
