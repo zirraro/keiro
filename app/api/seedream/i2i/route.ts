@@ -269,11 +269,24 @@ export async function POST(request: Request) {
       await recordFreeGeneration(ip, fingerprint, 'image');
     }
 
+    // Une retouche se juge comme une création : c'est elle que le client
+    // publiera. Voir lib/visuals/juger-generation-studio.ts pour la raison —
+    // le juge ne tournait que sur le chemin des agents.
+    const { jugerGenerationStudio } = await import('@/lib/visuals/juger-generation-studio');
+    const qualite = await jugerGenerationStudio({
+      imageUrl: resultImageUrl,
+      brief: finalPrompt,
+      chemin: 'studio_i2i',
+      userId: user?.id,
+      fournisseur: provider,
+    });
+
     return Response.json({
       ok: true,
       imageUrl: resultImageUrl,
       watermark: useWatermark,
       newBalance,
+      qualite,
       _p: provider,
     });
 
