@@ -7858,6 +7858,88 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // clients. Décidé UNE fois ici, il pilote ensuite la scène, le texte, le tri
   // d'actualité et le contrôle — c'est l'ancre qui manquait.
   let metierEnScene: string | null = null;
+
+  /**
+   * ── On ne génère pas dans le vide ──
+   *
+   * Cas réel, 19 août. Une cliente s'inscrit avec un code d'essai d'un mois.
+   * Le lendemain, son compte porte quatre publications et zéro publiée : deux
+   * en échec, une en attente, une approuvée qui ne partira jamais. Aucun réseau
+   * connecté, aucun dossier rempli — seulement « ecommerce » dans le type.
+   *
+   * Et le contenu produit parlait de carte d'automne, de coiffeur pour enfant,
+   * de réservations à gérer à la main. Des accroches de restaurant et de salon,
+   * pour une boutique en ligne. Léna n'avait rien pour la connaître : elle a
+   * produit à partir de rien, et « rien » donne du générique.
+   *
+   * Trois défaillances enchaînées, aucune alerte : l'onboarding ne l'a pas
+   * conduite à se connecter, Léna a généré quand même, et la publication a visé
+   * un compte inexistant.
+   *
+   * Générer dans ces conditions coûte trois fois : le budget image, un
+   * calendrier rempli d'inutilisable, et l'impression pour une nouvelle cliente
+   * que rien ne se passe — alors que quatre posts existaient, invisibles.
+   *
+   * On s'arrête donc, et on le dit à qui peut agir. La cliente reçoit l'étape
+   * qui lui manque ; le fondateur voit la ligne dans son rapport du matin. Ne
+   * rien produire et le dire vaut mieux que produire et le taire.
+   */
+  if (userId) {
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        /**
+         * Toutes les formes de connexion Instagram, pas une seule.
+         *
+         * Fondateur : « si elle a connecté son compte Insta, faut bien
+         * identifier, super important. » Il a raison — un garde-fou qui rate
+         * une connexion existante bloque un client qui a tout fait
+         * correctement, ce qui est pire que le défaut qu'on corrige.
+         *
+         * Instagram se connecte de trois façons dans ce produit : le jeton
+         * Instagram Login (`igaa`), le jeton de page Facebook, ou le jeton
+         * classique. Le tableau de bord les accepte déjà toutes les trois ; ne
+         * lire que l'identifiant de compte reviendrait à déclarer déconnecté
+         * quelqu'un qui publie très bien.
+         */
+        .select('instagram_business_account_id, instagram_igaa_token, instagram_access_token, facebook_page_access_token, tiktok_access_token, linkedin_access_token, company_name')
+        .eq('id', userId)
+        .maybeSingle();
+      const { data: dos } = await supabase
+        .from('business_dossiers')
+        .select('company_description, main_products')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const pr = (prof as any) || {};
+      const instagramConnecte = !!(pr.instagram_business_account_id
+        && (pr.instagram_igaa_token || pr.facebook_page_access_token || pr.instagram_access_token));
+      const aucunReseau = !instagramConnecte && !pr.tiktok_access_token && !pr.linkedin_access_token;
+      // Le type seul ne suffit pas : « ecommerce » ne dit ni quoi vendre ni à
+      // qui. C'est la description ou les produits qui donnent de quoi écrire.
+      const dossierVide = !(dos as any)?.company_description && !(dos as any)?.main_products && !(prof as any)?.company_name;
+
+      if (aucunReseau && dossierVide) {
+        console.warn(`[Content] génération refusée pour ${String(userId).slice(0, 8)} : aucun réseau connecté et dossier vide`);
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content', action: 'generation_impossible_onboarding', status: 'warning',
+            user_id: userId,
+            error_message: "Aucun réseau connecté et dossier vide — générer produirait du contenu générique qui ne partira nulle part",
+            data: { a_faire: 'relancer le client sur la connexion de ses réseaux et le remplissage de son dossier' },
+            created_at: new Date().toISOString(),
+          });
+        } catch { /* la trace ne bloque pas la réponse */ }
+        return NextResponse.json({
+          ok: false,
+          code: 'onboarding_incomplet',
+          error: "Connectez au moins un réseau et décrivez votre activité : sans ça, vos publications seraient génériques et ne pourraient pas partir.",
+          a_completer: { reseaux: aucunReseau, dossier: dossierVide },
+        }, { status: 409 });
+      }
+    } catch { /* une lecture ratée ne doit pas empêcher de produire */ }
+  }
+
   if (userId) {
     try {
       const { data: dossier } = await supabase
