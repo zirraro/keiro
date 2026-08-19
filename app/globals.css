@@ -59,6 +59,45 @@ body {
   transition: background-color 0.4s ease;
 }
 
+/*
+  ── La page s'ajuste au téléphone, elle ne déborde jamais ──
+
+  Fondateur, 19 août : « il faudrait pour le tel que la taille s'ajuste selon
+  le téléphone, sans déborder, pour une belle vision et navigation. »
+
+  Il n'existait AUCUN garde-fou global : un seul élément trop large — un
+  tableau, une image, un mot sans espace — et toute la page se met à glisser
+  de côté. Sur un téléphone c'est le pire défaut qui soit : le texte sort de
+  l'écran, les boutons se décalent sous le pouce, et on croit l'application
+  cassée.
+
+  Corriger page par page ne tient pas : il y en a 73, et la prochaine ajoutée
+  recommencerait. Trois règles ici valent pour tout le produit.
+
+  `overflow-x: hidden` coupe le glissement latéral à la racine. Les tableaux
+  larges continuent de défiler dans LEUR conteneur — c'est le bon endroit.
+
+  `max-width: 100%` sur les médias empêche une image de pousser la page :
+  c'est la cause la plus fréquente, et la plus invisible en développement où
+  l'écran est large.
+
+  `overflow-wrap` coupe les mots interminables — une URL collée, un nom de
+  fichier — qui sinon imposent leur largeur à tout le bloc qui les contient.
+*/
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+img, video, canvas, svg, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+p, h1, h2, h3, h4, li, td, span, a {
+  overflow-wrap: break-word;
+}
+
 html.light body {
   background: #ffffff;
 }
