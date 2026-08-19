@@ -4880,7 +4880,7 @@ async function POSTInterne(request: NextRequest) {
               ...(body.sujet ? { _forced_topic: String(body.sujet).slice(0, 300) } : {}),
             }
           : clientSettings;
-        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, callSettings, body.format);
+        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, callSettings, body.format, body.leverPlafond === true);
       }
 
       case 'generate_week': {
@@ -7885,7 +7885,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 // ──────────────────────────────────────
 // Generate a single daily post
 // ──────────────────────────────────────
-async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, clientSettings: Record<string, any> = {}, forceFormat?: string) {
+async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, clientSettings: Record<string, any> = {}, forceFormat?: string, leverPlafond?: boolean) {
   const nowISO = new Date().toISOString();
 
   // Comptes internes : aucune génération (cf. lib/agents/internal-accounts).
@@ -10712,9 +10712,22 @@ RÈGLES ABSOLUES :
         }
 
         if (postPlatform === 'instagram') {
+          /**
+           * La levée de plafond DOIT voyager jusqu ici.
+           *
+           * Fondateur, 19 aout : « sois pas trop dur sur l espacement des
+           * publications, je veux voir tous les formats ». Le garde-fou
+           * l honore deja — mais l appel s arretait a userId, donc le drapeau
+           * n arrivait jamais. Une demande explicite du fondateur etait
+           * refusee par une garde concue pour les publications automatiques.
+           *
+           * C est la cinquieme fois cette semaine qu une valeur se perd entre
+           * deux chemins qui font le meme travail : un parametre absent vaut
+           * undefined, donc false, donc « garde active ».
+           */
           const igResult = await publishToInstagram(
             { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl || undefined, video_url: videoUrl || undefined },
-            supabase, orgId, userId
+            supabase, orgId, userId, leverPlafond === true
           );
           if (igResult.success) {
             visualUpdate.status = 'published';
