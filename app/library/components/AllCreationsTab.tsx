@@ -17,6 +17,8 @@ interface Folder {
 interface AllCreationsTabProps {
   images: any[];
   videos: any[];
+  /** Les publications produites par les agents, servies par /api/library/posts-agents. */
+  postsIA?: any[];
   folders: Folder[];
   onRefresh: () => void;
   onToggleFavorite: (id: string, type: 'image' | 'video', isFavorite: boolean) => void;
@@ -78,6 +80,7 @@ function ListItemTitle({ item, onTitleEdit }: { item: CreationItem; onTitleEdit:
 export default function AllCreationsTab({
   images,
   videos,
+  postsIA,
   folders,
   onRefresh,
   onToggleFavorite,
@@ -93,6 +96,15 @@ export default function AllCreationsTab({
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
+  /**
+   * Le filtre d'auteur, demandé par le fondateur le 19 août : « une possibilité
+   * de filtre dans chaque onglet ».
+   *
+   * Il vit à côté du filtre de type, pas au-dessus : ce sont deux questions du
+   * même ordre — quoi, et de qui — et les empiler sur deux lignes ferait croire
+   * à une hiérarchie qui n'existe pas.
+   */
+  const [filterAuteur, setFilterAuteur] = useState<'tous' | 'agents' | 'moi'>('tous');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'folder'>('folder');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [openFolderId, setOpenFolderId] = useState<string | null>('uncategorized');
@@ -197,8 +209,37 @@ export default function AllCreationsTab({
       ai_model: vid.ai_model,
     }));
 
-    return [...imageItems, ...videoItems];
-  }, [images, videos]);
+    /**
+     * ── Les publications des agents rejoignent les créations du client ──
+     *
+     * Fondateur : « le travail fait par l'agent, il faut qu'il soit également
+     * dans cette page Galerie, avec la mention "fait par Léna". »
+     *
+     * Elles arrivent dans la MÊME grille, avec le même modèle de vignette :
+     * c'est ce qui les rend comparables et évite au client d'apprendre deux
+     * interfaces pour deux origines du même contenu.
+     *
+     * Une publication sans média ne rentre pas : une grille est faite d'images,
+     * une case vide n'apprend rien et casse la lecture.
+     */
+    const postsAgents: CreationItem[] = (postsIA || [])
+      .filter((p: any) => p.couverture || p.media)
+      .map((p: any) => ({
+        id: p.id,
+        type: (p.est_video ? 'video' : 'image') as 'image' | 'video',
+        url: p.media || p.couverture,
+        thumbnailUrl: p.couverture || undefined,
+        title: p.accroche || undefined,
+        is_favorite: false,
+        created_at: p.publie_le || p.programme_le || new Date().toISOString(),
+        published_to_instagram: p.etat === 'publie' && p.reseau === 'instagram',
+        published_to_tiktok: p.etat === 'publie' && p.reseau === 'tiktok',
+        auteur: p.auteur,
+        etatPublication: p.etat_libelle,
+      }));
+
+    return [...imageItems, ...videoItems, ...postsAgents];
+  }, [images, videos, postsIA]);
 
   // Filter creations
   const filteredCreations = useMemo(() => {
@@ -210,6 +251,15 @@ export default function AllCreationsTab({
       result = result.filter(c => c.type === 'video');
     }
 
+    // Une pièce sans auteur renseigné a été créée par le client au Studio :
+    // l'absence de marque EST la marque, et c'est ce qui permet de trier sans
+    // avoir à écrire « Vous » sur chaque création faite à la main.
+    if (filterAuteur === 'agents') {
+      result = result.filter(c => !!c.auteur && c.auteur !== 'Vous');
+    } else if (filterAuteur === 'moi') {
+      result = result.filter(c => !c.auteur || c.auteur === 'Vous');
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(c =>
@@ -218,7 +268,7 @@ export default function AllCreationsTab({
     }
 
     return result;
-  }, [allCreations, filterType, searchQuery]);
+  }, [allCreations, filterType, filterAuteur, searchQuery]);
 
   // Group by folder
   const groupedByFolder = useMemo(() => {
@@ -710,6 +760,47 @@ export default function AllCreationsTab({
 
           {/* Separator */}
           <div className="h-6 w-px bg-neutral-300"></div>
+
+          {/*
+            ── Le filtre d'auteur ──
+
+            Fondateur, 19 août : « je voyais le travail de Léna se mélanger avec
+            celui du client, avec une possibilité de filtre dans chaque
+            onglet. »
+
+            Il n'apparaît QUE si des posts d'agents sont présents. Un filtre à
+            un seul choix possible n'est pas un filtre, c'est un bouton mort :
+            il occupe la barre et n'apprend rien. Chez un client qui n'a encore
+            rien reçu de ses agents, il reste invisible.
+
+            Violet sur l'option « mes agents », comme le badge des vignettes et
+            le point du calendrier : la même information garde la même couleur
+            d'un écran à l'autre.
+          */}
+          {allCreations.some(c => c.auteur && c.auteur !== 'Vous') && (
+            <>
+              <div className="flex gap-2">
+                {([
+                  { cle: 'tous' as const, libelle: 'Tout' },
+                  { cle: 'agents' as const, libelle: 'Mes agents' },
+                  { cle: 'moi' as const, libelle: 'Moi' },
+                ]).map(o => (
+                  <button
+                    key={o.cle}
+                    onClick={() => setFilterAuteur(o.cle)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors min-h-[36px] ${
+                      filterAuteur === o.cle
+                        ? (o.cle === 'agents' ? 'bg-violet-600 text-white' : 'bg-[#0c1a3a] text-white')
+                        : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                    }`}
+                  >
+                    {o.libelle}
+                  </button>
+                ))}
+              </div>
+              <div className="h-6 w-px bg-neutral-300"></div>
+            </>
+          )}
 
           {/* Sort Dropdown */}
           <select

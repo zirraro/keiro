@@ -331,6 +331,9 @@ function LibraryContent() {
   const [myVideos, setMyVideos] = useState<MyVideo[]>([]);
   const [tiktokPosts, setTiktokPosts] = useState<any[]>([]); // Vidéos TikTok synchronisées
   const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
+  // Les publications produites par les agents : même source que le calendrier,
+  // pour que la grille et le calendrier ne puissent pas se contredire.
+  const [postsAgents, setPostsAgents] = useState<any[]>([]);
 
   // États pour les dossiers
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
@@ -578,6 +581,11 @@ function LibraryContent() {
       const res = await fetch('/api/library/posts-agents?etat=tous&limite=200', { credentials: 'include' });
       const data = await res.json();
       if (data.ok) {
+        // La grille reçoit la liste BRUTE : elle a besoin des posts sans date
+        // (les brouillons), que le calendrier écarte faute de jour où les
+        // poser. Une seule lecture réseau alimente les deux vues, donc elles ne
+        // peuvent pas se contredire.
+        setPostsAgents(data.posts || []);
         for (const p of (data.posts || [])) {
           // On se ramène à la forme attendue par le calendrier : il n'a pas à
           // connaître deux modèles de données pour afficher une pastille.
@@ -2342,6 +2350,7 @@ function LibraryContent() {
                     <AllCreationsTab
                       images={images}
                       videos={myVideos}
+                      postsIA={postsAgents}
                       folders={folders}
                       onRefresh={handleRefreshAll}
                       onToggleFavorite={handleUnifiedToggleFavorite}
