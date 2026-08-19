@@ -394,6 +394,33 @@ export async function GET(req: NextRequest) {
         qcMap.set(key, g);
         continue;
       }
+      /**
+       * ── Un réseau non connecté n'est pas une livraison manquée ──
+       *
+       * Fondateur, 19 août : « je veux que ça roule tout seul, plus d'erreurs
+       * comme ça. »
+       *
+       * Le rapport du matin signalait une publication « RETENUE par le contrôle
+       * qualité » avec l'action « régénérer, pas republier ». En allant voir,
+       * le vrai motif était tout autre : « Ce client n'a pas de compte
+       * Instagram connecté ».
+       *
+       * Régénérer n'y changerait rien — on peut refaire le visuel cent fois, il
+       * n'ira nulle part tant que le compte n'est pas branché. Le rapport
+       * envoyait donc le fondateur réparer une chose qui n'est pas cassée, et
+       * masquait la seule action utile : prévenir le client.
+       *
+       * Une alerte qui nomme la mauvaise cause coûte plus cher que pas
+       * d'alerte : elle fait travailler pour rien et use la confiance qu'on
+       * accorde aux suivantes.
+       */
+      const diagConnexion = String((p as any).publish_diagnostic || '');
+      if (/pas de compte|non connect|token|reconnecter/i.test(diagConnexion)) {
+        const cle = `${p.user_id}::${p.platform}::connexion`;
+        const g = gapMap.get(cle) || { platform: p.platform, count: 0, statuses: new Set<string>() };
+        g.count++; g.statuses.add('reseau_non_connecte'); gapMap.set(cle, g);
+        continue;
+      }
       const overdue = String(p.scheduled_date) < todayD; // slot passé
       const failed = p.status === 'publish_failed' || p.status === 'retry_pending';
       // Échec réel = publish raté, OU un post approuvé/prêt dont le créneau est PASSÉ
@@ -410,7 +437,13 @@ export async function GET(req: NextRequest) {
         client_email: userIdToEmail.get(uid) || uid.slice(0, 8),
         plan: (clients || []).find(c => c.id === uid)?.subscription_plan || '?',
         network: g.platform,
-        detail: `${g.count} publication(s) ${g.platform} due(s) NON publiée(s) (${[...g.statuses].join(', ')}) — le client n'a pas reçu ce qui était prévu`,
+        // Le réseau non connecté a sa propre formulation : l'action n'est ni de
+        // régénérer ni de réessayer, c'est de prévenir le client. Lui donner le
+        // même libellé qu'un échec technique enverrait chercher une panne qui
+        // n'existe pas.
+        detail: g.statuses.has('reseau_non_connecte')
+          ? `${g.count} publication(s) ${g.platform} bloquée(s) : le compte ${g.platform} n'est pas connecté. Régénérer n'y changera rien — action : demander au client de connecter son compte.`
+          : `${g.count} publication(s) ${g.platform} due(s) NON publiée(s) (${[...g.statuses].join(', ')}) — le client n'a pas reçu ce qui était prévu`,
       });
     }
     // Retenus par le contrôle qualité : je les collectais sans jamais les
