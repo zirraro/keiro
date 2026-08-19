@@ -98,6 +98,11 @@ const GLOBAL_SCHEDULE = [
   // quand un job dépasse sa limite, ce qui n'est ni succès ni échec. Trois de
   // suite sont passés inaperçus le 17 août. Ce contrôle compare le commit SERVI
   // au dernier commit de la branche, toutes les heures.
+  // Le mail des premières 24 h : un compte ouvert sans réseau connecté laisse
+  // filer son essai sans savoir qu'il manquait deux clics. Une fois par jour,
+  // à 10 h, quand un mail se lit.
+  { cron: '0 10 * * *', path: '/api/cron/relance-onboarding', label: 'Relance onboarding (24 h sans connexion)' },
+
   { cron: '25 * * * *', path: '/api/cron/verifier-deploiement', label: 'La production sert-elle le dernier commit ?' },
 
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
