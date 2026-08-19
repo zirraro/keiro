@@ -2255,7 +2255,17 @@ export default function AgentWorkspacePage() {
               //
               // R\u00E9serv\u00E9 aux agents en contact avec la client\u00E8le : un carnet vide
               // sur l'agent comptable n'encombrerait que l'\u00E9cran.
-              ...(['dm_instagram', 'whatsapp', 'email', 'chatbot', 'content'].includes(agentId)
+              // `content` (Léna) retiré le 19 août. Fondateur : « le système de
+              // réservation, y'a pas besoin dans Léna, l'onglet, car elle ne
+              // gère pas les résas, elle publie. »
+              //
+              // Exact, et c'est la bonne façon de le dire : un onglet se
+              // justifie par ce que l'agent FAIT, pas par le fait que la donnée
+              // existe. Les réservations arrivent par les agents qui parlent
+              // aux clients — Jade, Stella, Hugo, Clara. Léna produit et publie ;
+              // lui mettre un carnet, c'est brouiller son métier et allonger sa
+              // barre d'onglets pour rien.
+              ...(['dm_instagram', 'whatsapp', 'email', 'chatbot'].includes(agentId)
                 ? [{ key: 'reservations' as const, label: isEn ? 'Bookings' : 'R\u00E9servations', icon: '\uD83D\uDCD2' }]
                 : []),
               { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
