@@ -74,10 +74,43 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
 
   const allDays = [...prevMonthDays, ...daysInMonth, ...nextMonthDays];
 
+  /**
+   * ── Filtrer par réseau et par auteur ──
+   *
+   * Fondateur, 19 août : « dans le calendrier de Galerie je dois pouvoir
+   * filtrer, et on doit pouvoir identifier si c'est Insta, LinkedIn ou TikTok,
+   * et filtrer aussi par agent ou client. »
+   *
+   * Depuis que le calendrier mélange les deux sources, une semaine chargée
+   * devient illisible : cinq pastilles par jour sans moyen de dire lesquelles
+   * partent où ni qui les a faites. Les filtres ne sont pas un confort, ils
+   * rendent la vue exploitable.
+   */
+  const [filtreReseau, setFiltreReseau] = useState<string>('tous');
+  const [filtreAuteur, setFiltreAuteur] = useState<'tous' | 'agents' | 'moi'>('tous');
+  /** Le post survolé, pour l'aperçu qui s'entrouvre sans ouvrir. */
+  const [apercu, setApercu] = useState<ScheduledPost | null>(null);
+
+  // Les réseaux réellement présents : proposer un filtre TikTok à un client
+  // qui n'y publie pas, c'est un bouton qui ne fera jamais rien.
+  const reseauxPresents = useMemo(() => {
+    const s = new Set<string>();
+    for (const p of scheduledPosts) if (p.platform) s.add(String(p.platform).toLowerCase());
+    return Array.from(s);
+  }, [scheduledPosts]);
+
+  const postsFiltres = useMemo(() => scheduledPosts.filter((p: any) => {
+    if (filtreReseau !== 'tous' && String(p.platform).toLowerCase() !== filtreReseau) return false;
+    const parAgent = !!p.auteur && p.auteur !== 'Vous';
+    if (filtreAuteur === 'agents' && !parAgent) return false;
+    if (filtreAuteur === 'moi' && parAgent) return false;
+    return true;
+  }), [scheduledPosts, filtreReseau, filtreAuteur]);
+
   const postsByDay = useMemo(() => {
     const groups: Record<string, ScheduledPost[]> = {};
 
-    scheduledPosts.forEach(post => {
+    postsFiltres.forEach(post => {
       const date = new Date(post.scheduled_for);
       const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 
@@ -86,7 +119,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
     });
 
     return groups;
-  }, [scheduledPosts]);
+  }, [postsFiltres]);
 
   const getPostsForDay = (date: Date) => {
     const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -246,8 +279,69 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
         </div>
       </div>
 
+      {/*
+        ── La barre de filtres ──
+
+        Deux rangées de pastilles plutôt qu'un menu déroulant : sur un
+        téléphone, un choix visible se touche du pouce, un menu demande deux
+        gestes et cache ce qu'il contient.
+
+        Chaque groupe ne s'affiche que s'il a du sens : les réseaux seulement
+        s'il y en a plusieurs, l'auteur seulement s'il existe du travail
+        d'agent. Un filtre à une seule issue n'est pas un filtre.
+      */}
+      {scheduledPosts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+          {reseauxPresents.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto">
+              {['tous', ...reseauxPresents].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setFiltreReseau(r)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-colors min-h-[36px] ${
+                    filtreReseau === r
+                      ? 'bg-[#0c1a3a] text-white'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                  }`}
+                >
+                  {r === 'tous' ? 'Tous réseaux' : `${getPlatformEmoji(r)} ${r.charAt(0).toUpperCase() + r.slice(1)}`}
+                </button>
+              ))}
+            </div>
+          )}
+          {scheduledPosts.some((p: any) => p.auteur && p.auteur !== 'Vous') && (
+            <div className="flex gap-1.5">
+              {([
+                { c: 'tous' as const, l: 'Tout' },
+                { c: 'agents' as const, l: 'Mes agents' },
+                { c: 'moi' as const, l: 'Moi' },
+              ]).map(o => (
+                <button
+                  key={o.c}
+                  onClick={() => setFiltreAuteur(o.c)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-colors min-h-[36px] ${
+                    filtreAuteur === o.c
+                      ? (o.c === 'agents' ? 'bg-violet-600 text-white' : 'bg-[#0c1a3a] text-white')
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                  }`}
+                >
+                  {o.l}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Calendar Grid */}
-      <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
+      {/*
+         couperait l aperçu au survol, qui déborde de sa
+        cellule par construction. Les coins arrondis restent portés par les
+        cellules d angle, donc rien ne change visuellement — mais l aperçu,
+        lui, devient visible. Sans cette ligne il aurait été codé, compilé,
+        déployé, et invisible.
+      */}
+      <div className="bg-white border border-neutral-200 rounded-xl">
         <div className="grid grid-cols-7 bg-neutral-50 border-b border-neutral-200">
           {weekDays.map(day => (
             <div key={day} className="p-3 text-center text-sm font-semibold text-neutral-700">
@@ -279,8 +373,52 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                     <button
                       key={post.id}
                       onClick={() => setSelectedPost(post)}
-                      className="w-full text-left p-2 rounded bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs hover:shadow-md transition-all group"
+                      onMouseEnter={() => setApercu(post)}
+                      onMouseLeave={() => setApercu(null)}
+                      className="relative w-full text-left p-2 rounded bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs hover:shadow-md transition-all group"
                     >
+                      {/*
+                        ── L'aperçu qui s'entrouvre ──
+
+                        Fondateur, 19 août : « en passant sur chaque publié
+                        avoir un aperçu qui s'entrevoit, et on décide d'ouvrir
+                        ou pas. »
+
+                        Une pastille ne dit que l'heure : pour savoir ce qui
+                        part, il fallait ouvrir la fiche, la lire, la refermer,
+                        et recommencer. Sur une semaine chargée, c'est
+                        vingt allers-retours pour vérifier sa semaine.
+
+                        L'aperçu montre l'image et le début de la légende au
+                        survol, sans clic ni chargement. Il est en `pointer-
+                        events-none` : il ne doit jamais intercepter le clic
+                        qu'il annonce.
+
+                        Au survol seulement, donc absent sur mobile — c'est
+                        voulu : au doigt, il n'y a pas de survol, et le geste
+                        naturel est d'ouvrir. Rien n'est perdu.
+                      */}
+                      {apercu?.id === post.id && (
+                        <div className="hidden lg:block pointer-events-none absolute left-full top-0 ml-2 z-50 w-56 rounded-xl bg-white shadow-2xl border border-neutral-200 overflow-hidden">
+                          {post.image_url && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={post.image_url} alt="" className="w-full h-28 object-cover" />
+                          )}
+                          <div className="p-2.5">
+                            <p className="text-[11px] font-semibold text-neutral-900 flex items-center gap-1.5 mb-1">
+                              {getPlatformEmoji(post.platform)} {post.platform}
+                              {(post as any).auteur && (post as any).auteur !== 'Vous' && (
+                                <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 text-[9px] font-bold">
+                                  par {(post as any).auteur}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[11px] text-neutral-600 line-clamp-3 leading-snug">
+                              {post.caption || '(sans légende)'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <span>{getPlatformEmoji(post.platform)}</span>
                         <span className="truncate flex-1">
