@@ -21,6 +21,20 @@ export interface CreationItem {
   published_to_tiktok?: boolean;
   source_type?: string; // For videos
   ai_model?: string; // seedream | kling
+  /**
+   * Qui a produit cette pièce.
+   *
+   * Fondateur, 19 août : « je voyais le travail de Léna se mélanger avec celui
+   * du client, avec une possibilité de filtre dans chaque onglet, et surtout
+   * bien la mention "fait par Léna" sur chaque post préparé ou publié. »
+   *
+   * Absent = créé par le client au Studio. Renseigné = produit par un agent.
+   * Cette distinction est ce qui rend visible, à chaque coup d'œil, le travail
+   * que le client paie et qu'il ne voit pas se faire.
+   */
+  auteur?: string;
+  /** L'état d'une publication d'agent : brouillon, programmé, publié. */
+  etatPublication?: string;
 }
 
 interface CreationCardProps {
@@ -132,6 +146,29 @@ export default function CreationCard({
           )}
           {item.published_to_tiktok && (
             <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">✓ TikTok</span>
+          )}
+          {/*
+            La mention d'auteur, sur la vignette elle-même.
+
+            Violet, pour ne se confondre ni avec le rose des favoris ni avec les
+            badges de réseau : trois informations différentes au même endroit
+            doivent se distinguer d'un regard, sinon on n'en lit plus aucune.
+
+            Elle ne s'affiche que sur le travail d'un agent — une création faite
+            par le client n'a pas besoin qu'on lui rappelle qu'il l'a faite.
+          */}
+          {item.auteur && item.auteur !== 'Vous' && (
+            <span
+              title={`Préparé par ${item.auteur}`}
+              className="bg-violet-600 text-white text-xs px-2 py-1 rounded-full font-semibold"
+            >
+              par {item.auteur}
+            </span>
+          )}
+          {item.etatPublication && (
+            <span className="bg-neutral-900/80 text-white text-xs px-2 py-1 rounded-full">
+              {item.etatPublication}
+            </span>
           )}
         </div>
 

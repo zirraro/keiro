@@ -91,6 +91,53 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, a_jour: false, en_cours: true, attendu, servi, age_minutes: ageMinutes });
   }
 
+  /**
+   * ── La production peut être EN AVANCE, pas seulement en retard ──
+   *
+   * Ce contrôle supposait qu'un écart signifie « le déploiement a échoué » et
+   * conseillait de le relancer. Le 19 août il a sonné pour l'inverse exact : la
+   * production servait `cc2aaee` quand GitHub était encore à `ef9469d`.
+   *
+   * La cause : la poussée vers GitHub était bloquée par l'authentification, et
+   * j'avais transféré les commits au serveur par SSH. Le code tournait donc en
+   * production sans exister dans le dépôt.
+   *
+   * C'est un incident PLUS grave qu'un déploiement raté — un déploiement perdu
+   * se relance, du code qui n'est que sur le serveur se perd à la première
+   * réinstallation — mais l'alerte disait « relancer le déploiement », ce qui
+   * n'aurait servi à rien. Encore une alerte qui nomme la mauvaise cause, deux
+   * jours après en avoir corrigé une autre du même genre.
+   *
+   * On distingue donc les deux, parce qu'ils appellent des gestes opposés :
+   * relancer d'un côté, pousser vers le dépôt de l'autre.
+   */
+  let productionEnAvance = false;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${DEPOT}/commits/${servi}`, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'keiroai-deploy-check' },
+      cache: 'no-store',
+    });
+    // 404 = ce commit n'existe pas chez GitHub : il n'a jamais été poussé.
+    productionEnAvance = r.status === 404;
+  } catch { /* dans le doute, on garde la lecture par défaut */ }
+
+  if (productionEnAvance) {
+    const detail = `La production sert ${servi}, un commit ABSENT de GitHub (la branche est à ${attendu}). Du code tourne sans exister dans le dépôt.`;
+    console.error(`[Déploiement] ${detail}`);
+    try {
+      await sb().from('agent_logs').insert({
+        agent: 'ops', action: 'production_non_poussee', status: 'error',
+        error_message: detail.slice(0, 500),
+        data: { servi, dernier_github: attendu },
+        created_at: new Date().toISOString(),
+      });
+    } catch { /* la trace ne bloque pas l'alerte */ }
+    return NextResponse.json({
+      ok: true, a_jour: false, production_en_avance: true, servi, dernier_github: attendu,
+      action: "Pousser les commits locaux vers GitHub — relancer le déploiement n'y changerait rien.",
+    });
+  }
+
   // ── L'écart dure : c'est un déploiement perdu ──
   const supabase = sb();
   const detail = `La production sert ${servi} alors que la branche est à ${attendu} depuis ${ageMinutes} min — « ${messageCommit} »`;
