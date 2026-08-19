@@ -352,6 +352,82 @@ export async function jugerAvecVision(opts: {
 }): Promise<any | null> {
   const { system, tool, imageBase64, mediaType, texte, maxTokens } = opts;
 
+  /**
+   * ── Troisième recours : ARK, le seul joignable depuis le serveur ──
+   *
+   * 17 août, 08 h 21 : dernier appel Gemini réussi. Après quoi, depuis le VPS
+   * uniquement, l'API répond `400 FAILED_PRECONDITION — User location is not
+   * supported for the API use`. Google a cessé d'accepter l'adresse de
+   * Gravelines. Le crédit Anthropic étant épuisé depuis le 1er août, les DEUX
+   * fournisseurs de vision étaient morts en même temps.
+   *
+   * Conséquence directe et mesurée le jour même : vingt et un posts programmés,
+   * un publié. Le portail retient quand la vision est hors service — c'est le
+   * bon choix, sinon le garde-fou se désactive tout seul en silence — mais avec
+   * les deux fournisseurs à terre, il retenait tout.
+   *
+   * ARK répond depuis le VPS : c'est déjà lui qui produit les images et les
+   * vidéos, la route est éprouvée. Ses modèles `seed-2-0` lisent les images, et
+   * bien : sur un carrousel signalé par le fondateur, la description rendue
+   * était « un montage divisé : constellation digitale d'un côté, commerçant
+   * derrière son comptoir de l'autre » — exactement le défaut à détecter.
+   *
+   * La leçon générale : deux fournisseurs ne font pas une redondance quand ils
+   * peuvent tomber pour deux raisons différentes le même jour. Il en faut un
+   * troisième, et de préférence sur une infrastructure qu'on utilise déjà pour
+   * autre chose — donc dont on sait qu'elle répond.
+   */
+  try {
+    const { cleArk } = await import('@/lib/agents/deepseek');
+    const cle = cleArk();
+    if (!cle) return null;
+    const modele = process.env.ARK_VISION_MODEL || 'seed-2-0-pro-260328';
+    const consigne = [
+      system,
+      '',
+      'Réponds UNIQUEMENT par un objet JSON valide, sans texte autour et sans balise de code.',
+      `Il doit respecter exactement ce schéma : ${JSON.stringify(tool.input_schema)}`,
+    ].join('\n');
+    const res = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cle}` },
+      body: JSON.stringify({
+        model: modele,
+        messages: [
+          { role: 'system', content: consigne },
+          { role: 'user', content: [
+            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+            { type: 'text', text: texte },
+          ] },
+        ],
+        max_tokens: maxTokens * 2,
+        temperature: 0,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!res.ok) {
+      console.error('[QC] ARK vision HTTP', res.status, (await res.text()).slice(0, 200));
+      return null;
+    }
+    const j: any = await res.json();
+    try {
+      const { logApiCost } = await import('@/lib/admin/api-cost-logger');
+      void logApiCost({
+        provider: 'ark', kind: 'qc_vision', agent: 'content',
+        units: j.usage?.total_tokens || 0,
+        cost_eur: ((j.usage?.prompt_tokens || 0) * 0.28 + (j.usage?.completion_tokens || 0) * 0.42) / 1e6 * 0.92,
+      } as any).catch(() => {});
+    } catch { /* la trace de coût ne bloque jamais un contrôle */ }
+    let brut = String(j.choices?.[0]?.message?.content || '').trim();
+    // Certains modèles enveloppent la réponse dans une clôture markdown.
+    brut = brut.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    if (!brut) { console.error('[QC] ARK a répondu sans contenu'); return null; }
+    return JSON.parse(brut);
+  } catch (e: any) {
+    console.error('[QC] ARK vision en échec :', e?.message);
+    return null;
+  }
+
   // ── 1. Anthropic ──
   const cleAnthropic = process.env.ANTHROPIC_API_KEY;
   // Coupe-circuit : quand le crédit est épuisé, l'erreur se répète à
@@ -467,81 +543,6 @@ export async function jugerAvecVision(opts: {
     console.error('[QC] Gemini en échec :', e?.message);
   }
 
-  /**
-   * ── Troisième recours : ARK, le seul joignable depuis le serveur ──
-   *
-   * 17 août, 08 h 21 : dernier appel Gemini réussi. Après quoi, depuis le VPS
-   * uniquement, l'API répond `400 FAILED_PRECONDITION — User location is not
-   * supported for the API use`. Google a cessé d'accepter l'adresse de
-   * Gravelines. Le crédit Anthropic étant épuisé depuis le 1er août, les DEUX
-   * fournisseurs de vision étaient morts en même temps.
-   *
-   * Conséquence directe et mesurée le jour même : vingt et un posts programmés,
-   * un publié. Le portail retient quand la vision est hors service — c'est le
-   * bon choix, sinon le garde-fou se désactive tout seul en silence — mais avec
-   * les deux fournisseurs à terre, il retenait tout.
-   *
-   * ARK répond depuis le VPS : c'est déjà lui qui produit les images et les
-   * vidéos, la route est éprouvée. Ses modèles `seed-2-0` lisent les images, et
-   * bien : sur un carrousel signalé par le fondateur, la description rendue
-   * était « un montage divisé : constellation digitale d'un côté, commerçant
-   * derrière son comptoir de l'autre » — exactement le défaut à détecter.
-   *
-   * La leçon générale : deux fournisseurs ne font pas une redondance quand ils
-   * peuvent tomber pour deux raisons différentes le même jour. Il en faut un
-   * troisième, et de préférence sur une infrastructure qu'on utilise déjà pour
-   * autre chose — donc dont on sait qu'elle répond.
-   */
-  try {
-    const { cleArk } = await import('@/lib/agents/deepseek');
-    const cle = cleArk();
-    if (!cle) return null;
-    const modele = process.env.ARK_VISION_MODEL || 'seed-2-0-pro-260328';
-    const consigne = [
-      system,
-      '',
-      'Réponds UNIQUEMENT par un objet JSON valide, sans texte autour et sans balise de code.',
-      `Il doit respecter exactement ce schéma : ${JSON.stringify(tool.input_schema)}`,
-    ].join('\n');
-    const res = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cle}` },
-      body: JSON.stringify({
-        model: modele,
-        messages: [
-          { role: 'system', content: consigne },
-          { role: 'user', content: [
-            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
-            { type: 'text', text: texte },
-          ] },
-        ],
-        max_tokens: maxTokens * 2,
-        temperature: 0,
-        response_format: { type: 'json_object' },
-      }),
-    });
-    if (!res.ok) {
-      console.error('[QC] ARK vision HTTP', res.status, (await res.text()).slice(0, 200));
-      return null;
-    }
-    const j: any = await res.json();
-    try {
-      const { logApiCost } = await import('@/lib/admin/api-cost-logger');
-      void logApiCost({
-        provider: 'ark', kind: 'qc_vision', agent: 'content',
-        units: j.usage?.total_tokens || 0,
-        cost_eur: ((j.usage?.prompt_tokens || 0) * 0.28 + (j.usage?.completion_tokens || 0) * 0.42) / 1e6 * 0.92,
-      } as any).catch(() => {});
-    } catch { /* la trace de coût ne bloque jamais un contrôle */ }
-    let brut = String(j.choices?.[0]?.message?.content || '').trim();
-    // Certains modèles enveloppent la réponse dans une clôture markdown.
-    brut = brut.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-    if (!brut) { console.error('[QC] ARK a répondu sans contenu'); return null; }
-    return JSON.parse(brut);
-  } catch (e: any) {
-    console.error('[QC] ARK vision en échec :', e?.message);
-    return null;
-  }
 }
 
 /**
