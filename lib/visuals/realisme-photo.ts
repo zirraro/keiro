@@ -38,6 +38,35 @@ export const REALISME_SOCLE = [
   'CAMERA: full-frame body, fast prime lens (35mm or 50mm), shot at f/2.0–f/4 — real depth of field',
   'with a natural falloff, not a synthetic blur. Slight, believable perspective. Handheld feel.',
   '',
+  /**
+   * ── Deux leviers ajoutés le 19 août, après comparaison ──
+   *
+   * Fondateur : « cherche dans les modèles open source si des prompts de super
+   * qualité permettent d'en produire ou d'améliorer nos prompts existants, qui
+   * me semblent déjà top mais peut-être à comparer. »
+   *
+   * Comparaison faite avec l'état de l'art 2026 (guides FLUX, ThinkDiffusion,
+   * Fiddl). Notre socle couvrait déjà l'essentiel : grain, texture, pores,
+   * asymétrie, objectif, imperfections — il n'avait pas à être refait, le
+   * fondateur avait raison de le trouver bon.
+   *
+   * Deux leviers y manquaient, et ce sont précisément ceux qui trahissent le
+   * plus une image générée :
+   *
+   *   · le FLOU DE BOUGÉ. Une photo prise à la main a toujours une zone
+   *     légèrement filée — une main qui verse, un tissu qui retombe. Une image
+   *     générée est nette partout, et cette netteté totale est irréelle sans
+   *     qu'on sache dire pourquoi.
+   *   · la LUMIÈRE INÉGALE. Nous demandions déjà une source nommée avec sa
+   *     direction ; il manquait le désordre du réel — un reflet parasite, une
+   *     zone brûlée près de la fenêtre, un coin qui manque de lumière.
+   *
+   * Formulé en positif, comme le reste : on décrit ce qu'on veut voir, jamais
+   * ce qu'on refuse. Nommer un défaut, c'est le mettre dans la scène.
+   */
+  'MOTION: one small element carries a hint of motion blur — a hand mid-gesture, steam, fabric',
+  'settling. The rest is sharp. A handheld frame is never uniformly frozen.',
+  '',
   'LIGHT: one identifiable source (window, shopfront, lamp, sun) with direction and consequence —',
   'real shadows, real falloff, one side darker than the other. Never flat, never evenly lit from',
   'nowhere. Mixed colour temperature is fine and desirable.',
@@ -54,6 +83,12 @@ export const REALISME_SOCLE = [
   'clean it away.',
   '',
   'COLOUR: natural, restrained. No boosted saturation, no orange-and-teal grade, no glow.',
+  '',
+  // La lumière du réel est désordonnée : un reflet parasite, un coin brûlé
+  // près de la fenêtre, une zone qui manque de lumière. C'est ce désordre qui
+  // dit « quelqu'un était là avec un appareil », et il manquait à notre socle.
+  'UNEVEN LIGHT: light lands unevenly — one corner brighter and slightly blown, another falling',
+  'into shadow, a stray reflection somewhere. A real room is never lit for the camera.',
 ].join('\n');
 
 /** Ce qu'on interdit explicitement — la liste qui fait le plus de différence. */
