@@ -1216,7 +1216,36 @@ async function refreshAllArticles(limit: number): Promise<NextResponse> {
 
   const results: { id: string; title: string; ok: boolean; error?: string }[] = [];
 
+  /**
+   * ── Finir proprement plutôt que se faire tuer en plein travail ──
+   *
+   * Mesuré le 19 août : cet agent remonte `execution_failure` avec un HTTP 504
+   * après 600 035 ms — exactement la limite du worker. Il ne plante pas, il
+   * dépasse dix minutes et se fait couper.
+   *
+   * Ce qui est perdu n'est pas seulement le temps : le travail en cours
+   * disparaît sans qu'on sache ce qui a été fait. Un article à moitié réécrit,
+   * un appel de modèle payé pour rien, et aucune trace du point d'arrêt.
+   *
+   * Piège au passage : ces routes déclarent `maxDuration = 300`, qui n'a AUCUN
+   * effet sur notre serveur — c'est un réglage Vercel. La borne doit donc être
+   * portée par le travail lui-même.
+   *
+   * Huit minutes laissent deux minutes de marge pour écrire les résultats et
+   * rendre une réponse. Ce qui n'a pas été traité le sera au passage suivant :
+   * les articles sont pris du plus ancien au plus récent, donc la file avance
+   * d'elle-même sans jamais boucler sur les mêmes.
+   */
+  const BUDGET_MS = 8 * 60 * 1000;
+  const debutMs = Date.now();
+  let reportes = 0;
+
   for (const article of articles) {
+    if (Date.now() - debutMs > BUDGET_MS) {
+      reportes = articles.length - results.length;
+      console.warn(`[SEOAgent] budget de 8 min atteint — ${reportes} article(s) reportés au prochain passage`);
+      break;
+    }
     try {
       console.log(`[SEOAgent] Refreshing article: "${article.title}" (${article.id})`);
 
@@ -1335,6 +1364,8 @@ Améliore cet article : plus aéré, plus visuel, mieux optimisé SEO, avec des 
     ok: true,
     refreshed: results.filter(r => r.ok).length,
     failed: results.filter(r => !r.ok).length,
+    // Un report qu'on ne dit pas se lit comme « tout a été traité ».
+    reportes,
     results,
   });
 }

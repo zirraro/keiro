@@ -160,8 +160,34 @@ async function POSTInterne(req: NextRequest) {
     // response under `skip_reasons` so the panel can show it.
     const skipReasons: Array<{ conv_id: string; sender: string; reason: string; detail?: string }> = [];
 
+    /**
+     * ── Répondre à dix conversations vaut mieux que d'être tué à la douzième ──
+     *
+     * Mesuré le 19 août : cet agent remonte `execution_failure` avec un HTTP
+     * 504 après 600 023 ms — la limite du worker, atteinte à la seconde près.
+     * Quinze conversations, chacune avec un appel de modèle : au-delà d'une
+     * quarantaine de secondes l'une dans l'autre, le passage n'arrive jamais au
+     * bout.
+     *
+     * Ce qui se perd est pire qu'un retard. Un message peut avoir été ENVOYÉ
+     * sans que la conversation soit marquée traitée : au passage suivant on
+     * répond deux fois au même prospect. Sur un canal aussi personnel qu'un DM,
+     * c'est une trace visible d'automatisation mal réglée.
+     *
+     * Huit minutes, donc, en laissant deux minutes pour écrire les résultats.
+     * Les conversations non traitées reviennent au prochain passage — il tourne
+     * toutes les vingt minutes, l'attente reste courte.
+     */
+    const BUDGET_MS = 8 * 60 * 1000;
+    const debutMs = Date.now();
+    let convReportees = 0;
+
     // 2. Check each conversation for unanswered messages
     for (const conv of conversations.slice(0, 15)) {
+      if (Date.now() - debutMs > BUDGET_MS) {
+        convReportees++;
+        continue;
+      }
       try {
         // Get latest messages
         const msgRes = await fetch(
@@ -705,6 +731,8 @@ ${ragContext}`;
       skipped,
       total_conversations: conversations.length,
       skip_reasons: skipReasons,
+      // Un report muet se lit comme « tout a été traité ».
+      conversations_reportees: convReportees,
     });
   } catch (e: any) {
     console.error('[DM-AutoReply] Error:', e.message);
