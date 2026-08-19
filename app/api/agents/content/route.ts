@@ -10660,6 +10660,57 @@ RÈGLES ABSOLUES :
         // Don't set published until AFTER successful publish
         visualUpdate.status = 'approved'; // default: ready for publish
 
+        /**
+         * ── Ce chemin publiait SANS PASSER PAR LE JUGE ──
+         *
+         * Fondateur, 19 août : « je comprends pas comment le juge n'est pas
+         * intervenu, il est pas censé juger à chaque sortie générée, tous les
+         * formats ? »
+         *
+         * Il a raison, et c'est ainsi que je l'ai trouvé. J'avais annoncé
+         * « trois formats passés du premier coup, aucune réparation » en me
+         * fondant sur l'absence de note — alors que l'absence de note voulait
+         * dire l'absence de CONTRÔLE. Une donnée manquante ne dit pas « tout
+         * va bien », elle ne dit rien : c'est la même erreur que sur les coûts
+         * vidéo, et je l'ai refaite.
+         *
+         * Le portail est appelé depuis six endroits du produit — la
+         * publication programmée, la reprise, le pré-vol, la boucle de
+         * réparation. Mais pas depuis la génération à la demande, qui est
+         * précisément celle qu'on utilise pour vérifier la qualité. On
+         * mesurait donc la qualité sur le seul chemin qui ne la mesure pas.
+         *
+         * Un refus ici n'empêche pas la livraison : le post reste enregistré et
+         * repassera par la reprise, qui sait refaire l'image. Ne rien publier
+         * vaut mieux que publier ce qu'on n'aurait pas montré.
+         */
+        try {
+          const { controlerAvantPublication } = await import('@/lib/visuals/portail-publication');
+          const verdictPub = await controlerAvantPublication(supabase, {
+            id: inserted.id, user_id: userId, hook: post.hook, caption: post.caption,
+            hashtags: post.hashtags as any, visual_url: visualUrl || undefined,
+            video_url: videoUrl || undefined, platform: postPlatform, format: postFormat,
+            business_type: detectedBusinessType || undefined,
+          });
+          if (!verdictPub.publiable) {
+            console.warn(`[Content] génération à la demande retenue par le contrôle : ${verdictPub.diagnostic}`);
+            await supabase.from('content_calendar').update({
+              status: 'draft',
+              publish_diagnostic: String(verdictPub.diagnostic || 'retenu par le contrôle qualité').slice(0, 500),
+              updated_at: new Date().toISOString(),
+            }).eq('id', inserted.id);
+            return NextResponse.json({
+              ok: true, post: inserted, retenu_par_le_controle: true,
+              diagnostic: verdictPub.diagnostic,
+              message: "Le post est enregistré mais n'a pas été publié : le contrôle qualité l'a retenu. La reprise automatique refera le visuel.",
+            });
+          }
+        } catch (e: any) {
+          // Une panne du contrôle ne bloque pas la livraison : c'est la règle
+          // du portail lui-même, et elle vaut ici aussi.
+          console.warn('[Content] contrôle avant publication indisponible :', e?.message);
+        }
+
         if (postPlatform === 'instagram') {
           const igResult = await publishToInstagram(
             { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl || undefined, video_url: videoUrl || undefined },
