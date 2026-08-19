@@ -169,8 +169,33 @@ export function blogValueBlockHtml(article: BlogMatch): string {
 <div style="font-size:17px;font-weight:700;color:#0c1a3a;line-height:1.35;margin-bottom:12px;">${article.title}</div>
 ${paragraphes || `<p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:#374151;">${(article.excerpt || '').slice(0, 200)}</p>`}
 <a href="${url}" style="display:inline-block;margin-top:6px;padding:11px 20px;background:#0c1a3a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:7px;">Continuer la lecture →</a>
+${BLOC_PREUVE_CADENCE}
 </div>`;
 }
+
+/**
+ * La preuve chiffrée, sous l'extrait d'article.
+ *
+ * Fondateur, 19 août : « on met bien en avant les études qui prouvent la valeur
+ * de publier sur les réseaux, sur la page d'accueil et dans les blogs, en plus
+ * on les envoie par email. »
+ *
+ * Le bloc existe déjà sur l'accueil. Ici il fait un travail différent : le
+ * prospect qui reçoit ce mail n'a pas demandé de conseil, il découvre. Une
+ * donnée mesurée sur 2,1 millions de publications répond à la seule objection
+ * qui compte à ce stade — « est-ce que ça sert vraiment à quelque chose ? » —
+ * et elle y répond sans rien vendre.
+ *
+ * Court à dessein : deux lignes sous l'extrait. Un mail de prospection qui
+ * déroule un tableau se ferme avant d'être lu. La donnée appuie l'article,
+ * elle ne le remplace pas.
+ *
+ * On cite la source : un chiffre sans provenance se lit comme un argument
+ * commercial, un chiffre sourcé se lit comme un fait.
+ */
+const BLOC_PREUVE_CADENCE = `<div style="margin-top:16px;padding-top:14px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;">
+<strong style="color:#374151;">Ce que disent les données :</strong> sur 2,1 millions de publications analysées par Buffer, un compte qui publie tous les jours obtient <strong style="color:#0c1a3a;">24 % de portée en plus par publication</strong> qu'un compte qui publie deux fois par semaine — et 5,5 fois plus de croissance d'abonnés. Publier plus souvent ne dilue pas l'audience, ça l'élargit.
+</div>`;
 
 /** Version texte brut du bloc (pour la partie textBody). */
 export function blogValueBlockText(article: BlogMatch): string {

@@ -131,6 +131,46 @@ export async function finishTaskRun(
     }
   } catch { /* le suivi ne doit jamais casser l'action */ }
 
+  /**
+   * ── Prévenir le client même s'il a quitté la conversation ──
+   *
+   * Fondateur, 19 août : « dire par pop-up, si le client n'est pas déjà dans la
+   * conversation du même agent, que le travail est finalisé, et l'inviter à
+   * aller regarder. »
+   *
+   * Le message de fin est bien écrit dans le fil — mais uniquement là. Un
+   * client qui a lancé la tâche puis est parti voir sa galerie, ou qui a fermé
+   * l'onglet, ne saura jamais qu'elle est terminée. Il revient une heure plus
+   * tard, ou pas du tout, et croit que rien n'a bougé.
+   *
+   * Le comble : le prompt de l'agent promet déjà au client qu'il « SERA
+   * prévenu » (règle 5 plus bas). On lui faisait donc une promesse que le code
+   * ne tenait pas — pire qu'un silence, parce qu'il l'attend.
+   *
+   * La notification porte le nom de l'agent et l'invitation à venir voir. Elle
+   * ne part que sur un SUCCÈS : annoncer un échec par pop-up inquiète sans rien
+   * permettre, et l'échec est déjà écrit dans le fil avec sa raison.
+   */
+  if (opts.ok) {
+    try {
+      const resume = (opts.summary || '').slice(0, 180);
+      await supabase.from('client_notifications').insert({
+        user_id: opts.userId,
+        agent: opts.agent,
+        type: 'tache_terminee',
+        title: 'Travail terminé',
+        message: resume || 'Votre demande est traitée — allez voir le résultat.',
+        title_fr: 'Travail terminé',
+        message_fr: resume || 'Votre demande est traitée — allez voir le résultat.',
+        title_en: 'Task complete',
+        message_en: resume || 'Your request is done — go take a look.',
+        data: { run_id: runId, agent: opts.agent, action: opts.action, lien: `/assistant/agent/${opts.agent}` },
+        read: false,
+        created_at: new Date().toISOString(),
+      });
+    } catch { /* une notification manquée ne doit jamais annuler le travail fait */ }
+  }
+
   if (opts.notify === false) return;
   try {
     const { notifyClient } = await import('@/lib/agents/notify-client');
