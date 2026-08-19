@@ -7902,7 +7902,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
          * lire que l'identifiant de compte reviendrait à déclarer déconnecté
          * quelqu'un qui publie très bien.
          */
-        .select('instagram_business_account_id, instagram_igaa_token, instagram_access_token, facebook_page_access_token, tiktok_access_token, linkedin_access_token, company_name')
+        .select('instagram_business_account_id, instagram_igaa_token, instagram_access_token, facebook_page_access_token, tiktok_access_token, linkedin_access_token, company_name, instagram_connected_at, tiktok_connected_at, linkedin_connected_at, instagram_last_sync_at')
         .eq('id', userId)
         .maybeSingle();
       const { data: dos } = await supabase
@@ -7915,6 +7915,57 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
       const instagramConnecte = !!(pr.instagram_business_account_id
         && (pr.instagram_igaa_token || pr.facebook_page_access_token || pr.instagram_access_token));
       const aucunReseau = !instagramConnecte && !pr.tiktok_access_token && !pr.linkedin_access_token;
+
+      /**
+       * ── Jamais connecté ≠ déconnecté ──
+       *
+       * Fondateur, 19 août : « pas de génération automatique. Pour qu'il y ait
+       * génération, il faut que le client connecte une fois, rien n'est lancé
+       * avant par Léna. Et si déconnexion, on peut continuer de générer quelques
+       * jours au cas où c'est un token expiré, et on reprend les publications. »
+       *
+       * La règle est plus juste que la mienne, qui traitait les deux cas
+       * pareil. Or ils n'ont rien à voir :
+       *
+       *   · JAMAIS connecté — on ne sait rien du commerce, rien ne peut partir,
+       *     et générer ne fait que brûler du budget pour un calendrier
+       *     invisible. On s'arrête.
+       *   · DÉJÀ connecté puis plus de jeton — c'est le plus souvent une
+       *     expiration, pas un départ. Couper la production le jour même
+       *     laisserait un trou dans le calendrier pour un incident qui se règle
+       *     en un clic. On continue quelques jours, et la publication reprend
+       *     d'elle-même au renouvellement.
+       *
+       * Les dates de connexion survivent à l'expiration du jeton : c'est elles
+       * qui distinguent les deux situations.
+       */
+      const dejaConnecteUnJour = !!(pr.instagram_connected_at || pr.tiktok_connected_at || pr.linkedin_connected_at);
+      const JOURS_DE_GRACE = 7;
+      const derniereTrace = [pr.instagram_connected_at, pr.tiktok_connected_at, pr.linkedin_connected_at, pr.instagram_last_sync_at]
+        .filter(Boolean).map((d: string) => new Date(d).getTime()).sort((a, b) => b - a)[0] || 0;
+      const dansLaGrace = derniereTrace > 0 && (Date.now() - derniereTrace) < JOURS_DE_GRACE * 86400000;
+
+      if (aucunReseau && dejaConnecteUnJour && dansLaGrace) {
+        // On produit quand même : le jeton reviendra, le contenu sera prêt.
+        console.warn(`[Content] ${String(userId).slice(0, 8)} déconnecté depuis peu — on continue de produire (délai de grâce ${JOURS_DE_GRACE} j)`);
+      } else if (aucunReseau && !dejaConnecteUnJour) {
+        console.warn(`[Content] génération refusée pour ${String(userId).slice(0, 8)} : ce compte n'a jamais connecté de réseau`);
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content', action: 'generation_impossible_onboarding', status: 'warning',
+            user_id: userId,
+            error_message: "Aucun réseau jamais connecté — Léna ne démarre pas tant que le client n'a pas branché au moins un compte",
+            data: { a_faire: 'relancer le client sur la connexion de ses réseaux' },
+            created_at: new Date().toISOString(),
+          });
+        } catch { /* la trace ne bloque pas la réponse */ }
+        return NextResponse.json({
+          ok: false,
+          code: 'reseau_jamais_connecte',
+          error: "Connectez au moins un réseau pour que Léna démarre. Sans ça, vos publications ne pourraient aller nulle part.",
+        }, { status: 409 });
+      }
+
       // Le type seul ne suffit pas : « ecommerce » ne dit ni quoi vendre ni à
       // qui. C'est la description ou les produits qui donnent de quoi écrire.
       const dossierVide = !(dos as any)?.company_description && !(dos as any)?.main_products && !(prof as any)?.company_name;
