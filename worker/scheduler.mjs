@@ -105,6 +105,13 @@ const GLOBAL_SCHEDULE = [
 
   { cron: '25 * * * *', path: '/api/cron/verifier-deploiement', label: 'La production sert-elle le dernier commit ?' },
 
+  // Un fournisseur en impayé ne se signale pas non plus. Le 19 août, un
+  // prélèvement ByteDance refusé a coupé d'un coup les images, la vidéo, le
+  // texte DeepSeek et le juge de vision — sans qu'aucune erreur ne remonte :
+  // les posts sortaient simplement sans visuel. Un appel minimal par heure
+  // pour distinguer l'impayé (une facture) de la clé morte (un renouvellement).
+  { cron: '45 * * * *', path: '/api/cron/verifier-fournisseurs', label: 'Les fournisseurs répondent-ils encore ?' },
+
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   // Inbound email poll every 2h (8 fires/day) so prospect replies get
   // classified and auto-responded within ~2h instead of waiting for the

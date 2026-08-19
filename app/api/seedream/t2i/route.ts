@@ -158,11 +158,66 @@ export async function POST(request: Request) {
       await recordFreeGeneration(ip, fingerprint, 'image');
     }
 
+    // ── Le juge manquait sur ce chemin-ci ──
+    //
+    // 2026-08-19, le fondateur : « toutes les générations doivent être jugées
+    // […] on a Léna, on a à la demande via chat, on a via galerie et via studio,
+    // tous les chemins doivent être notés et jugés ».
+    //
+    // Il avait raison de demander. Le juge tournait sur le chemin des agents
+    // (portail de publication + agent contenu) et nulle part ailleurs : tout ce
+    // qui sortait du Studio ou de la Galerie partait sans être regardé, donc
+    // sans note et sans trace. D'où deux effets — le client pouvait recevoir
+    // une image que l'agent aurait écartée, et surtout ces générations-là ne
+    // nourrissaient rien : aucune raison consignée, ni positive ni négative.
+    //
+    // On note ici sans bloquer : le client garde son image (il l'a payée en
+    // crédits, et une panne de notre côté ne lui prend pas sa génération), mais
+    // la note et le motif partent au journal pour l'amélioration continue, et
+    // reviennent dans la réponse pour que l'interface puisse les montrer.
+    let qualite: { verdict: string; motif?: string } | undefined;
+    try {
+      const { reviewGeneratedImage } = await import('@/lib/visuals/image-qa');
+      const v = await reviewGeneratedImage({
+        imageUrl,
+        visualBrief: finalPrompt,
+        businessType,
+      });
+      qualite = { verdict: v.verdict, motif: v.issue || v.raisonIndisponible };
+
+      // Écriture ATTENDUE : un insert lancé sans await est perdu dès que la
+      // réponse part la première. C'est comme ça qu'on a cru pendant des jours
+      // que le juge ne rendait aucune note.
+      const { createClient } = await import('@supabase/supabase-js');
+      const sbLog = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+      await sbLog.from('agent_logs').insert({
+        agent: 'content',
+        action: 'qc_verdict',
+        status: v.verdict === 'hard_fail' ? 'warning' : 'ok',
+        user_id: user?.id ?? null,
+        data: {
+          chemin: 'studio_t2i',
+          verdict: v.verdict,
+          motif: v.issue || v.raisonIndisponible || null,
+          fournisseur: provider,
+          brief: finalPrompt.slice(0, 400),
+          image_url: imageUrl,
+        },
+        created_at: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      // Le juge qui tombe ne prend pas l'image du client avec lui — mais on le
+      // dit, au lieu de laisser croire que le contrôle a eu lieu.
+      console.warn('[T2I] Juge indisponible :', e?.message);
+      qualite = { verdict: 'indisponible', motif: e?.message?.slice(0, 120) };
+    }
+
     return Response.json({
       ok: true,
       imageUrl,
       watermark: useWatermark,
       newBalance,
+      qualite,
       _p: provider,
     });
 
