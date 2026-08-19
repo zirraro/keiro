@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Galerie & Posts Instagram - Keiro",
+  title: "Galerie - Keiro",
   description: "Gérez vos visuels marketing créés avec l'IA. Organisez par dossiers, préparez vos posts Instagram, exportez en un clic. Votre galerie de contenu marketing centralisée.",
   keywords: [
     "galerie visuels marketing",
@@ -14,14 +14,14 @@ export const metadata: Metadata = {
     "posts Instagram IA"
   ],
   openGraph: {
-    title: "Galerie & Posts Instagram - Keiro",
+    title: "Galerie - Keiro",
     description: "Gérez vos visuels marketing créés avec l'IA. Organisez, préparez et publiez vos posts Instagram.",
     url: "https://www.keiroai.com/library",
     type: "website"
   },
   twitter: {
     card: "summary_large_image",
-    title: "Galerie & Posts Instagram - Keiro",
+    title: "Galerie - Keiro",
     description: "Gérez vos visuels marketing créés avec l'IA."
   },
   alternates: {
