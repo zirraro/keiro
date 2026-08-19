@@ -254,6 +254,49 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    /**
+     * ── Deux tables, un seul calendrier : il faut viser la bonne ──
+     *
+     * Depuis que le calendrier de la Galerie affiche AUSSI le travail des
+     * agents, il peut demander de déplacer un post qui vit dans
+     * `content_calendar` et non dans `scheduled_posts`.
+     *
+     * Sans ce routage, l'écriture ne trouverait aucune ligne : PostgREST rend
+     * un succès avec zéro ligne modifiée, l'interface afficherait l'heure
+     * changée, et rien n'aurait bougé. Le client verrait son post partir à
+     * l'ancienne heure sans comprendre — un échec qui se présente comme une
+     * réussite, le mode de panne le plus coûteux de ce produit.
+     *
+     * On regarde donc d'abord si l'identifiant appartient au calendrier des
+     * agents, et on écrit là où le post existe vraiment.
+     */
+    const { data: postAgent } = await supabase
+      .from('content_calendar')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (postAgent) {
+      // `scheduled_for` est un instant ; le calendrier des agents sépare la
+      // date et l'heure. On traduit ici plutôt que de faire porter cette
+      // connaissance à l'interface.
+      const quand = String((updates as any).scheduled_for || '');
+      const maj: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (quand) {
+        maj.scheduled_date = quand.slice(0, 10);
+        maj.scheduled_time = `${quand.slice(11, 16) || '09:15'}:00`;
+      }
+      if ((updates as any).caption !== undefined) maj.caption = (updates as any).caption;
+
+      const { error: errAgent } = await supabase
+        .from('content_calendar').update(maj).eq('id', id).eq('user_id', user.id);
+      if (errAgent) {
+        return NextResponse.json({ ok: false, error: errAgent.message }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, post: { id, ...maj } });
+    }
+
     // Mettre à jour le post
     const { data: updatedPost, error: updateError } = await supabase
       .from('scheduled_posts')

@@ -543,17 +543,70 @@ function LibraryContent() {
     }
   };
 
-  // Fonction pour charger les posts planifiés
+  /**
+   * ── Le calendrier de la Galerie était vide du travail des agents ──
+   *
+   * Fondateur, 19 août : « y'a aussi calendrier dans Galerie, il doit être
+   * rempli au même titre que planning dans Léna, avec les bons filtres et
+   * navigation. »
+   *
+   * Il ne lisait que `scheduled_posts` — une table que Léna n'utilise pas. Son
+   * travail vit dans `content_calendar`. Le client ouvrait donc un calendrier
+   * vide alors que sa semaine était pleine, et devait aller dans Léna pour
+   * voir ce qui allait sortir. Deux vues de la même chose, dont une aveugle.
+   *
+   * On fusionne les deux sources plutôt que de remplacer : les publications
+   * programmées à la main depuis la Galerie continuent d'exister, et celles
+   * des agents les rejoignent. Chacune porte son auteur, donc on sait d'un
+   * regard qui a fait quoi — même règle que sur les vignettes.
+   *
+   * Un échec de l'une ne vide pas l'autre : deux lectures indépendantes, et
+   * ce qui répond s'affiche.
+   */
   const loadScheduledPosts = async () => {
+    const fusion: any[] = [];
+
     try {
       const res = await fetch('/api/library/scheduled-posts');
       const data = await res.json();
+      if (data.ok) fusion.push(...(data.posts || []));
+    } catch (error) {
+      console.error('[Library] posts programmés manuellement illisibles :', error);
+    }
+
+    try {
+      const res = await fetch('/api/library/posts-agents?etat=tous&limite=200', { credentials: 'include' });
+      const data = await res.json();
       if (data.ok) {
-        setScheduledPosts(data.posts || []);
+        for (const p of (data.posts || [])) {
+          // On se ramène à la forme attendue par le calendrier : il n'a pas à
+          // connaître deux modèles de données pour afficher une pastille.
+          if (!p.programme_le && !p.publie_le) continue;
+          const quand = p.publie_le
+            ? String(p.publie_le)
+            : `${String(p.programme_le).replace(' ', 'T')}:00`;
+          fusion.push({
+            id: p.id,
+            image_url: p.couverture || p.media || '',
+            thumbnail_url: p.couverture || undefined,
+            title: p.accroche || undefined,
+            platform: p.reseau,
+            scheduled_for: quand,
+            caption: p.legende,
+            hashtags: p.hashtags || [],
+            status: p.etat === 'publie' ? 'published' : 'scheduled',
+            approval_status: p.etat,
+            created_at: quand,
+            auteur: p.auteur,
+            etat_libelle: p.etat_libelle,
+          });
+        }
       }
     } catch (error) {
-      console.error('[Library] Error loading scheduled posts:', error);
+      console.error('[Library] posts des agents illisibles :', error);
     }
+
+    setScheduledPosts(fusion);
   };
 
   // Charger les images et dossiers

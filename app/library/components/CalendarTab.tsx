@@ -289,6 +289,24 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                             minute: '2-digit'
                           })}
                         </span>
+                        {/*
+                          Un point suffit à dire l'auteur sur une pastille de
+                          calendrier : la place manque pour un mot, et la
+                          couleur se lit plus vite qu'un texte.
+
+                          Violet pour un agent, comme sur les vignettes de la
+                          galerie — une même information doit porter la même
+                          couleur partout, sinon il faut la réapprendre à
+                          chaque écran. Le vert dit publié.
+                        */}
+                        {(post as any).auteur && (post as any).auteur !== 'Vous' && (
+                          <span
+                            title={`Préparé par ${(post as any).auteur}`}
+                            className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${
+                              post.status === 'published' ? 'bg-emerald-400' : 'bg-violet-400'
+                            }`}
+                          />
+                        )}
                       </div>
                     </button>
                   ))}
