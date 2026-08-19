@@ -302,7 +302,39 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
     }
   }
 
-  // Provider 2: Kling (Kuaishou) — fallback if Seedream down
+  // ── Provider 2 : Gemini image — PASSÉ DEVANT KLING le 2026-08-20 ──
+  //
+  // Le fondateur : « c'est ByteDance tous les modèles, puis Gemini, pas Kling ».
+  //
+  // Les chiffres lui donnent raison. Tarifs officiels relevés le jour même
+  // (ai.google.dev/gemini-api/docs/pricing), pas de mémoire :
+  //   Seedream            0,045 €/image  (référence)
+  //   gemini-2.5-flash    0,036 €/image  → moins cher que Seedream
+  //   Kling               0,025 €/image  → le moins cher, mais le plus faible
+  //
+  // Kling était deuxième pour son prix. Or un secours ne sert que pendant une
+  // panne, quelques heures par an : économiser 0,011 € l'image sur ces heures-là
+  // ne compense pas une image que le client ne publiera pas. La règle du
+  // fondateur — la qualité ne doit que monter — tranche l'ordre : le secours le
+  // plus proche de Seedream passe devant le secours le moins cher.
+  //
+  // Vérifié en réel le 2026-08-20 pendant l'impayé ByteDance : HTTP 200,
+  // image de 1,7 Mo. Le filet fonctionne au moment où il sert.
+  {
+    const geminiUrl = await generateWithGemini(opts, size);
+    if (geminiUrl) {
+      void notifyProviderFallback({ used: 'gemini', seedreamError, reason: 'gemini_fallback_seedream_failed', callTag: opts.callTag });
+      return {
+        url: geminiUrl,
+        provider: 'gemini',
+        cost_eur_estimate: 0.036,
+        reason: 'gemini_fallback_seedream_failed',
+      };
+    }
+    geminiError = 'Gemini image indisponible';
+  }
+
+  // Provider 3: Kling (Kuaishou) — recours économique, après Gemini.
   // Uses HMAC-SHA256 JWT auth via lib/kling.ts (generateKlingT2I).
   if (process.env.KLING_ACCESS_KEY && process.env.KLING_SECRET_KEY) {
     try {
@@ -324,23 +356,6 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
       klingError = e?.message?.substring(0, 200) || 'unknown kling error';
       console.warn('[image-provider] Kling failed → Flux Schnell fallback:', klingError);
     }
-  }
-
-  // Provider 3: Gemini image — secours QUALITÉ (compte Google déjà approvisionné)
-  // avant de dégrader sur Flux Schnell. Ajouté le 2026-07-28 après une panne
-  // simultanée Seedream (compte débiteur) + Kling (solde vide).
-  {
-    const geminiUrl = await generateWithGemini(opts, size);
-    if (geminiUrl) {
-      void notifyProviderFallback({ used: 'gemini', seedreamError, klingError, reason: 'gemini_fallback_seedream_kling_failed', callTag: opts.callTag });
-      return {
-        url: geminiUrl,
-        provider: 'gemini',
-        cost_eur_estimate: 0.035,
-        reason: 'gemini_fallback_seedream_kling_failed',
-      };
-    }
-    geminiError = 'Gemini image indisponible';
   }
 
   // Provider 4: Flux Schnell (Replicate) — last resort cheap fallback.
