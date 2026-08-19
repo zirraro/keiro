@@ -473,12 +473,52 @@ function matchField(expr, value) {
 
 const firedThisMinute = new Set();
 
+/**
+ * Écrit « je suis vivant » dans agent_logs. Volontairement minuscule : une
+ * ligne par minute travaillée, sans charge utile, pour qu'un contrôle externe
+ * puisse mesurer la fraîcheur sans dépendre du worker lui-même.
+ */
+async function battement() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const cle = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !cle) return;
+  await fetch(`${url}/rest/v1/agent_logs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: cle,
+      Authorization: `Bearer ${cle}`,
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({
+      agent: 'ops',
+      action: 'worker_battement',
+      status: 'ok',
+      created_at: new Date().toISOString(),
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
 async function tick() {
   const now = new Date();
   const minuteKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}-${now.getUTCHours()}-${now.getUTCMinutes()}`;
 
   if (firedThisMinute.has(minuteKey)) return;
   firedThisMinute.add(minuteKey);
+
+  // ── Le battement de cœur ──
+  //
+  // Le 19 août, le worker était arrêté et personne ne le savait. Il porte TOUS
+  // les crons — publications, DM, génération, relances : les clients ne
+  // recevaient plus rien, et aucun signal ne remontait. Un worker mort ne se
+  // plaint pas, c'est précisément le problème.
+  //
+  // On écrit donc une trace à chaque minute travaillée. Ce n'est pas un journal
+  // de plus : c'est la SEULE preuve qu'un contrôle extérieur peut lire pour
+  // distinguer « tout va bien » de « plus personne ne tourne ». L'absence de
+  // battement est le signal ; sa présence ne prouve rien d'autre que la vie.
+  battement().catch(() => {});
 
   // Cleanup old keys
   if (firedThisMinute.size > 120) {

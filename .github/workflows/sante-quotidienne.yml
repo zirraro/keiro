@@ -1,0 +1,56 @@
+name: Santé quotidienne
+
+# ── Le déclencheur qui ne dépend pas de ce qu'il surveille ──
+#
+# Le 19 août, le worker était arrêté depuis un moment. Il porte TOUS les crons
+# — publications, DM, génération, relances : les clients ne recevaient plus
+# rien. Aucune alerte n'est partie, pour une raison mécanique et non un oubli :
+# le contrôle censé surveiller le worker tournait DANS le worker.
+#
+# Le fondateur : « d'où l'intérêt d'avoir un fallback ou 2 ».
+#
+# Ce workflow tourne chez GitHub. Il ne partage rien avec le VPS : ni le
+# processus, ni la machine, ni le réseau. Si le serveur tombe entièrement,
+# l'appel échoue et l'exécution passe au ROUGE — la panne devient visible au
+# lieu d'être silencieuse. C'est la seule propriété qui compte ici.
+#
+# Le worker garde son propre passage sur la même route : deux chemins valent
+# mieux qu'un, et la route se protège elle-même contre le doublon quotidien.
+
+on:
+  schedule:
+    # 7 h 10 UTC — avant la journée de travail du fondateur, après la nuit
+    # pendant laquelle la plupart des publications sont programmées.
+    - cron: '10 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  controler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Interroger la santé du worker et des crons
+        run: |
+          reponse=$(curl -s -w '\n%{http_code}' --max-time 60 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://keiroai.com/api/cron/sante-worker)
+
+          code=$(echo "$reponse" | tail -1)
+          corps=$(echo "$reponse" | sed '$d')
+          echo "$corps"
+
+          # Un serveur injoignable est le pire cas, pas le plus discret : il
+          # signifie que même l'application ne répond plus. On échoue fort.
+          if [ "$code" != "200" ]; then
+            echo "::error::keiroai.com injoignable ou en erreur (HTTP $code) — le VPS est peut-être entièrement à l'arrêt"
+            exit 1
+          fi
+
+          # La route a répondu : elle a donc pu envoyer le mail. On fait quand
+          # même échouer l'exécution si elle signale une alerte, pour que le
+          # rouge dans GitHub double le mail — un mail se rate, pas les deux.
+          if echo "$corps" | grep -q '"alerte":true'; then
+            echo "::error::Le contrôle signale une anomalie (worker muet ou fournisseur bloqué)"
+            exit 1
+          fi
+
+          echo "✅ worker et crons OK"
