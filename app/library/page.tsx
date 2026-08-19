@@ -631,16 +631,41 @@ function LibraryContent() {
           setStats(prev => ({ ...prev, total_folders: foldersData.folders.length }));
         }
 
-        // Charger tout en parallèle pour un affichage rapide
+        /**
+         * ── On charge ce qui s'affiche, le reste attend ──
+         *
+         * Fondateur, 19 août : « la page galerie est super super lente. »
+         *
+         * Sept chargements partaient ensemble à l'ouverture. Le serveur répond
+         * pourtant en 0,11 s : la lenteur ne venait pas de lui mais du nombre.
+         * Le navigateur ouvre quelques connexions à la fois, donc les
+         * dernières attendent que les premières finissent — et surtout, la
+         * page ne s'affiche qu'une fois TOUTES terminées, à cause du
+         * `Promise.all`. Un seul appel lent bloquait l'écran entier.
+         *
+         * Or quatre de ces sept chargements servent les onglets de brouillons,
+         * un par réseau, que le client ouvre rarement et jamais en arrivant.
+         * On payait leur temps à chaque visite pour un contenu que personne ne
+         * regardait.
+         *
+         * Deux temps, donc. D'abord ce que l'écran montre vraiment — images,
+         * vidéos, publications, calendrier. La page est utilisable là. Les
+         * brouillons se chargent ensuite, sans bloquer : quand le client
+         * ouvrira leur onglet, ils seront prêts.
+         */
         await Promise.all([
           loadImages(),
           loadMyVideos(),
+          loadScheduledPosts(),
+        ]);
+
+        // Second temps : rien ici ne retient l'affichage.
+        void Promise.all([
           loadInstagramDrafts(),
           loadTikTokDrafts(),
           loadLinkedInDrafts(),
           loadTwitterDrafts(),
-          loadScheduledPosts(),
-        ]);
+        ]).catch(() => { /* un brouillon manquant ne casse pas la galerie */ });
       } catch (error) {
         console.error('[Library] Error loading library:', error);
       }
