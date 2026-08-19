@@ -617,8 +617,26 @@ export async function assessPostCoherence(input: {
   metier?: string | null;
   cible?: string | null;
 }): Promise<CoherenceVerdict | CoherenceUnavailable | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || !input.visualUrl) return null;
+  /**
+   * ── Le juge s arretait faute de cle Anthropic, alors qu il a deux recours ──
+   *
+   * Cette porte exigeait ANTHROPIC_API_KEY pour seulement COMMENCER. Or le
+   * credit Anthropic est epuise depuis le 1er aout, et la chaine de vision a
+   * justement trois fournisseurs : Anthropic, puis Gemini, puis ARK. Les deux
+   * derniers fonctionnent — mais on n arrivait jamais jusqu a eux.
+   *
+   * Consequence mesuree le 19 aout : le juge rendait null en silence, aucune
+   * note n etait enregistree, et les posts partaient sans avoir ete juges. Le
+   * fondateur : « il est cense juger a chaque sortie generee ». Il l etait, il
+   * ne l etait plus, et rien ne le disait.
+   *
+   * C est encore une condition ecrite pour un monde a un seul fournisseur,
+   * devenue un piege quand on en a ajoute deux — comme les sorties anticipees
+   * corrigees le 17 aout dans ce meme fichier.
+   *
+   * Seule l image est indispensable : sans elle il n y a rien a juger.
+   */
+  if (!input.visualUrl) return null;
 
   const img = await fetchImageBase64(input.visualUrl);
   if (!img) return null;
