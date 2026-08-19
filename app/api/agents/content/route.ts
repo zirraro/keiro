@@ -1387,8 +1387,31 @@ async function publishToInstagram(
           error: "Publication sans propriétaire : elle n'est rattachée à aucun client, aucun compte ne peut donc la publier. Elle restera bloquée tant qu'un client ne lui est pas rattaché.",
         };
       }
-      console.warn(`[Content] client ${effectiveUserId} sans compte Instagram connecté`);
-      return { success: false, error: 'Ce client n\'a pas de compte Instagram connecté. Aucune publication.' };
+      /**
+       * ── Un post sans compte connecté se met en attente, il n'échoue pas ──
+       *
+       * Constaté le 19 août : quatre publications d'une même cliente rejouaient
+       * chaque jour et remplissaient le rapport du matin, alors que la cause
+       * n'avait rien de réparable — son Instagram n'est simplement pas branché.
+       * Chaque tentative produisait une alerte identique, et la vraie action —
+       * prévenir la cliente — se noyait dans le bruit.
+       *
+       * Un échec appelle une correction ; ici il n'y a rien à corriger, il y a
+       * quelque chose à attendre. On repasse donc le post en brouillon avec un
+       * motif explicite : il repartira dès la connexion, sans intervention, et
+       * cesse entre-temps d'occuper les alertes.
+       */
+      console.warn(`[Content] client ${effectiveUserId} sans compte Instagram connecté — post mis en attente`);
+      try {
+        if (post?.id) {
+          await supabase.from('content_calendar').update({
+            status: 'draft',
+            publish_diagnostic: "en_attente_connexion: le compte social n'est pas connecté — ce post repartira dès la connexion",
+            updated_at: new Date().toISOString(),
+          }).eq('id', post.id);
+        }
+      } catch { /* la mise en attente ne doit pas masquer le retour */ }
+      return { success: false, error: 'Ce client n\'a pas de compte Instagram connecté. Post mis en attente de connexion.' };
     }
 
     const igUserId = publishProfile.instagram_business_account_id;
