@@ -2424,6 +2424,27 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
         firstTaskId = `seedream_${taskId}`;
         firstProvider = 's';
         console.log(`[Content] Segment 0 started: Seedance taskId=${firstTaskId}`);
+        /**
+         * ── Le troisième chemin vidéo ne payait rien, sur le papier ──
+         *
+         * Mesuré le 19 août : 49 vidéos produites en trente jours, 2 lignes de
+         * coût enregistrées. Quatre pour cent. Le poste le plus cher à l'unité
+         * était le moins suivi, et nos livres montraient 1,10 € là où la
+         * dépense réelle approche la cinquantaine d'euros.
+         *
+         * C'est la troisième fois que ce défaut se manifeste sur ce fichier :
+         * trois endroits soumettent une vidéo, et une correction qui n'en
+         * touche que deux laisse le troisième muet. J'avais instrumenté le
+         * chemin TikTok, puis le reel Instagram — jamais celui-ci.
+         */
+        try {
+          const { logApiCost, PROVIDER_EUR } = await import('@/lib/admin/api-cost-logger');
+          void logApiCost({
+            provider: 'seedance', kind: 'video_10s', units: 1,
+            cost_eur: PROVIDER_EUR.seedance_10s, agent: 'content',
+            metadata: { chemin: 'segment_asynchrone' },
+          }).catch(() => {});
+        } catch { /* la trace ne bloque jamais une génération */ }
       } catch (seedanceErr: any) {
         console.error('[Content] Both Kling and Seedance failed for segment 0:', seedanceErr.message);
         return { jobId: null, coverUrl: imageUrl };

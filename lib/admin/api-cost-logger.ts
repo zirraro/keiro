@@ -148,10 +148,23 @@ export function placesCostEur(kind: 'text_search' | 'place_details' | 'nearby_se
 // mais nos calculs internes utilisent une approximation EUR direct).
 export const PROVIDER_EUR = {
   seedream_image: 0.045,
-  seedance_5s: 0.31,
-  seedance_10s: 0.55,
-  seedance_15s: 0.83,
-  seedance_30s: 1.65,
+  // ── Prix relevés sur la facture réelle, pas sur la grille affichée ──
+  //
+  // Fondateur, 19 août : « pour Seedance dix secondes nous coûtent 1,20 USD à
+  // peu près, pas 0,26, donc attention, vérifie bien les coûts ».
+  //
+  // Il a raison sur les deux points. J'avais cité 0,26 € de mémoire — c'était
+  // faux — et la constante du code disait 0,55 €, soit la moitié de la dépense
+  // réelle. Un coût sous-évalué de moitié sur le poste le plus cher à l'unité
+  // fausse toutes les décisions de marge : on croit pouvoir se permettre deux
+  // fois plus de vidéos qu'on ne peut.
+  //
+  // Les valeurs suivent maintenant la facture (1,20 USD ≈ 1,10 EUR pour dix
+  // secondes), les autres durées au prorata.
+  seedance_5s: 0.55,
+  seedance_10s: 1.10,
+  seedance_15s: 1.65,
+  seedance_30s: 3.30,
   kling_5s: 0.30,
   kling_10s: 0.55,
   elevenlabs_per_1k_chars: 0.30 * USD_TO_EUR,
