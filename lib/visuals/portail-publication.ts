@@ -233,7 +233,24 @@ export async function controlerAvantPublication(
       // cet instant, l'écriture supplémentaire est négligeable, et sans elle on
       // ne saura jamais si le contrôle sert à quelque chose.
       if (coh && 'pass' in coh) {
-        supabase.from('agent_logs').insert({
+        /**
+         * ── Une note qu on n attend pas ne s ecrit jamais ──
+         *
+         * Ce journal partait en « tire et oublie » : la fonction rendait son
+         * verdict et la reponse partait avant que l ecriture n aboutisse. Sur
+         * un refus, le retour est immediat — l insertion etait donc perdue a
+         * tous les coups.
+         *
+         * Consequence mesuree le 19 aout : le juge tournait, retenait des
+         * posts, et ZERO ligne qc_verdict etait enregistree. J en avais conclu
+         * que le juge ne passait pas. Le fondateur : « il est cense juger et
+         * porter les notes, sinon comment les posts ont ete notes ? » — il
+         * avait raison de ne pas me croire.
+         *
+         * On attend l ecriture. Une insertion coute quelques millisecondes ;
+         * ne pas savoir si la qualite monte ou descend coute bien plus.
+         */
+        await supabase.from('agent_logs').insert({
           agent: 'content', action: 'qc_verdict', status: 'ok',
           user_id: post.user_id || undefined,
           data: {
@@ -247,7 +264,7 @@ export async function controlerAvantPublication(
             flags: Object.entries(coh.flags || {}).filter(([, v]) => v).map(([k]) => k),
           },
           created_at: new Date().toISOString(),
-        }).then(() => {}, () => {});
+        });
       }
 
       if (coh && 'pass' in coh && !coh.pass) {
