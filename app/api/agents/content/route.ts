@@ -6966,7 +6966,67 @@ Retourne UNIQUEMENT le JSON.`,
         if (userId) calQuery = calQuery.eq('user_id', userId);
         const { data: posts } = await calQuery;
 
-        return NextResponse.json({ ok: true, posts: posts || [] });
+        /**
+         * ── Le planning de Léna voit aussi ce que le client a programmé ──
+         *
+         * Fondateur, 19 août : « le planning dans Léna doit prendre en compte
+         * le travail fait par le client lui-même, les deux communiquent
+         * également, les mises sur l'un sont faites sur l'autre. »
+         *
+         * La Galerie affiche déjà les deux sources depuis ce matin. Le planning,
+         * lui, ne lisait que `content_calendar` : une publication que le client
+         * programme depuis sa Galerie lui restait invisible ici.
+         *
+         * Le coût de cet angle mort n'est pas cosmétique. Léna décide de ses
+         * créneaux d'après ce qu'elle voit : ignorer les publications du client,
+         * c'est risquer d'en poser une par-dessus, et donc de faire partir deux
+         * posts à la même minute — précisément la salve qui a bridé un compte
+         * en juin.
+         *
+         * Les deux vues lisent maintenant les deux tables. Le champ `source`
+         * dit d'où vient chaque post, pour que l'interface le montre sans avoir
+         * à le deviner.
+         */
+        const fusion: any[] = (posts || []).map((p: any) => ({ ...p, origine: 'agent' }));
+        if (userId) {
+          try {
+            const { data: manuels } = await supabase
+              .from('scheduled_posts')
+              /**
+               * `scheduled_posts` ne porte PAS l'image : elle vit dans
+               * `saved_images`, liée par `saved_image_id`. Ma première version
+               * demandait `image_url` — colonne inexistante, et PostgREST
+               * rejette alors la requête ENTIÈRE avec un 42703. Sans lire
+               * l'erreur, ça se serait lu comme « le client n'a rien programmé »
+               * et le planning serait resté aveugle en silence.
+               *
+               * C'est le piège le plus fréquent de ce produit, et c'est la
+               * quatrième fois cette semaine. D'où la vérification des colonnes
+               * avant chaque écriture de requête.
+               */
+              .select('id, platform, scheduled_for, caption, hashtags, status, saved_images(image_url, thumbnail_url)')
+              .eq('user_id', userId)
+              .gte('scheduled_for', `${startDate}T00:00:00`)
+              .lte('scheduled_for', `${endDate}T23:59:59`);
+            for (const m of (manuels || []) as any[]) {
+              const quand = String(m.scheduled_for || '');
+              fusion.push({
+                id: m.id,
+                platform: m.platform,
+                format: 'post',
+                status: m.status === 'published' ? 'published' : 'approved',
+                caption: m.caption,
+                hashtags: m.hashtags || [],
+                visual_url: m.saved_images?.image_url || null,
+                scheduled_date: quand.slice(0, 10),
+                scheduled_time: quand.slice(11, 19) || '09:15:00',
+                origine: 'client',
+              });
+            }
+          } catch { /* le planning reste utile même si l'autre source est muette */ }
+        }
+
+        return NextResponse.json({ ok: true, posts: fusion });
       }
 
       default:

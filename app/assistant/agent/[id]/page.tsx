@@ -1145,6 +1145,30 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
                     <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{statusLabel(p.status, en)}</span>
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/60 text-white">{meta?.emoji} {meta?.label}</span>
+                    {/*
+                      ── D'où vient ce post ──
+
+                      Fondateur, 19 août : « le planning dans Léna doit prendre
+                      en compte le travail fait par le client lui-même, les deux
+                      communiquent. »
+
+                      Depuis que le planning affiche les deux sources, il faut
+                      pouvoir les distinguer d'un regard — sinon le client ne
+                      sait plus ce qu'il a programmé lui-même et ce que Léna a
+                      préparé, et il ne peut plus décider quoi retoucher.
+
+                      Seul le sien est marqué : ce qui vient de Léna est la
+                      norme ici, c'est son planning. Marquer les deux
+                      encombrerait pour ne rien apprendre.
+                    */}
+                    {p.origine === 'client' && (
+                      <span
+                        title="Vous avez programmé ce post depuis la Galerie"
+                        className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#0c1a3a]"
+                      >
+                        Vous
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-pink-900/30 flex items-center justify-center p-3">
