@@ -24,7 +24,14 @@ if (!KEY) { console.error('GEMINI_API_KEY absente'); process.exit(1); }
 
 const USD_EUR = 0.925;
 
+const ARK = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+const CLE_ARK = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '').trim();
+
 const MODELES = [
+  // Seedream est enfin comparable : le compte ByteDance a été réglé le 20 août.
+  // C'est la mesure qui manquait ce matin — « moins cher » était vérifié,
+  // « meilleur » ne l'était pas.
+  { id: 'seedream-4-5-251128', label: 'seedream-4.5', usd: 0.0486, ark: true },
   { id: 'gemini-2.5-flash-image',   label: 'gemini-2.5-flash',  usd: 0.039 },
   { id: 'gemini-3.1-flash-image',   label: 'gemini-3.1-flash',  usd: 0.067 },
   { id: 'gemini-3-pro-image',       label: 'gemini-3-pro',      usd: 0.134 },
@@ -48,6 +55,29 @@ const FORMATS = [
 
 async function generer(modele, brief, ratio) {
   const t0 = Date.now();
+
+  // Seedream ne prend pas d'aspectRatio : c'est la taille qui porte le format.
+  if (modele.ark) {
+    const taille = ratio === '9:16' ? '1080x1920' : ratio === '4:5' ? '1080x1350' : '1024x1024';
+    const r = await fetch(ARK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CLE_ARK}` },
+      body: JSON.stringify({
+        model: modele.id,
+        prompt: `${brief}. ${REGLE_TEXTE} ${SUFFIXE}`.slice(0, 2000),
+        size: taille,
+        watermark: false,
+        response_format: 'b64_json',
+      }),
+      signal: AbortSignal.timeout(180000),
+    });
+    const txt = await r.text();
+    if (!r.ok) return { erreur: `HTTP ${r.status} ${txt.slice(0, 110)}` };
+    const m = txt.match(/"b64_json":\s*"([A-Za-z0-9+/=]+)"/);
+    if (!m) return { erreur: "pas d'image (b64) dans la réponse" };
+    return { b64: m[1], secondes: Math.round((Date.now() - t0) / 100) / 10 };
+  }
+
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele.id}:generateContent?key=${KEY}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

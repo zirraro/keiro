@@ -1,11 +1,30 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback, useRef, Suspense } from 'react';
+/**
+ * ── Pourquoi les modales sont chargées à la demande ──
+ *
+ * Fondateur, 20 août : « la page galerie est ultra lente, super important à
+ * améliorer ».
+ *
+ * Mesuré avant de toucher quoi que ce soit — les images étaient déjà en
+ * `loading="lazy"`, et la base répond en 111 ms : ni l'un ni l'autre n'était
+ * le goulot. Le poids est dans le JavaScript. Cinq modales totalisent 6 460
+ * lignes (TikTok 2 596, Instagram 1 692, ImageEdit 885, LinkedIn 678,
+ * Twitter 609) et partaient dans le paquet initial de CHAQUE visite, alors
+ * qu'aucune ne s'affiche avant un clic.
+ *
+ * `ssr: false` parce qu'elles n'ont rien à rendre côté serveur : ce sont des
+ * fenêtres ouvertes par une interaction. Le comportement ne change pas — elles
+ * étaient déjà rendues conditionnellement ; seul le moment du téléchargement
+ * change.
+ */
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import VisitorBanner from './components/VisitorBanner';
 import GalleryHeader from './components/GalleryHeader';
-import InstagramModal from './components/InstagramModal';
+const InstagramModal = dynamic(() => import('./components/InstagramModal'), { ssr: false });
 import ScheduleModal from './components/ScheduleModal';
 import TabNavigation, { Tab } from './components/TabNavigation';
 import InstagramDraftsTab, { InstagramDraft } from './components/InstagramDraftsTab';
@@ -24,13 +43,13 @@ import InstagramConnectionModal from './components/InstagramConnectionModal';
 import InstagramWidget from './components/InstagramWidget';
 import TikTokWidget from './components/TikTokWidget';
 import TikTokConnectionModal from './components/TikTokConnectionModal';
-import TikTokModal from './components/TikTokModal';
+const TikTokModal = dynamic(() => import('./components/TikTokModal'), { ssr: false });
 import LinkedInWidget from './components/LinkedInWidget';
-import LinkedInModal from './components/LinkedInModal';
+const LinkedInModal = dynamic(() => import('./components/LinkedInModal'), { ssr: false });
 import LinkedInConnectionModal from './components/LinkedInConnectionModal';
 import LinkedInDraftsTab, { LinkedInDraft } from './components/LinkedInDraftsTab';
 import TwitterWidget from './components/TwitterWidget';
-import TwitterModal from './components/TwitterModal';
+const TwitterModal = dynamic(() => import('./components/TwitterModal'), { ssr: false });
 import TwitterEarlyAccessModal from './components/TwitterEarlyAccessModal';
 import TwitterDraftsTab, { TwitterDraft } from './components/TwitterDraftsTab';
 import PlatformChoiceModal from './components/PlatformChoiceModal';
@@ -38,7 +57,7 @@ import MyVideosTab from './components/MyVideosTab';
 import MyImagesTab from './components/MyImagesTab';
 import AllCreationsTab from './components/AllCreationsTab';
 import NetworkSelector, { Network } from './components/NetworkSelector';
-import ImageEditModal from './components/ImageEditModal';
+const ImageEditModal = dynamic(() => import('./components/ImageEditModal'), { ssr: false });
 import VideoEditModal from './components/VideoEditModal';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
