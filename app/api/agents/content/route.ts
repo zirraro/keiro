@@ -4043,12 +4043,95 @@ async function GETInterne(request: NextRequest) {
               format: fullPost.format,
             });
             if (!verdict.publiable) {
+              /**
+               * ── Retenir n'est pas livrer : on RÉPARE avant de renoncer ──
+               *
+               * Fondateur, 20 août : « le juge ne doit pas retenir seulement,
+               * il doit réparer si la note n'est pas convenable et toujours
+               * délivrer — on a mis en place 3 générations pour les images et
+               * carrousels, 2 pour les reels, on a déjà travaillé dessus ».
+               *
+               * Il avait raison sur toute la ligne, sauf sur un point : la
+               * boucle EXISTE bien (lib/qualite/boucle-reparation.ts, plafond
+               * 3 pour les images et carrousels, 2 pour les vidéos) — mais elle
+               * n'était appelée que sur une action MANUELLE (`body.reparer`).
+               * Sur le chemin de génération, on passait le post en brouillon et
+               * on passait au suivant. Le juge fonctionnait parfaitement ; il
+               * n'avait simplement personne derrière lui.
+               *
+               * Résultat mesuré dans le rapport du 20 août : six créneaux
+               * clients perdus en une nuit, tous « retenus par le contrôle
+               * qualité », aucun réparé. Le contrôle protégeait la qualité en
+               * supprimant la livraison — l'inverse du contrat.
+               *
+               * Le portail remonte déjà `imageUsable` et la description de
+               * l'image précisément pour ça : « une bonne image avec une
+               * mauvaise légende n'est pas un post à jeter, c'est une légende à
+               * réécrire ». Ces champs n'étaient lus par personne.
+               *
+               * On tente donc la réparation ici. Si elle aboutit, le post part.
+               * Sinon seulement, il retombe en brouillon — et là c'est un vrai
+               * refus, pas un abandon.
+               */
+              let repare = false;
+              try {
+                const { reparerJusquAuNiveau } = await import('@/lib/qualite/boucle-reparation');
+                const r = await reparerJusquAuNiveau(supabase, {
+                  id: post.id, user_id: fullPost.user_id,
+                  hook: fullPost.hook, caption: fullPost.caption,
+                  hashtags: fullPost.hashtags as any,
+                  visual_url: visualUrl, video_url: videoUrl,
+                  platform: fullPost.platform, format: fullPost.format,
+                  business_type: (fullPost as any).business_type || null,
+                }, {
+                  // Sans ce rappel, la boucle ne peut réécrire que le texte.
+                  // Or le motif de blocage le plus fréquent est « texte lisible
+                  // sur l'image » : il EXIGE de régénérer le visuel.
+                  genererVisuel: (brief, format, texte) =>
+                    generateVisual(brief, format, fullPost.user_id || undefined, fullPost.platform, null, false, null, texte),
+                });
+                repare = r.publiable === true;
+
+                // On enregistre la version réparée : sans ça, la publication
+                // repartirait de la version défectueuse et tout le travail
+                // serait perdu.
+                if (repare) {
+                  await supabase.from('content_calendar').update({
+                    hook: r.hook, caption: r.caption, visual_url: r.visualUrl,
+                    publish_diagnostic: `qc_repare: ${r.note}/10 en ${r.essais} essai(s)`,
+                    updated_at: new Date().toISOString(),
+                  }).eq('id', post.id);
+                }
+                await supabase.from('agent_logs').insert({
+                  agent: 'content',
+                  action: repare ? 'qc_repare_puis_livre' : 'qc_reparation_echouee',
+                  status: repare ? 'ok' : 'warning',
+                  user_id: fullPost.user_id || undefined,
+                  data: {
+                    post_id: post.id, reseau: fullPost.platform, format: fullPost.format,
+                    diagnostic_initial: verdict.diagnostic,
+                    essais: r.essais,
+                    note_finale: r.note, journal: r.journal?.slice(0, 6) ?? null,
+                  },
+                  created_at: new Date().toISOString(),
+                });
+                if (repare) {
+                  console.log(`[Content] ${post.id} réparé après refus — publication reprise`);
+                }
+              } catch (e: any) {
+                // Une réparation qui tombe ne doit pas empêcher la mise en
+                // brouillon : sans ce filet, le post disparaîtrait des deux
+                // côtés à la fois.
+                console.warn('[Content] boucle de réparation indisponible :', e?.message);
+              }
+              if (repare) continue;
+
               await supabase.from('content_calendar').update({
                 status: 'draft',
                 publish_diagnostic: verdict.diagnostic,
                 updated_at: new Date().toISOString(),
               }).eq('id', post.id);
-              console.warn(`[Content] publication retenue ${post.id} (${verdict.code}) — ${verdict.diagnostic}`);
+              console.warn(`[Content] publication retenue ${post.id} (${verdict.code}) — réparation tentée sans succès — ${verdict.diagnostic}`);
               try {
                 await supabase.from('agent_logs').insert({
                   agent: 'content', action: 'qc_portail_retenu', status: 'warn', user_id: fullPost.user_id || undefined,
