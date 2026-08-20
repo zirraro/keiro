@@ -175,12 +175,10 @@ jobs:
       # secondes d'intervalle. Réessayer immédiatement contre un blocage
       # temporaire ne sert à rien : on attend que la fenêtre se rouvre.
       - name: Laisser retomber le blocage de connexion
-        if: steps.garde.outputs.deja == 'non'
         if: steps.deploiement.outcome == 'failure'
         run: sleep 90
 
       - name: Nouvelle tentative après un refus de connexion
-        if: steps.garde.outputs.deja == 'non'
         id: deuxieme
         continue-on-error: true
         if: steps.deploiement.outcome == 'failure'
@@ -197,7 +195,6 @@ jobs:
             bash scripts/deploy.sh
 
       - name: Dernière attente
-        if: steps.garde.outputs.deja == 'non'
         if: steps.deploiement.outcome == 'failure' && steps.deuxieme.outcome == 'failure'
         run: sleep 240
 
@@ -205,7 +202,6 @@ jobs:
       # de plus ne peut pas laisser d'état à moitié déployé — et un déploiement
       # perdu, lui, laisse un correctif hors ligne sans que personne ne le voie.
       - name: Dernière tentative
-        if: steps.garde.outputs.deja == 'non'
         if: steps.deploiement.outcome == 'failure' && steps.deuxieme.outcome == 'failure'
         uses: appleboy/ssh-action@v1.0.3
         with:
