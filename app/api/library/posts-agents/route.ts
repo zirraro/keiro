@@ -68,7 +68,24 @@ export async function GET(req: NextRequest) {
   }
 
   const etat = req.nextUrl.searchParams.get('etat') || 'tous';
-  const limite = Math.min(Number(req.nextUrl.searchParams.get('limite') || 60), 200);
+  // ── 60 était un plafond posé au jugé, et il coupait la galerie ──
+  //
+  // Fondateur, 20 août : « la galerie n'affiche pas les onglets et leur contenu
+  // en entier ». Mesuré le jour même : ce client a 1 706 lignes dans
+  // content_calendar, la galerie n'en demandait que 60. Elle ne montrait donc
+  // pas un contenu lent à venir — elle montrait 3 % du travail fait, et le
+  // reste n'existait pas pour elle.
+  //
+  // Le plafond avait été posé par prudence, sans mesure. Or la mesure dit
+  // l'inverse de l'intuition : 200 lignes reviennent en 111 ms, 60 lignes en
+  // 607 ms (le premier appel paie l'éveil de la connexion, pas le volume). Le
+  // coût est dans l'aller-retour, pas dans les lignes — restreindre ne
+  // gagnait rien et perdait l'essentiel.
+  //
+  // On monte donc le défaut à 200, et le plafond à 500 pour les clients qui
+  // publient depuis longtemps. Toujours borné : une requête sans limite sur une
+  // table qui grossit finit toujours par devenir le problème.
+  const limite = Math.min(Number(req.nextUrl.searchParams.get('limite') || 200), 500);
 
   const supabase = sb();
   let q = supabase
