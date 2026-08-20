@@ -112,6 +112,12 @@ const GLOBAL_SCHEDULE = [
   // pour distinguer l'impayé (une facture) de la clé morte (un renouvellement).
   { cron: '45 * * * *', path: '/api/cron/verifier-fournisseurs', label: 'Les fournisseurs répondent-ils encore ?' },
 
+  // La boucle qualité : purger les médias refusés (les octets, jamais le
+  // motif — c'est le motif qui fait progresser les prompts) et vérifier que
+  // notre juge note bien ce que le public apprécie vraiment. Une fois par
+  // jour à 4 h, hors des créneaux de publication.
+  { cron: '0 4 * * *', path: '/api/cron/qualite-boucle', label: 'Boucle qualité — purge des refusés + le juge dit-il vrai ?' },
+
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   // Inbound email poll every 2h (8 fires/day) so prospect replies get
   // classified and auto-responded within ~2h instead of waiting for the
