@@ -46,6 +46,41 @@ export type ResultatVeo = {
 };
 
 /**
+ * Rapatrie une vidéo Veo dans notre stockage et rend une URL publique stable.
+ *
+ * Rend `null` en cas d'échec plutôt que de lever : une vidéo derrière une clé
+ * vaut mieux que pas de vidéo du tout, et l'appelant retombe sur l'URI Google.
+ */
+async function rapatrier(url: string, modele: string): Promise<string | null> {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+    const r = await fetch(url, { signal: AbortSignal.timeout(180_000) });
+    if (!r.ok) return null;
+    const octets = Buffer.from(await r.arrayBuffer());
+    if (octets.length < 1024) return null;
+
+    // Pas de Date.now() dans le nom seul : deux vidéos de la même seconde se
+    // écraseraient. On ajoute la taille, qui les distingue en pratique.
+    const chemin = `veo/${modele}-${Date.now()}-${octets.length}.mp4`;
+    const { error } = await sb.storage.from('generated-images').upload(chemin, octets, {
+      contentType: 'video/mp4',
+      upsert: false,
+    });
+    if (error) {
+      console.warn('[Veo] rapatriement impossible :', error.message);
+      return null;
+    }
+    const { data } = sb.storage.from('generated-images').getPublicUrl(chemin);
+    return data?.publicUrl || null;
+  } catch (e: any) {
+    console.warn('[Veo] rapatriement échoué :', e?.message);
+    return null;
+  }
+}
+
+/**
  * Une génération Veo est une opération longue : on poste, on reçoit un nom
  * d'opération, on interroge jusqu'à `done`. Pas de webhook — donc une borne
  * explicite, parce que `maxDuration` est un réglage Vercel sans aucun effet
@@ -114,9 +149,33 @@ async function genererAvecModele(
     if (!uri) throw new Error(`Veo ${modele.label} : opération finie sans vidéo`);
 
     const secondes = opts.secondes ?? 8;
+    const uriAvecCle = uri.includes('key=') ? uri : `${uri}${uri.includes('?') ? '&' : '?'}key=${key}`;
+
+    /**
+     * ── Pourquoi on rapatrie la vidéo au lieu de rendre l'URI de Google ──
+     *
+     * Fondateur, 20 août : « il faut absolument qu'ARK juge la génération vidéo
+     * Gemini, et ça doit fonctionner en système automatique, donc trouve un
+     * moyen stable ».
+     *
+     * L'URI que rend Veo n'est lisible qu'avec la clé Google en paramètre.
+     * Résultat au banc : ARK a répondu `InvalidParameter: Invalid video_url` —
+     * on ne peut pas demander à un service tiers d'aller chercher une ressource
+     * derrière NOTRE authentification. Le juge ne pouvait donc jamais noter une
+     * vidéo Veo, ce qui rendait tout arbitrage Seedance/Veo impossible.
+     *
+     * Ce n'était pas qu'un problème de banc : en production, une vidéo de
+     * secours serait partie sans être jugée, et un lien signé expire — le
+     * client se serait retrouvé avec une vidéo morte dans sa bibliothèque.
+     *
+     * On rapatrie donc chez nous, une fois, dans le seau déjà utilisé pour les
+     * visuels. L'URL rendue est publique et permanente : ARK peut la lire, le
+     * client aussi, et elle ne dépend plus d'une clé.
+     */
+    const stockee = await rapatrier(uriAvecCle, modele.label);
+
     return {
-      // L'URI Veo exige la clé pour être lue : l'appelant télécharge et stocke.
-      videoUrl: uri.includes('key=') ? uri : `${uri}${uri.includes('?') ? '&' : '?'}key=${key}`,
+      videoUrl: stockee || uriAvecCle,
       modele: modele.label,
       coutEur: Number((modele.usdParSeconde * secondes * 0.925).toFixed(3)),
     };

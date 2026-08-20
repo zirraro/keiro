@@ -31,6 +31,22 @@ const MODELES = [
   { label: 'veo-3.1-lite', id: 'veo-3.1-lite-generate-preview', usdSec: 0.08 },
 ];
 
+/** Même mécanique que lib/visuals/veo-fallback.ts — un seul principe, deux usages. */
+async function rapatrier(url, modele) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const r = await fetch(url, { signal: AbortSignal.timeout(180000) });
+    if (!r.ok) return null;
+    const octets = Buffer.from(await r.arrayBuffer());
+    if (octets.length < 1024) return null;
+    const chemin = `veo/banc-${modele}-${Date.now()}-${octets.length}.mp4`;
+    const { error } = await sb.storage.from('generated-images').upload(chemin, octets, { contentType: 'video/mp4', upsert: false });
+    if (error) { console.log('  (rapatriement KO : ' + error.message + ')'); return null; }
+    return sb.storage.from('generated-images').getPublicUrl(chemin).data?.publicUrl || null;
+  } catch (e) { console.log('  (rapatriement KO : ' + e.message + ')'); return null; }
+}
+
 async function veo(modele) {
   const t0 = Date.now();
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele.id}:predictLongRunning?key=${GKEY}`, {
@@ -49,7 +65,16 @@ async function veo(modele) {
     if (op.error) return { erreur: String(op.error.message).slice(0, 110) };
     const s = op.response?.generateVideoResponse?.generatedSamples?.[0] || op.response?.generatedSamples?.[0];
     if (!s?.video?.uri) return { erreur: 'terminé sans vidéo' };
-    return { uri: `${s.video.uri}${s.video.uri.includes('?') ? '&' : '?'}key=${GKEY}`, secondes: Math.round((Date.now() - t0) / 1000) };
+    // ARK ne peut pas lire une URL protégée par NOTRE clé Google — il répond
+    // `InvalidParameter: Invalid video_url`. On rapatrie donc chez nous, comme
+    // le fait lib/visuals/veo-fallback.ts en production : c'est la seule façon
+    // que les trois modèles passent devant le MÊME juge. Deux juges différents
+    // ne donnent pas des notes comparables, et un arbitrage bâti là-dessus
+    // aurait l'air d'un chiffre sans en être un.
+    const brut = `${s.video.uri}${s.video.uri.includes('?') ? '&' : '?'}key=${GKEY}`;
+    const publique = await rapatrier(brut, modele.label);
+    if (!publique) return { erreur: 'rapatriement impossible — non jugeable' };
+    return { uri: publique, secondes: Math.round((Date.now() - t0) / 1000) };
   }
   return { erreur: 'dépassement 7 min' };
 }

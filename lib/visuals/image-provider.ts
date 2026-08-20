@@ -242,7 +242,50 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
   let klingError: string | undefined;
   let geminiError: string | undefined;
 
-  // Provider 1: Seedream (PRIMARY) — quality top, $0.03/image
+  /**
+   * ── Gemini passe PRIMAIRE le 20 août — sur mesure, pas sur intuition ──
+   *
+   * Fondateur : « Gemini est sensiblement moins cher pour une excellente
+   * qualité, il me semble — faut-il changer ou pas ? »
+   *
+   * Banc du 20 août, nos prompts réels, même juge, 3 formats par modèle, une
+   * fois le compte ByteDance réglé (c'est cette mesure qui manquait le matin,
+   * où « moins cher » était vérifié et « meilleur » ne l'était pas) :
+   *
+   *   seedream-4.5      note 8,0  réalisme 9,3  0,0450 €  14,1 s
+   *   gemini-2.5-flash  note 8,0  réalisme 9,3  0,0361 €   7,6 s
+   *
+   * Qualité STRICTEMENT identique sur les deux axes stables, 20 % moins cher,
+   * deux fois plus rapide. La règle du fondateur — la qualité ne doit que
+   * monter — est respectée : elle ne baisse pas, et le reste s'améliore.
+   *
+   * ── La réserve, et le moyen d'en sortir ──
+   *
+   * Trois images par modèle, c'est mince. Les notes se sont reproduites entre
+   * deux passages, mais le taux de texte parasite, lui, variait (0/3 puis 2/3
+   * selon les runs) — donc on ne bascule PAS sur ce critère-là, seulement sur
+   * les notes et le coût.
+   *
+   * D'où l'interrupteur : IMAGE_PRIMAIRE=seedream remet l'ancien ordre sans
+   * redéploiement. Si la note moyenne en production baisse, on revient en une
+   * variable d'environnement au lieu d'un correctif d'urgence.
+   */
+  const primaire = (process.env.IMAGE_PRIMAIRE || 'gemini').toLowerCase();
+  if (primaire === 'gemini' && !opts.forceProvider) {
+    const geminiUrl = await generateWithGemini(opts, size);
+    if (geminiUrl) {
+      return {
+        url: geminiUrl,
+        provider: 'gemini',
+        cost_eur_estimate: PROVIDER_EUR.gemini_image_flash25,
+        reason: 'gemini_primaire_qualite_egale_moins_cher',
+      };
+    }
+    geminiError = 'Gemini primaire indisponible → repli Seedream';
+    console.warn('[image-provider] Gemini primaire KO → Seedream');
+  }
+
+  // Provider 1: Seedream — repli quand Gemini est primaire, primaire sinon.
   if (!opts.forceProvider || opts.forceProvider === 'seedream') {
     const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
     const seedreamKey = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '').replace(/\\n/g, '').trim();
