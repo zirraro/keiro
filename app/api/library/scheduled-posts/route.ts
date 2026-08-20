@@ -69,11 +69,32 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Récupérer les posts planifiés avec les infos des images
+    // ── Pourquoi une fenêtre et pas seulement une limite ──
+    //
+    // Fondateur, 20 août : « la galerie est super lente et n'affiche pas les
+    // onglets et leur contenu en entier ».
+    //
+    // Cette requête tirait TOUT l'historique du client, `select('*')` plus une
+    // jointure sur saved_images, sans aucune borne. Chaque ouverture de la
+    // galerie rapatriait des centaines de lignes dont la page n'affiche que les
+    // plus récentes.
+    //
+    // Le piège : poser une simple `.limit()` sur un tri ASCENDANT aurait rendu
+    // les posts les PLUS ANCIENS et vidé la galerie de son contenu utile. On
+    // borne donc par une FENÊTRE DE DATES — les 120 derniers jours par défaut,
+    // réglable — ce qui préserve l'ordre chronologique dont le calendrier a
+    // besoin tout en bornant réellement le volume.
+    //
+    // Les colonnes sont nommées plutôt que `*` : la jointure ramenait aussi des
+    // champs que personne n'affiche.
+    const jours = Math.min(Number(req.nextUrl.searchParams.get('jours') || 120), 400);
+    const depuis = new Date(Date.now() - jours * 86400_000).toISOString();
+
     const { data: scheduledPosts, error } = await supabase
       .from('scheduled_posts')
       .select(`
-        *,
+        id, user_id, platform, status, caption, hashtags, scheduled_for,
+        published_at, saved_image_id, post_url, error_message, created_at,
         saved_images (
           id,
           image_url,
@@ -83,7 +104,9 @@ export async function GET(req: NextRequest) {
         )
       `)
       .eq('user_id', user.id)
-      .order('scheduled_for', { ascending: true });
+      .gte('scheduled_for', depuis)
+      .order('scheduled_for', { ascending: true })
+      .limit(500);
 
     if (error) {
       console.error('[ScheduledPosts] Error fetching posts:', error);
