@@ -58,7 +58,10 @@ async function generer(modele, brief, ratio) {
 
   // Seedream ne prend pas d'aspectRatio : c'est la taille qui porte le format.
   if (modele.ark) {
-    const taille = ratio === '9:16' ? '1080x1920' : ratio === '4:5' ? '1080x1350' : '1024x1024';
+    // Tailles reprises de jade-prompter.ts (sizeFor) et non inventées :
+    // Seedream refuse en 400 InvalidParameter tout ce qui sort de sa grille,
+    // et mon premier essai à 1080x1350 a fait échouer les trois formats.
+    const taille = ratio === '9:16' ? '1440x2560' : ratio === '4:5' ? '1920x1920' : '1920x1920';
     const r = await fetch(ARK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CLE_ARK}` },
