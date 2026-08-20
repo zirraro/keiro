@@ -38,8 +38,24 @@ name: Déploiement VPS
 # Le chemin normal est scripts/deployer.sh : il tente SSH, bascule ici par
 # `workflow_dispatch` si le pare-feu bloque, et ne conclut jamais au succès
 # sans avoir relu la version réellement servie par la production.
+#
+# ── Correction du 20 août, dans la journée : le push est RÉTABLI ──
+#
+# J'avais coupé le déclenchement automatique pour faire cesser les mails
+# d'échec. C'était une demi-lecture de la consigne, et elle a créé pire que le
+# problème : sur un réseau où SSH est bloqué — ce qui arrive, c'est l'origine
+# même de ce workflow — plus aucun déploiement n'était possible sans jeton.
+# Un repli qui ne se déclenche pas tout seul n'est pas un repli.
+#
+# La vraie correction n'est pas de supprimer le déclencheur, c'est d'empêcher
+# la COURSE : le job commence par lire la version réellement servie par la
+# production. Si elle porte déjà le commit poussé, c'est qu'un déploiement SSH
+# vient de passer — le workflow s'arrête en SUCCÈS, sans rien refaire et sans
+# mail d'échec. Sinon il déploie, et il est alors le seul à le faire.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 concurrency:
   # Deux déploiements simultanés se marcheraient dessus pendant le `git pull`.
@@ -89,6 +105,32 @@ jobs:
     timeout-minutes: 70
 
     steps:
+      # ── La garde anti-course ──
+      #
+      # Elle existe pour une raison précise : le 20 août, le fondateur recevait
+      # « Déploiement VPS: All jobs have failed » alors que la production était
+      # PARFAITEMENT à jour. Un déploiement SSH venait de passer ; ce workflow
+      # arrivait derrière sur un dépôt déjà synchronisé et un pm2 déjà rechargé,
+      # perdait la course, et envoyait son échec.
+      #
+      # On lit donc la version réellement servie AVANT de faire quoi que ce
+      # soit. Si elle porte déjà ce commit, il n'y a rien à faire et surtout
+      # rien à signaler : on sort en succès. C'est ce qui transforme ce workflow
+      # en vrai repli plutôt qu'en concurrent.
+      - name: La production sert-elle déjà ce commit ?
+        id: garde
+        run: |
+          servi=$(curl -s --max-time 20 https://keiroai.com/api/version \
+            | grep -o '"shortSha":"[^"]*"' | cut -d'"' -f4 || true)
+          attendu=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "servi=${servi:-inconnu} attendu=${attendu}"
+          if [ "${servi}" = "${attendu}" ]; then
+            echo "deja=oui" >> "$GITHUB_OUTPUT"
+            echo "✅ Déjà en ligne (déploiement SSH passé avant) — rien à faire"
+          else
+            echo "deja=non" >> "$GITHUB_OUTPUT"
+          fi
+
       # ── Pourquoi une nouvelle tentative ──
       #
       # Incident 2026-08-06 : après une quinzaine de déploiements dans la
@@ -106,6 +148,7 @@ jobs:
       # Le script est idempotent : une seconde tentative ne peut pas laisser
       # un état à moitié déployé.
       - name: Déployer sur le VPS
+        if: steps.garde.outputs.deja == 'non'
         id: deploiement
         continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
@@ -132,10 +175,12 @@ jobs:
       # secondes d'intervalle. Réessayer immédiatement contre un blocage
       # temporaire ne sert à rien : on attend que la fenêtre se rouvre.
       - name: Laisser retomber le blocage de connexion
+        if: steps.garde.outputs.deja == 'non'
         if: steps.deploiement.outcome == 'failure'
         run: sleep 90
 
       - name: Nouvelle tentative après un refus de connexion
+        if: steps.garde.outputs.deja == 'non'
         id: deuxieme
         continue-on-error: true
         if: steps.deploiement.outcome == 'failure'
@@ -152,6 +197,7 @@ jobs:
             bash scripts/deploy.sh
 
       - name: Dernière attente
+        if: steps.garde.outputs.deja == 'non'
         if: steps.deploiement.outcome == 'failure' && steps.deuxieme.outcome == 'failure'
         run: sleep 240
 
@@ -159,6 +205,7 @@ jobs:
       # de plus ne peut pas laisser d'état à moitié déployé — et un déploiement
       # perdu, lui, laisse un correctif hors ligne sans que personne ne le voie.
       - name: Dernière tentative
+        if: steps.garde.outputs.deja == 'non'
         if: steps.deploiement.outcome == 'failure' && steps.deuxieme.outcome == 'failure'
         uses: appleboy/ssh-action@v1.0.3
         with:
