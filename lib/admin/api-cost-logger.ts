@@ -168,4 +168,57 @@ export const PROVIDER_EUR = {
   kling_5s: 0.30,
   kling_10s: 0.55,
   elevenlabs_per_1k_chars: 0.30 * USD_TO_EUR,
+
+  // ── Google : nouvelles sources de facturation, ajoutées le 2026-08-20 ──
+  //
+  // Jusqu'ici Gemini n'apparaissait pas dans cette table alors qu'il générait
+  // déjà des images en secours : ces dépenses-là ne remontaient nulle part.
+  // Depuis le 20 août il est passé DEVANT Kling dans la chaîne, et Veo devient
+  // le secours vidéo — donc deux postes qui vont réellement coûter.
+  //
+  // Tarifs relevés à la source (ai.google.dev/gemini-api/docs/pricing) le
+  // 2026-08-20, convertis en EUR. Relevés et non cités de mémoire : c'est une
+  // citation de mémoire qui avait sous-évalué Seedance de moitié, et ce sont
+  // les coûts vidéo qui décident de nos marges (voir plus bas).
+  gemini_image_flash25: 0.039 * USD_TO_EUR,   // 0,036 € — MOINS cher que Seedream
+  gemini_image_flash31: 0.067 * USD_TO_EUR,   // 0,062 € — 1K
+  gemini_image_pro3: 0.134 * USD_TO_EUR,      // 0,124 € — écarté par défaut, voir ci-dessous
+
+  // Veo facture À LA SECONDE, en 1080p. Les entrées ci-dessous sont ramenées à
+  // dix secondes pour rester comparables à seedance_10s.
+  veo_fast_10s: 0.12 * 10 * USD_TO_EUR,       // 1,11 € — parité avec Seedance
+  veo_lite_10s: 0.08 * 10 * USD_TO_EUR,       // 0,74 € — 33 % sous Seedance
+  veo_standard_10s: 0.40 * 10 * USD_TO_EUR,   // 3,70 € — 3,4× Seedance, jamais automatique
 };
+
+/**
+ * ── Ce que ces chiffres disent de nos marges, mesuré le 2026-08-20 ──
+ *
+ * Le fondateur : « tu compares des modèles sur les prix, mais c'est la qualité
+ * ET le prix qui font nos marges, et la satisfaction pour nos clients ».
+ *
+ * Calcul fait sur les quotas réels (lib/credits/constants.ts) et les prix des
+ * plans, à consommation pleine — donc le pire cas, pas la moyenne :
+ *
+ *                      Seedream+Seedance   gemini-2.5+Veo lite
+ *   Créateur  49 €           68 %                77 %
+ *   Pro       99 €           73 %                81 %
+ *   Business 149 €           62 %                73 %
+ *
+ * Deux enseignements qui changent les décisions :
+ *
+ * 1. LA VIDÉO ÉCRASE L'IMAGE. Sur Créateur, 12 vidéos coûtent 13,20 € contre
+ *    2,70 € pour 60 images — 83 % du coût média. Changer de modèle d'image fait
+ *    gagner 0,54 € ; changer de modèle vidéo en fait gagner 4,32 €, huit fois
+ *    plus. C'est là qu'il faut regarder, pas ailleurs.
+ *
+ * 2. LE PLUS CHER N'EST PAS LE MEILLEUR. Banc du 20 août, nos prompts réels,
+ *    notre juge : gemini-3-pro coûte 3,4× le 2.5-flash pour la MÊME note
+ *    (8,3/10), met 3× plus de temps, et casse la consigne « zéro texte » une
+ *    fois sur trois. Il est écarté par défaut, pas seulement parce qu'il est
+ *    cher : parce qu'il est moins bon sur notre contrainte la plus dure.
+ *
+ * Réserve à garder en tête : Seedream n'a PAS été mesuré face à Gemini — le
+ * compte ByteDance était en impayé le jour du banc. « Moins cher » est vérifié,
+ * « meilleur » ne l'est pas. À refaire dès que le compte revit.
+ */

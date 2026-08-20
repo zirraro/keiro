@@ -22,10 +22,24 @@ name: Déploiement VPS
 #
 # Un seul secret est nécessaire : VPS_SSH_KEY, la clé privée d'accès au VPS.
 
+# ── Pourquoi plus de déclenchement automatique sur push ──
+#
+# 2026-08-20. Le fondateur reçoit des mails « Déploiement VPS: All jobs have
+# failed » alors que la production est à jour. Cause : SSH remarche depuis le
+# 20 août, donc on déploie directement — et CHAQUE push lançait en plus ce
+# workflow, qui arrivait sur un dépôt déjà mis à jour et un pm2 déjà rechargé.
+# Deux déploiements concurrents sur le même serveur : l'un gagne, l'autre
+# échoue, et le fondateur reçoit l'échec du perdant.
+#
+# Sa consigne : « déployer par SSH dès que possible, et GitHub si SSH non
+# dispo ». Un repli ne se déclenche pas tout seul — sinon ce n'est pas un
+# repli, c'est un concurrent.
+#
+# Le chemin normal est scripts/deployer.sh : il tente SSH, bascule ici par
+# `workflow_dispatch` si le pare-feu bloque, et ne conclut jamais au succès
+# sans avoir relu la version réellement servie par la production.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 concurrency:
   # Deux déploiements simultanés se marcheraient dessus pendant le `git pull`.

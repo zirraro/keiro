@@ -204,7 +204,49 @@ export async function POST(request: Request) {
         }
       } catch (fallbackError: any) {
         console.error(`[T2V] ${FALLBACK_PROVIDER} also failed:`, fallbackError.message);
-        return Response.json({ ok: false, error: 'Impossible de g\u00e9n\u00e9rer la vid\u00e9o' }, { status: 500 });
+
+        // \u2500\u2500 Dernier filet : Veo, chez Google \u2500\u2500
+        //
+        // Jusqu'au 20 ao\u00fbt on rendait \u00ab Impossible de g\u00e9n\u00e9rer la vid\u00e9o \u00bb ici.
+        // Les images avaient trois secours, la vid\u00e9o aucun : le 19 ao\u00fbt, un
+        // pr\u00e9l\u00e8vement ByteDance refus\u00e9 (403 AccountOverdueError) a coup\u00e9
+        // Seedance d'un coup et la vid\u00e9o s'est arr\u00eat\u00e9e net, sans repli.
+        //
+        // Veo vit sur le compte Google, d\u00e9j\u00e0 approvisionn\u00e9 \u2014 donc il survit
+        // pr\u00e9cis\u00e9ment \u00e0 la panne qui tue Seedance. C'est la seule propri\u00e9t\u00e9 qui
+        // compte pour un secours : ne pas d\u00e9pendre de ce qu'il remplace.
+        //
+        // Il rend une vid\u00e9o TERMIN\u00c9E, l\u00e0 o\u00f9 Seedance rend un identifiant de
+        // t\u00e2che \u00e0 interroger. On renvoie donc directement l'URL au lieu
+        // d'entrer dans la boucle de sondage.
+        try {
+          const { genererVideoVeo } = await import('@/lib/visuals/veo-fallback');
+          const veo = await genererVideoVeo(prompt, {
+            aspectRatio: aspectRatio || '9:16',
+            secondes: duration,
+          });
+          console.log(`[T2V] \u2713 Veo (${veo.modele}) \u2014 ${veo.coutEur} \u20ac`);
+
+          if (user && !isAdminUser) {
+            await deductCredits(user.id, 'video_t2v', `Vid\u00e9o T2V ${duration}s (secours Veo)`, duration);
+          }
+          return Response.json({
+            ok: true,
+            videoUrl: veo.videoUrl,
+            provider: veo.modele,
+            coutEur: veo.coutEur,
+            secours: true,
+          });
+        } catch (veoError: any) {
+          // Les trois fournisseurs sont tomb\u00e9s. On nomme le dernier \u00e9chec au
+          // lieu d'un message g\u00e9n\u00e9rique : \u00ab impossible \u00bb n'aide personne \u00e0
+          // savoir s'il faut recharger un compte ou attendre dix minutes.
+          console.error('[T2V] Veo a \u00e9chou\u00e9 aussi :', veoError?.message);
+          return Response.json(
+            { ok: false, error: `Aucun fournisseur vid\u00e9o disponible \u2014 ${String(veoError?.message ?? '').slice(0, 160)}` },
+            { status: 503 },
+          );
+        }
       }
     }
 

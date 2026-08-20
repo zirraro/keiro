@@ -1,4 +1,5 @@
 import { fetchIPv4 } from '@/lib/net/ipv4';
+import { PROVIDER_EUR } from '@/lib/admin/api-cost-logger';
 /**
  * 2026-06-03 — Image provider router (cost optim sans perte qualité).
  *
@@ -327,7 +328,11 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
       return {
         url: geminiUrl,
         provider: 'gemini',
-        cost_eur_estimate: 0.036,
+        // Le tarif vient de la table de facturation, jamais d'un nombre écrit
+        // ici : deux endroits qui portent le même prix finissent par diverger,
+        // et c'est un coût recopié à la main qui avait sous-évalué Seedance de
+        // moitié.
+        cost_eur_estimate: PROVIDER_EUR.gemini_image_flash25,
         reason: 'gemini_fallback_seedream_failed',
       };
     }
