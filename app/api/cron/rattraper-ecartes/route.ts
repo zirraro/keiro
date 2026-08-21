@@ -162,14 +162,26 @@ export async function GET(req: NextRequest) {
    * avait provoqué l'étranglement TikTok de juin. On remplit les trous, on n'en
    * crée pas de nouveaux.
    */
-  const { data: reserve } = await supabase
+  /**
+   * Le filtre sur le motif se fait en JS, pas en SQL : `publish_diagnostic` est
+   * une colonne JSONB, et un `.like()` dessus échoue avec « operator does not
+   * exist: jsonb ~~ unknown ». Écrit d'abord en SQL, la requête ne rendait
+   * simplement RIEN — en silence, comme toujours avec ce piège. C'est la
+   * sixième fois cette semaine qu'une hypothèse sur une colonne me coûte un
+   * aller-retour ; la vérification prend dix secondes, elle vaut mieux que la
+   * conviction.
+   */
+  const { data: brouillons } = await supabase
     .from('content_calendar')
-    .select('id, platform, format, scheduled_date')
+    .select('id, platform, format, scheduled_date, publish_diagnostic')
     .eq('status', 'draft')
-    .like('publish_diagnostic', 'en_reserve%')
     .or('visual_url.not.is.null,video_url.not.is.null')
     .order('scheduled_date', { ascending: true })
-    .limit(50);
+    .limit(300);
+
+  const reserve = (brouillons || [])
+    .filter((p: any) => String(p.publish_diagnostic || '').startsWith('en_reserve'))
+    .slice(0, 50);
 
   console.log(`[Rattrapage] ${reserve?.length ?? 0} post(s) en réserve disponibles pour combler les créneaux vides`);
 
