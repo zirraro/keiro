@@ -77,11 +77,25 @@ async function rapatrier(url: string, modele: string, essai = 0): Promise<string
       return null;
     }
     const octets = Buffer.from(await r.arrayBuffer());
-    if (octets.length < 1024) return null;
+    if (octets.length < 1024) {
+      console.warn(`[Veo] fichier vide ou tronqué (${octets.length} octets)`);
+      return null;
+    }
 
     // Pas de Date.now() dans le nom seul : deux vidéos de la même seconde se
     // écraseraient. On ajoute la taille, qui les distingue en pratique.
-    const chemin = `veo/${modele}-${Date.now()}-${octets.length}.mp4`;
+    //
+    // Et on assainit : Supabase refuse les caractères non-ASCII dans une clé
+    // d'objet — « Invalid key: …caméra… ». Découvert au banc du 21 août, où un
+    // seul accent a fait échouer six rapatriements sur neuf. J'en ai
+    // successivement accusé Veo, la bande passante, puis un verrou de ma
+    // fabrication, avant de simplement journaliser l'erreur : la cause était
+    // écrite dedans depuis le début.
+    //
+    // Ici `modele` ne contient jamais d'accent aujourd'hui, mais rien ne le
+    // garantit demain — et le mode de panne est silencieux.
+    const sur = String(modele).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]/g, '-');
+    const chemin = `veo/${sur}-${Date.now()}-${octets.length}.mp4`;
     const { error } = await sb.storage.from('generated-images').upload(chemin, octets, {
       contentType: 'video/mp4',
       upsert: false,

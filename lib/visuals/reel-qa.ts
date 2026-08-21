@@ -332,11 +332,36 @@ JSON only. No preamble.`;
       // séparé de ce qu'on paie pour PRODUIRE. Voir le rapport quotidien.
       etiquette: 'qc_reel', agent: 'content',
     });
-    if (!visionRes.ok) return { verdict: 'pass' };
+    /**
+     * ── Un contrôle en panne ne dit pas « validé » ──
+     *
+     * Ces deux branches rendaient `pass`. Un juge injoignable, une clé sans
+     * crédit ou une réponse illisible produisaient donc un flot ininterrompu de
+     * reels « validés » sans qu'aucun n'ait été regardé — et rien nulle part ne
+     * disait que le contrôle était mort. C'est le pire mode de panne : celui
+     * qui ressemble au succès.
+     *
+     * Exactement le bug corrigé dans image-qa.ts le 10 août. Il est resté ici
+     * pour les vidéos, onze jours de plus, parce que la correction avait été
+     * faite là où on regardait et pas là où le même code vivait aussi.
+     *
+     * Règle du fondateur : on livre quand même — une panne de NOTRE côté ne
+     * suspend pas la publication d'un client. Mais on l'ENREGISTRE au lieu de
+     * la maquiller en succès, pour que la note moyenne ne soit pas gonflée par
+     * des contrôles qui n'ont jamais eu lieu.
+     */
+    if (!visionRes.ok) {
+      const corps = await visionRes.text().catch(() => '');
+      console.warn(`[ReelQA] contrôle vision HORS SERVICE (HTTP ${visionRes.status}) — reel livré SANS avoir été vu : ${corps.slice(0, 140)}`);
+      return { verdict: 'pass', issue: `controle_indisponible_http_${visionRes.status}` };
+    }
     const data = await visionRes.json();
     const txt = (data.content?.[0]?.text || '').trim();
     const m = txt.match(/\{[\s\S]*\}/);
-    if (!m) return { verdict: 'pass' };
+    if (!m) {
+      console.warn(`[ReelQA] réponse du juge illisible — reel livré SANS avoir été vu : ${txt.slice(0, 140)}`);
+      return { verdict: 'pass', issue: 'controle_indisponible_reponse_illisible' };
+    }
     const parsed = JSON.parse(m[0]);
 
     let verdict: 'pass' | 'soft_fail' | 'hard_fail' =

@@ -428,12 +428,27 @@ export async function jugerAvecVision(opts: {
     return null;
   }
 
-  // ── 1. Anthropic ──
-  const cleAnthropic = process.env.ANTHROPIC_API_KEY;
-  // Coupe-circuit : quand le crédit est épuisé, l'erreur se répète à
-  // l'identique sur chaque appel. Sans ce garde-fou, un balayage de 500 posts
-  // fait 500 aller-retours inutiles avant de basculer à chaque fois. On note
-  // l'heure du refus et on va directement à Gemini pendant dix minutes.
+  /**
+   * ── Anthropic sort de la chaîne du juge — 21 août ──
+   *
+   * Fondateur : « Anthropic on n'utilise plus, on a dit — faut ajouter des
+   * crédits, etc., pas pratique pour monitorer ».
+   *
+   * Il a raison, et l'historique lui donne doublement raison : ce recours-ci
+   * est tombé en panne de crédit le 1er août sans que personne ne le sache, et
+   * c'est ce qui avait rendu le juge muet pendant des jours. Un maillon qui
+   * exige un rechargement manuel et dont l'épuisement ne se voit pas est un
+   * maillon qui coûte plus qu'il ne rapporte.
+   *
+   * La chaîne devient donc ARK → Gemini. Deux fournisseurs sur deux comptes
+   * distincts, tous deux surveillés par le contrôle horaire des fournisseurs
+   * (api/cron/verifier-fournisseurs) qui distingue l'impayé de la clé morte.
+   *
+   * On ne SUPPRIME pas le code : il reste derrière un interrupteur explicite,
+   * au cas où un besoin ponctuel se présente. Mais il ne s'active plus tout
+   * seul, donc il ne peut plus échouer en silence.
+   */
+  const cleAnthropic = process.env.JUGE_ANTHROPIC === 'oui' ? process.env.ANTHROPIC_API_KEY : '';
   if (cleAnthropic && Date.now() > anthropicIndisponibleJusqua) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {

@@ -51,27 +51,54 @@ const MODELES = [
   { label: 'veo-3.1-lite', id: 'veo-3.1-lite-generate-preview', usdSec: 0.08 },
 ];
 
-let verrou = Promise.resolve();
+/**
+ * ── Pourquoi PAS de verrou, finalement ──
+ *
+ * Premier banc : trois échecs « rapatriement impossible ». J'ai supposé une
+ * saturation de bande passante et sérialisé les téléchargements. Le banc
+ * suivant a échoué EXACTEMENT autant, et sur les mêmes sujets.
+ *
+ * La mesure isolée a donné la réponse en deux minutes — ce que j'aurais dû
+ * faire d'abord : le même sujet, seul, se télécharge sans problème (9,4 Mo,
+ * HTTP 200, envoi OK). Ce n'était donc ni Veo, ni le réseau, ni la taille.
+ *
+ * C'était mon verrou. L'URI que rend Veo est de courte durée : une vidéo qui
+ * attend cinq minutes dans la file trouve un lien déjà mort. En sérialisant
+ * pour régler un problème supposé, j'en ai créé un vrai — et le motif le
+ * disait, seule la première vidéo de chaque modèle passait.
+ *
+ * La règle qui en sort, et elle vaut pour la production : un lien de
+ * génération se télécharge IMMÉDIATEMENT. On ne le met jamais en attente, on
+ * ne le stocke jamais pour plus tard. Ce qu'on garde, c'est le fichier.
+ */
 async function rapatrier(url, etiquette, essai = 0) {
-  // Un seul telechargement a la fois : trois echecs sur neuf au banc precedent
-  // venaient de la saturation, pas des modeles.
-  const precedent = verrou;
-  let libere;
-  verrou = new Promise((r) => { libere = r; });
-  await precedent;
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const r = await fetch(url, { signal: AbortSignal.timeout(300000) });
-    if (!r.ok) { if (essai < 2) { libere(); await new Promise(x=>setTimeout(x,5000)); return rapatrier(url, etiquette, essai+1); } return null; }
+    if (!r.ok) {
+      if (essai < 2) { await new Promise((x) => setTimeout(x, 3000)); return rapatrier(url, etiquette, essai + 1); }
+      console.log(`  (téléchargement HTTP ${r.status} pour ${etiquette})`);
+      return null;
+    }
     const o = Buffer.from(await r.arrayBuffer());
-    if (o.length < 1024) return null;
-    const chemin = `veo/banc-${etiquette}-${Date.now()}-${o.length}.mp4`;
+    if (o.length < 1024) { console.log(`  (fichier vide pour ${etiquette})`); return null; }
+    // Supabase refuse les caracteres non-ASCII dans les cles d'objet :
+    // « Invalid key: …personne_face_caméra… ». C'est ce SEUL accent qui a fait
+    // echouer six rapatriements sur neuf — que j'ai successivement attribues a
+    // Veo, a la bande passante, puis a un verrou de mon invention.
+    const sur = etiquette.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]/g, '-');
+    const chemin = `veo/banc-${sur}-${Date.now()}-${o.length}.mp4`;
     const { error } = await sb.storage.from('generated-images').upload(chemin, o, { contentType: 'video/mp4', upsert: false });
-    if (error) return null;
+    // On NOMME l'erreur : c'est de l'avoir ravalée que venait « rapatriement
+    // impossible », un message qui ne disait rien et m'a coûté trois essais.
+    if (error) { console.log(`  (envoi KO pour ${etiquette} : ${error.message})`); return null; }
     return sb.storage.from('generated-images').getPublicUrl(chemin).data?.publicUrl || null;
-  } catch (e) { if (essai < 2) { libere(); await new Promise(x=>setTimeout(x,5000)); return rapatrier(url, etiquette, essai+1); } console.log('  (rapatriement KO : '+e.message+')'); return null; }
-  finally { libere(); }
+  } catch (e) {
+    if (essai < 2) { await new Promise((x) => setTimeout(x, 3000)); return rapatrier(url, etiquette, essai + 1); }
+    console.log(`  (rapatriement KO pour ${etiquette} : ${e.message})`);
+    return null;
+  }
 }
 
 async function veo(m, prompt, etiquette) {
