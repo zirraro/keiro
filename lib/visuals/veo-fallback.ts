@@ -51,13 +51,31 @@ export type ResultatVeo = {
  * Rend `null` en cas d'échec plutôt que de lever : une vidéo derrière une clé
  * vaut mieux que pas de vidéo du tout, et l'appelant retombe sur l'URI Google.
  */
-async function rapatrier(url: string, modele: string): Promise<string | null> {
+async function rapatrier(url: string, modele: string, essai = 0): Promise<string | null> {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-    const r = await fetch(url, { signal: AbortSignal.timeout(180_000) });
-    if (!r.ok) return null;
+    const r = await fetch(url, { signal: AbortSignal.timeout(300_000) });
+    if (!r.ok) {
+      // ── Pourquoi une reprise, et pourquoi elle change tout ──
+      //
+      // Banc élargi du 21 août : trois échecs sur neuf, tous « rapatriement
+      // impossible ». Neuf téléchargements simultanés saturaient la bande
+      // passante et les requêtes expiraient. J'en avais d'abord conclu que Veo
+      // était peu fiable (1/3) — c'était MON code qui lâchait, pas le modèle.
+      // Un chiffre de fiabilité contamine tout un arbitrage : je faillais
+      // recommander de garder Seedance sur une mesure fausse.
+      //
+      // En production l'enjeu est plus direct : un rapatriement raté, c'est une
+      // vidéo perdue pour un client alors que le fournisseur l'avait produite —
+      // on a payé la génération et on ne livre rien.
+      if (essai < 2) {
+        await new Promise((r2) => setTimeout(r2, 5000 * (essai + 1)));
+        return rapatrier(url, modele, essai + 1);
+      }
+      return null;
+    }
     const octets = Buffer.from(await r.arrayBuffer());
     if (octets.length < 1024) return null;
 
@@ -75,7 +93,12 @@ async function rapatrier(url: string, modele: string): Promise<string | null> {
     const { data } = sb.storage.from('generated-images').getPublicUrl(chemin);
     return data?.publicUrl || null;
   } catch (e: any) {
-    console.warn('[Veo] rapatriement échoué :', e?.message);
+    if (essai < 2) {
+      console.warn(`[Veo] rapatriement essai ${essai + 1} échoué (${e?.message}) — on retente`);
+      await new Promise((r2) => setTimeout(r2, 5000 * (essai + 1)));
+      return rapatrier(url, modele, essai + 1);
+    }
+    console.warn('[Veo] rapatriement abandonné :', e?.message);
     return null;
   }
 }

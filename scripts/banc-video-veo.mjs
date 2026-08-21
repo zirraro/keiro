@@ -26,7 +26,6 @@ const PROMPT =
   'A baker in his sixties pulling a tray of golden croissants from the oven in a small French bakery at dawn, flour dust floating in the warm light, he glances up and smiles briefly. Documentary handheld feel, 50mm, natural light, no text anywhere.';
 
 const MODELES = [
-  { label: 'seedance-1.5-pro', ark: true, id: 'seedance-1-5-pro-251215', eur10s: 1.10 },
   { label: 'veo-3.1-fast', id: 'veo-3.1-fast-generate-preview', usdSec: 0.12 },
   { label: 'veo-3.1-lite', id: 'veo-3.1-lite-generate-preview', usdSec: 0.08 },
 ];
