@@ -72,12 +72,32 @@ export async function GET(req: NextRequest) {
      * Un créneau vide reste un créneau vide, quel que soit le statut qui l'a
      * produit.
      */
-    .in('status', ['skipped', 'publish_failed'])
+    /**
+     * ── `draft` ajouté le 21 août : 70 posts dormaient hors de portée ──
+     *
+     * Fondateur : « le quota TikTok n'a pas été respecté, pourquoi ? ça doit
+     * toujours délivrer », puis « vérifie les posts en brouillon et programmés,
+     * mais toujours délivrer, que ce soit images, carrousels et vidéos ».
+     *
+     * Mesuré : sur sept jours, TikTok comptait 70 brouillons pour 6 publiés.
+     * Ce rattrapage ne ramassait que `skipped` et `publish_failed` — or le
+     * portail de publication met les refus du juge en `draft`. Les posts les
+     * plus nombreux étaient donc précisément ceux que personne ne reprenait.
+     *
+     * Le statut n'est qu'une étiquette : ce qui compte est le MOTIF. Un post
+     * refusé pour sa qualité est réparable, quel que soit le tiroir où il a
+     * atterri. Le filtre par diagnostic, juste en dessous, fait déjà ce tri —
+     * il lui manquait seulement d'être alimenté.
+     *
+     * La contrainte `video_url is null` est levée : elle écartait tous les
+     * reels du rattrapage, alors qu'un reel refusé est un créneau perdu au même
+     * titre. « Que ce soit images, carrousels ET vidéos. »
+     */
+    .in('status', ['skipped', 'publish_failed', 'draft'])
     .gte('scheduled_date', depuis)
-    .is('video_url', null)
-    .not('visual_url', 'is', null)
+    .or('visual_url.not.is.null,video_url.not.is.null')
     .order('scheduled_date', { ascending: false })
-    .limit(60);
+    .limit(120);
 
   if (error) {
     console.error('[Rattrapage] lecture impossible :', error.message);
@@ -116,6 +136,42 @@ export async function GET(req: NextRequest) {
   });
 
   console.log(`[Rattrapage] ${reparables.length} refus réparable(s) sur ${(ecartes || []).length} écarté(s) depuis le ${depuis}`);
+
+  /**
+   * ── Sortir la réserve du tiroir sans issue ──
+   *
+   * Fondateur : « le quota TikTok n'a pas été respecté, pourquoi ? ça doit
+   * toujours délivrer », puis « vérifie les posts en brouillon et programmés ».
+   *
+   * Mesuré : 87 posts portaient `en_reserve`, contre 4 refusés par le juge. La
+   * cause n'était donc pas la qualité, comme je l'avais d'abord conclu.
+   *
+   * planning-cadence LIT ['approved','scheduled','pending'] et ÉCRIT `draft`
+   * pour tout ce qui dépasse la cadence. Il ne relit jamais les `draft` : un
+   * post entré en réserve n'en sort JAMAIS. Le commentaire du code promet « la
+   * génération courante peut le reprendre » — rien ne le reprend. C'est un
+   * aller simple, et pendant que 87 posts prêts y dorment, les créneaux passent
+   * à vide et on régénère du contenu neuf par-dessus.
+   *
+   * On rouvre donc le tiroir ici, où la place libre est déjà calculée : dès
+   * qu'un créneau du jour reste vide, on y remet un post de la réserve plutôt
+   * que d'en fabriquer un. Le plus ancien d'abord — il a déjà attendu.
+   *
+   * Ce qu'on ne fait PAS : vider la réserve d'un coup. Elle existe pour tenir
+   * la cadence, et une salve fait chuter la portée — c'est précisément ce qui
+   * avait provoqué l'étranglement TikTok de juin. On remplit les trous, on n'en
+   * crée pas de nouveaux.
+   */
+  const { data: reserve } = await supabase
+    .from('content_calendar')
+    .select('id, platform, format, scheduled_date')
+    .eq('status', 'draft')
+    .like('publish_diagnostic', 'en_reserve%')
+    .or('visual_url.not.is.null,video_url.not.is.null')
+    .order('scheduled_date', { ascending: true })
+    .limit(50);
+
+  console.log(`[Rattrapage] ${reserve?.length ?? 0} post(s) en réserve disponibles pour combler les créneaux vides`);
 
   let refaits = 0;
   let republies = 0;
@@ -460,6 +516,38 @@ export async function GET(req: NextRequest) {
       console.warn(`[Rattrapage] ${p.id} : ${e?.message}`);
     }
   }
+
+  /**
+   * ── On rouvre la réserve, créneau libre par créneau libre ──
+   *
+   * Le calcul d'occupation est déjà fait au-dessus, et `prochainCreneauLibre`
+   * respecte le plafond par réseau (2/jour sur TikTok, 5 ailleurs). On s'en
+   * sert : un post de réserve ne prend que de la place réellement vide, jamais
+   * une place déjà occupée. Pas de salve, donc pas de chute de portée.
+   *
+   * Ces posts ont déjà un visuel et sont déjà passés par la génération : les
+   * reprendre coûte zéro euro, là où en fabriquer un neuf coûte une image ou
+   * une vidéo. Le gisement était gratuit et personne n'y touchait.
+   */
+  let sortisDeReserve = 0;
+  for (const p of reserve || []) {
+    const creneau = prochainCreneauLibre(p.platform);
+    if (!creneau) continue;
+    try {
+      await supabase.from('content_calendar').update({
+        status: 'approved',
+        scheduled_date: creneau.date,
+        scheduled_time: creneau.heure,
+        publish_diagnostic: `sorti_de_reserve: créneau libre au ${creneau.date} ${creneau.heure.slice(0, 5)}`,
+        updated_at: new Date().toISOString(),
+      }).eq('id', p.id);
+      parJour.set(`${creneau.date}|${p.platform}`, (parJour.get(`${creneau.date}|${p.platform}`) || 0) + 1);
+      sortisDeReserve++;
+    } catch (e: any) {
+      console.warn(`[Rattrapage] réserve ${p.id} : ${e?.message}`);
+    }
+  }
+  if (sortisDeReserve) console.log(`[Rattrapage] ${sortisDeReserve} post(s) sortis de réserve vers des créneaux libres`);
 
   // Une reprise qui ne laisse pas de trace ne se distingue pas d'une absence
   // de reprise — c'est exactement ce qui a permis au trou de durer.
