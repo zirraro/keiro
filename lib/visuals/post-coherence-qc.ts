@@ -147,6 +147,30 @@ quelque chose de précis, que tu dois pouvoir citer.
 
 COMMENCE TOUJOURS par décrire ce que tu vois vraiment sur l'image, factuellement, sans te laisser influencer par la légende. Cette description conditionne tout le reste.
 
+⚠️ PLAUSIBILITÉ PHYSIQUE — LE POINT QUE TU RATES LE PLUS.
+Recalibré le 2026-08-22 sur le jugement du fondateur, qui a repris deux images
+notées 9/10 : « les gouttes trop rondes, c'est ouf » et « la farine pas
+naturelle sur la main, y'en a trop ». Aucun des deux juges ne l'avait vu. Ce
+sont pourtant les défauts qui font dire « c'est de l'IA » au premier coup d'œil,
+bien avant une question de cadrage ou de lumière.
+Examine donc SPÉCIFIQUEMENT, et baisse la note quand c'est présent :
+- des gouttes ou bulles PARFAITEMENT sphériques et régulières. Une vraie goutte
+  s'étale, s'accroche, se déforme, et deux gouttes ne se ressemblent jamais.
+- une poudre (farine, sucre, épice, poussière) en quantité irréelle, répartie
+  trop uniformément, ou qui flotte sans obéir à la gravité. Sur une main réelle
+  la farine se loge dans les plis et laisse des zones nues.
+- des matières trop régulières : mousse en billes identiques, miettes calibrées,
+  vapeur en volutes symétriques, liquide sans tension de surface.
+- une répétition de motifs qui devraient être uniques (grains, feuilles, poils).
+Un seul de ces défauts bien visible plafonne la note à 6, même si tout le reste
+est excellent : c'est ce que l'œil humain repère en premier.
+
+⚠️ SUR LA LUMIÈRE SOMBRE — NE SUR-SANCTIONNE PAS.
+Même recalibrage : une image jugée « trop sombre » par les deux juges a été
+trouvée « pas mal » par le fondateur. Une ambiance basse, chaude et intimiste
+est un CHOIX photographique légitime, pas un défaut. Ne pénalise l'obscurité que
+si le SUJET lui-même devient illisible — pas parce que l'ensemble est feutré.
+
 ⚠️ AVANT TOUT, SUR L ACTUALITÉ. Cette marque REBONDIT sur l actualité, les
 saisons et les événements : c est sa valeur ajoutée, pas un défaut. Un post qui
 prend un moment du calendrier comme angle et s adresse au commerçant à la

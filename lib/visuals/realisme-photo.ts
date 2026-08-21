@@ -101,6 +101,24 @@ export const REALISME_INTERDITS = [
   'NOT: stock-photo staging — people laughing at salad, exaggerated thumbs-up, fake eye contact.',
   'NOT: warped hands, extra fingers, mismatched reflections.',
   '',
+  // ── Les tells que le fondateur repère et que nos juges rataient ──
+  //
+  // 2026-08-22, sur deux images notées 9/10 par ARK ET par Gemini : « les
+  // gouttes trop rondes, c'est ouf » et « la farine pas naturelle sur la main,
+  // y'en a trop ». Aucun des deux juges ne l'avait vu, et l'œil humain l'a
+  // attrapé en une seconde.
+  //
+  // Ce sont des défauts de PHYSIQUE, pas d'esthétique — c'est pour ça qu'ils
+  // passaient entre les mailles : nos consignes parlaient de lumière, de grain
+  // et de cadrage, jamais de la façon dont la matière se comporte.
+  'PHYSICS OF MATTER — droplets and beads must be IRREGULAR: real drops flatten, cling, elongate',
+  'and run; no two are alike. Never perfect spheres, never evenly spaced, never identical in size.',
+  'POWDER (flour, sugar, spice, dust) obeys gravity and lands unevenly — it gathers in skin creases,',
+  'in corners and on edges, and leaves bare patches. A hand dusted with flour is mostly bare skin',
+  'with flour in the folds, NOT a uniform white coating. Use restraint: less powder, better placed.',
+  'Foam bubbles differ in size, crumbs differ in shape, steam drifts asymmetrically.',
+  'NOT: identical repeated units of anything that should be unique — grains, leaves, bristles, bubbles.',
+  '',
   // ── ZÉRO TEXTE ──
   //
   // 2026-08-10 — Le repassage des 357 publications du planning a refusé 80
