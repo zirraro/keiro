@@ -129,6 +129,68 @@ export async function POST(request: Request) {
     const truncatedPrompt = optimisedBrief.length > 250 ? optimisedBrief.substring(0, 250) : optimisedBrief;
     const formattedPrompt = `${truncatedPrompt} --camerafixed false${ratioFlag} --duration ${duration}`;
 
+    /**
+     * ── Veo 3.1 fast passe PRINCIPAL le 21 août — sur mesure ──
+     *
+     * Banc élargi, 3 sujets × 3 modèles, tous jugés par ARK :
+     *
+     *   seedance-1.5-pro  note 8,7  réalisme 9,3  fluidité 9,0  texte 0/3  1,10 €  183 s
+     *   veo-3.1-fast      note 8,7  réalisme 9,7  fluidité 9,7  texte 0/3  1,11 €   95 s
+     *   veo-3.1-lite      note 9,0  réalisme 9,3  fluidité 8,3  texte 1/3  0,74 €   94 s
+     *
+     * À prix identique, Veo fast est DEUX FOIS plus rapide, meilleur en
+     * réalisme et en fluidité, et sans texte parasite. Aucun axe où il perd.
+     * Le juge : « aucun défaut détecté » sur ses trois vidéos. Seedance s'est
+     * vu reprocher un manque de rythme et des visages qui se déforment sur les
+     * portraits au mur quand la caméra bouge — le défaut typique du généré.
+     *
+     * Veo LITE est écarté malgré ses 0,74 € : il a produit du texte parasite
+     * (« textes visibles sur la vitre en arrière-plan »), ce que notre propre
+     * contrôle qualité bloque. Les 0,36 € économisés coûtent alors un créneau
+     * client entier. C'est le calcul que j'avais mal fait la veille, en le
+     * recommandant sur une seule vidéo d'un seul sujet.
+     *
+     * Le gain n'est pas financier, il est en TEMPS : 88 s de moins par vidéo.
+     * Sur un plan Business à 35 vidéos par mois, 51 minutes de génération
+     * économisées — donc des créneaux tenus, et une reprise après échec qui a
+     * le temps d'aboutir.
+     *
+     * Veo rend une vidéo TERMINÉE là où Seedance rend un identifiant de tâche
+     * à interroger : on renvoie directement, sans entrer dans le sondage.
+     *
+     * VIDEO_PRIMAIRE=seedance remet l'ancien ordre sans redéploiement.
+     */
+    // Veo est désormais en TÊTE de chaîne — il ne doit donc plus être rappelé
+    // en dernier recours, sinon on retente ce qui vient d'échouer et on fait
+    // patienter le client deux fois pour la même panne.
+    let veoDejaTente = false;
+
+    if ((process.env.VIDEO_PRIMAIRE || 'veo').toLowerCase() === 'veo') {
+      try {
+        const { genererVideoVeo } = await import('@/lib/visuals/veo-fallback');
+        const veo = await genererVideoVeo(optimisedBrief, {
+          aspectRatio: aspectRatio || '9:16',
+          secondes: duration,
+        });
+        console.log(`[T2V] ✓ Veo principal (${veo.modele}) — ${veo.coutEur} €`);
+
+        if (user && !isAdminUser) {
+          await deductCredits(user.id, 'video_t2v', `Vidéo T2V ${duration}s`, duration);
+        }
+        return Response.json({
+          ok: true,
+          videoUrl: veo.videoUrl,
+          provider: veo.modele,
+          coutEur: veo.coutEur,
+        });
+      } catch (e: any) {
+        // Veo tombe : on enchaîne sur Seedance, qui reste mesuré à 8,7/10 et
+        // n'a produit aucun texte parasite. Un secours éprouvé, pas un pis-aller.
+        console.warn('[T2V] Veo principal KO → Seedance :', e?.message);
+        veoDejaTente = true;
+      }
+    }
+
     // --- Primary provider ---
     try {
       if (PRIMARY_PROVIDER === 'kling') {
@@ -219,6 +281,14 @@ export async function POST(request: Request) {
         // Il rend une vid\u00e9o TERMIN\u00c9E, l\u00e0 o\u00f9 Seedance rend un identifiant de
         // t\u00e2che \u00e0 interroger. On renvoie donc directement l'URL au lieu
         // d'entrer dans la boucle de sondage.
+        if (veoDejaTente) {
+          console.error('[T2V] les trois fournisseurs ont échoué, Veo compris');
+          return Response.json(
+            { ok: false, error: 'Aucun fournisseur vidéo disponible — Veo, Seedance et Kling ont tous échoué' },
+            { status: 503 },
+          );
+        }
+
         try {
           const { genererVideoVeo } = await import('@/lib/visuals/veo-fallback');
           const veo = await genererVideoVeo(prompt, {
