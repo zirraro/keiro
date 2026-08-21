@@ -75,6 +75,36 @@ export const REALISME_SOCLE = [
   'fingerprints on glass, condensation, crumbs, wear on surfaces. Fine photographic noise in the',
   'shadows. Nothing airbrushed, nothing plastic.',
   '',
+  /**
+   * ── La physique de la matière — le levier que le fondateur a nommé ──
+   *
+   * 2026-08-22, sur deux images notées 9/10 par ARK ET par Gemini : « les
+   * gouttes trop rondes, c'est ouf » et « la farine pas naturelle sur la main,
+   * y'en a trop ». Aucun des deux juges ne l'avait vu ; son œil l'a attrapé en
+   * une seconde.
+   *
+   * Nos consignes parlaient de lumière, de grain, de cadrage — jamais de la
+   * façon dont la MATIÈRE se comporte. C'est précisément le trou : une goutte
+   * parfaitement sphérique dit « image générée » avant tout défaut de cadrage.
+   *
+   * Sa deuxième remarque était la bonne architecture : « ces éléments doivent
+   * être dans le prompt pour qu'on résolve le problème à la source, plutôt ».
+   * J'avais d'abord posé ces règles dans la liste des INTERDITS — en
+   * contradiction avec la règle que ce fichier documente lui-même dix lignes
+   * plus haut : on décrit ce qu'on veut voir, jamais ce qu'on refuse, parce que
+   * nommer un défaut le met dans la scène. Elles sont donc ici, dans le socle,
+   * formulées en positif comme tout le reste.
+   *
+   * Corriger au générateur plutôt qu'au juge, c'est aussi ne plus payer une
+   * image pour la refuser ensuite.
+   */
+  'MATTER BEHAVES: droplets flatten, cling and run — each one a different size and shape, never',
+  'perfect spheres, never evenly spaced. Powder obeys gravity and lands unevenly: flour gathers in',
+  'skin creases and along edges and leaves bare patches, so a floured hand is mostly bare skin with',
+  'flour in the folds. Use it sparingly and place it where a hand would actually pick it up. Foam',
+  'bubbles vary in size, crumbs vary in shape, steam drifts asymmetrically, and anything that occurs',
+  'many times — grains, leaves, bristles — differs from one to the next.',
+  '',
   'COMPOSITION: slightly imperfect framing, as a real photographer working fast would get it.',
   'Off-centre is fine. Objects may be cropped by the frame edge. Avoid perfect symmetry.',
   '',
@@ -100,24 +130,6 @@ export const REALISME_INTERDITS = [
   'NOT: impossibly tidy spaces, showroom perfection, everything centred and aligned.',
   'NOT: stock-photo staging — people laughing at salad, exaggerated thumbs-up, fake eye contact.',
   'NOT: warped hands, extra fingers, mismatched reflections.',
-  '',
-  // ── Les tells que le fondateur repère et que nos juges rataient ──
-  //
-  // 2026-08-22, sur deux images notées 9/10 par ARK ET par Gemini : « les
-  // gouttes trop rondes, c'est ouf » et « la farine pas naturelle sur la main,
-  // y'en a trop ». Aucun des deux juges ne l'avait vu, et l'œil humain l'a
-  // attrapé en une seconde.
-  //
-  // Ce sont des défauts de PHYSIQUE, pas d'esthétique — c'est pour ça qu'ils
-  // passaient entre les mailles : nos consignes parlaient de lumière, de grain
-  // et de cadrage, jamais de la façon dont la matière se comporte.
-  'PHYSICS OF MATTER — droplets and beads must be IRREGULAR: real drops flatten, cling, elongate',
-  'and run; no two are alike. Never perfect spheres, never evenly spaced, never identical in size.',
-  'POWDER (flour, sugar, spice, dust) obeys gravity and lands unevenly — it gathers in skin creases,',
-  'in corners and on edges, and leaves bare patches. A hand dusted with flour is mostly bare skin',
-  'with flour in the folds, NOT a uniform white coating. Use restraint: less powder, better placed.',
-  'Foam bubbles differ in size, crumbs differ in shape, steam drifts asymmetrically.',
-  'NOT: identical repeated units of anything that should be unique — grains, leaves, bristles, bubbles.',
   '',
   // ── ZÉRO TEXTE ──
   //

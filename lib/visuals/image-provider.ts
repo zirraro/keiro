@@ -75,7 +75,30 @@ async function generateWithGemini(opts: ImageGenOptions, size: string): Promise<
     ? `The ONLY text visible in the image is the exact phrase "${opts.exactTextInImage}", rendered cleanly in one readable font. No other words, letters or gibberish anywhere.`
     : 'ZERO text in the image: no words, letters, numbers, captions, signage, labels, logos or watermarks (text is added later as an overlay).';
 
-  const prompt = `${opts.prompt}. ${textRule} EDITORIAL DOCUMENTARY photograph: 50mm or 80mm prime lens, Kodak Portra 400 film aesthetic, natural diffused window light or golden hour (no studio strobes, no ring light), shallow depth of field, real candid moment, gentle 35mm grain, true-to-life muted colors. Real people with authentic skin texture and correct hands, diverse in age and origin, caught mid-action rather than posing. Absolutely NOT a 3D render, NOT an illustration, NOT a stock photo, no plastic or porcelain skin, no neon or oversaturated colors, no AI portrait artifacts.`;
+  /**
+   * ── Un seul socle de réalisme, pas deux ──
+   *
+   * Fondateur, 22 août : « ces éléments doivent être dans le prompt pour qu'on
+   * résolve le problème à la source », puis « sur tous nos prompts et
+   * sous-prompts, sur tous les modèles, tous les formats ».
+   *
+   * Il visait juste. Ce chemin-ci portait son PROPRE suffixe écrit en dur —
+   * une deuxième définition de « photoréaliste », proche de celle de
+   * realisme-photo.ts mais pas identique, et surtout privée de tout ce qu'on y
+   * a ajouté depuis : le flou de bougé, la lumière inégale, et maintenant la
+   * physique de la matière (gouttes irrégulières, farine dans les plis) que le
+   * fondateur venait de nous apprendre à voir.
+   *
+   * Or Gemini est devenu le générateur PRINCIPAL des images le 20 août. La
+   * moitié de nos visuels sortait donc d'un socle figé, pendant qu'on
+   * améliorait l'autre.
+   *
+   * C'est le troisième cas cette semaine — après image-qa qui appelait
+   * Anthropic en direct et les carrousels — où deux implémentations d'une même
+   * chose divergent. On importe le socle commun.
+   */
+  const { REALISME_SOCLE } = await import('./realisme-photo');
+  const prompt = `${opts.prompt}. ${textRule}\n\n${REALISME_SOCLE}`;
 
   try {
     const res = await fetchIPv4(

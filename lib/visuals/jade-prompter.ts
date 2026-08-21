@@ -246,7 +246,25 @@ async function optimiseBrief(visualBrief: string, format: string, userId?: strin
     system: JADE_STYLE_GUIDE + designContext,
     message: `Build the image prompt for this ${format}.\n\nVisual brief: ${visualBrief}\n\nFormat context: ${formatBriefForClaude(format)}\n\nIMPORTANT: Do NOT include hex color codes, aspect ratios, numbers, or technical specs. Describe colors by name. Output ONE pure visual description: subject, light, depth, texture, mood. It must read as a real photograph a person took — never generic, never an advert.`,
   });
-  return (optimized || visualBrief) + NO_TEXT_SUFFIX;
+  /**
+   * ── Le socle de réalisme manquait entièrement sur ce chemin ──
+   *
+   * Fondateur, 22 août : « sur tous nos prompts et sous-prompts, sur tous les
+   * modèles, tous les formats ».
+   *
+   * Vérifié : `blocRealisme` n'était importé que par l'agent contenu. Ce
+   * prompteur-ci — celui du Studio, de la Galerie et de la génération à la
+   * demande, sur Seedream — n'ajoutait que la consigne « zéro texte ». Il
+   * partait donc SANS le flou de bougé, SANS la lumière inégale, et sans la
+   * physique de la matière que le fondateur venait de nous apprendre à voir
+   * (gouttes irrégulières, farine dans les plis plutôt qu'un voile uniforme).
+   *
+   * Tout ce qu'on améliore depuis juin ne concernait donc qu'une partie des
+   * générations ; les autres partaient avec le rendu par défaut du modèle —
+   * exactement ce que ce socle existe pour éviter.
+   */
+  const { REALISME_SOCLE } = await import('./realisme-photo');
+  return `${optimized || visualBrief}\n\n${REALISME_SOCLE}` + NO_TEXT_SUFFIX;
 }
 
 /**
@@ -279,9 +297,14 @@ OUTPUT: the final video prompt, ready to be sent to the generation API. No intro
       message: `Brief: ${videoBrief}\n\nWrite the optimised video prompt.`,
       maxTokens: 450,
     });
-    return (optimized || videoBrief) + NO_TEXT_SUFFIX;
+    // Même trou côté vidéo, et le bloc vidéo a ses propres leviers : caméra à
+    // la main, lumière qui change avec le mouvement, continuité des objets
+    // entre le début et la fin du plan.
+    const { REALISME_VIDEO } = await import('./realisme-photo');
+    return `${optimized || videoBrief}\n\n${REALISME_VIDEO}` + NO_TEXT_SUFFIX;
   } catch {
-    return videoBrief + NO_TEXT_SUFFIX;
+    const { REALISME_VIDEO } = await import('./realisme-photo');
+    return `${videoBrief}\n\n${REALISME_VIDEO}` + NO_TEXT_SUFFIX;
   }
 }
 
