@@ -4089,6 +4089,32 @@ async function GETInterne(request: NextRequest) {
                   // sur l'image » : il EXIGE de régénérer le visuel.
                   genererVisuel: (brief, format, texte) =>
                     generateVisual(brief, format, fullPost.user_id || undefined, fullPost.platform, null, false, null, texte),
+                  /**
+                   * ── La réparation vidéo, branchée le 2026-08-22 ──
+                   *
+                   * Sans ce rappel, un reel refusé pour son visuel était perdu :
+                   * la boucle ne pouvait que réécrire la légende, et une légende
+                   * neuve ne corrige pas un thermomètre aux graduations absurdes.
+                   *
+                   * Constaté le jour même sur un reel bloqué à 6/10 pour « défaut
+                   * IA manifeste ». Le juge bloquait, rien ne réparait, le créneau
+                   * était perdu — et plus on rendait le juge exigeant, plus on en
+                   * perdait. Chaque progrès du contrôle se payait en publications.
+                   *
+                   * On passe par Veo, devenu principal ce jour-là : il rend une
+                   * vidéo terminée et déjà rapatriée chez nous, donc directement
+                   * rejugeable. Le budget reste de 2 essais pour la vidéo.
+                   */
+                  genererVideo: async (brief: string) => {
+                    try {
+                      const { genererVideoVeo } = await import('@/lib/visuals/veo-fallback');
+                      const v = await genererVideoVeo(brief, { aspectRatio: '9:16', secondes: 8 });
+                      return v.videoUrl;
+                    } catch (e: any) {
+                      console.warn('[Content] régénération vidéo impossible :', e?.message);
+                      return null;
+                    }
+                  },
                 });
                 repare = r.publiable === true;
 
@@ -4098,6 +4124,9 @@ async function GETInterne(request: NextRequest) {
                 if (repare) {
                   await supabase.from('content_calendar').update({
                     hook: r.hook, caption: r.caption, visual_url: r.visualUrl,
+                    // La video reparee DOIT etre enregistree : sans cette ligne on
+                    // regenerait, jugeait, validait — puis on publiait l ancienne.
+                    video_url: r.videoUrl,
                     publish_diagnostic: `qc_repare: ${r.note}/10 en ${r.essais} essai(s)`,
                     updated_at: new Date().toISOString(),
                   }).eq('id', post.id);

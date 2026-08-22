@@ -56,6 +56,9 @@ export interface ResultatBoucle {
   hook: string | null;
   caption: string | null;
   visualUrl: string | null;
+  /** La video retenue. Sans elle, une video reparee etait regeneree, jugee,
+   *  validee — puis l'ANCIENNE, defectueuse, etait publiee. */
+  videoUrl: string | null;
 }
 
 export async function reparerJusquAuNiveau(
@@ -70,6 +73,8 @@ export async function reparerJusquAuNiveau(
     vise?: number;
     /** Régénère une image. Fourni par l'appelant, qui seul sait comment. */
     genererVisuel?: (brief: string, format: string, texteDuPost: string) => Promise<string | null>;
+    /** Regenere une VIDEO. Sans lui, un reel refuse pour son visuel est perdu. */
+    genererVideo?: (brief: string, format: string) => Promise<string | null>;
   } = {},
 ): Promise<ResultatBoucle> {
   const VISE = opts.vise ?? 8;
@@ -102,10 +107,13 @@ export async function reparerJusquAuNiveau(
   let hook = post.hook ?? null;
   let caption = post.caption ?? null;
   let visualUrl = post.visual_url ?? null;
+  // Mutable comme visualUrl : sans ça, une vidéo refaite n'était jamais rejugée
+  // — le contrôle continuait de regarder l'ancienne.
+  let videoUrl = post.video_url ?? null;
 
   const juger = () => controlerAvantPublication(supabase, {
     id: post.id, user_id: post.user_id, hook, caption,
-    hashtags: post.hashtags as any, visual_url: visualUrl, video_url: post.video_url,
+    hashtags: post.hashtags as any, visual_url: visualUrl, video_url: videoUrl,
     platform: post.platform, format: post.format,
   });
 
@@ -144,6 +152,52 @@ export async function reparerJusquAuNiveau(
       || (d.reasons || []).some((r: string) => /image/i.test(String(r)));
 
     let progres = false;
+
+    /**
+     * ── La vidéo se répare aussi — 2026-08-22 ──
+     *
+     * Jusqu'ici la condition disait `!post.video_url` : dès qu'il y avait une
+     * vidéo, on refusait de refaire le visuel et on se rabattait sur la
+     * réécriture de la légende. Or une légende neuve ne corrige pas un
+     * thermomètre aux graduations absurdes.
+     *
+     * Constaté le jour même : un reel bloqué à 6/10 pour « défaut IA manifeste
+     * et très visible » n'avait aucune réparation possible. Le juge bloquait,
+     * rien ne réparait, le créneau était perdu.
+     *
+     * Effet pervers que ça créait : plus on rendait le juge exigeant — et on
+     * venait justement d'ajouter la cohérence mécanique — plus on perdait de
+     * publications vidéo. Chaque progrès du contrôle se payait en créneaux.
+     *
+     * Le budget reste celui déjà prévu pour la vidéo (PLAFOND_CONFORT = 2) :
+     * une vidéo coûte cinquante fois une image, on ne s'autorise pas trois
+     * essais comme sur une photo.
+     */
+    if (imageEnCause && post.video_url && opts.genererVideo) {
+      const brief = await briefVisuelDepuisLegende({
+        legende: caption || hook || '',
+        motifs: (d.reasons || []).slice(0, 3).join(' · '),
+        metier: post.business_type || null,
+      });
+      if (brief) {
+        const nouvelle = await opts.genererVideo(brief, post.format || 'reel');
+        if (nouvelle) {
+          videoUrl = nouvelle;
+          const v2 = await juger();
+          const n2 = Number((v2.details as any)?.score ?? 0);
+          if (n2 > note) {
+            verdict = v2; note = n2; progres = true;
+            if (!essaiGagnant && v2.publiable) essaiGagnant = essai;
+            journal.push(`essai ${essai} — vidéo refaite depuis le texte : ${n2}/10`);
+          } else {
+            journal.push(`essai ${essai} — vidéo refaite sans gain (${n2}/10), on garde la précédente`);
+            videoUrl = post.video_url;
+          }
+        } else {
+          journal.push(`essai ${essai} — régénération vidéo indisponible`);
+        }
+      }
+    }
 
     // ── L'image d'abord, quand c'est elle qui pèche ──
     if (imageEnCause && !post.video_url && opts.genererVisuel) {
@@ -285,6 +339,6 @@ export async function reparerJusquAuNiveau(
 
   return {
     note, publiable: !!verdict.publiable, essaiGagnant,
-    essais: journal.length, journal, hook, caption, visualUrl,
+    essais: journal.length, journal, hook, caption, visualUrl, videoUrl,
   };
 }
