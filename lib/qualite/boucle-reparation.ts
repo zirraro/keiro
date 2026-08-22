@@ -122,6 +122,34 @@ export async function reparerJusquAuNiveau(
   let essaiGagnant: number | null = verdict.publiable ? 1 : null;
   journal.push(`essai 1 — ${note || '?'}/10 ${verdict.publiable ? 'publiable' : 'refusé'}`);
 
+  /**
+   * ── Certains refus ne se réparent pas, ils se regénèrent ──
+   *
+   * Constaté le 2026-08-22, une minute après avoir posé le garde `media_absent` :
+   * la boucle a consommé CINQ essais à réécrire la légende d'un post qui n'avait
+   * aucun média. Cinq appels de modèle payés pour corriger un texte qui n'était
+   * pas le problème — le post était vide.
+   *
+   * J'avais pourtant écrit, en posant ce garde une heure plus tôt, que le
+   * diagnostic devait empêcher « de réécrire une légende sur du vide ». Je
+   * l'avais écrit dans un commentaire et nulle part dans le code.
+   *
+   * Deux refus sortent donc immédiatement :
+   *   · `media_absent` — il n'y a rien à corriger, il faut regénérer ;
+   *   · `doublon` — le contenu est bon, c'est sa republication qui ne l'est pas.
+   *
+   * On rend le post inchangé avec son motif : l'appelant décide, et le calendrier
+   * ne paie pas cinq réécritures pour rien.
+   */
+  const IRREPARABLES = ['media_absent', 'doublon'];
+  if (!verdict.publiable && IRREPARABLES.includes(String(verdict.code))) {
+    journal.push(`arrêt — « ${verdict.code} » ne se répare pas, le post doit être regénéré`);
+    return {
+      note, publiable: false, essaiGagnant: null,
+      essais: journal.length, journal, hook, caption, visualUrl, videoUrl,
+    };
+  }
+
   for (let essai = 2; essai <= PLAFOND_SAUVETAGE; essai++) {
     if (verdict.publiable && note >= VISE) break;
     // Le post est déjà livrable : on ne dépasse pas le plafond de confort.
