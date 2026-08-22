@@ -139,7 +139,7 @@ export default function VideoEditModal({ video, onClose, onSave }: VideoEditModa
                   }`}
                 >
                   <div className="font-medium">{style.label}</div>
-                  <div className="text-[10px] text-neutral-400">{style.desc}</div>
+                  <div className="text-xs text-neutral-400">{style.desc}</div>
                 </button>
               ))}
             </div>

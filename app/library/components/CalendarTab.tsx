@@ -405,7 +405,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                             <img src={post.image_url} alt="" className="w-full h-28 object-cover" />
                           )}
                           <div className="p-2.5">
-                            <p className="text-[11px] font-semibold text-neutral-900 flex items-center gap-1.5 mb-1">
+                            <p className="text-xs font-semibold text-neutral-900 flex items-center gap-1.5 mb-1">
                               {getPlatformEmoji(post.platform)} {post.platform}
                               {(post as any).auteur && (post as any).auteur !== 'Vous' && (
                                 <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 text-[9px] font-bold">
@@ -413,7 +413,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                                 </span>
                               )}
                             </p>
-                            <p className="text-[11px] text-neutral-600 line-clamp-3 leading-snug">
+                            <p className="text-xs text-neutral-600 line-clamp-3 leading-snug">
                               {post.caption || '(sans légende)'}
                             </p>
                           </div>
@@ -495,7 +495,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                         setEditTime(d.toTimeString().slice(0, 5));
                         setEditingTime(true);
                       }}
-                      className="text-[10px] text-[#0c1a3a] hover:text-[#1e3a5f] font-medium underline"
+                      className="text-xs text-[#0c1a3a] hover:text-[#1e3a5f] font-medium underline"
                     >
                       Modifier
                     </button>
@@ -667,7 +667,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                         <>
                           <div className="text-xs font-medium text-neutral-900 mb-1">{day}</div>
                           {hasPost && (
-                            <div className="bg-[#0c1a3a] text-white text-[10px] rounded px-2 py-1 mb-1">
+                            <div className="bg-[#0c1a3a] text-white text-xs rounded px-2 py-1 mb-1">
                               📷 {day === 8 ? '18h00' : day === 15 ? '12h30' : '19h15'}
                             </div>
                           )}

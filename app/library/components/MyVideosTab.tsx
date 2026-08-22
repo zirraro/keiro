@@ -332,7 +332,7 @@ function VideoCard({
             {!video.published_to_tiktok && (
               <button
                 onClick={() => onPublishToTikTok(video)}
-                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-[10px] font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
+                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
                 title={t.library.mvtPost}
               >
                 <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

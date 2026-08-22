@@ -73,10 +73,10 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
           <div className="border border-neutral-200 rounded-lg p-3">
             <h3 className="text-sm font-semibold text-neutral-900 mb-2">{t.library.connWhatYouNeed}</h3>
             <div className="flex items-center gap-2 text-xs text-neutral-700">
-              <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">{'✓'}</span>
+              <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-xs">{'✓'}</span>
               <span><strong>{t.library.icmNeedProAccount}</strong></span>
             </div>
-            <p className="text-[11px] text-neutral-500 mt-1.5">{t.library.icmImportantDesc}</p>
+            <p className="text-xs text-neutral-500 mt-1.5">{t.library.icmImportantDesc}</p>
           </div>
 
           <button
@@ -99,7 +99,7 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
               </svg>
               <div>
                 <div className="font-semibold text-neutral-900 text-xs">{t.library.icmConfigMyself}</div>
-                <div className="text-[10px] text-neutral-500">{t.library.icmMetaGuide}</div>
+                <div className="text-xs text-neutral-500">{t.library.icmMetaGuide}</div>
               </div>
             </button>
             <button
@@ -111,12 +111,12 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
               </svg>
               <div>
                 <div className="font-semibold text-neutral-900 text-xs">{t.library.icmGetHelp}</div>
-                <div className="text-[10px] text-neutral-500">{t.library.icmFreeCall}</div>
+                <div className="text-xs text-neutral-500">{t.library.icmFreeCall}</div>
               </div>
             </button>
           </div>
 
-          <p className="text-[10px] text-center text-neutral-500">
+          <p className="text-xs text-center text-neutral-500">
             {t.library.icmManualNote}
           </p>
         </div>

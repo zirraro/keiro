@@ -744,12 +744,12 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   onChange={(e) => setEditStrength(Number(e.target.value))}
                   className="w-full accent-purple-600"
                 />
-                <div className="flex justify-between text-[10px] text-neutral-400 mt-0.5">
+                <div className="flex justify-between text-xs text-neutral-400 mt-0.5">
                   <span>{t.library.iemStrengthSubtle}</span>
                   <span>{t.library.iemStrengthModerate}</span>
                   <span>{t.library.iemStrengthStrong}</span>
                 </div>
-                <p className="text-[11px] text-neutral-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-1">
                   {editStrength <= 5
                     ? t.library.iemStrengthSubtleDesc
                     : editStrength <= 7

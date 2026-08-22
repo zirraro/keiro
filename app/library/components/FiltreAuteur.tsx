@@ -71,7 +71,7 @@ export function BadgeAuteur({ auteur, compact = false }: { auteur: string; compa
   return (
     <span
       title={parMoi ? 'Créé par vous' : `Préparé par ${auteur}`}
-      className={`inline-flex items-center gap-1 rounded font-semibold ${compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'} ${
+      className={`inline-flex items-center gap-1 rounded font-semibold ${compact ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-0.5 text-xs'} ${
         parMoi
           ? 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
           : 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300'

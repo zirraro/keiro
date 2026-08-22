@@ -811,7 +811,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
               <div className="flex-1 overflow-y-auto p-6 space-y-5 max-w-2xl mx-auto w-full">
 
                 {/* ═══ STEP 1/5 — Publishing account ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte de publication</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte de publication</div>
                 <div className="bg-gradient-to-r from-pink-50 to-cyan-50 rounded-xl p-4 border border-pink-200/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
@@ -865,14 +865,14 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                       {/* Overlay caption + handle (au-dessus du scroller) */}
                       <div className="absolute inset-0 flex flex-col justify-end pointer-events-none z-[5]">
                         <div className="p-3 pb-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                          <p className="text-[10px] font-bold text-white mb-1 drop-shadow-sm">@{creatorInfo?.username || tiktokUsername || 'vous'}</p>
-                          {caption && <p className="text-[10px] text-white/95 leading-snug mb-1.5 drop-shadow-sm" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</p>}
-                          {hashtags.length > 0 && <p className="text-[10px] text-white/85 font-medium drop-shadow-sm">{hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</p>}
+                          <p className="text-xs font-bold text-white mb-1 drop-shadow-sm">@{creatorInfo?.username || tiktokUsername || 'vous'}</p>
+                          {caption && <p className="text-xs text-white/95 leading-snug mb-1.5 drop-shadow-sm" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</p>}
+                          {hashtags.length > 0 && <p className="text-xs text-white/85 font-medium drop-shadow-sm">{hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</p>}
                         </div>
                       </div>
 
                       {selectedImages.length > 1 && (
-                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded-full text-white text-[10px] font-medium z-10">{previewIndex + 1}/{selectedImages.length}</div>
+                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded-full text-white text-xs font-medium z-10">{previewIndex + 1}/{selectedImages.length}</div>
                       )}
 
                       {/* Carrousel pagination dots (style TikTok) */}
@@ -885,11 +885,11 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                       )}
                     </div>
                   </div>
-                  <p className="text-[10px] text-center text-neutral-400 mt-2">← Swipe pour voir les {selectedImages.length} images →</p>
+                  <p className="text-xs text-center text-neutral-400 mt-2">← Swipe pour voir les {selectedImages.length} images →</p>
                 </div>
 
                 {/* ═══ STEP 1/5 — Creator info ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte créateur</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte créateur</div>
                 <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-black to-neutral-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                     {(creatorInfo?.username || creatorInfo?.display_name || tiktokUsername || '?').toString().slice(0, 1).toUpperCase()}
@@ -898,16 +898,16 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                     <div className="text-xs font-bold text-neutral-900 truncate">
                       Publication en tant que <span className="text-black">@{creatorInfo?.username || tiktokUsername || '—'}</span>
                     </div>
-                    <div className="text-[10px] text-neutral-600 mt-0.5">
+                    <div className="text-xs text-neutral-600 mt-0.5">
                       Carrousel : <strong>{selectedImages.length}/35 images</strong>
                       <span className="ml-2 text-neutral-400">·</span>
-                      <span className="ml-2">via <code className="text-[10px] bg-white border border-neutral-200 px-1 rounded">/v2/post/publish/creator_info/query/</code></span>
+                      <span className="ml-2">via <code className="text-xs bg-white border border-neutral-200 px-1 rounded">/v2/post/publish/creator_info/query/</code></span>
                     </div>
                   </div>
                 </div>
 
                 {/* ═══ STEP 2/5 — Privacy ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 2/5 — Confidentialité</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Étape 2/5 — Confidentialité</div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">Qui peut voir ce post <span className="text-red-500">*</span></label>
                   <div className="space-y-2">
@@ -933,7 +933,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                 </div>
 
                 {/* ═══ STEP 3/5 — Allowed interactions ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 3/5 — Interactions autorisées</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Étape 3/5 — Interactions autorisées</div>
                 <div>
                   <p className="text-xs text-neutral-400 mb-2">Cochez les interactions que vous souhaitez autoriser sur cette publication</p>
                   <div className="space-y-2">
@@ -955,14 +955,14 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                 </div>
 
                 {/* ═══ STEP 4/5 — Branded content (info only for carousel) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 4/5 — Contenu sponsorisé</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Étape 4/5 — Contenu sponsorisé</div>
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
                   Pour les carrousels photos, l&apos;option <strong>contenu de marque</strong> n&apos;est pas disponible sur TikTok.
                   Si tu publies du contenu sponsorisé, ajoute la mention directement dans la légende (ex: <code className="bg-white px-1 rounded">#ad</code>).
                 </div>
 
                 {/* ═══ STEP 5/5 — Consent ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 5/5 — Confirmation</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Étape 5/5 — Confirmation</div>
                 <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-700">
                   En publiant, tu confirmes que ton contenu respecte les{' '}
                   <a href="https://www.tiktok.com/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-[#0c1a3a] underline font-medium">Community Guidelines TikTok</a>

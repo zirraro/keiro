@@ -254,7 +254,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
               onClick={onPreparePost}
               className={`bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
                 isCollapsed
-                  ? 'w-full px-2 py-1.5 text-[10px]'
+                  ? 'w-full px-2 py-1.5 text-xs'
                   : 'px-3 py-1.5 text-xs'
               }`}
               title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
@@ -344,7 +344,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
               onClick={onPreparePost}
               className={`bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
                 isCollapsed
-                  ? 'w-full px-2 py-1.5 text-[10px]'
+                  ? 'w-full px-2 py-1.5 text-xs'
                   : 'px-3 py-1.5 text-xs'
               }`}
               title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
@@ -451,7 +451,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                         <svg className="w-8 h-8 text-cyan-400 mx-auto mb-1" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                         </svg>
-                        <p className="text-[10px] text-neutral-400 leading-tight">{post.video_description?.substring(0, 40) || 'Vidéo TikTok'}</p>
+                        <p className="text-xs text-neutral-400 leading-tight">{post.video_description?.substring(0, 40) || 'Vidéo TikTok'}</p>
                       </div>
                     </div>
                   )}

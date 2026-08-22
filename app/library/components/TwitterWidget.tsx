@@ -65,7 +65,7 @@ export default function TwitterWidget({
             onClick={onPreparePost}
             className={`bg-gradient-to-r from-neutral-800 to-black text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
               isCollapsed
-                ? 'w-full px-2 py-1.5 text-[10px]'
+                ? 'w-full px-2 py-1.5 text-xs'
                 : 'px-3 py-1.5 text-xs'
             }`}
             title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}

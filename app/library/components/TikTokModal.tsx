@@ -145,9 +145,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     neon: 'text-fuchsia-400 text-xl font-black [text-shadow:_0_0_10px_rgb(192_38_211),_0_0_20px_rgb(192_38_211),_0_0_40px_rgb(192_38_211)]',
     cinema: 'text-white text-xs font-medium bg-black/80 px-4 py-2 tracking-wider',
     impact: 'text-white text-xl font-black uppercase tracking-tight [text-shadow:_3px_3px_0_rgb(0_0_0),_-1px_-1px_0_rgb(0_0_0)]',
-    minimal: 'text-white/90 text-[10px] font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm',
-    classic: 'text-white text-[11px] font-bold bg-black/60 px-2 py-1 rounded-lg',
-    clean: 'text-white text-[11px] font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]',
+    minimal: 'text-white/90 text-xs font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm',
+    classic: 'text-white text-xs font-bold bg-black/60 px-2 py-1 rounded-lg',
+    clean: 'text-white text-xs font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]',
   };
 
   // Calcul du mot courant pour les styles mot-par-mot
@@ -1304,7 +1304,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
-                            <span className="text-[10px] text-neutral-500">{t.library.video}</span>
+                            <span className="text-xs text-neutral-500">{t.library.video}</span>
                           </div>
                         )}
                       </button>
@@ -1414,7 +1414,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           onChange={(e) => setVideoDuration(Number(e.target.value))}
                           className="w-full h-1.5 accent-purple-600 mt-1"
                         />
-                        <div className="flex justify-between text-[10px] text-neutral-400 mt-0.5">
+                        <div className="flex justify-between text-xs text-neutral-400 mt-0.5">
                           <span>5s</span><span>8s</span><span>12s</span>
                         </div>
                       </div>
@@ -1455,7 +1455,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 )}
 
                 <div className={`${activeTab === 'videos' || (activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))) ? 'bg-green-100 border-green-200' : 'bg-cyan-100 border-cyan-200'} border rounded-lg p-2`}>
-                  <p className={`text-[10px] ${activeTab === 'videos' || (activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))) ? 'text-green-900' : 'text-cyan-900'} flex items-start gap-1.5`}>
+                  <p className={`text-xs ${activeTab === 'videos' || (activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))) ? 'text-green-900' : 'text-cyan-900'} flex items-start gap-1.5`}>
                     <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
@@ -1743,7 +1743,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     )}
                   </div>
 
-                  <p className="text-[10px] text-neutral-600">
+                  <p className="text-xs text-neutral-600">
                     {mergedVideoUrl
                       ? t.library.mergeSuccessDesc
                       : merging
@@ -1777,7 +1777,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     <>
                       {/* Style de sous-titres */}
                       <div className="space-y-1.5">
-                        <p className="text-[10px] text-neutral-600">{t.library.subtitleStyleLabel}</p>
+                        <p className="text-xs text-neutral-600">{t.library.subtitleStyleLabel}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {([
                             { key: 'wordflash' as const, label: `⚡ ${t.library.subtitleWordFlash}` },
@@ -1790,7 +1790,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             <button
                               key={style.key}
                               onClick={() => setSubtitleStyle(style.key)}
-                              className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                              className={`px-2 py-1 text-xs rounded border transition-all ${
                                 subtitleStyle === style.key
                                   ? 'bg-green-600 text-white border-green-600'
                                   : 'bg-white text-green-700 border-green-300 hover:border-green-400'
@@ -1804,7 +1804,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
                       {/* Modifier le texte des sous-titres */}
                       <div className="space-y-1.5">
-                        <label className="block text-[10px] font-medium text-neutral-700">
+                        <label className="block text-xs font-medium text-neutral-700">
                           {t.library.displayedText}
                         </label>
                         <textarea
@@ -1918,7 +1918,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           setSelectedMusicStyle(music.value);
                           if (music.value === 'none') { setMusicUrl(null); }
                         }}
-                        className={`px-2.5 py-1 text-[10px] rounded-full border transition-all ${
+                        className={`px-2.5 py-1 text-xs rounded-full border transition-all ${
                           selectedMusicStyle === music.value
                             ? 'bg-purple-600 text-white border-purple-600'
                             : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
@@ -1933,8 +1933,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   {selectedMusicStyle !== 'none' && (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-neutral-600">Volume musique</span>
-                        <span className="text-[10px] font-medium text-purple-700">{musicVolume}%</span>
+                        <span className="text-xs text-neutral-600">Volume musique</span>
+                        <span className="text-xs font-medium text-purple-700">{musicVolume}%</span>
                       </div>
                       <input
                         type="range"
@@ -1944,7 +1944,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         onChange={(e) => setMusicVolume(Number(e.target.value))}
                         className="w-full h-1.5 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                       />
-                      <div className="flex justify-between text-[10px] text-neutral-400">
+                      <div className="flex justify-between text-xs text-neutral-400">
                         <span>Discret</span>
                         <span>Fort</span>
                       </div>
@@ -2033,7 +2033,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
                   {/* Trending tip */}
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5">
-                    <p className="text-[10px] text-amber-800">
+                    <p className="text-xs text-amber-800">
                       <span className="font-semibold">💡 Astuce :</span> Pour un maximum de portée, vous pouvez aussi ajouter un son tendance TikTok après publication. Ouvrez votre vidéo dans TikTok → Modifier → Ajouter un son populaire. Les sons tendance boostent significativement la visibilité.
                     </p>
                   </div>
@@ -2243,7 +2243,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               <div className="p-6 space-y-5">
 
                 {/* ═══ POINT 1 — Creator Info Display (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 1/5 — Publishing account' : 'Étape 1/5 — Compte de publication'}</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 1/5 — Publishing account' : 'Étape 1/5 — Compte de publication'}</div>
                 {/* Display creator nickname so user knows which TikTok account receives content.
                     Also note max_video_post_duration_sec for guideline Point 1. */}
                 <div className="bg-gradient-to-r from-pink-50 to-cyan-50 rounded-xl p-4 border border-pink-200/50">
@@ -2284,30 +2284,30 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm border border-white/30" />
                           <div className="flex flex-col items-center">
                             <svg className="w-6 h-6 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                            <span className="text-[10px] text-white/90 font-medium mt-0.5">0</span>
+                            <span className="text-xs text-white/90 font-medium mt-0.5">0</span>
                           </div>
                           <div className="flex flex-col items-center">
                             <svg className="w-6 h-6 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            <span className="text-[10px] text-white/90 font-medium mt-0.5">0</span>
+                            <span className="text-xs text-white/90 font-medium mt-0.5">0</span>
                           </div>
                           <div className="flex flex-col items-center">
                             <svg className="w-6 h-6 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
-                            <span className="text-[10px] text-white/90 font-medium mt-0.5">0</span>
+                            <span className="text-xs text-white/90 font-medium mt-0.5">0</span>
                           </div>
                           <div className="w-7 h-7 rounded-full bg-neutral-800 border-2 border-neutral-600 flex items-center justify-center animate-spin" style={{ animationDuration: '3s' }}>
                             <div className="w-2 h-2 rounded-full bg-white/50" />
                           </div>
                         </div>
                         <div className="p-3 pb-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                          <p className="text-[10px] font-bold text-white mb-1 drop-shadow-sm">@{creatorInfo?.username || 'vous'}</p>
-                          {caption && <p className="text-[10px] text-white/95 leading-snug mb-1.5 drop-shadow-sm" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</p>}
+                          <p className="text-xs font-bold text-white mb-1 drop-shadow-sm">@{creatorInfo?.username || 'vous'}</p>
+                          {caption && <p className="text-xs text-white/95 leading-snug mb-1.5 drop-shadow-sm" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</p>}
                           {hashtags.length > 0 && (
-                            <p className="text-[10px] text-white/85 font-medium drop-shadow-sm">{hashtags.map(h => `#${h}`).join(' ')}</p>
+                            <p className="text-xs text-white/85 font-medium drop-shadow-sm">{hashtags.map(h => `#${h}`).join(' ')}</p>
                           )}
                           <div className="flex items-center gap-1.5 mt-2">
                             <svg className="w-3 h-3 text-white/70" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                             <div className="flex-1 overflow-hidden">
-                              <p className="text-[10px] text-white/70 whitespace-nowrap animate-marquee">Son original - @{creatorInfo?.username || 'vous'}</p>
+                              <p className="text-xs text-white/70 whitespace-nowrap animate-marquee">Son original - @{creatorInfo?.username || 'vous'}</p>
                             </div>
                           </div>
                         </div>
@@ -2326,7 +2326,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     /v2/post/publish/creator_info/query/ so the reviewer can
                     visually confirm the API result is honoured before any
                     privacy / interaction choice is made. */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 1/5 — Creator info' : 'Étape 1/5 — Compte créateur'}</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 1/5 — Creator info' : 'Étape 1/5 — Compte créateur'}</div>
                 <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-black to-neutral-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                     {(creatorInfo?.username || creatorInfo?.display_name || tiktokUsername || '?').toString().slice(0, 1).toUpperCase()}
@@ -2336,17 +2336,17 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       {en ? 'Posting as' : 'Publication en tant que'}{' '}
                       <span className="text-black">@{creatorInfo?.username || tiktokUsername || '—'}</span>
                     </div>
-                    <div className="text-[10px] text-neutral-600 mt-0.5">
+                    <div className="text-xs text-neutral-600 mt-0.5">
                       {en ? 'Max video duration' : 'Durée max vidéo'} :{' '}
                       <strong>{creatorInfo?.max_video_post_duration_sec ?? '—'}s</strong>
                       <span className="ml-2 text-neutral-400">·</span>
-                      <span className="ml-2">{en ? 'fetched from' : 'depuis'} <code className="text-[10px] bg-white border border-neutral-200 px-1 rounded">/v2/post/publish/creator_info/query/</code></span>
+                      <span className="ml-2">{en ? 'fetched from' : 'depuis'} <code className="text-xs bg-white border border-neutral-200 px-1 rounded">/v2/post/publish/creator_info/query/</code></span>
                     </div>
                   </div>
                 </div>
 
                 {/* ═══ POINT 2 — Privacy Status Selection (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 2/5 — Privacy' : 'Étape 2/5 — Confidentialité'}</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 2/5 — Privacy' : 'Étape 2/5 — Confidentialité'}</div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">
                     {en ? 'Who can view this video' : 'Qui peut voir cette vidéo'} <span className="text-red-500">*</span>
@@ -2395,7 +2395,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 </div>
 
                 {/* ═══ POINT 3 — Interaction Ability Controls (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 3/5 — Allowed interactions' : 'Étape 3/5 — Interactions autorisées'}</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 3/5 — Allowed interactions' : 'Étape 3/5 — Interactions autorisées'}</div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">{en ? 'Allowed interactions' : 'Interactions autorisées'}</label>
                   <p className="text-xs text-neutral-400 mb-2">{en ? 'Check the interactions you want to allow on this post' : 'Cochez les interactions que vous souhaitez autoriser sur cette publication'}</p>
@@ -2405,8 +2405,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.comment_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Comment</span>
                         <div className="group relative">
-                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-[10px] font-bold inline-flex items-center justify-center cursor-help">i</span>
-                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-48 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent commenter votre vidéo</div>
+                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-xs font-bold inline-flex items-center justify-center cursor-help">i</span>
+                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-48 p-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent commenter votre vidéo</div>
                         </div>
                       </div>
                       {creatorInfo?.comment_disabled && <p className="text-xs text-neutral-400 ml-7">{en ? 'Disabled by your TikTok settings' : 'Désactivé par vos paramètres TikTok'}</p>}
@@ -2416,8 +2416,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.duet_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Duet</span>
                         <div className="group relative">
-                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-[10px] font-bold inline-flex items-center justify-center cursor-help">i</span>
-                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent créer un Duet (vidéo côte à côte avec la vôtre)</div>
+                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-xs font-bold inline-flex items-center justify-center cursor-help">i</span>
+                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent créer un Duet (vidéo côte à côte avec la vôtre)</div>
                         </div>
                       </div>
                       {creatorInfo?.duet_disabled && <p className="text-xs text-neutral-400 ml-7">{en ? 'Disabled by your TikTok settings' : 'Désactivé par vos paramètres TikTok'}</p>}
@@ -2427,8 +2427,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.stitch_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Stitch</span>
                         <div className="group relative">
-                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-[10px] font-bold inline-flex items-center justify-center cursor-help">i</span>
-                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent intégrer un extrait de votre vidéo dans la leur</div>
+                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-xs font-bold inline-flex items-center justify-center cursor-help">i</span>
+                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent intégrer un extrait de votre vidéo dans la leur</div>
                         </div>
                       </div>
                       {creatorInfo?.stitch_disabled && <p className="text-xs text-neutral-400 ml-7">{en ? 'Disabled by your TikTok settings' : 'Désactivé par vos paramètres TikTok'}</p>}
@@ -2437,7 +2437,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 </div>
 
                 {/* ═══ POINT 4 — Commercial Content Disclosure (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 4/5 — Commercial disclosure' : 'Étape 4/5 — Divulgation commerciale'}</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 4/5 — Commercial disclosure' : 'Étape 4/5 — Divulgation commerciale'}</div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs font-semibold text-neutral-700">{en ? 'Content Disclosure' : 'Divulgation du contenu'}</label>
@@ -2515,12 +2515,12 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 </div>
 
                 {/* ═══ POINT 5 — User Consent & Legal Compliance (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 5/5 — Confirmation & consent' : 'Étape 5/5 — Confirmation & consentement'}</div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 5/5 — Confirmation & consent' : 'Étape 5/5 — Confirmation & consentement'}</div>
                 <div className="border-t pt-4 space-y-3">
                   {/* Music Usage Confirmation — Required by TikTok */}
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                     <p className="text-xs font-semibold text-amber-800 mb-1">Music Usage Confirmation</p>
-                    <p className="text-[11px] text-amber-700 leading-relaxed">
+                    <p className="text-xs text-amber-700 leading-relaxed">
                       You confirm that either (a) there is no copyright protected music in the video or (b) you have obtained and paid for all necessary licenses to use the music as part of this post on TikTok. If you cannot confirm (a) or (b), please do not accept.
                     </p>
                   </div>

@@ -107,7 +107,7 @@ export default function CreationCard({
             ou casse — founder vidéo 10/07. Reste DERRIÈRE l'image : couvert si elle charge. */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 text-neutral-400">
           <span className="text-2xl">{item.type === 'video' ? '🎬' : '🖼️'}</span>
-          <span className="text-[10px] px-2 text-center line-clamp-1">{item.title || (item.type === 'video' ? 'Vidéo' : 'Visuel')}</span>
+          <span className="text-xs px-2 text-center line-clamp-1">{item.title || (item.type === 'video' ? 'Vidéo' : 'Visuel')}</span>
         </div>
         {item.type === 'image' ? (
           <>
@@ -237,7 +237,7 @@ export default function CreationCard({
             {!item.published_to_instagram && !item.published_to_tiktok && (
               <button
                 onClick={() => onPublish(item)}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-[10px] font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
                 title={t.library.ccPost}
               >
                 <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

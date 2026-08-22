@@ -99,7 +99,7 @@ export default function ImageCard({
         {/* Placeholder propre (au lieu d'une vignette NOIRE) si l'image manque/casse. */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 text-neutral-400">
           <span className="text-2xl">🖼️</span>
-          <span className="text-[10px] px-2 text-center line-clamp-1">{image.title || image.news_title || 'Visuel'}</span>
+          <span className="text-xs px-2 text-center line-clamp-1">{image.title || image.news_title || 'Visuel'}</span>
         </div>
         {(image.thumbnail_url || image.image_url) && <DisplayImage
           src={image.thumbnail_url || image.image_url}
@@ -218,7 +218,7 @@ export default function ImageCard({
                   if (onPublishToInstagram) onPublishToInstagram(image);
                   else if (onOpenInstagram) onOpenInstagram(image);
                 }}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-[10px] font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
                 title={t.library.icPreparePost}
               >
                 <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

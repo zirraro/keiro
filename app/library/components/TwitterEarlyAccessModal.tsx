@@ -95,7 +95,7 @@ export default function TwitterEarlyAccessModal({ onClose }: TwitterEarlyAccessM
             >
               {loading ? '…' : en ? 'Join the early access' : 'Rejoindre l’early access'}
             </button>
-            <p className="text-[11px] text-neutral-400 text-center mt-3">
+            <p className="text-xs text-neutral-400 text-center mt-3">
               {en ? 'No spam, just one launch email.' : 'Aucun spam, juste un email au lancement.'}
             </p>
           </>

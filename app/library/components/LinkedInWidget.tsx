@@ -186,7 +186,7 @@ export default function LinkedInWidget({
               onClick={onPreparePost}
               className={`bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
                 isCollapsed
-                  ? 'w-full px-2 py-1.5 text-[10px]'
+                  ? 'w-full px-2 py-1.5 text-xs'
                   : 'px-3 py-1.5 text-xs'
               }`}
               title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
@@ -219,14 +219,14 @@ export default function LinkedInWidget({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center p-2">
-                          <p className="text-[10px] text-neutral-500 line-clamp-4 text-center leading-tight">
+                          <p className="text-xs text-neutral-500 line-clamp-4 text-center leading-tight">
                             {draft.caption?.substring(0, 80) || 'Post texte'}
                           </p>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end">
                         <div className="w-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-white text-[10px] font-medium bg-green-600/80 px-1.5 py-0.5 rounded">Publié</span>
+                          <span className="text-white text-xs font-medium bg-green-600/80 px-1.5 py-0.5 rounded">Publié</span>
                         </div>
                       </div>
                     </div>

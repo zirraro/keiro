@@ -215,7 +215,7 @@ export default function AudioEditorWidget({
             <button
               key={voice.value}
               onClick={() => setSelectedVoice(voice.value)}
-              className={`px-2 py-1.5 text-[10px] rounded border transition-all text-left ${
+              className={`px-2 py-1.5 text-xs rounded border transition-all text-left ${
                 selectedVoice === voice.value
                   ? 'bg-[#0c1a3a] text-white border-[#0c1a3a]'
                   : 'bg-white text-neutral-700 border-neutral-200 hover:border-[#0c1a3a]/20'
@@ -238,7 +238,7 @@ export default function AudioEditorWidget({
             <button
               key={music.value}
               onClick={() => setSelectedMusic(music.value)}
-              className={`px-2.5 py-1 text-[10px] rounded-full border transition-all ${
+              className={`px-2.5 py-1 text-xs rounded-full border transition-all ${
                 selectedMusic === music.value
                   ? 'bg-purple-600 text-white border-purple-600'
                   : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'

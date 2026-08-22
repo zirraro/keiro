@@ -216,9 +216,9 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
           {/* TikTok-like header */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-100">
-            <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center text-white text-[10px] font-bold">{'\u{1F3B5}'}</div>
+            <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center text-white text-xs font-bold">{'\u{1F3B5}'}</div>
             <span className="text-xs font-semibold text-neutral-800 flex-1">Mon business</span>
-            <span className="text-[10px] bg-gradient-to-r from-cyan-500 to-black text-white px-1.5 py-0.5 rounded-full">TikTok</span>
+            <span className="text-xs bg-gradient-to-r from-cyan-500 to-black text-white px-1.5 py-0.5 rounded-full">TikTok</span>
           </div>
           {/* Image/Video - Format vertical TikTok */}
           <div className="aspect-[9/16] max-h-[250px] bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5 relative">

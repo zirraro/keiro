@@ -69,15 +69,15 @@ export default function LinkedInConnectionModal({ isOpen, onClose }: LinkedInCon
             <h3 className="text-sm font-semibold text-neutral-900 mb-2">{t.library.connWhatYouNeed}</h3>
             <div className="flex gap-4 text-xs text-neutral-700">
               <div className="flex items-center gap-1.5">
-                <span className="bg-[#0c1a3a]/10 text-[#0077B5] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">1</span>
+                <span className="bg-[#0c1a3a]/10 text-[#0077B5] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-xs">1</span>
                 <span>{t.library.lcmNeedAccount}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="bg-[#0c1a3a]/10 text-[#0077B5] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">2</span>
+                <span className="bg-[#0c1a3a]/10 text-[#0077B5] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-xs">2</span>
                 <span>{t.library.lcmAuthorizeKeiro}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="bg-[#0c1a3a]/10 text-[#0077B5] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">3</span>
+                <span className="bg-[#0c1a3a]/10 text-[#0077B5] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-xs">3</span>
                 <span>{t.library.lcmThatsAll}</span>
               </div>
             </div>
@@ -98,7 +98,7 @@ export default function LinkedInConnectionModal({ isOpen, onClose }: LinkedInCon
             {t.library.lcmConnectBtn}
           </button>
 
-          <p className="text-[10px] text-center text-neutral-500">
+          <p className="text-xs text-center text-neutral-500">
             {t.library.lcmDisconnect}
           </p>
         </div>

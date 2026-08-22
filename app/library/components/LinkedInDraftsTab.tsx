@@ -170,7 +170,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
           <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
             {/* LinkedIn-like header */}
             <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-100">
-              <div className="w-7 h-7 rounded-full bg-[#0A66C2] flex items-center justify-center text-white text-[10px] font-bold">in</div>
+              <div className="w-7 h-7 rounded-full bg-[#0A66C2] flex items-center justify-center text-white text-xs font-bold">in</div>
               <span className="text-xs font-semibold text-neutral-800 flex-1">Mon business</span>
             </div>
             {/* Preview zone - image/video/texte */}
@@ -220,7 +220,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-neutral-800">Post LinkedIn</p>
-                      <p className="text-[10px] text-neutral-500">Texte seul</p>
+                      <p className="text-xs text-neutral-500">Texte seul</p>
                     </div>
                   </div>
                   <p className="text-xs text-neutral-700 line-clamp-4 leading-relaxed">{draft.caption || 'Pas de texte'}</p>

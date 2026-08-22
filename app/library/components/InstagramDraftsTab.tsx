@@ -213,7 +213,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
               <InstagramIcon className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="text-xs font-semibold text-neutral-800 flex-1">Mon business</span>
-            {draft.media_type === 'video' && <span className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
+            {draft.media_type === 'video' && <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
           </div>
           {/* Image/Video — un Reel a une URL VIDEO (.mp4) : un <img> ne peut pas
               l'afficher → aperçu cassé. On rend un <video> (1re frame = poster)
@@ -223,7 +223,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             {/* Placeholder de fond (visible si média absent/cassé) */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-neutral-400 gap-1.5 pointer-events-none">
               <span className="text-3xl">{draft.media_type === 'video' ? '🎬' : '🖼️'}</span>
-              <span className="text-[10px] font-medium px-2 text-center line-clamp-2">{(draft.caption || 'Aperçu').slice(0, 40)}</span>
+              <span className="text-xs font-medium px-2 text-center line-clamp-2">{(draft.caption || 'Aperçu').slice(0, 40)}</span>
             </div>
             {draft.media_url && (draft.media_type === 'video' || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(draft.media_url) ? (
               <video
