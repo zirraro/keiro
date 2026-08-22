@@ -4124,8 +4124,8 @@ async function GETInterne(request: NextRequest) {
                 if (repare) {
                   await supabase.from('content_calendar').update({
                     hook: r.hook, caption: r.caption, visual_url: r.visualUrl,
-                    // La video reparee DOIT etre enregistree : sans cette ligne on
-                    // regenerait, jugeait, validait — puis on publiait l ancienne.
+                    // La vidéo réparée DOIT être enregistrée : sans cette ligne on
+                    // régénérait, jugeait, validait — puis on publiait l'ancienne.
                     video_url: r.videoUrl,
                     publish_diagnostic: `qc_repare: ${r.note}/10 en ${r.essais} essai(s)`,
                     updated_at: new Date().toISOString(),
@@ -5073,12 +5073,30 @@ async function POSTInterne(request: NextRequest) {
           }, {
             genererVisuel: (brief, format, texte) =>
               generateVisual(brief, format, p.user_id || undefined, p.platform, null, false, null, texte),
+            // Même rappel que sur le chemin de génération : un reel réparé
+            // depuis l'interface doit pouvoir refaire sa vidéo, sinon il
+            // ressort avec le même défaut visuel et une légende neuve. Deux
+            // chemins qui réparent différemment finissent par diverger — c'est
+            // l'erreur que j'ai déjà commise trois fois cette semaine.
+            genererVideo: async (brief: string) => {
+              try {
+                const { genererVideoVeo } = await import('@/lib/visuals/veo-fallback');
+                const v = await genererVideoVeo(brief, { aspectRatio: '9:16', secondes: 8 });
+                return v.videoUrl;
+              } catch (e: any) {
+                console.warn('[Content] régénération vidéo impossible :', e?.message);
+                return null;
+              }
+            },
           });
           // On enregistre la version réparée : sans ça, la publication qui suit
           // repartirait de la version défectueuse et tout le travail serait perdu.
           if (r.hook !== p.hook || r.caption !== p.caption || r.visualUrl !== p.visual_url) {
             await supabase.from('content_calendar').update({
               hook: r.hook, caption: r.caption, visual_url: r.visualUrl,
+              // Meme piege que sur le chemin de generation : sans cette ligne
+              // on regenere, on juge, on valide — puis on republie l ancienne.
+              video_url: r.videoUrl,
               publish_diagnostic: `qc_repare: ${r.note}/10 en ${r.essais} essai(s)`,
               updated_at: new Date().toISOString(),
             }).eq('id', p.id);
