@@ -78,7 +78,7 @@ export function ChatbotPanel({ data, agentName, gradientFrom, gradientTo }: Pane
           {(stats.recentSessions || []).slice(0, 5).map((session: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{
                   backgroundColor: `${outcomeColors[session.outcome] ?? '#a78bfa'}22`,
                   color: outcomeColors[session.outcome] ?? '#a78bfa',

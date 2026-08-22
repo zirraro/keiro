@@ -296,12 +296,12 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
           </div>
           <div className="bg-white/5 rounded-xl p-3 mb-4">
             <h4 className="text-xs font-bold text-white mb-1">{nextName}</h4>
-            <p className="text-[11px] text-white/50 leading-relaxed">{agentDescs[nextAgent] || (isEn ? 'This agent will automate part of your business.' : 'Cet agent va automatiser une partie de ton business.')}</p>
+            <p className="text-xs text-white/50 leading-relaxed">{agentDescs[nextAgent] || (isEn ? 'This agent will automate part of your business.' : 'Cet agent va automatiser une partie de ton business.')}</p>
           </div>
           <button onClick={goToNextAgent} className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold rounded-xl hover:shadow-lg transition min-h-[44px] mb-2">
             {'\u26A1'} {isEn ? 'Activate' : 'Activer'} {nextName}
           </button>
-          <button onClick={finishAll} className="w-full py-2 text-white/30 text-[10px] hover:text-white/50 transition">
+          <button onClick={finishAll} className="w-full py-2 text-white/30 text-xs hover:text-white/50 transition">
             {isEn ? 'I\u2019ll do it later' : 'Je ferai plus tard'}
           </button>
         </div>
@@ -384,7 +384,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
           </>
         )}
 
-        <button onClick={finishAll} className="w-full mt-2 py-2 text-white/30 text-[10px] hover:text-white/50 transition">
+        <button onClick={finishAll} className="w-full mt-2 py-2 text-white/30 text-xs hover:text-white/50 transition">
           Passer
         </button>
       </div>

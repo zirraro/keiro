@@ -143,7 +143,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
         </button>
 
         <div className="flex items-center gap-2 mb-2 pr-6">
-          <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">{currentStep + 1}</div>
+          <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{currentStep + 1}</div>
           <h4 className="text-sm font-bold text-white">{step.title}</h4>
         </div>
         <p className="text-xs text-white/70 mb-4 leading-relaxed">{step.description}</p>
@@ -163,7 +163,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
             {isLast ? 'Terminer ✓' : 'Suivant →'}
           </button>
         </div>
-        <div className="mt-2.5 text-center text-[9px] text-white/30">Échap pour quitter · ← → pour naviguer</div>
+        <div className="mt-2.5 text-center text-xs text-white/30">Échap pour quitter · ← → pour naviguer</div>
       </div>
     </div>
   );

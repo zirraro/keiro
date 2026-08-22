@@ -87,7 +87,7 @@ export function InstagramAssetBadge() {
             <div className="text-xs font-bold text-amber-300">
               {p.assetBadgeNotConnected}
             </div>
-            <div className="text-[10px] text-white/50 mt-0.5">
+            <div className="text-xs text-white/50 mt-0.5">
               {p.assetBadgeTitle}
             </div>
           </div>
@@ -96,7 +96,7 @@ export function InstagramAssetBadge() {
           href="/api/auth/instagram-oauth"
           data-meta-review="connect-instagram"
           title="Starts the standard Meta OAuth flow: redirects to Facebook, you select the Page and Instagram Business account, you grant the requested permissions, and you are returned here. We store only access tokens and the IG Business account ID."
-          className="flex-shrink-0 px-3 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[11px] font-bold rounded-lg hover:opacity-90 transition"
+          className="flex-shrink-0 px-3 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition"
         >
           {'\u26A1'} {p.assetBadgeConnectCta}
         </a>
@@ -125,17 +125,17 @@ export function InstagramAssetBadge() {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">
+            <span className="text-xs uppercase tracking-wider text-emerald-400 font-semibold">
               {p.assetBadgeConnected}
             </span>
             <span className="text-sm font-bold text-white truncate">
               @{info?.igUsername || '—'}
             </span>
             <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/30 flex items-center justify-center">
-              <span className="text-emerald-400 text-[10px]">{'\u2713'}</span>
+              <span className="text-emerald-400 text-xs">{'\u2713'}</span>
             </span>
           </div>
-          <div className="text-[10px] text-white/40 mt-0.5 truncate">
+          <div className="text-xs text-white/40 mt-0.5 truncate">
             {info?.pageName ? (
               <>
                 {p.assetBadgeThrough} <span className="text-white/60">{info.pageName}</span>

@@ -97,7 +97,7 @@ function UpsellContent() {
 
           <div className="px-6 pt-8 pb-6 sm:px-9 sm:pt-10">
             <div className="text-center mb-7">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold mb-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-3">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 7 jours gratuits · 0€ aujourd&apos;hui
               </span>
@@ -116,12 +116,12 @@ function UpsellContent() {
                 disabled={!!loading}
                 className="group text-left rounded-2xl border border-neutral-200 bg-white p-5 hover:border-neutral-300 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.99] disabled:opacity-60"
               >
-                <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Créateur</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Créateur</p>
                 <p className="mt-1 mb-1 flex items-baseline gap-1">
                   <span className="text-3xl font-bold text-neutral-900">49€</span>
                   <span className="text-sm text-neutral-400">TTC/mois</span>
                 </p>
-                <p className="text-[11px] text-neutral-500 mb-4">
+                <p className="text-xs text-neutral-500 mb-4">
                   {CREATEUR.agents} agents · {CREATEUR.credits} crédits/mois
                 </p>
 
@@ -134,7 +134,7 @@ function UpsellContent() {
                   ))}
                 </ul>
 
-                <p className="mt-4 pt-3 border-t border-neutral-100 text-[11px] text-neutral-400">
+                <p className="mt-4 pt-3 border-t border-neutral-100 text-xs text-neutral-400">
                   {CREATEUR.names}
                 </p>
 
@@ -149,18 +149,18 @@ function UpsellContent() {
                 disabled={!!loading}
                 className="group relative text-left rounded-2xl p-5 bg-gradient-to-b from-blue-50/70 to-white border-2 border-blue-500 shadow-[0_10px_40px_-16px_rgba(37,99,235,0.55)] hover:shadow-[0_18px_50px_-16px_rgba(37,99,235,0.65)] hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.99] disabled:opacity-60"
               >
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold tracking-wide px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold tracking-wide px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
                   LE PLUS CHOISI
                 </span>
 
-                <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+                <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
                   Pro <span className="text-orange-500">−40% le 1er mois</span>
                 </p>
                 <p className="mt-1 mb-1 flex items-baseline gap-1.5">
                   <span className="text-3xl font-bold text-neutral-900">59€</span>
                   <span className="text-sm text-neutral-400">le 1er mois</span>
                 </p>
-                <p className="text-[11px] text-neutral-500 mb-4">
+                <p className="text-xs text-neutral-500 mb-4">
                   puis 99€ TTC/mois · {PRO.agents} agents · {PRO.credits} crédits/mois
                 </p>
 
@@ -184,7 +184,7 @@ function UpsellContent() {
             </div>
 
             <div className="mt-6 flex flex-col items-center gap-2.5">
-              <p className="text-[11px] text-neutral-400 text-center">
+              <p className="text-xs text-neutral-400 text-center">
                 Aucun débit pendant 7 jours · Annulation en 1 clic · Sans engagement
               </p>
               <button onClick={leave} className="text-[12px] text-neutral-400 hover:text-neutral-600 underline underline-offset-2 transition-colors">

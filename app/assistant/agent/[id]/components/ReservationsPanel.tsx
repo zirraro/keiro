@@ -123,15 +123,15 @@ export default function ReservationsPanel() {
               {r.objet ? ` · ${r.objet}` : ''}
             </div>
           </div>
-          <span className={`shrink-0 text-[10px] px-2 py-1 rounded-full border ${statut.couleur}`}>{statut.label}</span>
+          <span className={`shrink-0 text-xs px-2 py-1 rounded-full border ${statut.couleur}`}>{statut.label}</span>
         </div>
 
         {r.demande_brute && (
-          <p className="text-white/40 text-[11px] italic line-clamp-2">« {r.demande_brute} »</p>
+          <p className="text-white/40 text-xs italic line-clamp-2">« {r.demande_brute} »</p>
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <span className="text-white/35 text-[10px]">{canal.icone} {canal.label}</span>
+          <span className="text-white/35 text-xs">{canal.icone} {canal.label}</span>
           <div className="flex gap-1.5">
             {r.statut === 'a_confirmer' && (
               <>
@@ -177,7 +177,7 @@ export default function ReservationsPanel() {
         ].map(c => (
           <div key={c.l} className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-center">
             <div className="text-2xl font-bold text-white tabular-nums">{c.n}</div>
-            <div className="text-[11px] text-white/45">{c.l}</div>
+            <div className="text-xs text-white/45">{c.l}</div>
           </div>
         ))}
       </div>

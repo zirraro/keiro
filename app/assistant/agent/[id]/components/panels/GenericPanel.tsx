@@ -34,7 +34,7 @@ export function GenericPanel({ data, agentName, gradientFrom, gradientTo }: Pane
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white/80 text-xs break-words">{rec.action}</p>
-                <p className="text-white/30 text-[10px] mt-0.5">{fmtDate(rec.created_at)}</p>
+                <p className="text-white/30 text-xs mt-0.5">{fmtDate(rec.created_at)}</p>
               </div>
             </div>
           ))}

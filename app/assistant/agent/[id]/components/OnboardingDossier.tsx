@@ -204,7 +204,7 @@ export default function OnboardingDossier() {
               }`}
             >
               <div className="text-sm">{s.icon}</div>
-              <div className={`text-[10px] font-medium mt-0.5 ${isCurrent ? 'text-white' : isComplete ? 'text-green-400' : 'text-white/40'}`}>
+              <div className={`text-xs font-medium mt-0.5 ${isCurrent ? 'text-white' : isComplete ? 'text-green-400' : 'text-white/40'}`}>
                 {s.title}
               </div>
             </button>
@@ -217,7 +217,7 @@ export default function OnboardingDossier() {
         <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-gradient-to-r from-teal-500 to-blue-500 transition-all duration-500" style={{ width: `${completeness}%` }} />
         </div>
-        <span className="text-white/60 text-[10px] font-bold">{completeness}%</span>
+        <span className="text-white/60 text-xs font-bold">{completeness}%</span>
       </div>
 
       {/* Current step content */}
@@ -228,7 +228,7 @@ export default function OnboardingDossier() {
             <h3 className="text-white font-bold text-sm">Etape {currentStep + 1}/{STEPS.length} — {step.title}</h3>
             <p className="text-white/40 text-xs">{step.description}</p>
           </div>
-          <span className="ml-auto text-white/30 text-[10px]">{stepFilled}/{step.fields.length}</span>
+          <span className="ml-auto text-white/30 text-xs">{stepFilled}/{step.fields.length}</span>
         </div>
 
         <div className="space-y-4">
@@ -283,7 +283,7 @@ export default function OnboardingDossier() {
       {/* Tip */}
       <div className="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-3 flex items-start gap-2">
         <span className="text-sm flex-shrink-0">{'\u{1F4AC}'}</span>
-        <p className="text-teal-300/80 text-[11px]">
+        <p className="text-teal-300/80 text-xs">
           Tu peux aussi remplir tout ca en discutant avec Clara dans le chat ! Clique sur le bouton chat en bas a droite.
         </p>
       </div>
@@ -343,7 +343,7 @@ function AutofillWidget({ onApplied }: { onApplied: () => Promise<void> }) {
         <span className="text-xl shrink-0">{'\u26A1'}</span>
         <div className="flex-1">
           <p className="text-white text-sm font-bold">Remplissage express</p>
-          <p className="text-white/60 text-[11px] leading-relaxed mt-0.5">
+          <p className="text-white/60 text-xs leading-relaxed mt-0.5">
             Colle l&apos;URL de ton site + ton handle Instagram. Clara scanne ton site + ton profil et remplit ton dossier en quelques secondes — tu n&apos;as plus qu&apos;a corriger ce qui manque.
           </p>
         </div>
@@ -373,11 +373,11 @@ function AutofillWidget({ onApplied }: { onApplied: () => Promise<void> }) {
           {busy ? 'Analyse en cours\u2026' : 'Remplir mon dossier'}
         </button>
         {result && (
-          <p className="text-[11px] text-emerald-400">
+          <p className="text-xs text-emerald-400">
             {'\u2713'} {result.applied_count} champs remplis — score {result.score_before}% \u2192 <strong>{result.score_after}%</strong>
           </p>
         )}
-        {err && <p className="text-[11px] text-red-400">{err}</p>}
+        {err && <p className="text-xs text-red-400">{err}</p>}
       </div>
     </div>
   );

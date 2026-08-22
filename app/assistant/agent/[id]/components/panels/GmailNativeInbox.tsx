@@ -97,26 +97,26 @@ export default function GmailNativeInbox() {
         <h3 className="text-white font-bold text-sm flex items-center gap-1.5">
           {'\u{1F4E5}'} {en ? 'Your Gmail inbox (Hugo)' : 'Ta boîte Gmail (Hugo)'}
         </h3>
-        <span className="text-[10px] text-emerald-300/70">{en ? 'Native · read-only' : 'Natif · lecture seule'}</span>
+        <span className="text-xs text-emerald-300/70">{en ? 'Native · read-only' : 'Natif · lecture seule'}</span>
       </div>
-      <p className="text-[11px] text-white/50 mb-2 leading-relaxed">
+      <p className="text-xs text-white/50 mb-2 leading-relaxed">
         {en
           ? 'Hugo reads your inbox, drafts replies, and sorts/cleans/labels it like an expert assistant — asking you when in doubt.'
           : 'Hugo lit ta boîte, prépare des réponses, et la trie/nettoie/range comme un assistant expert — et te pose une question en cas de doute.'}
       </p>
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <button type="button" onClick={runTriage} disabled={triaging}
-          className="min-h-[44px] inline-flex items-center justify-center text-[11px] px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 font-semibold hover:bg-indigo-500/30 disabled:opacity-50">
+          className="min-h-[44px] inline-flex items-center justify-center text-xs px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 font-semibold hover:bg-indigo-500/30 disabled:opacity-50">
           {triaging ? (en ? 'Hugo is sorting…' : 'Hugo trie…') : (en ? '🧹 Sort & tidy my inbox' : '🧹 Trier & ranger ma boîte')}
         </button>
-        {triageMsg && <span className="text-[10px] text-emerald-300">{triageMsg}</span>}
+        {triageMsg && <span className="text-xs text-emerald-300">{triageMsg}</span>}
       </div>
       {labels.length > 0 && (
         <div className="mb-3">
-          <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Folders (Hugo\'s filing)' : 'Dossiers (rangement de Hugo)'}</div>
+          <div className="text-xs uppercase tracking-wide text-white/40 mb-1">{en ? 'Folders (Hugo\'s filing)' : 'Dossiers (rangement de Hugo)'}</div>
           <div className="flex flex-wrap gap-1.5">
             {labels.map(l => (
-              <span key={l.id} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-white/70">📁 {l.name}</span>
+              <span key={l.id} className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-white/70">📁 {l.name}</span>
             ))}
           </div>
         </div>
@@ -133,28 +133,28 @@ export default function GmailNativeInbox() {
                   {m.unread && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
                   <span className="text-[12px] font-semibold text-white/90 truncate">{senderName(m.from)}</span>
                 </div>
-                <span className="text-[9px] text-white/30 shrink-0">{m.date ? new Date(m.date).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' }) : ''}</span>
+                <span className="text-xs text-white/30 shrink-0">{m.date ? new Date(m.date).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' }) : ''}</span>
               </div>
-              <div className="text-[11px] text-white/70 truncate mt-0.5">{m.subject || (en ? '(no subject)' : '(sans objet)')}</div>
-              <div className="text-[10px] text-white/40 line-clamp-2 mt-0.5">{m.snippet}</div>
+              <div className="text-xs text-white/70 truncate mt-0.5">{m.subject || (en ? '(no subject)' : '(sans objet)')}</div>
+              <div className="text-xs text-white/40 line-clamp-2 mt-0.5">{m.snippet}</div>
               <div className="flex items-center justify-between gap-2 gap-y-1.5 mt-1.5 flex-wrap">
                 {/* Gestion de la boîte : trier / ranger / supprimer */}
                 <div className="flex items-center gap-1.5">
                   <button type="button" disabled={acting === m.id + 'read'} onClick={() => manage(m, 'read')} title={en ? 'Mark as read' : 'Marquer comme lu'}
-                    className="text-[10px] px-2 py-1 rounded-md border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-50">{en ? 'Read' : 'Lu'}</button>
+                    className="text-xs px-2 py-1 rounded-md border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-50">{en ? 'Read' : 'Lu'}</button>
                   <button type="button" disabled={acting === m.id + 'archive'} onClick={() => manage(m, 'archive')} title={en ? 'Archive' : 'Archiver'}
-                    className="text-[10px] px-2 py-1 rounded-md border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-50">{en ? 'Archive' : 'Archiver'}</button>
+                    className="text-xs px-2 py-1 rounded-md border border-white/10 text-white/50 hover:text-white/80 disabled:opacity-50">{en ? 'Archive' : 'Archiver'}</button>
                   <button type="button" disabled={acting === m.id + 'trash'} onClick={() => manage(m, 'trash')} title={en ? 'Move to trash' : 'Mettre à la corbeille'}
-                    className="text-[10px] px-2 py-1 rounded-md border border-red-500/25 text-red-300/80 hover:text-red-300 hover:border-red-500/50 disabled:opacity-50">{'🗑'} {en ? 'Trash' : 'Corbeille'}</button>
+                    className="text-xs px-2 py-1 rounded-md border border-red-500/25 text-red-300/80 hover:text-red-300 hover:border-red-500/50 disabled:opacity-50">{'🗑'} {en ? 'Trash' : 'Corbeille'}</button>
                 </div>
                 {done[m.id] ? (
-                  <span className="text-[10px] text-emerald-300 font-semibold">{en ? '✓ Draft created' : '✓ Brouillon créé'}</span>
+                  <span className="text-xs text-emerald-300 font-semibold">{en ? '✓ Draft created' : '✓ Brouillon créé'}</span>
                 ) : (
                   <button
                     type="button"
                     disabled={drafting === m.id}
                     onClick={() => makeDraft(m)}
-                    className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold hover:bg-emerald-500/30 disabled:opacity-50"
+                    className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold hover:bg-emerald-500/30 disabled:opacity-50"
                   >
                     {drafting === m.id ? (en ? 'Preparing…' : 'Préparation…') : (en ? 'Reply (draft)' : 'Répondre (brouillon)')}
                   </button>
@@ -204,9 +204,9 @@ export function MailboxBetaToggle() {
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-white/90">{en ? 'Full mailbox management' : 'Gestion complète de la boîte'}</span>
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 font-semibold">{en ? 'Feature in integration' : 'Fonctionnalité en cours d\'intégration'}</span>
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 font-semibold">{en ? 'Feature in integration' : 'Fonctionnalité en cours d\'intégration'}</span>
         </div>
-        <div className="text-[11px] text-white/50 leading-relaxed mt-0.5">
+        <div className="text-xs text-white/50 leading-relaxed mt-0.5">
           {en ? 'Let Hugo read your inbox, draft native replies, and sort/trash/archive emails. Requires reconnecting Gmail with extended permissions.' : 'Hugo lit ta boîte, prépare des brouillons natifs, et trie/archive/supprime les mails. Nécessite de reconnecter Gmail avec les permissions étendues.'}
         </div>
       </div>

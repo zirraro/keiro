@@ -288,7 +288,7 @@ export default function AgentChatPanel({
                           )}
                           <span>{action.label}</span>
                           {!isNavigable && (
-                            <span className="ml-auto text-[10px] text-white/30">Bientot</span>
+                            <span className="ml-auto text-xs text-white/30">Bientot</span>
                           )}
                         </button>
                       );
@@ -304,7 +304,7 @@ export default function AgentChatPanel({
                   >
                     <span>🔀</span>
                     <span>Parler a l&apos;agent specialiste →</span>
-                    <span className="ml-auto text-[10px] text-blue-400">{redirect.agent_id}</span>
+                    <span className="ml-auto text-xs text-blue-400">{redirect.agent_id}</span>
                   </button>
                 )}
               </div>
@@ -344,7 +344,7 @@ export default function AgentChatPanel({
           >
             Essai gratuit 7 jours — 0{'\u20AC'}
           </a>
-          <p className="text-[10px] text-white/30 mb-3">Carte requise, aucun debit. Annulation en 1 clic.</p>
+          <p className="text-xs text-white/30 mb-3">Carte requise, aucun debit. Annulation en 1 clic.</p>
           <button
             onClick={onBack}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-xl transition-colors"

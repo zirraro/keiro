@@ -158,7 +158,7 @@ export function CarteFiche({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-white font-bold text-lg leading-tight">{f.nom}</h3>
             {exemple && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
+              <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
                 Exemple
               </span>
             )}
@@ -170,7 +170,7 @@ export function CarteFiche({
             <div className="text-white font-bold text-lg leading-none">{f.note.toFixed(1)}</div>
             <Etoiles note={f.note} taille="text-xs" />
             {typeof f.nombreAvis === 'number' && (
-              <div className="text-white/40 text-[11px] sm:mt-0.5">{f.nombreAvis} avis</div>
+              <div className="text-white/40 text-xs sm:mt-0.5">{f.nombreAvis} avis</div>
             )}
           </div>
         )}
@@ -195,14 +195,14 @@ export function CarteFiche({
 
       {f.horaires?.length ? (
         <div className="mt-3 pt-3 border-t border-white/10">
-          <div className="text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-1.5">Horaires</div>
+          <div className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-1.5">Horaires</div>
           {f.horaires.map((h, i) => <div key={i} className="text-white/60 text-[13px]">{h}</div>)}
         </div>
       ) : null}
 
       {/* La question que se pose le client juste après avoir vu sa fiche. */}
       <div className="mt-3 pt-3 border-t border-white/10">
-        <div className="text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-1.5">
+        <div className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-1.5">
           Ce que Théo tient à jour
         </div>
         <ul className="text-white/60 text-[13px] space-y-1">
@@ -242,7 +242,7 @@ export function FiltresAvis({
     <div className="mb-3">
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         {sansReponse ? (
-          <span className="text-[11px] font-semibold text-amber-300">
+          <span className="text-xs font-semibold text-amber-300">
             {sansReponse} avis sans réponse
           </span>
         ) : <span />}

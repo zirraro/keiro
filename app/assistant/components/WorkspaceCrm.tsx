@@ -140,7 +140,7 @@ function KpiCard({ label, value, sub, icon, color, onClick }: {
         <span className="text-xs text-neutral-500 font-medium">{label}</span>
       </div>
       <div className="text-2xl font-bold" style={{ color }}>{value}</div>
-      {sub && <div className="text-[11px] text-neutral-400 mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-neutral-400 mt-0.5">{sub}</div>}
     </button>
   );
 }
@@ -177,8 +177,8 @@ function PipelineFunnel({ prospects, onStageClick, activeStage }: {
               className={`flex flex-col items-center flex-1 transition-all rounded-lg hover:opacity-80 ${isActive ? 'ring-2 ring-offset-1' : ''}`}
               style={{ ['--tw-ring-color' as any]: stage.color }}>
               <div className="w-full rounded-t-lg transition-all" style={{ height: `${pct}%`, minHeight: 8, background: stage.color, opacity: isActive ? 1 : 0.7 }} />
-              <div className="text-[10px] font-bold mt-1" style={{ color: stage.color }}>{count}</div>
-              <div className="text-[10px] text-neutral-400 truncate max-w-full">{stage.label}</div>
+              <div className="text-xs font-bold mt-1" style={{ color: stage.color }}>{count}</div>
+              <div className="text-xs text-neutral-400 truncate max-w-full">{stage.label}</div>
             </button>
           );
         })}
@@ -239,29 +239,29 @@ function ProspectRow({ prospect, activities, onSelect, isSelected }: {
             <span className="font-semibold text-sm text-neutral-800 dark:text-white truncate">{prospectName(prospect)}</span>
             <span className="text-xs">{temp.emoji}</span>
             {prospect.priorite && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                 prospect.priorite === 'A' ? 'bg-green-100 text-green-700' :
                 prospect.priorite === 'B' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'
               }`}>{prospect.priorite}</span>
             )}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-neutral-400 mt-0.5">
+          <div className="flex items-center gap-2 text-xs text-neutral-400 mt-0.5">
             {prospect.company && <span>{prospect.company}</span>}
             {prospect.type && <span className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">{prospect.type}</span>}
           </div>
         </div>
         {/* Right side */}
         <div className="text-right shrink-0">
-          <div className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: `${stage?.color}20`, color: stage?.color }}>
+          <div className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: `${stage?.color}20`, color: stage?.color }}>
             {stage?.label || prospect.status}
           </div>
           {lastActivity && (
-            <div className="text-[10px] text-neutral-400 mt-1">{timeAgo(lastActivity.date_activite || lastActivity.created_at)}</div>
+            <div className="text-xs text-neutral-400 mt-1">{timeAgo(lastActivity.date_activite || lastActivity.created_at)}</div>
           )}
         </div>
       </div>
       {/* Quick stats row */}
-      <div className="flex items-center gap-3 mt-2 text-[10px] text-neutral-400">
+      <div className="flex items-center gap-3 mt-2 text-xs text-neutral-400">
         {prospect.email_opens_count > 0 && <span>📧 {prospect.email_opens_count} ouvert{prospect.email_opens_count > 1 ? 's' : ''}</span>}
         {prospect.email_clicks_count > 0 && <span>🔗 {prospect.email_clicks_count} clic{prospect.email_clicks_count > 1 ? 's' : ''}</span>}
         {prospect.instagram && <span>📸 @{prospect.instagram}</span>}
@@ -362,15 +362,15 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                   {editMode ? (
                     <>
                       <select value={editData.status} onChange={e => setEditData({ ...editData, status: e.target.value })}
-                        className="text-[10px] border rounded px-1.5 py-0.5">
+                        className="text-xs border rounded px-1.5 py-0.5">
                         {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                       </select>
                       <select value={editData.temperature} onChange={e => setEditData({ ...editData, temperature: e.target.value })}
-                        className="text-[10px] border rounded px-1.5 py-0.5">
+                        className="text-xs border rounded px-1.5 py-0.5">
                         {Object.entries(TEMP_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
                       </select>
                       <select value={editData.priorite} onChange={e => setEditData({ ...editData, priorite: e.target.value })}
-                        className="text-[10px] border rounded px-1.5 py-0.5">
+                        className="text-xs border rounded px-1.5 py-0.5">
                         <option value="">-</option>
                         <option value="A">A</option>
                         <option value="B">B</option>
@@ -379,12 +379,12 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                     </>
                   ) : (
                     <>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: `${stage?.color}20`, color: stage?.color }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: `${stage?.color}20`, color: stage?.color }}>
                         {stage?.emoji} {stage?.label}
                       </span>
-                      <span className="text-[11px]">{temp.emoji} {temp.label}</span>
-                      {prospect.priorite && <span className="text-[11px] font-bold">P{prospect.priorite}</span>}
-                      {prospect.score > 0 && <span className="text-[11px]">⭐ {prospect.score}/20</span>}
+                      <span className="text-xs">{temp.emoji} {temp.label}</span>
+                      {prospect.priorite && <span className="text-xs font-bold">P{prospect.priorite}</span>}
+                      {prospect.score > 0 && <span className="text-xs">⭐ {prospect.score}/20</span>}
                     </>
                   )}
                 </div>
@@ -413,8 +413,8 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
               })}
             </div>
             <div className="flex items-center justify-between mt-1">
-              <span className="text-[10px] text-neutral-400">{stage?.emoji} {stage?.label}</span>
-              <span className="text-[10px] text-neutral-400">
+              <span className="text-xs text-neutral-400">{stage?.emoji} {stage?.label}</span>
+              <span className="text-xs text-neutral-400">
                 {prospect.source && `Source: ${SOURCE_LABELS[prospect.source] || prospect.source}`}
                 {prospect.created_at && ` · ${formatDate(prospect.created_at)}`}
               </span>
@@ -483,7 +483,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">{actType?.label || act.type}</span>
                             {act.resultat && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${
                                 act.resultat === 'interesse' || act.resultat === 'rdv_pris' ? 'bg-green-100 text-green-700' :
                                 act.resultat === 'pas_interesse' ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'
                               }`}>{act.resultat.replace(/_/g, ' ')}</span>
@@ -491,7 +491,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                           </div>
                           {act.description && <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2">{act.description}</p>}
                         </div>
-                        <span className="text-[10px] text-neutral-400 shrink-0">{timeAgo(act.date_activite || act.created_at)}</span>
+                        <span className="text-xs text-neutral-400 shrink-0">{timeAgo(act.date_activite || act.created_at)}</span>
                       </div>
                     );
                   })}
@@ -538,12 +538,12 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
               {prospect.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {prospect.tags.map(tag => (
-                    <span key={tag} className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{tag}</span>
+                    <span key={tag} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{tag}</span>
                   ))}
                 </div>
               )}
               {/* Meta */}
-              <div className="text-[10px] text-neutral-400 space-y-0.5">
+              <div className="text-xs text-neutral-400 space-y-0.5">
                 <div>Cree le {formatDate(prospect.created_at)}</div>
                 {prospect.updated_at && <div>Mis a jour {timeAgo(prospect.updated_at)}</div>}
               </div>
@@ -557,15 +557,15 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 text-center">
                   <div className="text-lg font-bold text-blue-500">{prospect.email_sequence_step || 0}</div>
-                  <div className="text-[10px] text-neutral-400">Etape sequence</div>
+                  <div className="text-xs text-neutral-400">Etape sequence</div>
                 </div>
                 <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 text-center">
                   <div className="text-lg font-bold text-green-500">{prospect.email_opens_count || 0}</div>
-                  <div className="text-[10px] text-neutral-400">Ouvertures</div>
+                  <div className="text-xs text-neutral-400">Ouvertures</div>
                 </div>
                 <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 text-center">
                   <div className="text-lg font-bold text-purple-500">{prospect.email_clicks_count || 0}</div>
-                  <div className="text-[10px] text-neutral-400">Clics</div>
+                  <div className="text-xs text-neutral-400">Clics</div>
                 </div>
               </div>
               {/* Email activities */}
@@ -578,7 +578,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                     <div key={act.id} className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-800">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium">{act.type === 'email' ? '📤 Envoye' : act.type === 'email_opened' ? '📬 Ouvert' : '💬 Repondu'}</span>
-                        <span className="text-[10px] text-neutral-400">{formatDate(act.date_activite || act.created_at)}</span>
+                        <span className="text-xs text-neutral-400">{formatDate(act.date_activite || act.created_at)}</span>
                       </div>
                       {act.description && <p className="text-xs text-neutral-500 mt-1">{act.description}</p>}
                       {act.data?.subject && <p className="text-xs text-blue-500 mt-0.5">Sujet: {act.data.subject}</p>}
@@ -587,7 +587,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                 </div>
               )}
               {/* Last email dates */}
-              <div className="text-[10px] text-neutral-400 space-y-0.5">
+              <div className="text-xs text-neutral-400 space-y-0.5">
                 {prospect.last_email_sent_at && <div>Dernier email envoye: {formatDate(prospect.last_email_sent_at)}</div>}
                 {prospect.last_email_opened_at && <div>Derniere ouverture: {formatDate(prospect.last_email_opened_at)}</div>}
               </div>
@@ -610,11 +610,11 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                   {/* DM activities */}
                   {prospectActivities.filter(a => a.type === 'dm_instagram').length > 0 && (
                     <div className="mt-3 space-y-1">
-                      <h5 className="text-[10px] font-bold text-neutral-400 uppercase">DMs envoyes</h5>
+                      <h5 className="text-xs font-bold text-neutral-400 uppercase">DMs envoyes</h5>
                       {prospectActivities.filter(a => a.type === 'dm_instagram').map(act => (
                         <div key={act.id} className="text-xs bg-white/50 dark:bg-neutral-800/50 rounded-lg p-2">
                           <p className="text-neutral-600">{act.description}</p>
-                          <span className="text-[10px] text-neutral-400">{timeAgo(act.date_activite || act.created_at)}</span>
+                          <span className="text-xs text-neutral-400">{timeAgo(act.date_activite || act.created_at)}</span>
                         </div>
                       ))}
                     </div>
@@ -670,7 +670,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm">{ACTIVITY_TYPES.find(t => t.key === agent)?.icon || '🤖'}</span>
                       <span className="text-xs font-bold text-neutral-700 dark:text-neutral-200 capitalize">{agent.replace(/_/g, ' ')}</span>
-                      <span className="text-[10px] bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded-full text-neutral-500">{acts.length}</span>
+                      <span className="text-xs bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded-full text-neutral-500">{acts.length}</span>
                     </div>
                     <div className="space-y-1">
                       {acts.slice(0, 5).map(act => (
@@ -678,14 +678,14 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                           <span className="text-neutral-300">{timeAgo(act.date_activite || act.created_at)}</span>
                           <span className="flex-1 truncate">{act.description || act.resultat || '-'}</span>
                           {act.resultat && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+                            <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
                               act.resultat === 'interesse' || act.resultat === 'rdv_pris' ? 'bg-green-100 text-green-700' :
                               act.resultat === 'pas_interesse' ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'
                             }`}>{act.resultat.replace(/_/g, ' ')}</span>
                           )}
                         </div>
                       ))}
-                      {acts.length > 5 && <p className="text-[10px] text-neutral-400">+{acts.length - 5} autres actions...</p>}
+                      {acts.length > 5 && <p className="text-xs text-neutral-400">+{acts.length - 5} autres actions...</p>}
                     </div>
                   </div>
                 ));
@@ -1032,7 +1032,7 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
                         <span className="text-sm">{ACTIVITY_TYPES.find(t => t.key === agent)?.icon || '🤖'}</span>
                         <span className="text-xs font-bold text-neutral-700 dark:text-neutral-200 capitalize">{agent.replace(/_/g, ' ')}</span>
                       </div>
-                      <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full">{acts.length} actions</span>
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full">{acts.length} actions</span>
                     </div>
                     <div className="divide-y divide-neutral-50 dark:divide-neutral-800">
                       {acts.slice(0, 5).map(act => {
@@ -1043,23 +1043,23 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-neutral-700 dark:text-neutral-300 truncate">{act.description || '-'}</span>
                                 {act.resultat && (
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+                                  <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
                                     act.resultat === 'interesse' || act.resultat === 'rdv_pris' ? 'bg-green-100 text-green-700' :
                                     act.resultat === 'pas_interesse' ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'
                                   }`}>{act.resultat.replace(/_/g, ' ')}</span>
                                 )}
                               </div>
                               {prospect && (
-                                <button onClick={() => setSelectedProspect(prospect)} className="text-[10px] text-blue-500 hover:underline mt-0.5">
+                                <button onClick={() => setSelectedProspect(prospect)} className="text-xs text-blue-500 hover:underline mt-0.5">
                                   → {prospectName(prospect)}
                                 </button>
                               )}
                             </div>
-                            <span className="text-[10px] text-neutral-400 shrink-0">{timeAgo(act.date_activite || act.created_at)}</span>
+                            <span className="text-xs text-neutral-400 shrink-0">{timeAgo(act.date_activite || act.created_at)}</span>
                           </div>
                         );
                       })}
-                      {acts.length > 5 && <div className="px-3 py-1.5 text-[10px] text-neutral-400 text-center">+{acts.length - 5} autres</div>}
+                      {acts.length > 5 && <div className="px-3 py-1.5 text-xs text-neutral-400 text-center">+{acts.length - 5} autres</div>}
                     </div>
                   </div>
                 ));
@@ -1075,12 +1075,12 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
       <div className="flex justify-end">
         <div className="relative">
           <button onClick={() => setShowSectionSettings(!showSectionSettings)}
-            className="text-[10px] text-neutral-400 hover:text-neutral-300 px-2 py-1 rounded-lg hover:bg-white/5 transition">
+            className="text-xs text-neutral-400 hover:text-neutral-300 px-2 py-1 rounded-lg hover:bg-white/5 transition">
             ⚙️ Personnaliser
           </button>
           {showSectionSettings && (
             <div className="absolute right-0 top-8 z-20 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-3 w-48">
-              <p className="text-[10px] font-bold text-neutral-400 mb-2">Sections visibles</p>
+              <p className="text-xs font-bold text-neutral-400 mb-2">Sections visibles</p>
               {[
                 { key: 'kpis', label: '📊 KPIs' },
                 { key: 'pipeline', label: '📈 Pipeline' },
@@ -1165,29 +1165,29 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
       {/* ─── Active Filters ─── */}
       {(stageFilter || tempFilter || sourceFilter || search) && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] text-neutral-400">Filtres:</span>
+          <span className="text-xs text-neutral-400">Filtres:</span>
           {stageFilter && (
-            <button onClick={() => setStageFilter(null)} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <button onClick={() => setStageFilter(null)} className="text-xs bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
               {PIPELINE_STAGES.find(s => s.key === stageFilter)?.emoji} {stageFilter} <span className="text-neutral-400">×</span>
             </button>
           )}
           {tempFilter && (
-            <button onClick={() => setTempFilter('')} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <button onClick={() => setTempFilter('')} className="text-xs bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
               {TEMP_CONFIG[tempFilter]?.emoji} {tempFilter} <span className="text-neutral-400">×</span>
             </button>
           )}
           {sourceFilter && (
-            <button onClick={() => setSourceFilter('')} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <button onClick={() => setSourceFilter('')} className="text-xs bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
               {SOURCE_LABELS[sourceFilter]} <span className="text-neutral-400">×</span>
             </button>
           )}
           {search && (
-            <button onClick={() => setSearch('')} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <button onClick={() => setSearch('')} className="text-xs bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
               "{search}" <span className="text-neutral-400">×</span>
             </button>
           )}
           <button onClick={() => { setStageFilter(null); setTempFilter(''); setSourceFilter(''); setSearch(''); }}
-            className="text-[10px] text-red-400 hover:text-red-500">Tout effacer</button>
+            className="text-xs text-red-400 hover:text-red-500">Tout effacer</button>
         </div>
       )}
 

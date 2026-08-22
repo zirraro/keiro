@@ -81,7 +81,7 @@ function SortableTeamAgentRow({ agent, avatars, agentStats: _agentStats, onClick
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-            <div className="text-gray-400 text-[10px] truncate">{agentTitle}</div>
+            <div className="text-gray-400 text-xs truncate">{agentTitle}</div>
           </div>
         </button>
         <button
@@ -158,7 +158,7 @@ function SortableAgentCard({ agent, avatars, summary: _summary, onClick, isActiv
                 <span className="text-white font-bold text-[13px] sm:text-sm truncate">{agent.displayName}</span>
                 {agent.description && <InfoTooltip text={agent.description} />}
               </div>
-              <div className="text-white/45 text-[10px] sm:text-[11px] leading-snug mt-0.5 sm:mt-1 line-clamp-2">{agentTitle}</div>
+              <div className="text-white/45 text-xs sm:text-xs leading-snug mt-0.5 sm:mt-1 line-clamp-2">{agentTitle}</div>
             </div>
           </div>
         </button>
@@ -296,18 +296,18 @@ function PlanningCalendar() {
         <h2 className="text-white font-bold text-sm">{'\uD83D\uDCC5'} Calendrier editorial</h2>
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekOffset(w => w - 2)} className="px-2 py-1 bg-white/10 rounded-lg text-xs text-white/60 hover:bg-white/15">{'\u2190'}</button>
-          <button onClick={() => setWeekOffset(0)} className="px-2 py-1 bg-white/10 rounded-lg text-[10px] text-white/40 hover:bg-white/15">Aujourd'hui</button>
+          <button onClick={() => setWeekOffset(0)} className="px-2 py-1 bg-white/10 rounded-lg text-xs text-white/40 hover:bg-white/15">Aujourd'hui</button>
           <button onClick={() => setWeekOffset(w => w + 2)} className="px-2 py-1 bg-white/10 rounded-lg text-xs text-white/60 hover:bg-white/15">{'\u2192'}</button>
         </div>
       </div>
 
       {/* Platform filter */}
       <div className="flex gap-1 flex-wrap">
-        <button onClick={() => setPlatformFilter('all')} className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${platformFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+        <button onClick={() => setPlatformFilter('all')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${platformFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
           Tous ({posts.length})
         </button>
         {platforms.map(p => (
-          <button key={p} onClick={() => setPlatformFilter(p)} className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${platformFilter === p ? 'text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`} style={platformFilter === p ? { backgroundColor: PLATFORM_COLORS[p] + '40', color: PLATFORM_COLORS[p] } : {}}>
+          <button key={p} onClick={() => setPlatformFilter(p)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${platformFilter === p ? 'text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`} style={platformFilter === p ? { backgroundColor: PLATFORM_COLORS[p] + '40', color: PLATFORM_COLORS[p] } : {}}>
             {PLATFORM_ICONS[p]} {p.charAt(0).toUpperCase() + p.slice(1)} ({totalByPlatform[p] || 0})
           </button>
         ))}
@@ -323,15 +323,15 @@ function PlanningCalendar() {
               <table className="w-full min-w-[500px] sm:min-w-[700px]">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.03]">
-                    <th className="w-16 px-2 py-2 text-[10px] text-white/30 font-medium text-left"></th>
+                    <th className="w-16 px-2 py-2 text-xs text-white/30 font-medium text-left"></th>
                     {days.map((d, i) => {
                       const isToday = d.toISOString().split('T')[0] === today;
                       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                       return (
                         <th key={i} className={`px-1 py-2 text-center ${isToday ? 'bg-purple-500/10' : isWeekend ? 'bg-white/[0.01]' : ''}`}>
-                          <div className={`text-[10px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>{dayNames[(d.getDay() + 6) % 7]}</div>
-                          <div className={`text-[11px] font-bold ${isToday ? 'text-purple-400' : 'text-white/60'}`}>{d.getDate()}</div>
-                          {(i === 0 || d.getDate() === 1) && <div className="text-[10px] text-white/45">{months[d.getMonth()]}</div>}
+                          <div className={`text-xs ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>{dayNames[(d.getDay() + 6) % 7]}</div>
+                          <div className={`text-xs font-bold ${isToday ? 'text-purple-400' : 'text-white/60'}`}>{d.getDate()}</div>
+                          {(i === 0 || d.getDate() === 1) && <div className="text-xs text-white/45">{months[d.getMonth()]}</div>}
                         </th>
                       );
                     })}
@@ -342,8 +342,8 @@ function PlanningCalendar() {
                     <tr key={platform} className="border-b border-white/5">
                       <td className="px-2 py-2">
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px]">{PLATFORM_ICONS[platform]}</span>
-                          <span className="text-[10px] text-white/40 uppercase tracking-wider">{platform.substring(0, 2).toUpperCase()}</span>
+                          <span className="text-xs">{PLATFORM_ICONS[platform]}</span>
+                          <span className="text-xs text-white/40 uppercase tracking-wider">{platform.substring(0, 2).toUpperCase()}</span>
                         </div>
                       </td>
                       {days.map((d, i) => {
@@ -361,18 +361,18 @@ function PlanningCalendar() {
                                         <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${STATUS_DOT[post.status] || 'bg-gray-500'}`} />
                                       </div>
                                     ) : (
-                                      <div className={`w-full aspect-square rounded-md border border-white/10 flex items-center justify-center text-[10px] text-white/30 ${STATUS_DOT[post.status]?.replace('bg-', 'bg-') + '/10' || 'bg-white/5'}`}>
+                                      <div className={`w-full aspect-square rounded-md border border-white/10 flex items-center justify-center text-xs text-white/30 ${STATUS_DOT[post.status]?.replace('bg-', 'bg-') + '/10' || 'bg-white/5'}`}>
                                         {post.format === 'reel' ? '\uD83C\uDFAC' : post.format === 'story' ? '\uD83D\uDCF1' : '\uD83D\uDCDD'}
                                       </div>
                                     )}
                                     {/* Tooltip on hover */}
                                     <div className="hidden group-hover:block absolute z-50 bottom-full left-0 mb-1 w-40 bg-gray-900 border border-white/20 rounded-lg p-2 shadow-xl">
-                                      <div className="text-[10px] text-white/80 font-medium line-clamp-2">{post.hook || post.caption?.substring(0, 60) || 'Sans titre'}</div>
-                                      <div className="text-[10px] text-white/30 mt-1">{post.format} | {post.status}{post.scheduled_time ? ` | ${post.scheduled_time}` : ''}</div>
+                                      <div className="text-xs text-white/80 font-medium line-clamp-2">{post.hook || post.caption?.substring(0, 60) || 'Sans titre'}</div>
+                                      <div className="text-xs text-white/30 mt-1">{post.format} | {post.status}{post.scheduled_time ? ` | ${post.scheduled_time}` : ''}</div>
                                     </div>
                                   </div>
                                 ))}
-                                {dayPosts.length > 3 && <div className="text-[10px] text-white/45 text-center">+{dayPosts.length - 3}</div>}
+                                {dayPosts.length > 3 && <div className="text-xs text-white/45 text-center">+{dayPosts.length - 3}</div>}
                               </div>
                             ) : null}
                           </td>
@@ -386,7 +386,7 @@ function PlanningCalendar() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 text-[10px] text-white/30">
+          <div className="flex items-center gap-4 text-xs text-white/30">
             <span><span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1" />Brouillon</span>
             <span><span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1" />En attente</span>
             <span><span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1" />Publie</span>
@@ -976,7 +976,7 @@ export default function AssistantPage() {
               </h1>
               {isAdmin && (
                 <>
-                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full border border-green-500/30">
+                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-full border border-green-500/30">
                     ADMIN
                   </span>
                   <button
@@ -988,7 +988,7 @@ export default function AssistantPage() {
                         alert(`QA Score: ${data.score}/100 | ${data.summary?.critical || 0} critical, ${data.summary?.fail || 0} fail`);
                       } catch { alert('QA check lancé — rapport par email'); }
                     }}
-                    className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] font-bold rounded-full border border-blue-500/30 hover:bg-blue-500/30 transition cursor-pointer"
+                    className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-bold rounded-full border border-blue-500/30 hover:bg-blue-500/30 transition cursor-pointer"
                     title="Lancer un check QA complet"
                   >
                     🧪 QA
@@ -1061,7 +1061,7 @@ export default function AssistantPage() {
               {summaryUpdatedAt && (
                 <>
                   <span className="text-white/45">|</span>
-                  <span className="text-white/30 text-[11px] flex items-center gap-1" title={summaryUpdatedAt.toLocaleString(en ? 'en-GB' : 'fr-FR')}>
+                  <span className="text-white/30 text-xs flex items-center gap-1" title={summaryUpdatedAt.toLocaleString(en ? 'en-GB' : 'fr-FR')}>
                     {summaryLoading ? (
                       <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                     ) : (
@@ -1131,9 +1131,9 @@ export default function AssistantPage() {
                       <span className="text-amber-400 text-xs font-bold">{q.agent_name} a besoin de vous</span>
                       <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                     </div>
-                    <p className="text-white/60 text-[11px] truncate">{q.question}</p>
+                    <p className="text-white/60 text-xs truncate">{q.question}</p>
                   </div>
-                  <span className="text-amber-400/60 text-[10px] flex-shrink-0">Repondre {'\u2192'}</span>
+                  <span className="text-amber-400/60 text-xs flex-shrink-0">Repondre {'\u2192'}</span>
                 </button>
               );
             })}
@@ -1156,9 +1156,9 @@ export default function AssistantPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-white font-bold text-sm">AMI — Directrice Marketing</div>
-                  <div className="text-purple-300/60 text-[10px]">Analyse les performances et optimise la strategie de tous les agents</div>
+                  <div className="text-purple-300/60 text-xs">Analyse les performances et optimise la strategie de tous les agents</div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); const ami = CLIENT_AGENTS.find(a => a.id === 'marketing'); if (ami) handleOpenChat(ami); }} className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-medium transition-all flex-shrink-0">
+                <button onClick={(e) => { e.stopPropagation(); const ami = CLIENT_AGENTS.find(a => a.id === 'marketing'); if (ami) handleOpenChat(ami); }} className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs font-medium transition-all flex-shrink-0">
                   {'\u{1F4AC}'} Chat
                 </button>
               </div>
@@ -1228,7 +1228,7 @@ export default function AssistantPage() {
             <button
               key={tab.key}
               onClick={() => setViewTab(tab.key)}
-              className={`flex-shrink-0 px-2 sm:px-3 lg:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`flex-shrink-0 px-2 sm:px-3 lg:px-4 py-2 rounded-lg text-xs sm:text-xs font-semibold transition-all whitespace-nowrap ${
                 viewTab === tab.key
                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
                   : 'text-white/50 hover:text-white/70 hover:bg-white/5'
@@ -1293,7 +1293,7 @@ export default function AssistantPage() {
                           <span className="text-lg shrink-0">{action.icon}</span>
                           <p className="text-white/70 text-xs flex-1">{action.text}</p>
                           {action.cta && action.link && (
-                            <a href={action.link} className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition shrink-0">
+                            <a href={action.link} className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition shrink-0">
                               {action.cta}
                             </a>
                           )}
@@ -1312,7 +1312,7 @@ export default function AssistantPage() {
                       relatif. Adaptive, accurate, change à chaque exécution. */}
                   {summary?.activityFeed && summary.activityFeed.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-white/5">
-                      <div className="text-white/40 text-[10px] uppercase tracking-wider font-semibold mb-2">
+                      <div className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">
                         {summary?.locale === 'en' ? 'Live pulse' : 'En direct'}
                       </div>
                       <div className="space-y-1.5">
@@ -1344,7 +1344,7 @@ export default function AssistantPage() {
                           })();
                           const dot = log.status === 'success' || log.status === 'ok' ? 'bg-emerald-400' : log.status === 'error' ? 'bg-red-400' : 'bg-amber-400';
                           return (
-                            <div key={i} className="flex items-center gap-2 text-[11px]">
+                            <div key={i} className="flex items-center gap-2 text-xs">
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
                               <span className="text-white/80 font-medium">{agentLabel}</span>
                               <span className="text-white/50 flex-1 truncate">{log.action}</span>
@@ -1378,14 +1378,14 @@ export default function AssistantPage() {
                   <div className="px-4 py-2.5 border-b border-white/5 flex items-center gap-2" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}15, ${agent.gradientTo}15)` }}>
                     <span className="text-sm">{agent.icon}</span>
                     <span className="text-white text-xs font-bold">{agent.displayName}</span>
-                    <span className="text-white/30 text-[10px] ml-auto">{agentLogs.length} actions</span>
+                    <span className="text-white/30 text-xs ml-auto">{agentLogs.length} actions</span>
                   </div>
                   <div className="divide-y divide-white/5">
                     {agentLogs.slice(0, 5).map((log: any, i: number) => (
                       <div key={i} className="px-4 py-2.5 flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${log.status === 'success' || log.status === 'ok' ? 'bg-emerald-400' : log.status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
                         <span className="text-white/70 text-xs flex-1 truncate">{log.action || log.message || 'Action'}</span>
-                        <span className="text-white/45 text-[10px] flex-shrink-0">{log.created_at ? new Date(log.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                        <span className="text-white/45 text-xs flex-shrink-0">{log.created_at ? new Date(log.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                       </div>
                     ))}
                   </div>
@@ -1435,39 +1435,39 @@ export default function AssistantPage() {
                       <h3 className="text-white font-bold text-sm flex items-center gap-2">
                         <span>{team.icon}</span> {team.name}
                       </h3>
-                      <span className="text-white/70 text-[10px]">{team.description}</span>
+                      <span className="text-white/70 text-xs">{team.description}</span>
                     </div>
                     {teamStats && (
                       <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-white/90 text-[11px] font-medium">{teamStats.totalActions ?? 0} actions</span>
+                        <span className="text-white/90 text-xs font-medium">{teamStats.totalActions ?? 0} actions</span>
                         {isCommercial && (
                           <>
-                            <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">{teamStats.prospects ?? 0} prospects</span>
-                            <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-emerald-200 text-[11px] font-bold">{teamStats.clients ?? 0} clients ({teamStats.conversionRate ?? 0}%)</span>
+                            <span className="text-white/50 text-xs">|</span>
+                            <span className="text-white/90 text-xs">{teamStats.prospects ?? 0} prospects</span>
+                            <span className="text-white/50 text-xs">|</span>
+                            <span className="text-emerald-200 text-xs font-bold">{teamStats.clients ?? 0} clients ({teamStats.conversionRate ?? 0}%)</span>
                           </>
                         )}
                         {teamKey === 'visibilite' && (
                           <>
-                            <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">{teamStats.contentPublished ?? 0} publies</span>
-                            <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">{teamStats.seoArticles ?? 0} articles SEO</span>
+                            <span className="text-white/50 text-xs">|</span>
+                            <span className="text-white/90 text-xs">{teamStats.contentPublished ?? 0} publies</span>
+                            <span className="text-white/50 text-xs">|</span>
+                            <span className="text-white/90 text-xs">{teamStats.seoArticles ?? 0} articles SEO</span>
                           </>
                         )}
                         {teamKey === 'finance' && teamStats.adSpend > 0 && (
                           <>
-                            <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">{teamStats.adSpend}{'\u20AC'} depenses</span>
+                            <span className="text-white/50 text-xs">|</span>
+                            <span className="text-white/90 text-xs">{teamStats.adSpend}{'\u20AC'} depenses</span>
                           </>
                         )}
                         {teamKey === 'strategie' && (
                           <>
-                            <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">Dossier {teamStats.dossierScore ?? 0}%</span>
-                            <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">{teamStats.agentsDiscovered ?? 0} agents actifs</span>
+                            <span className="text-white/50 text-xs">|</span>
+                            <span className="text-white/90 text-xs">Dossier {teamStats.dossierScore ?? 0}%</span>
+                            <span className="text-white/50 text-xs">|</span>
+                            <span className="text-white/90 text-xs">{teamStats.agentsDiscovered ?? 0} agents actifs</span>
                           </>
                         )}
                       </div>
@@ -1516,7 +1516,7 @@ export default function AssistantPage() {
                             <span className="text-white/40 font-normal">{'\u2014'} {summary.crm.total} prospects, {summary.crm.clients} clients</span>
                           )}
                         </span>
-                        <span className="text-purple-400 text-[10px] font-medium">Ouvrir {'\u2192'}</span>
+                        <span className="text-purple-400 text-xs font-medium">Ouvrir {'\u2192'}</span>
                       </button>
                     </div>
                   )}
@@ -1538,14 +1538,14 @@ export default function AssistantPage() {
                     return (
                       <div key={i} className="px-4 py-2 flex items-center gap-2.5">
                         <div
-                          className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px]"
+                          className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs"
                           style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}
                         >
                           {agentInfo?.icon || '\uD83E\uDD16'}
                         </div>
-                        <span className="text-white text-[11px] font-medium">{agentInfo?.displayName || a.agent}</span>
-                        <span className="text-white/30 text-[10px] flex-1 truncate">{a.action}</span>
-                        <span className="text-white/45 text-[10px] flex-shrink-0">
+                        <span className="text-white text-xs font-medium">{agentInfo?.displayName || a.agent}</span>
+                        <span className="text-white/30 text-xs flex-1 truncate">{a.action}</span>
+                        <span className="text-white/45 text-xs flex-shrink-0">
                           {new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                         </span>
                       </div>
@@ -1637,7 +1637,7 @@ export default function AssistantPage() {
                 </svg>
                 {chatCount > 0 && (
                   <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center">
-                    <span className="text-[10px] text-green-900 font-bold">{chatCount}</span>
+                    <span className="text-xs text-green-900 font-bold">{chatCount}</span>
                   </div>
                 )}
               </button>

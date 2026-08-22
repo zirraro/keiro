@@ -67,9 +67,9 @@ function Variation({ m }: { m: Metrique }) {
   if (m.variationPct === null || m.echantillon < ECHANTILLON_MINIMUM) return null;
   const hausse = m.variationPct > 0;
   const stable = Math.abs(m.variationPct) < 5;
-  if (stable) return <span className="text-white/35 text-[11px]">stable</span>;
+  if (stable) return <span className="text-white/35 text-xs">stable</span>;
   return (
-    <span className={`text-[11px] font-semibold ${hausse ? 'text-emerald-400' : 'text-amber-400'}`}>
+    <span className={`text-xs font-semibold ${hausse ? 'text-emerald-400' : 'text-amber-400'}`}>
       {hausse ? '+' : ''}{m.variationPct}%
     </span>
   );
@@ -217,7 +217,7 @@ export default function ResultatsParAgent({ en = false }: { en?: boolean }) {
                       </span>
                       <Variation m={m} />
                     </div>
-                    <div className="text-white/40 text-[11px] mt-0.5 leading-snug">
+                    <div className="text-white/40 text-xs mt-0.5 leading-snug">
                       {LIBELLES[cle] || cle.replace(/_/g, ' ')}
                     </div>
                   </div>

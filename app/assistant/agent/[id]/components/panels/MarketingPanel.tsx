@@ -151,18 +151,18 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mt-3 mb-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-semibold text-blue-300">{en ? 'Graph API Audit' : 'Audit Graph API'}</div>
-              <div className="text-[10px] text-white/50 mt-0.5">
+              <div className="text-xs font-semibold text-blue-300">{en ? 'Graph API Audit' : 'Audit Graph API'}</div>
+              <div className="text-xs text-white/50 mt-0.5">
                 {en
-                  ? <>All Insights reads are logged with the <code className="text-[10px] text-blue-200">instagram_business_manage_insights</code> tag in /meta-audit</>
-                  : <>Toutes les lectures Insights sont trac\u00e9es avec le tag <code className="text-[10px] text-blue-200">instagram_business_manage_insights</code> dans /meta-audit</>}
+                  ? <>All Insights reads are logged with the <code className="text-xs text-blue-200">instagram_business_manage_insights</code> tag in /meta-audit</>
+                  : <>Toutes les lectures Insights sont trac\u00e9es avec le tag <code className="text-xs text-blue-200">instagram_business_manage_insights</code> dans /meta-audit</>}
               </div>
             </div>
             <a
               href="/meta-audit?lang=en"
               target="_blank"
               rel="noopener noreferrer"
-              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-semibold transition flex-shrink-0"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-semibold transition flex-shrink-0"
             >
               {en ? 'View audit \u2197' : <>Voir l&apos;audit \u2197</>}
             </a>
@@ -185,7 +185,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
               <div className="flex items-start gap-2">
                 <span className="text-lg">{'\u{1F4A1}'}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-cyan-300 mb-1 uppercase tracking-wider">{en ? 'Strategic analysis' : 'Analyse strat\u00e9gique'}</p>
+                  <p className="text-xs font-bold text-cyan-300 mb-1 uppercase tracking-wider">{en ? 'Strategic analysis' : 'Analyse strat\u00e9gique'}</p>
                   <p className="text-xs text-white/85 leading-relaxed">{gs.recommendation}</p>
                 </div>
               </div>
@@ -227,7 +227,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
                     <div className="flex-1 text-center">
                       <div className="text-lg mb-1">{step.icon}</div>
                       <div className="text-sm font-bold" style={{ color: step.color }}>{step.value}</div>
-                      <div className="text-[10px] text-white/40 mt-0.5">{step.label}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{step.label}</div>
                     </div>
                     {i < 3 && <div className="text-white/45 text-xs mx-1">{'\u2192'}</div>}
                   </div>
@@ -270,23 +270,23 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-purple-300">{fmt((gs as any).jade.dms_sent_7d)}</div>
-                  <div className="text-[10px] text-white/50">{en ? 'DMs sent' : 'DMs envoy\u00e9s'}</div>
+                  <div className="text-xs text-white/50">{en ? 'DMs sent' : 'DMs envoy\u00e9s'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-pink-300">{fmt((gs as any).jade.comments_replied_7d)}</div>
-                  <div className="text-[10px] text-white/50">{en ? 'Comments replied' : 'Commentaires r\u00e9pondus'}</div>
+                  <div className="text-xs text-white/50">{en ? 'Comments replied' : 'Commentaires r\u00e9pondus'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-amber-300">{fmt((gs as any).jade.follows_pending)}</div>
-                  <div className="text-[10px] text-white/50">{en ? 'Follows to confirm' : 'Follows \u00e0 valider'}</div>
+                  <div className="text-xs text-white/50">{en ? 'Follows to confirm' : 'Follows \u00e0 valider'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-emerald-300">{fmt((gs as any).jade.follows_confirmed)}</div>
-                  <div className="text-[10px] text-white/50">{en ? 'Follows confirmed' : 'Follows confirm\u00e9s'}</div>
+                  <div className="text-xs text-white/50">{en ? 'Follows confirmed' : 'Follows confirm\u00e9s'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center col-span-2 sm:col-span-1">
                   <div className="text-lg font-bold text-cyan-300">{fmt((gs as any).jade.after_follow_dms_7d)}</div>
-                  <div className="text-[10px] text-white/50">{en ? 'Post-follow DMs' : 'DMs post-follow'}</div>
+                  <div className="text-xs text-white/50">{en ? 'Post-follow DMs' : 'DMs post-follow'}</div>
                 </div>
               </div>
             </>
@@ -415,22 +415,22 @@ function NetworkInsightSection({
           <div className="text-sm font-bold text-white flex items-center gap-2">
             {label}
             {usingSample && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
                 Sample
               </span>
             )}
             {isConnected && !stats?.hasActivity && (
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
                 Live · organic
               </span>
             )}
             {isConnected && stats?.hasActivity && (
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
                 Live · KeiroAI active
               </span>
             )}
           </div>
-          <div className={`text-[10px] mt-0.5 ${usingSample ? 'text-amber-300/80' : 'text-emerald-400'}`}>
+          <div className={`text-xs mt-0.5 ${usingSample ? 'text-amber-300/80' : 'text-emerald-400'}`}>
             {usingSample
               ? (en ? `Sample data — connect ${label} to see your real numbers` : `Données d'exemple — connecte ${label} pour voir tes vrais chiffres`)
               : accountName
@@ -441,7 +441,7 @@ function NetworkInsightSection({
         {usingSample && (
           <a
             href={connectUrl}
-            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold flex-shrink-0 transition"
+            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-bold flex-shrink-0 transition"
           >
             {en ? 'Connect →' : 'Connecter →'}
           </a>
@@ -454,7 +454,7 @@ function NetworkInsightSection({
         <KpiCard label={labelEngagement} value={`${(displayStats.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
       </div>
       {labelReach && (displayStats.reach || 0) > 0 && (
-        <div className={`mt-2 text-[10px] flex items-center gap-1.5 ${usingSample ? 'text-amber-300/70' : 'text-white/50'}`}>
+        <div className={`mt-2 text-xs flex items-center gap-1.5 ${usingSample ? 'text-amber-300/70' : 'text-white/50'}`}>
           <span>{'\u{1F4E1}'}</span>
           <span>{labelReach} : <strong className={usingSample ? 'text-amber-200' : 'text-white'}>{fmt(displayStats.reach)}</strong> (24h)</span>
         </div>
@@ -502,7 +502,7 @@ function AmiOrchestrateButton({ recommendation }: { recommendation: string }) {
     <button
       onClick={apply}
       disabled={busy || done}
-      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition flex-shrink-0 ${
+      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex-shrink-0 ${
         done
           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
           : error

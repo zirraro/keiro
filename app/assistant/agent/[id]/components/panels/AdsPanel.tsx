@@ -74,7 +74,7 @@ export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white/80 font-medium truncate flex-1 mr-2">{c.name}</span>
                 <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                  className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
                   style={{
                     backgroundColor: `${statusColors[c.status] ?? '#a78bfa'}22`,
                     color: statusColors[c.status] ?? '#a78bfa',

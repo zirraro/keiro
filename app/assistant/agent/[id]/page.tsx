@@ -370,26 +370,26 @@ function EmailPlanningView() {
       {/* Today snapshot */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="rounded-xl border border-cyan-500/20 bg-cyan-900/10 p-3">
-          <div className="text-[10px] text-cyan-300/80 uppercase font-bold mb-1">{en ? "Today's sends" : "Envois aujourd'hui"}</div>
+          <div className="text-xs text-cyan-300/80 uppercase font-bold mb-1">{en ? "Today's sends" : "Envois aujourd'hui"}</div>
           <div className="text-2xl font-bold text-white">{today.total}</div>
-          <div className="text-[10px] text-white/40 mt-0.5">
+          <div className="text-xs text-white/40 mt-0.5">
             {today.step1} {en ? 'new' : 'nouveaux'} · {today.followup} {en ? 'follow-ups' : 'relances'}
           </div>
         </div>
         <div className="rounded-xl border border-purple-500/20 bg-purple-900/10 p-3">
-          <div className="text-[10px] text-purple-300/80 uppercase font-bold mb-1">{en ? 'Last 24h sent' : '24h écoulées'}</div>
+          <div className="text-xs text-purple-300/80 uppercase font-bold mb-1">{en ? 'Last 24h sent' : '24h écoulées'}</div>
           <div className="text-2xl font-bold text-white">{data.recent.sent_24h}</div>
-          <div className="text-[10px] text-white/40 mt-0.5">{en ? 'emails dispatched' : 'emails envoyés'}</div>
+          <div className="text-xs text-white/40 mt-0.5">{en ? 'emails dispatched' : 'emails envoyés'}</div>
         </div>
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-900/10 p-3">
-          <div className="text-[10px] text-emerald-300/80 uppercase font-bold mb-1">{en ? 'Inbound 48h' : 'Réponses 48h'}</div>
+          <div className="text-xs text-emerald-300/80 uppercase font-bold mb-1">{en ? 'Inbound 48h' : 'Réponses 48h'}</div>
           <div className="text-2xl font-bold text-white">{data.recent.inbound_48h}</div>
-          <div className="text-[10px] text-white/40 mt-0.5">{en ? 'replies received' : 'réponses reçues'}</div>
+          <div className="text-xs text-white/40 mt-0.5">{en ? 'replies received' : 'réponses reçues'}</div>
         </div>
         <div className="rounded-xl border border-amber-500/20 bg-amber-900/10 p-3">
-          <div className="text-[10px] text-amber-300/80 uppercase font-bold mb-1">{en ? 'To reply' : 'À répondre'}</div>
+          <div className="text-xs text-amber-300/80 uppercase font-bold mb-1">{en ? 'To reply' : 'À répondre'}</div>
           <div className="text-2xl font-bold text-white">{data.recent.pending_replies}</div>
-          <div className="text-[10px] text-white/40 mt-0.5">{en ? 'pending Hugo reply' : "en attente de Hugo"}</div>
+          <div className="text-xs text-white/40 mt-0.5">{en ? 'pending Hugo reply' : "en attente de Hugo"}</div>
         </div>
       </div>
 
@@ -406,16 +406,16 @@ function EmailPlanningView() {
               const label = d.toLocaleDateString(en ? 'en-US' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
               return (
                 <div key={key} className="flex items-center gap-2">
-                  <div className="text-[11px] w-20 sm:w-24 text-white/60">{label}</div>
+                  <div className="text-xs w-20 sm:w-24 text-white/60">{label}</div>
                   <div className="flex-1 h-5 bg-white/5 rounded-md overflow-hidden flex items-center relative">
                     <div className="h-full rounded-md" style={{ width: `${w}%`, background: 'linear-gradient(90deg, #22c55eaa, #06b6d4aa)' }} />
-                    <div className="absolute left-2 text-[10px] font-bold text-white drop-shadow">{count > 0 ? count : ''}</div>
+                    <div className="absolute left-2 text-xs font-bold text-white drop-shadow">{count > 0 ? count : ''}</div>
                   </div>
                 </div>
               );
             })}
           </div>
-          <div className="mt-3 text-[10px] text-white/40">
+          <div className="mt-3 text-xs text-white/40">
             {en ? 'Total sent: ' : 'Total envoyé : '}<strong className="text-white/80">{data.recent.sent_7d ?? 0}</strong>
           </div>
         </div>
@@ -431,7 +431,7 @@ function EmailPlanningView() {
             const isToday = key === todayKey;
             return (
               <div key={key} className="flex items-center gap-2">
-                <div className={`text-[11px] w-20 sm:w-24 ${isToday ? 'text-cyan-300 font-bold' : 'text-white/60'}`}>{dayLabel(key)}</div>
+                <div className={`text-xs w-20 sm:w-24 ${isToday ? 'text-cyan-300 font-bold' : 'text-white/60'}`}>{dayLabel(key)}</div>
                 <div className="flex-1 h-6 bg-white/5 rounded-md overflow-hidden flex items-center relative">
                   <div
                     className="h-full rounded-md"
@@ -442,11 +442,11 @@ function EmailPlanningView() {
                         : 'linear-gradient(90deg, #a855f7aa, #6366f1aa)',
                     }}
                   />
-                  <div className="absolute left-2 text-[10px] font-bold text-white drop-shadow">
+                  <div className="absolute left-2 text-xs font-bold text-white drop-shadow">
                     {d.total > 0 ? d.total : ''}
                   </div>
                   {d.total > 0 && (
-                    <div className="absolute right-2 text-[10px] text-white/60">
+                    <div className="absolute right-2 text-xs text-white/60">
                       {d.step1 > 0 && <span className="mr-1.5">{d.step1} {en ? 'new' : 'nouv.'}</span>}
                       {d.followup > 0 && <span>{d.followup} {en ? 'follow-up' : 'relance'}</span>}
                     </div>
@@ -456,7 +456,7 @@ function EmailPlanningView() {
             );
           })}
         </div>
-        <div className="flex gap-3 mt-3 text-[10px] text-white/40">
+        <div className="flex gap-3 mt-3 text-xs text-white/40">
           <span><span className="inline-block w-2 h-2 rounded-sm bg-purple-400/60 mr-1" />{en ? 'Future days' : 'Jours suivants'}</span>
           <span><span className="inline-block w-2 h-2 rounded-sm bg-cyan-400 mr-1" />{en ? 'Today' : "Aujourd'hui"}</span>
         </div>
@@ -473,7 +473,7 @@ function EmailPlanningView() {
             <div className="flex justify-between"><span className="text-white/50">{en ? 'Follow-up delay' : 'Délai relance'}</span><span className="text-white font-medium">{data.settings.relance_delay} {en ? 'days' : 'jours'}</span></div>
             <div className="flex justify-between"><span className="text-white/50">{en ? 'Max follow-ups' : 'Relances max'}</span><span className="text-white font-medium">{data.settings.max_steps}</span></div>
           </div>
-          <a href={`?tab=settings`} className="mt-3 inline-block text-[10px] text-cyan-400 hover:underline">{en ? 'Edit schedule →' : 'Modifier les créneaux →'}</a>
+          <a href={`?tab=settings`} className="mt-3 inline-block text-xs text-cyan-400 hover:underline">{en ? 'Edit schedule →' : 'Modifier les créneaux →'}</a>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
           <h3 className="text-white font-bold text-sm mb-3">{en ? 'Prospect queue' : 'File de prospects'}</h3>
@@ -507,10 +507,10 @@ function EmailPlanningView() {
             <h3 className="text-white font-bold text-sm mb-3">{en ? 'What I did' : 'Ce que j\'ai fait'}</h3>
             <div className="space-y-2">
               {journal.map((e, i) => (
-                <div key={i} className="flex items-start gap-2.5 text-[11px] sm:text-xs">
+                <div key={i} className="flex items-start gap-2.5 text-xs sm:text-xs">
                   <span className={`shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full ${e.statut === 'succes' ? 'bg-emerald-400' : e.statut === 'erreur' ? 'bg-amber-400' : 'bg-white/30'}`} />
                   <span className="text-white/75 leading-snug flex-1">{e.texte}</span>
-                  <span className="text-white/35 text-[10px] shrink-0 mt-0.5 tabular-nums">
+                  <span className="text-white/35 text-xs shrink-0 mt-0.5 tabular-nums">
                     {new Date(e.quand).toLocaleTimeString(en ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -796,14 +796,14 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
             <button onClick={goToday} className="px-3 py-2 min-h-[40px] rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs whitespace-nowrap">{tCal.today}</button>
             <button onClick={() => navigate(1)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-base flex items-center justify-center" aria-label={en ? 'Next' : 'Suivant'}>›</button>
           </div>
-          <span className="ml-2 text-[11px] sm:text-xs font-semibold text-white/90 capitalize truncate max-w-[200px]">{cursorLabel}</span>
+          <span className="ml-2 text-xs sm:text-xs font-semibold text-white/90 capitalize truncate max-w-[200px]">{cursorLabel}</span>
         </div>
       </div>
 
       {/* Filters: status (multi-select) + platform (multi-select) */}
       <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] border border-white/10 rounded-xl p-2">
         <div className="flex items-center flex-wrap gap-1.5">
-          <span className="text-[10px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.status}</span>
+          <span className="text-xs font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.status}</span>
           {/* Failed + skipped chips intentionally NOT shown — the
               client doesn't need to be confronted with 'échec' or
               'ignoré' badges. Failed posts are silently retried by
@@ -819,18 +819,18 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
               <button
                 key={f.key}
                 onClick={() => toggleStatus(f.key)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? f.color + ' text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 ${active ? f.color + ' text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white/80' : 'bg-white/40'}`} />
                 {f.label}
-                <span className={`text-[10px] px-1 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/15'}`}>{f.count}</span>
+                <span className={`text-xs px-1 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/15'}`}>{f.count}</span>
               </button>
             );
           })}
         </div>
         <div className="w-px h-5 bg-white/10 mx-1" />
         <div className="flex items-center flex-wrap gap-1.5">
-          <span className="text-[10px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.network}</span>
+          <span className="text-xs font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.network}</span>
           {Array.from(activePlatforms).map(p => {
             const meta = PLATFORM_META[p];
             const active = platformFilter.has(p);
@@ -847,7 +847,7 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
               <button
                 key={p}
                 onClick={() => togglePlatform(p)}
-                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-bold transition flex items-center gap-1 border ${active ? activeStyle : 'bg-white/5 text-white/70 hover:bg-white/10 border-transparent'}`}
+                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-bold transition flex items-center gap-1 border ${active ? activeStyle : 'bg-white/5 text-white/70 hover:bg-white/10 border-transparent'}`}
               >
                 <span>{meta?.emoji || ''}</span>
                 {meta?.label || p}
@@ -855,11 +855,11 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
             );
           })}
           {!activePlatforms.has('tiktok') && !activePlatforms.has('linkedin') && (
-            <span className="text-[10px] text-white/40 italic ml-1">{tCal.disabledHint}</span>
+            <span className="text-xs text-white/40 italic ml-1">{tCal.disabledHint}</span>
           )}
           <button
             onClick={() => setBatchOpen(true)}
-            className="ml-auto px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white border border-emerald-300/40 shadow-lg shadow-emerald-500/30 transition flex items-center gap-1.5"
+            className="ml-auto px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white border border-emerald-300/40 shadow-lg shadow-emerald-500/30 transition flex items-center gap-1.5"
             title={en ? 'Plan a batch of drafts (week / month)' : 'Planifier un lot de brouillons (semaine / mois)'}
           >
             <span>{'\uD83D\uDDD3\uFE0F'}</span> {en ? 'Plan batch' : 'Planifier'}
@@ -874,14 +874,14 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="text-base font-black text-white mb-1">{en ? 'Plan a batch' : 'Planifier un lot'}</h3>
-                <p className="text-[11px] text-white/60 leading-relaxed">{en ? 'Léna creates a stack of drafts for the next N days. Review then publish — or let auto-publish handle it.' : 'Léna crée un stack de brouillons pour les N prochains jours. Tu valides puis publies — ou tu laisses la publication auto.'}</p>
+                <p className="text-xs text-white/60 leading-relaxed">{en ? 'Léna creates a stack of drafts for the next N days. Review then publish — or let auto-publish handle it.' : 'Léna crée un stack de brouillons pour les N prochains jours. Tu valides puis publies — ou tu laisses la publication auto.'}</p>
               </div>
               <button onClick={() => !batchBusy && setBatchOpen(false)} className="text-white/40 hover:text-white text-lg p-1 -mt-1">×</button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'How far ahead?' : 'Jusqu\'à quand ?'}</label>
+                <label className="block text-xs font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'How far ahead?' : 'Jusqu\'à quand ?'}</label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[3, 7, 14, 30].map(n => (
                     <button
@@ -896,34 +896,34 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'Networks' : 'Réseaux'}</label>
-                <p className="text-[10px] text-white/50 italic">
+                <label className="block text-xs font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'Networks' : 'Réseaux'}</label>
+                <p className="text-xs text-white/50 italic">
                   {Array.from(platformFilter).map(p => PLATFORM_META[p]?.label || p).join(' · ') || (en ? 'Pick at least one network filter above.' : 'Sélectionne au moins un réseau dans les filtres ci-dessus.')}
                 </p>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'Publication mode' : 'Mode publication'}</label>
+                <label className="block text-xs font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'Publication mode' : 'Mode publication'}</label>
                 <div className="space-y-1.5">
                   <button
                     onClick={() => setBatchMode('notify')}
                     className={`w-full text-left p-3 min-h-[56px] rounded-xl border transition ${batchMode === 'notify' ? 'bg-amber-500/15 border-amber-400 shadow-lg shadow-amber-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                   >
                     <div className="text-xs font-bold text-white mb-0.5">{'\uD83D\uDD14'} {en ? 'Notify + I validate (1 credit / post)' : 'Me notifier + je valide (1 crédit / post)'}</div>
-                    <div className="text-[10px] text-white/60 leading-relaxed">{en ? 'You get an email/notif before each publish, you click to confirm.' : 'Tu reçois un email/notif avant chaque publication, tu cliques pour confirmer.'}</div>
+                    <div className="text-xs text-white/60 leading-relaxed">{en ? 'You get an email/notif before each publish, you click to confirm.' : 'Tu reçois un email/notif avant chaque publication, tu cliques pour confirmer.'}</div>
                   </button>
                   <button
                     onClick={() => setBatchMode('auto')}
                     className={`w-full text-left p-3 min-h-[56px] rounded-xl border transition ${batchMode === 'auto' ? 'bg-purple-500/15 border-purple-400 shadow-lg shadow-purple-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                   >
                     <div className="text-xs font-bold text-white mb-0.5">{'\u26A1'} {en ? 'Auto-publish (hands-off)' : 'Publication auto (mains libres)'}</div>
-                    <div className="text-[10px] text-white/60 leading-relaxed">{en ? 'Léna publishes at the optimal time. No validation needed.' : 'Léna publie au meilleur moment. Pas de validation à faire.'}</div>
+                    <div className="text-xs text-white/60 leading-relaxed">{en ? 'Léna publishes at the optimal time. No validation needed.' : 'Léna publie au meilleur moment. Pas de validation à faire.'}</div>
                   </button>
                 </div>
               </div>
 
               {batchResult && (
-                <div className={`p-2.5 rounded-lg text-[11px] ${batchResult.startsWith('✓') ? 'bg-emerald-500/15 border border-emerald-400/30 text-emerald-200' : 'bg-red-500/15 border border-red-400/30 text-red-200'}`}>
+                <div className={`p-2.5 rounded-lg text-xs ${batchResult.startsWith('✓') ? 'bg-emerald-500/15 border border-emerald-400/30 text-emerald-200' : 'bg-red-500/15 border border-red-400/30 text-red-200'}`}>
                   {batchResult}
                 </div>
               )}
@@ -935,7 +935,7 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
               >
                 {batchBusy ? (en ? 'Generating...' : 'Génération en cours...') : (en ? `Plan ${batchDays} days` : `Planifier ${batchDays} jour${batchDays > 1 ? 's' : ''}`)}
               </button>
-              <p className="text-[10px] text-white/40 text-center leading-relaxed">{en ? 'Each draft uses ~3 credits to generate. You can review/edit/skip them in the calendar.' : 'Chaque brouillon coûte ~3 crédits à générer. Tu peux les relire/éditer/zapper dans le calendrier.'}</p>
+              <p className="text-xs text-white/40 text-center leading-relaxed">{en ? 'Each draft uses ~3 credits to generate. You can review/edit/skip them in the calendar.' : 'Chaque brouillon coûte ~3 crédits à générer. Tu peux les relire/éditer/zapper dans le calendrier.'}</p>
             </div>
           </div>
         </div>
@@ -979,7 +979,7 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
     <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden">
       <div className="grid grid-cols-7 border-b border-white/10">
         {dayNames.map(n => (
-          <div key={n} className="px-2 py-2 text-[10px] font-bold text-white/40 uppercase tracking-wide text-center">{n}</div>
+          <div key={n} className="px-2 py-2 text-xs font-bold text-white/40 uppercase tracking-wide text-center">{n}</div>
         ))}
       </div>
       <div className="grid grid-cols-7">
@@ -990,7 +990,7 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
           const dayPosts = byDay.get(k) || [];
           return (
             <div key={i} className={`min-h-[60px] sm:min-h-[88px] p-1 sm:p-1.5 border-b border-r border-white/5 last:border-r-0 ${inMonth ? '' : 'bg-black/20 opacity-40'} ${isToday ? 'bg-purple-500/5' : ''}`}>
-              <div className={`text-[10px] sm:text-[11px] font-bold mb-1 ${isToday ? 'text-purple-300' : inMonth ? 'text-white/70' : 'text-white/30'}`}>{d.getDate()}</div>
+              <div className={`text-xs sm:text-xs font-bold mb-1 ${isToday ? 'text-purple-300' : inMonth ? 'text-white/70' : 'text-white/30'}`}>{d.getDate()}</div>
               {/* Mobile: tap whole cell → open day list. Desktop: per-post pills. */}
               {dayPosts.length > 0 && (
                 <>
@@ -1003,7 +1003,7 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
                     {dayPosts.slice(0, 4).map(p => (
                       <span key={p.id} className={`w-2 h-2 rounded-full ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
                     ))}
-                    {dayPosts.length > 4 && <span className="text-[10px] text-white/50">+{dayPosts.length - 4}</span>}
+                    {dayPosts.length > 4 && <span className="text-xs text-white/50">+{dayPosts.length - 4}</span>}
                   </button>
                   {/* Desktop full pills (≥sm) */}
                   <div className="hidden sm:block space-y-0.5">
@@ -1018,12 +1018,12 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
                         ) : (
                           <div className="w-6 h-6 bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded shrink-0" />
                         )}
-                        <div className="text-[10px] text-white/80 truncate text-left flex-1">{(p.hook || p.caption || '').substring(0, 22)}</div>
+                        <div className="text-xs text-white/80 truncate text-left flex-1">{(p.hook || p.caption || '').substring(0, 22)}</div>
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
                       </button>
                     ))}
                     {dayPosts.length > 3 && (
-                      <div className="text-[10px] text-white/50 text-center">+{dayPosts.length - 3}</div>
+                      <div className="text-xs text-white/50 text-center">+{dayPosts.length - 3}</div>
                     )}
                   </div>
                 </>
@@ -1032,7 +1032,7 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
           );
         })}
       </div>
-      <div className="text-[10px] text-white/50 text-right px-3 py-1.5 border-t border-white/10">
+      <div className="text-xs text-white/50 text-right px-3 py-1.5 border-t border-white/10">
         {byDay.size > 0
           ? tCal.thisMonth(Array.from(byDay.values()).reduce((a, b) => a + b.length, 0), lastOfMonth.getDate())
           : (en ? 'No posts' : 'Aucun post')}
@@ -1065,11 +1065,11 @@ function WeekStrip({ cursor, byDay, onSelect, en }: { cursor: Date; byDay: Map<s
           <div key={k} className={`bg-white/[0.02] border ${isToday ? 'border-purple-500/50 ring-1 ring-purple-500/20' : 'border-white/10'} rounded-xl p-2.5 min-h-[180px]`}>
             <div className="flex items-baseline justify-between mb-2.5 pb-2 border-b border-white/5">
               <div className={`flex items-baseline gap-1.5 ${isToday ? 'text-purple-300' : 'text-white/70'}`}>
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{dayShort[i]}</span>
+                <span className="text-xs font-bold uppercase tracking-wider opacity-70">{dayShort[i]}</span>
                 <span className="text-lg font-black leading-none">{d.getDate()}</span>
               </div>
               {dayPosts.length > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/60'}`}>
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/60'}`}>
                   {dayPosts.length}
                 </span>
               )}
@@ -1088,26 +1088,26 @@ function WeekStrip({ cursor, byDay, onSelect, en }: { cursor: Date; byDay: Map<s
                         <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         <span className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ring-2 ring-black/40 ${STATUS_DOT[p.status] || 'bg-white/30'}`} />
                         {meta?.tag && (
-                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/65 text-white text-[10px] font-bold tracking-wide">
+                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/65 text-white text-xs font-bold tracking-wide">
                             {meta.tag}
                           </span>
                         )}
                         {p.scheduled_time && (
                           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/85 to-transparent px-2 py-1.5">
-                            <div className="text-[10px] text-white font-bold">{p.scheduled_time.substring(0, 5)}</div>
+                            <div className="text-xs text-white font-bold">{p.scheduled_time.substring(0, 5)}</div>
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="aspect-square bg-gradient-to-br from-purple-900/30 to-pink-900/30 flex items-center justify-center p-2.5">
-                        <span className="text-[10px] text-white/70 text-center line-clamp-4 leading-snug">{(p.hook || p.caption || '').substring(0, 80)}</span>
+                        <span className="text-xs text-white/70 text-center line-clamp-4 leading-snug">{(p.hook || p.caption || '').substring(0, 80)}</span>
                       </div>
                     )}
                   </button>
                 );
               })}
               {dayPosts.length === 0 && (
-                <div className="flex items-center justify-center text-[10px] text-white/40 py-6 italic">{en ? '· empty' : '· vide'}</div>
+                <div className="flex items-center justify-center text-xs text-white/40 py-6 italic">{en ? '· empty' : '· vide'}</div>
               )}
             </div>
           </div>
@@ -1126,7 +1126,7 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
     <div className="bg-white/[0.02] border border-white/10 rounded-xl p-3 space-y-2">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-bold text-white capitalize">{cursor.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>
-        <span className="text-[10px] text-white/60">{tCal.nPosts(dayPosts.length)}</span>
+        <span className="text-xs text-white/60">{tCal.nPosts(dayPosts.length)}</span>
       </div>
       {dayPosts.length === 0 ? (
         <div className="text-center py-12 text-white/40 text-sm">{tCal.noPostsToday}</div>
@@ -1143,8 +1143,8 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
                 {p.visual_url ? (
                   <div className="aspect-video relative">
                     <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{statusLabel(p.status, en)}</span>
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/60 text-white">{meta?.emoji} {meta?.label}</span>
+                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{statusLabel(p.status, en)}</span>
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-bold bg-black/60 text-white">{meta?.emoji} {meta?.label}</span>
                     {/*
                       ── D'où vient ce post ──
 
@@ -1164,7 +1164,7 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
                     {p.origine === 'client' && (
                       <span
                         title="Vous avez programmé ce post depuis la Galerie"
-                        className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#0c1a3a]"
+                        className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-bold bg-white text-[#0c1a3a]"
                       >
                         Vous
                       </span>
@@ -1176,7 +1176,7 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
                   </div>
                 )}
                 <div className="p-2 space-y-1">
-                  <div className="text-[10px] text-white/50">{p.scheduled_time?.substring(0, 5) || ''} {p.format ? `· ${p.format}` : ''}</div>
+                  <div className="text-xs text-white/50">{p.scheduled_time?.substring(0, 5) || ''} {p.format ? `· ${p.format}` : ''}</div>
                   <div className="text-xs text-white/80 line-clamp-2">{p.hook || (p.caption || '').substring(0, 80)}</div>
                 </div>
               </button>
@@ -1263,8 +1263,8 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
       <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[calc(100dvh-7rem)] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 sticky top-0 z-10 bg-gray-900 rounded-t-2xl">
           <div className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_DOT[selected.status] || 'bg-white/10'} text-white`}>{statusLabel(selected.status, en)}</span>
-            <span className="text-[10px] text-white/40">{PLATFORM_META[selected.platform || 'instagram']?.label} · {selected.format} · {selected.scheduled_date}</span>
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_DOT[selected.status] || 'bg-white/10'} text-white`}>{statusLabel(selected.status, en)}</span>
+            <span className="text-xs text-white/40">{PLATFORM_META[selected.platform || 'instagram']?.label} · {selected.format} · {selected.scheduled_date}</span>
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
@@ -1312,20 +1312,20 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
             <p className="text-xs text-white/70 whitespace-pre-wrap">{selected.caption}</p>
           )}
           {selected.hashtags && <p className="text-xs text-blue-400">{Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : selected.hashtags}</p>}
-          {selected.instagram_permalink && <a href={selected.instagram_permalink} target="_blank" rel="noopener" className="text-[10px] text-purple-400 hover:underline">Voir sur Instagram {'\u2197'}</a>}
+          {selected.instagram_permalink && <a href={selected.instagram_permalink} target="_blank" rel="noopener" className="text-xs text-purple-400 hover:underline">Voir sur Instagram {'\u2197'}</a>}
         </div>
 
         {/* Text overlay editor */}
         {selected.visual_url && !selected.visual_url.endsWith('.mp4') && (
           <div className="px-4 py-3 border-t border-white/10 bg-white/[0.02]">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-white/60">{en ? 'Text overlay' : 'Texte sur l\'image'}</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-white/60">{en ? 'Text overlay' : 'Texte sur l\'image'}</span>
               <div className="flex items-center gap-2">
-                {selected.overlay_text?.text && <span className="text-[10px] text-white/40 italic">{en ? 'Active' : 'Actif'}</span>}
+                {selected.overlay_text?.text && <span className="text-xs text-white/40 italic">{en ? 'Active' : 'Actif'}</span>}
                 <button
                   onClick={suggestOverlay}
                   disabled={overlaySuggestBusy}
-                  className="px-2 py-1 min-h-[28px] rounded-md text-[10px] font-bold bg-gradient-to-r from-fuchsia-600/30 to-purple-600/30 hover:from-fuchsia-600/50 hover:to-purple-600/50 text-fuchsia-200 border border-fuchsia-400/30 disabled:opacity-50 transition flex items-center gap-1"
+                  className="px-2 py-1 min-h-[28px] rounded-md text-xs font-bold bg-gradient-to-r from-fuchsia-600/30 to-purple-600/30 hover:from-fuchsia-600/50 hover:to-purple-600/50 text-fuchsia-200 border border-fuchsia-400/30 disabled:opacity-50 transition flex items-center gap-1"
                   title={en ? 'Ask Léna for a punchline based on this post' : 'Demander à Léna une punchline pour ce post'}
                 >
                   {overlaySuggestBusy ? '...' : '\u2728'} {en ? 'Suggest' : 'Suggestion IA'}
@@ -1341,15 +1341,15 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
               className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
             />
             {overlaySuggestNote && (
-              <p className="text-[10px] text-fuchsia-200/80 mt-1.5 italic leading-snug">{overlaySuggestNote}</p>
+              <p className="text-xs text-fuchsia-200/80 mt-1.5 italic leading-snug">{overlaySuggestNote}</p>
             )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <select value={overlayPos} onChange={e => setOverlayPos(e.target.value as any)} className="bg-black/30 border border-white/10 rounded px-2 py-1 text-[10px] text-white/80">
+              <select value={overlayPos} onChange={e => setOverlayPos(e.target.value as any)} className="bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white/80">
                 <option value="top">{en ? 'Top' : 'Haut'}</option>
                 <option value="center">{en ? 'Center' : 'Centre'}</option>
                 <option value="bottom">{en ? 'Bottom' : 'Bas'}</option>
               </select>
-              <select value={overlayTone} onChange={e => setOverlayTone(e.target.value as any)} className="bg-black/30 border border-white/10 rounded px-2 py-1 text-[10px] text-white/80">
+              <select value={overlayTone} onChange={e => setOverlayTone(e.target.value as any)} className="bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white/80">
                 <option value="punchy">{en ? 'Punchy' : 'Punchy'}</option>
                 <option value="elegant">{en ? 'Elegant' : 'Élégant'}</option>
                 <option value="playful">{en ? 'Playful' : 'Joueur'}</option>
@@ -1357,7 +1357,7 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
               <button
                 onClick={applyOverlay}
                 disabled={overlayBusy}
-                className="ml-auto px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg disabled:opacity-50"
+                className="ml-auto px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg disabled:opacity-50"
               >
                 {overlayBusy ? '...' : (overlayText.trim() ? (en ? 'Apply' : 'Appliquer') : (en ? 'Remove' : 'Supprimer'))}
               </button>
@@ -1367,8 +1367,8 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
         {(selected.status === 'draft' || selected.status === 'approved') && (
           <div className="px-4 pb-4 pt-3 flex gap-2 sticky bottom-0 z-10 bg-gray-900 border-t border-white/10">
             <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'publish_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl min-h-[44px]">{'\uD83D\uDE80'} {tCal.publish}</button>
-            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'regenerate_single', postId: selected.id }) }); onClose(); } catch {} }} className="py-2.5 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDD04'} {tCal.regenerate}</button>
-            <button onClick={async () => { if (!confirm(tCal.confirmDelete)) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} {tCal.delete}</button>
+            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'regenerate_single', postId: selected.id }) }); onClose(); } catch {} }} className="py-2.5 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-xs font-medium rounded-xl min-h-[44px]">{'\uD83D\uDD04'} {tCal.regenerate}</button>
+            <button onClick={async () => { if (!confirm(tCal.confirmDelete)) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-xs font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} {tCal.delete}</button>
           </div>
         )}
         {/* Republier — for posts that previously failed or were skipped.
@@ -1408,7 +1408,7 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
                   window.location.reload();
                 } catch {}
               }}
-              className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-[10px] font-medium rounded-xl min-h-[44px]"
+              className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-xs font-medium rounded-xl min-h-[44px]"
             >
               {'\uD83D\uDDD1'} {tCal.delete}
             </button>
@@ -2163,7 +2163,7 @@ export default function AgentWorkspacePage() {
             <a href="/login" className="block w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition mb-2">
               Essai gratuit 7 jours — 0{'\u20AC'}
             </a>
-            <p className="text-[10px] text-white/30">Carte requise, aucun debit. Annulation en 1 clic.</p>
+            <p className="text-xs text-white/30">Carte requise, aucun debit. Annulation en 1 clic.</p>
           </div>
         </div>
       )}
@@ -2190,12 +2190,12 @@ export default function AgentWorkspacePage() {
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-500/15 border border-green-500/20 rounded-full">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-green-300 text-[10px] font-medium">Actif</span>
+              <span className="text-green-300 text-xs font-medium">Actif</span>
             </div>
             {creditsLow && (
               <a href="/pricing" className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/15 border border-amber-500/20 rounded-full hover:bg-amber-500/25 transition">
-                <span className="text-amber-300 text-[10px] font-medium">{creditsBalance} credits</span>
-                <span className="text-amber-400 text-[10px]">{'\u2197'}</span>
+                <span className="text-amber-300 text-xs font-medium">{creditsBalance} credits</span>
+                <span className="text-amber-400 text-xs">{'\u2197'}</span>
               </a>
             )}
             <div
@@ -2203,7 +2203,7 @@ export default function AgentWorkspacePage() {
               className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full cursor-pointer transition"
             >
               <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
-              <span className="text-white/40 text-[10px]">{uploading ? '...' : '+'} Fichier</span>
+              <span className="text-white/40 text-xs">{uploading ? '...' : '+'} Fichier</span>
             </div>
             <button
               onClick={() => {
@@ -2216,7 +2216,7 @@ export default function AgentWorkspacePage() {
               className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/40 hover:text-white/70 transition"
               title={nn.formViewTutorial || 'Voir le tutoriel'}
             >
-              <span className="text-[10px] font-bold">i</span>
+              <span className="text-xs font-bold">i</span>
             </button>
             <button onClick={() => setChatOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
@@ -2337,7 +2337,7 @@ export default function AgentWorkspacePage() {
                     window.history.replaceState({}, '', url.toString());
                   } catch {}
                 }}
-                className="text-[11px] text-purple-300 hover:text-purple-200 font-semibold flex items-center gap-1"
+                className="text-xs text-purple-300 hover:text-purple-200 font-semibold flex items-center gap-1"
               >
                 {isEn ? 'See full planning calendar' : 'Voir le planning complet'} →
               </button>
@@ -2368,7 +2368,7 @@ export default function AgentWorkspacePage() {
                       <div className="flex items-center justify-between">
                         <h3 className="text-white font-bold text-sm">{'\u{1F9EA}'} QA Agent — Tests clients</h3>
                         <div className="flex gap-2">
-                          <a href="/admin/qa" className="px-3 py-1.5 bg-white/10 text-white text-[10px] font-medium rounded-lg hover:bg-white/15">Dashboard QA</a>
+                          <a href="/admin/qa" className="px-3 py-1.5 bg-white/10 text-white text-xs font-medium rounded-lg hover:bg-white/15">Dashboard QA</a>
                         </div>
                       </div>
 
@@ -2427,7 +2427,7 @@ export default function AgentWorkspacePage() {
                                 <div className="flex-1 min-w-0">
                                   <span className="text-white/80 font-medium">{c.name}</span>
                                   <span className="text-white/40 ml-2">{c.message}</span>
-                                  {c.fix && <p className="text-purple-400 text-[10px] mt-0.5">Fix: {c.fix}</p>}
+                                  {c.fix && <p className="text-purple-400 text-xs mt-0.5">Fix: {c.fix}</p>}
                                 </div>
                               </div>
                             ))}
@@ -2500,20 +2500,20 @@ export default function AgentWorkspacePage() {
                   return (
                     <div key={i} className={`rounded-xl p-3 min-h-[120px] transition-all ${isToday ? 'bg-purple-600/15 border border-purple-500/30' : isPast ? 'bg-white/[0.02] border border-white/5' : 'bg-white/[0.04] border border-white/10'}`}>
                       <div className={`text-center mb-2 ${isToday ? 'text-purple-300' : 'text-white/40'}`}>
-                        <div className="text-[10px] font-semibold uppercase">{DAYS[i]}</div>
+                        <div className="text-xs font-semibold uppercase">{DAYS[i]}</div>
                         <div className={`text-lg font-bold ${isToday ? 'text-purple-300' : 'text-white/60'}`}>{day.getDate()}</div>
                       </div>
                       {dayTasks.length > 0 ? (
                         <div className="space-y-1">
                           {dayTasks.slice(0, 3).map((t, j) => (
-                            <div key={j} className={`text-[10px] px-1.5 py-1 rounded-md truncate ${t.status === 'success' ? 'bg-green-500/15 text-green-300' : t.status === 'pending' ? 'bg-amber-500/15 text-amber-300' : 'bg-white/10 text-white/50'}`}>
+                            <div key={j} className={`text-xs px-1.5 py-1 rounded-md truncate ${t.status === 'success' ? 'bg-green-500/15 text-green-300' : t.status === 'pending' ? 'bg-amber-500/15 text-amber-300' : 'bg-white/10 text-white/50'}`}>
                               {t.description?.substring(0, 30) || t.type || 'Tache'}
                             </div>
                           ))}
-                          {dayTasks.length > 3 && <div className="text-[10px] text-white/30 text-center">+{dayTasks.length - 3} autres</div>}
+                          {dayTasks.length > 3 && <div className="text-xs text-white/30 text-center">+{dayTasks.length - 3} autres</div>}
                         </div>
                       ) : (
-                        <div className="text-[10px] text-white/40 text-center mt-2">{isPast ? 'Aucune' : '\u2014'}</div>
+                        <div className="text-xs text-white/40 text-center mt-2">{isPast ? 'Aucune' : '\u2014'}</div>
                       )}
                     </div>
                   );
@@ -2528,8 +2528,8 @@ export default function AgentWorkspacePage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2.5 bg-white/[0.04] rounded-xl">
                     <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                    <div className="flex-1 min-w-0"><div className="text-white text-xs font-medium">Mode automatique actif</div><div className="text-white/40 text-[10px]">{dn} execute les taches selon votre parametrage</div></div>
-                    <span className="text-green-400 text-[10px] font-medium px-2 py-0.5 bg-green-500/15 rounded-full">Auto</span>
+                    <div className="flex-1 min-w-0"><div className="text-white text-xs font-medium">Mode automatique actif</div><div className="text-white/40 text-xs">{dn} execute les taches selon votre parametrage</div></div>
+                    <span className="text-green-400 text-xs font-medium px-2 py-0.5 bg-green-500/15 rounded-full">Auto</span>
                   </div>
                 </div>
               ) : (
@@ -2596,14 +2596,14 @@ export default function AgentWorkspacePage() {
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="text-white text-xs font-medium truncate">{item.title}</div>
-                              {item.subtitle && <div className="text-white/40 text-[10px] mt-0.5">{item.subtitle}</div>}
-                              <div className="text-white/45 text-[10px] mt-0.5">
+                              {item.subtitle && <div className="text-white/40 text-xs mt-0.5">{item.subtitle}</div>}
+                              <div className="text-white/45 text-xs mt-0.5">
                                 {item.date ? formatDateTime(item.date) : ''}{item.time ? ` a ${item.time}` : ''}
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full ${badgeStyle}`}>{badge}</span>
-                              {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[10px] text-purple-400 hover:text-purple-300">Voir {'\u2197'}</a>}
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${badgeStyle}`}>{badge}</span>
+                              {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-xs text-purple-400 hover:text-purple-300">Voir {'\u2197'}</a>}
                             </div>
                           </div>
                         );
@@ -2626,10 +2626,10 @@ export default function AgentWorkspacePage() {
                             task.status === 'success' ? 'bg-emerald-400' : task.status === 'error' ? 'bg-red-400' : 'bg-white/30'
                           }`} />
                           <div className="flex-1 min-w-0">
-                            <div className="text-white/80 text-[11px]">{task.description || task.type || 'Action'}</div>
-                            {task.result && <div className="text-white/30 text-[10px] mt-0.5 truncate">{task.result}</div>}
+                            <div className="text-white/80 text-xs">{task.description || task.type || 'Action'}</div>
+                            {task.result && <div className="text-white/30 text-xs mt-0.5 truncate">{task.result}</div>}
                           </div>
-                          <span className="text-[10px] text-white/45 flex-shrink-0">{formatDateTime(task.created_at)}</span>
+                          <span className="text-xs text-white/45 flex-shrink-0">{formatDateTime(task.created_at)}</span>
                         </div>
                       ))}
                     </div>
@@ -2673,7 +2673,7 @@ export default function AgentWorkspacePage() {
                 <p className="text-white/40 text-xs mt-0.5">Pour piloter dans le détail. Si tu laisses tourner en automatique, tu n&apos;as rien à toucher ici.</p>
               </div>
               {settingsSaved && (
-                <span className="text-[10px] text-emerald-400 animate-in fade-in duration-300">{'\u2713'} Sauvegarde auto</span>
+                <span className="text-xs text-emerald-400 animate-in fade-in duration-300">{'\u2713'} Sauvegarde auto</span>
               )}
             </div>
 
@@ -2682,7 +2682,7 @@ export default function AgentWorkspacePage() {
               <span className="text-lg">{'\uD83D\uDCA1'}</span>
               <div className="flex-1">
                 <div className="text-purple-300 text-xs font-semibold">Parametrage recommande actif</div>
-                <div className="text-white/40 text-[10px]">{isEn ? 'Based on your business type and best practices' : 'Basé sur votre type de business et les meilleures pratiques'}</div>
+                <div className="text-white/40 text-xs">{isEn ? 'Based on your business type and best practices' : 'Basé sur votre type de business et les meilleures pratiques'}</div>
               </div>
             </div>
 
@@ -2695,7 +2695,7 @@ export default function AgentWorkspacePage() {
                   <span className="text-lg">{'\uD83D\uDCCA'}</span>
                   <div className="flex-1">
                     <div className="text-emerald-300 text-xs font-semibold">{isEn ? 'Adaptive strategy active' : 'Stratégie adaptative active'}</div>
-                    <div className="text-white/50 text-[10px] mt-0.5">
+                    <div className="text-white/50 text-xs mt-0.5">
                       Mise à jour chaque nuit à partir de l&apos;engagement IG de tes 30 derniers posts.
                       Confiance : {settings.performance_ranking.confidence === 'high' ? '\uD83D\uDFE2 élevée' : settings.performance_ranking.confidence === 'medium' ? '\uD83D\uDFE1 moyenne' : '\uD83D\uDD34 faible (patiente encore quelques jours)'}
                     </div>
@@ -2705,10 +2705,10 @@ export default function AgentWorkspacePage() {
                 {settings.performance_ranking.confidence !== 'low' && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">Meilleurs formats</div>
+                      <div className="text-xs uppercase tracking-wide text-white/40 mb-1.5">Meilleurs formats</div>
                       <div className="space-y-1">
                         {(settings.performance_ranking.by_format || []).slice(0, 3).map((f: any, i: number) => (
-                          <div key={f.format} className="flex items-center justify-between text-[11px]">
+                          <div key={f.format} className="flex items-center justify-between text-xs">
                             <span className={i === 0 ? 'text-emerald-300 font-semibold capitalize' : 'text-white/60 capitalize'}>
                               {i === 0 ? '\u2B50 ' : `${i + 1}. `}{f.format}
                             </span>
@@ -2719,10 +2719,10 @@ export default function AgentWorkspacePage() {
                     </div>
 
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">Sujets qui marchent</div>
+                      <div className="text-xs uppercase tracking-wide text-white/40 mb-1.5">Sujets qui marchent</div>
                       <div className="space-y-1">
                         {(settings.performance_ranking.by_pillar || []).slice(0, 3).map((p: any, i: number) => (
-                          <div key={p.pillar} className="flex items-center justify-between text-[11px]">
+                          <div key={p.pillar} className="flex items-center justify-between text-xs">
                             <span className={i === 0 ? 'text-emerald-300 font-semibold' : 'text-white/60'}>
                               {i === 0 ? '\u2B50 ' : `${i + 1}. `}{p.pillar === 'tips' ? 'Conseils' : p.pillar === 'trends' ? 'Tendances' : p.pillar === 'demo' ? 'Démo produit' : p.pillar === 'social_proof' ? 'Preuve sociale' : p.pillar}
                             </span>
@@ -2733,25 +2733,25 @@ export default function AgentWorkspacePage() {
                     </div>
 
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">Heures optimales</div>
+                      <div className="text-xs uppercase tracking-wide text-white/40 mb-1.5">Heures optimales</div>
                       <div className="space-y-1">
                         {(settings.performance_ranking.optimal_hours || []).length > 0 ? (
                           settings.performance_ranking.optimal_hours.map((h: string, i: number) => (
-                            <div key={h} className="flex items-center gap-1.5 text-[11px]">
+                            <div key={h} className="flex items-center gap-1.5 text-xs">
                               <span className={i === 0 ? 'text-emerald-300 font-semibold' : 'text-white/60'}>
                                 {i === 0 ? '\u2B50 ' : ''}{h}
                               </span>
                             </div>
                           ))
                         ) : (
-                          <div className="text-[11px] text-white/40 italic">Plus de data requise</div>
+                          <div className="text-xs text-white/40 italic">Plus de data requise</div>
                         )}
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="mt-3 pt-3 border-t border-white/5 text-[10px] text-white/40">
+                <div className="mt-3 pt-3 border-t border-white/5 text-xs text-white/40">
                   Jade utilise ces signaux automatiquement pour choisir format, sujet et heure de publication du prochain post.
                 </div>
               </div>
@@ -2780,7 +2780,7 @@ export default function AgentWorkspacePage() {
                   <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-white/5 transition">
                     <span>{group.icon}</span>
                     <span className="text-xs font-bold text-white flex-1">{group.title}</span>
-                    <span className="text-[10px] text-white/30">{group.fields.length} options</span>
+                    <span className="text-xs text-white/30">{group.fields.length} options</span>
                   </summary>
                   <div className="px-4 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                     {group.fields.map((field: any) => (
@@ -2794,7 +2794,7 @@ export default function AgentWorkspacePage() {
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="text-white text-xs font-medium">{field.label}</div>
-                      <div className="text-white/30 text-[10px] mt-0.5">{field.description}</div>
+                      <div className="text-white/30 text-xs mt-0.5">{field.description}</div>
                     </div>
 
                     {field.type === 'toggle' && (
@@ -2810,7 +2810,7 @@ export default function AgentWorkspacePage() {
                       <select
                         value={settings[field.key] || field.default}
                         onChange={e => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0 min-w-[140px]"
+                        className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0 min-w-[140px]"
                       >
                         {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
@@ -2821,7 +2821,7 @@ export default function AgentWorkspacePage() {
                         type="time"
                         value={settings[field.key] || field.default}
                         onChange={e => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0"
+                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0"
                       />
                     )}
 
@@ -2830,7 +2830,7 @@ export default function AgentWorkspacePage() {
                         type="number"
                         value={settings[field.key] ?? field.default}
                         onChange={e => setSettings(prev => ({ ...prev, [field.key]: parseInt(e.target.value) || 0 }))}
-                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0 w-20 text-center"
+                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0 w-20 text-center"
                         min={0}
                       />
                     )}
@@ -2841,7 +2841,7 @@ export default function AgentWorkspacePage() {
                         value={settings[field.key] ?? field.default}
                         onChange={e => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
                         placeholder={field.description}
-                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-0 sm:min-w-[150px]"
+                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-0 sm:min-w-[150px]"
                       />
                     )}
                   </div>
@@ -2859,11 +2859,11 @@ export default function AgentWorkspacePage() {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">{isEn ? 'Custom name' : 'Nom personnalisé'}</label>
+                  <label className="text-white/60 text-xs font-medium mb-1.5 block">{isEn ? 'Custom name' : 'Nom personnalisé'}</label>
                   <input type="text" value={settings.custom_name || ''} onChange={e => setSettings(prev => ({ ...prev, custom_name: e.target.value }))} placeholder={dn} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-purple-500/50" />
                 </div>
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Couleur d&apos;accent</label>
+                  <label className="text-white/60 text-xs font-medium mb-1.5 block">Couleur d&apos;accent</label>
                   <div className="flex gap-2 flex-wrap">
                     {['#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#0c1a3a'].map(c => (
                       <button key={c} onClick={() => setSettings(prev => ({ ...prev, accent_color: c }))} className={`w-8 h-8 rounded-lg transition-all ${settings.accent_color === c ? 'ring-2 ring-white scale-110' : 'hover:scale-105'}`} style={{ background: c }} />
@@ -2871,14 +2871,14 @@ export default function AgentWorkspacePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">{isEn ? 'Custom avatar' : 'Avatar personnalisé'}</label>
+                  <label className="text-white/60 text-xs font-medium mb-1.5 block">{isEn ? 'Custom avatar' : 'Avatar personnalisé'}</label>
                   <div className="flex items-center gap-3">
                     {settings.custom_avatar ? (
                       <img src={settings.custom_avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover border-2 border-white/20" />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-lg">{icon}</div>
                     )}
-                    <label className="cursor-pointer px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white/60 text-[10px] font-medium rounded-lg transition-all">
+                    <label className="cursor-pointer px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white/60 text-xs font-medium rounded-lg transition-all">
                       Changer
                       <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0];
@@ -2891,12 +2891,12 @@ export default function AgentWorkspacePage() {
                       }} />
                     </label>
                     {settings.custom_avatar && (
-                      <button onClick={() => setSettings(prev => ({ ...prev, custom_avatar: undefined }))} className="text-[10px] text-red-400 hover:text-red-300">Retirer</button>
+                      <button onClick={() => setSettings(prev => ({ ...prev, custom_avatar: undefined }))} className="text-xs text-red-400 hover:text-red-300">Retirer</button>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Personnalite</label>
+                  <label className="text-white/60 text-xs font-medium mb-1.5 block">Personnalite</label>
                   <select value={settings.personality || 'default'} onChange={e => setSettings(prev => ({ ...prev, personality: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500/50">
                     <option value="default">Par defaut</option>
                     <option value="formal">Professionnel (vouvoiement)</option>
@@ -2906,7 +2906,7 @@ export default function AgentWorkspacePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Emoji</label>
+                  <label className="text-white/60 text-xs font-medium mb-1.5 block">Emoji</label>
                   <input type="text" value={settings.custom_emoji || ''} onChange={e => setSettings(prev => ({ ...prev, custom_emoji: e.target.value.slice(0, 2) }))} placeholder={icon} className="w-16 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-lg text-center focus:outline-none focus:ring-1 focus:ring-purple-500/50" maxLength={2} />
                 </div>
               </div>
@@ -3028,11 +3028,11 @@ export default function AgentWorkspacePage() {
                     <span>{'\u{1F517}'}</span> {config.title}
                   </h4>
                   <p className="text-white/40 text-xs mb-4">{config.description}</p>
-                  <div className="bg-black/30 rounded-lg p-3 font-mono text-[11px] text-green-400 break-all select-all cursor-text whitespace-pre-wrap">
+                  <div className="bg-black/30 rounded-lg p-3 font-mono text-xs text-green-400 break-all select-all cursor-text whitespace-pre-wrap">
                     {displayCode}
                   </div>
                   {config.note && (
-                    <p className="text-amber-400/70 text-[10px] mt-2 flex items-center gap-1">
+                    <p className="text-amber-400/70 text-xs mt-2 flex items-center gap-1">
                       <span>{'\u26A0\uFE0F'}</span> {config.note}
                     </p>
                   )}
@@ -3041,9 +3041,9 @@ export default function AgentWorkspacePage() {
                     <>
                       {widgetKey && (
                         <div className="mt-3 flex items-center gap-2">
-                          <span className="text-white/30 text-[10px]">Ta cle :</span>
-                          <code className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded font-mono select-all">{widgetKey}</code>
-                          <button onClick={() => navigator.clipboard.writeText(widgetKey)} className="text-[10px] text-white/40 hover:text-white/60">Copier</button>
+                          <span className="text-white/30 text-xs">Ta cle :</span>
+                          <code className="text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded font-mono select-all">{widgetKey}</code>
+                          <button onClick={() => navigator.clipboard.writeText(widgetKey)} className="text-xs text-white/40 hover:text-white/60">Copier</button>
                         </div>
                       )}
                       {!widgetKey && (
@@ -3137,7 +3137,7 @@ export default function AgentWorkspacePage() {
               <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/15">
                 {av ? <img src={av} alt={dn} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} /> : <span className="text-lg">{icon}</span>}
               </div>
-              <div className="flex-1 min-w-0"><h3 className="text-white font-semibold text-sm truncate">{dn}</h3><div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><span className="text-white/60 text-[10px]">En ligne</span></div></div>
+              <div className="flex-1 min-w-0"><h3 className="text-white font-semibold text-sm truncate">{dn}</h3><div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><span className="text-white/60 text-xs">En ligne</span></div></div>
               {/* Minimise — keeps the conversation alive but collapses
                   to the floating bubble so the user can read the screen
                   without losing context. Mobile users get this by tapping
@@ -3176,7 +3176,7 @@ export default function AgentWorkspacePage() {
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: `linear-gradient(135deg, ${gf}40, ${gt}40)` }}><span className="text-3xl">{icon}</span></div>
                   <h4 className="text-white font-semibold text-sm mb-1">Discute avec {dn}</h4>
                   <p className="text-white/50 text-xs max-w-[260px]">{desc}</p>
-                  <div className="mt-3 flex flex-wrap gap-1.5 justify-center">{getAgentSuggestions(agentId, isEn).map(s => <button key={s} onClick={() => setInput(s)} className="px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/50 text-[10px] hover:bg-white/10">{s}</button>)}</div>
+                  <div className="mt-3 flex flex-wrap gap-1.5 justify-center">{getAgentSuggestions(agentId, isEn).map(s => <button key={s} onClick={() => setInput(s)} className="px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/50 text-xs hover:bg-white/10">{s}</button>)}</div>
                 </div>
               )}
               {messages.map(msg => (
@@ -3185,7 +3185,7 @@ export default function AgentWorkspacePage() {
                     <div className={`rounded-xl px-3 py-2.5 text-[13px] leading-relaxed break-words [overflow-wrap:anywhere] ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-br-sm' : 'bg-white/[0.07] text-white/90 rounded-bl-sm border border-white/5'}`}>
                       {msg.role === 'assistant' ? renderContent(msg.content) : msg.content.split('\n').map((l, j) => <p key={j} className={j > 0 ? 'mt-1' : ''}>{l}</p>)}
                     </div>
-                    <p className={`text-[10px] mt-0.5 ${msg.role === 'user' ? 'text-right' : ''} text-white/45`}>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className={`text-xs mt-0.5 ${msg.role === 'user' ? 'text-right' : ''} text-white/45`}>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>
               ))}

@@ -32,7 +32,7 @@ function SiteAnalysisCard() {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <div className="text-sm font-bold text-white">{en ? '🔍 Analyze my website (SEO)' : '🔍 Analyser mon site (SEO)'}</div>
-          <div className="text-[11px] text-white/50">{en ? 'On-demand audit of your site: issues to fix + article ideas.' : 'Audit à la demande de ton site : points à corriger + idées d\'articles.'}</div>
+          <div className="text-xs text-white/50">{en ? 'On-demand audit of your site: issues to fix + article ideas.' : 'Audit à la demande de ton site : points à corriger + idées d\'articles.'}</div>
         </div>
         <button onClick={() => run(!!res)} disabled={loading}
           className="px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:opacity-90 disabled:opacity-50 min-h-[36px]">
@@ -41,7 +41,7 @@ function SiteAnalysisCard() {
       </div>
 
       {res && res.ok === false && (
-        <p className="text-[11px] text-amber-300/80 mt-2">{res.message || (en ? 'Analysis unavailable. Add your site URL in onboarding.' : 'Analyse indisponible. Ajoute l\'URL de ton site dans l\'onboarding.')}</p>
+        <p className="text-xs text-amber-300/80 mt-2">{res.message || (en ? 'Analysis unavailable. Add your site URL in onboarding.' : 'Analyse indisponible. Ajoute l\'URL de ton site dans l\'onboarding.')}</p>
       )}
 
       {res && res.ok && (
@@ -50,27 +50,27 @@ function SiteAnalysisCard() {
             {typeof res.score === 'number' && (
               <div className="text-2xl font-extrabold" style={{ color: res.score >= 70 ? '#22c55e' : res.score >= 45 ? '#f59e0b' : '#ef4444' }}>{res.score}<span className="text-xs text-white/40">/100</span></div>
             )}
-            <div className="text-[11px] text-white/70 flex-1">{res.summary}</div>
+            <div className="text-xs text-white/70 flex-1">{res.summary}</div>
           </div>
 
           {res.locked ? (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3">
-              <p className="text-[11px] text-amber-200 font-semibold">{res.upsell}</p>
-              <a href="/checkout/upsell" className="min-h-[44px] inline-flex items-center justify-center mt-2 px-3 py-1.5 text-[11px] font-bold rounded-md bg-amber-500 text-black hover:opacity-90">{en ? 'Upgrade to Pro' : 'Passer au pack Pro'}</a>
+              <p className="text-xs text-amber-200 font-semibold">{res.upsell}</p>
+              <a href="/checkout/upsell" className="min-h-[44px] inline-flex items-center justify-center mt-2 px-3 py-1.5 text-xs font-bold rounded-md bg-amber-500 text-black hover:opacity-90">{en ? 'Upgrade to Pro' : 'Passer au pack Pro'}</a>
             </div>
           ) : (
             <>
               {Array.isArray(res.issues) && res.issues.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Issues to fix' : 'À corriger'}</div>
+                  <div className="text-xs uppercase tracking-wide text-white/40 mb-1">{en ? 'Issues to fix' : 'À corriger'}</div>
                   <div className="space-y-1">
                     {res.issues.map((it: any, i: number) => (
                       <div key={i} className="rounded-lg bg-white/[0.03] border border-white/10 p-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${sevColor(it.severity)}22`, color: sevColor(it.severity) }}>{it.severity}</span>
-                          <span className="text-[11px] font-medium text-white/80">{it.title}</span>
+                          <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: `${sevColor(it.severity)}22`, color: sevColor(it.severity) }}>{it.severity}</span>
+                          <span className="text-xs font-medium text-white/80">{it.title}</span>
                         </div>
-                        {it.fix && <div className="text-[10px] text-white/50 mt-0.5">→ {it.fix}</div>}
+                        {it.fix && <div className="text-xs text-white/50 mt-0.5">→ {it.fix}</div>}
                       </div>
                     ))}
                   </div>
@@ -78,10 +78,10 @@ function SiteAnalysisCard() {
               )}
               {Array.isArray(res.articleTopics) && res.articleTopics.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1 mt-2">{en ? 'Article ideas for you' : 'Idées d\'articles pour toi'}</div>
+                  <div className="text-xs uppercase tracking-wide text-white/40 mb-1 mt-2">{en ? 'Article ideas for you' : 'Idées d\'articles pour toi'}</div>
                   <div className="flex flex-wrap gap-1">
                     {res.articleTopics.map((tpc: string, i: number) => (
-                      <span key={i} className="text-[10px] text-emerald-200/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">{tpc}</span>
+                      <span key={i} className="text-xs text-emerald-200/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">{tpc}</span>
                     ))}
                   </div>
                 </div>
@@ -125,15 +125,15 @@ export function SeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
               <div className="flex-1 text-center">
                 <div className="text-lg mb-1">{step.icon}</div>
                 <div className="text-sm font-bold text-white" style={{ color: step.color }}>{step.value}</div>
-                <div className="text-[10px] text-white/40 mt-0.5">{step.label}</div>
+                <div className="text-xs text-white/40 mt-0.5">{step.label}</div>
               </div>
               {i < 3 && <div className="text-white/45 text-xs mx-1">{'\u2192'}</div>}
             </div>
           ))}
         </div>
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
-          <span className="text-[10px] text-emerald-400">{'\u{1F331}'}</span>
-          <span className="text-[10px] text-white/50">{p.seoWorkflowNote}</span>
+          <span className="text-xs text-emerald-400">{'\u{1F331}'}</span>
+          <span className="text-xs text-white/50">{p.seoWorkflowNote}</span>
         </div>
       </div>
 

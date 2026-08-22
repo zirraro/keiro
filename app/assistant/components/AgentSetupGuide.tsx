@@ -173,7 +173,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
             >
               {'\u{1F680}'} Passer au plan {requiredPlan} — debloquer {agentName}
             </Link>
-            <p className="text-[10px] text-white/30 text-center">0{'\u20AC'} pendant 7 jours {'\u00B7'} Annulation en 1 clic</p>
+            <p className="text-xs text-white/30 text-center">0{'\u20AC'} pendant 7 jours {'\u00B7'} Annulation en 1 clic</p>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
         </div>
         <div>
           <h3 className="text-sm font-bold text-white">Activer {agentName}</h3>
-          <p className="text-[10px] text-white/40">{setup.timeEstimate} {'\u00B7'} {setup.steps.length} etapes</p>
+          <p className="text-xs text-white/40">{setup.timeEstimate} {'\u00B7'} {setup.steps.length} etapes</p>
         </div>
         <div className="ml-auto flex gap-1">
           {setup.steps.map((_, i) => (
@@ -211,7 +211,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-bold text-white/80">Etape {currentStep + 1}/{setup.steps.length}</span>
-          {step?.optional && <span className="text-[10px] text-white/30 bg-white/10 px-2 py-0.5 rounded-full">Optionnel</span>}
+          {step?.optional && <span className="text-xs text-white/30 bg-white/10 px-2 py-0.5 rounded-full">Optionnel</span>}
         </div>
         <h4 className="text-sm font-bold text-white mb-1">{step?.title}</h4>
         <p className="text-xs text-white/50">{step?.description}</p>
@@ -228,7 +228,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
               <span className="text-base">{'\u{1F916}'}</span>
               <div>
                 <div className="text-xs font-bold text-white">100% Automatique</div>
-                <div className="text-[10px] text-white/40">{agentName} gere tout sans intervention</div>
+                <div className="text-xs text-white/40">{agentName} gere tout sans intervention</div>
               </div>
             </div>
           </button>
@@ -240,7 +240,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
               <span className="text-base">{'\u{270D}\uFE0F'}</span>
               <div>
                 <div className="text-xs font-bold text-white">Tu valides avant</div>
-                <div className="text-[10px] text-white/40">Tu verifies et approuves chaque action</div>
+                <div className="text-xs text-white/40">Tu verifies et approuves chaque action</div>
               </div>
             </div>
           </button>
@@ -252,7 +252,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
               <span className="text-base">{'\u2705'}</span>
               <div>
                 <div className="text-xs font-bold text-white">Email deja configure !</div>
-                <div className="text-[10px] text-white/40">Hugo envoie depuis contact@keiroai.com en ton nom</div>
+                <div className="text-xs text-white/40">Hugo envoie depuis contact@keiroai.com en ton nom</div>
               </div>
             </div>
           </div>

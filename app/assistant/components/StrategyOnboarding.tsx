@@ -288,8 +288,8 @@ export default function StrategyOnboarding() {
                       <span className={`text-xs font-bold ${isSelected ? 'text-cyan-400' : 'text-white'}`}>
                         {(p as any)[f.nameKey]}
                       </span>
-                      <span className="text-[10px] text-white/40 leading-tight">{(p as any)[f.descKey]}</span>
-                      <span className="text-[10px] text-white/45">
+                      <span className="text-xs text-white/40 leading-tight">{(p as any)[f.descKey]}</span>
+                      <span className="text-xs text-white/45">
                         {fmtTemplate(p.stratCreditsPerMonth, { n: f.creditsPerMonth })}
                       </span>
                     </button>
@@ -314,19 +314,19 @@ export default function StrategyOnboarding() {
                   </div>
                   {overBudget && (
                     <>
-                      <p className="text-[10px] text-amber-400/80 mt-2 leading-relaxed">
+                      <p className="text-xs text-amber-400/80 mt-2 leading-relaxed">
                         {fmtTemplate(p.stratOverBudget, { plan: planDisplayName, total: planCredits })}
                       </p>
                       <div className="flex gap-2 mt-2">
                         <a
                           href="/pricing"
-                          className="min-h-[44px] inline-flex items-center justify-center flex-1 px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-semibold rounded-lg text-center transition"
+                          className="min-h-[44px] inline-flex items-center justify-center flex-1 px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold rounded-lg text-center transition"
                         >
                           {p.stratOverBudgetCtaUpgrade}
                         </a>
                         <button
                           onClick={() => setSelected(new Set())}
-                          className="flex-1 px-2 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white/80 text-[10px] font-semibold rounded-lg transition"
+                          className="flex-1 px-2 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white/80 text-xs font-semibold rounded-lg transition"
                         >
                           {p.stratOverBudgetCtaReduce}
                         </button>
@@ -385,7 +385,7 @@ export default function StrategyOnboarding() {
                         <span className="text-2xl">{n.icon}</span>
                         <div>
                           <div className="text-white font-bold text-sm">{n.label}</div>
-                          <div className="text-white/70 text-[10px]">{n.connected ? 'Déjà connecté ✓' : '1 clic — OAuth officiel'}</div>
+                          <div className="text-white/70 text-xs">{n.connected ? 'Déjà connecté ✓' : '1 clic — OAuth officiel'}</div>
                         </div>
                       </div>
                       <span className="text-white text-xs font-bold">

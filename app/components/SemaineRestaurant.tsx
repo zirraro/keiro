@@ -198,7 +198,7 @@ export default function SemaineRestaurant() {
   return (
     <section className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
       <div className="text-center mb-6 sm:mb-8">
-        <span className="inline-block mb-3 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold">
+        <span className="inline-block mb-3 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold">
           POUR TON COMMERCE
         </span>
         <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-neutral-900">
@@ -253,7 +253,7 @@ export default function SemaineRestaurant() {
             <p className="text-neutral-600 text-sm leading-relaxed flex-1">{m.situation}</p>
 
             <div className="mt-4 pt-4 border-t border-neutral-100">
-              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+              <span className="inline-block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">
                 {m.agent}
               </span>
               <p className="text-neutral-800 text-sm leading-relaxed font-medium">{m.action}</p>

@@ -203,7 +203,7 @@ export default function TrendyPage() {
               {it._reasons?.length ? (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {it._reasons.slice(0, 3).map((r, i) => (
-                    <span key={i} className="text-[11px] bg-neutral-100 rounded px-2 py-0.5 text-neutral-700">{r}</span>
+                    <span key={i} className="text-xs bg-neutral-100 rounded px-2 py-0.5 text-neutral-700">{r}</span>
                   ))}
                 </div>
               ) : null}
@@ -212,7 +212,7 @@ export default function TrendyPage() {
               {it.angles?.length ? (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {it.angles.slice(0, 4).map((a, i) => (
-                    <span key={i} className="text-[11px] bg-[#0c1a3a]/5 rounded px-2 py-0.5 text-[#0c1a3a]">{a}</span>
+                    <span key={i} className="text-xs bg-[#0c1a3a]/5 rounded px-2 py-0.5 text-[#0c1a3a]">{a}</span>
                   ))}
                 </div>
               ) : null}

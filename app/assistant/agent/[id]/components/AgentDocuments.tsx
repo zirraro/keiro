@@ -198,7 +198,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
           <h3 className="text-xs sm:text-sm font-bold text-purple-200">
             {'\u{1F3A8}'} Photos & documents de marque
           </h3>
-          <p className="text-[10px] text-white/45 leading-relaxed">
+          <p className="text-xs text-white/45 leading-relaxed">
             Ces fichiers sont <strong className="text-white/65">analysés par tous les agents</strong> (palette, ambiance, ton) et nourrissent chaque post, email, réponse et campagne. Un seul endroit pour les gérer.
           </p>
         </div>
@@ -238,7 +238,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
             {'\u{1F4C1}'} Nouveau dossier
           </button>
         )}
-        <span className="text-[10px] text-white/30 ml-auto">{docs.length} fichier{docs.length > 1 ? 's' : ''}</span>
+        <span className="text-xs text-white/30 ml-auto">{docs.length} fichier{docs.length > 1 ? 's' : ''}</span>
       </div>
 
       {/* Folder tabs */}
@@ -316,7 +316,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
                 ) : (
                   <p className="text-sm text-white/80 font-medium truncate">{doc.name}</p>
                 )}
-                <div className="flex items-center gap-2 text-[10px] text-white/30 flex-wrap">
+                <div className="flex items-center gap-2 text-xs text-white/30 flex-wrap">
                   <span>{new Date(doc.created_at).toLocaleDateString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'short' })}</span>
                   {doc.file_size > 0 && <span>{formatSize(doc.file_size)}</span>}
                   {doc.source === 'agent_chat' && <span className="text-cyan-400/50">via chat</span>}
@@ -338,7 +338,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
                   <select
                     onChange={e => moveToFolder(doc.id, e.target.value)}
                     value={doc.folder || ''}
-                    className="bg-white/10 border border-white/10 rounded text-[10px] text-white/50 px-1 py-0.5 cursor-pointer max-w-[80px]"
+                    className="bg-white/10 border border-white/10 rounded text-xs text-white/50 px-1 py-0.5 cursor-pointer max-w-[80px]"
                     title="Deplacer vers dossier"
                   >
                     <option value="">Racine</option>

@@ -105,7 +105,7 @@ export default function OembedDemoPage() {
               {loading ? 'Loading...' : 'Preview'}
             </button>
           </div>
-          <p className="text-[11px] text-white/40 mt-2">
+          <p className="text-xs text-white/40 mt-2">
             Default example: {DEFAULT_URL}
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function OembedDemoPage() {
         {raw && (
           <details className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
             <summary className="text-sm text-white/50 cursor-pointer">Raw oEmbed JSON response</summary>
-            <pre className="text-[11px] text-white/60 mt-3 overflow-x-auto">
+            <pre className="text-xs text-white/60 mt-3 overflow-x-auto">
               {JSON.stringify(raw, null, 2)}
             </pre>
           </details>

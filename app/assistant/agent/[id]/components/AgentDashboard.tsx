@@ -244,7 +244,7 @@ function AgentActivityBanner({ agentId, data, gradientFrom }: { agentId: string;
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-white/30" />
           <span className="text-xs text-white/50">{agentDisplayName} a {actionLabel}</span>
-          <span className="text-[10px] text-white/30">il y a {timeAgo < 1 ? '< 1' : timeAgo} min</span>
+          <span className="text-xs text-white/30">il y a {timeAgo < 1 ? '< 1' : timeAgo} min</span>
         </div>
       )}
     </div>
@@ -341,7 +341,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           >
             <span>{'\u26A1'}</span> {en ? 'Launch a campaign' : 'Lancer une campagne'}
           </button>
-          <span className="text-[10px] text-white/50">{en ? 'Configure and activate in 30 seconds' : 'Configure et active en 30 secondes'}</span>
+          <span className="text-xs text-white/50">{en ? 'Configure and activate in 30 seconds' : 'Configure et active en 30 secondes'}</span>
         </div>
       )}
 
@@ -351,22 +351,22 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm">{'\u{1F6E1}\uFE0F'}</span>
             <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">{en ? 'Cross-client supervision' : 'Supervision cross-clients'}</h3>
-            <span className="ml-auto text-[10px] text-indigo-400/50">24h</span>
+            <span className="ml-auto text-xs text-indigo-400/50">24h</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className="text-lg font-bold text-white">{(data as any).supervision.totalActions24h}</div>
-              <div className="text-[10px] text-indigo-300/60">{en ? 'Actions' : 'Actions'}</div>
+              <div className="text-xs text-indigo-300/60">{en ? 'Actions' : 'Actions'}</div>
             </div>
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className={`text-lg font-bold ${(data as any).supervision.totalErrors24h > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                 {(data as any).supervision.totalErrors24h}
               </div>
-              <div className="text-[10px] text-indigo-300/60">{en ? 'Errors' : 'Erreurs'}</div>
+              <div className="text-xs text-indigo-300/60">{en ? 'Errors' : 'Erreurs'}</div>
             </div>
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className="text-lg font-bold text-white">{(data as any).supervision.clients?.length || 0}</div>
-              <div className="text-[10px] text-indigo-300/60">{en ? 'Clients' : 'Clients'}</div>
+              <div className="text-xs text-indigo-300/60">{en ? 'Clients' : 'Clients'}</div>
             </div>
           </div>
           {(data as any).supervision.clients?.length > 0 && (
@@ -378,8 +378,8 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
                     <span className="text-xs text-white/70 truncate">{c.name}</span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[10px] text-white/40">{c.actions} {en ? 'actions' : 'actions'}</span>
-                    {c.errors > 0 && <span className="text-[10px] text-red-400 font-bold">{c.errors} {en ? 'err' : 'err'}</span>}
+                    <span className="text-xs text-white/40">{c.actions} {en ? 'actions' : 'actions'}</span>
+                    {c.errors > 0 && <span className="text-xs text-red-400 font-bold">{c.errors} {en ? 'err' : 'err'}</span>}
                   </div>
                 </div>
               ))}

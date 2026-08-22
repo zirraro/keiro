@@ -94,17 +94,17 @@ function LeoDirectionPanel() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h4 className="text-sm font-bold text-blue-300">{'🎯'} Diriger Léo</h4>
         {persistedFocus && (persistedFocus.sector || persistedFocus.city) && (
-          <span className="text-[10px] text-blue-300/60">
+          <span className="text-xs text-blue-300/60">
             Focus actuel : <strong>{persistedFocus.sector || 'tous secteurs'}</strong>
             {persistedFocus.city && <> · {persistedFocus.city}</>}
           </span>
         )}
       </div>
-      <p className="text-[11px] text-white/50">Concentre la prospection sur un secteur et/ou une ville. Léo prospectera ces cibles en priorité à chaque passage (toutes les 6h).</p>
+      <p className="text-xs text-white/50">Concentre la prospection sur un secteur et/ou une ville. Léo prospectera ces cibles en priorité à chaque passage (toutes les 6h).</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Secteur</label>
+          <label className="text-xs text-white/40 uppercase font-bold mb-1 block">Secteur</label>
           <input
             list="leo-sector-options"
             type="text"
@@ -118,7 +118,7 @@ function LeoDirectionPanel() {
           </datalist>
         </div>
         <div>
-          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Ville</label>
+          <label className="text-xs text-white/40 uppercase font-bold mb-1 block">Ville</label>
           <input
             type="text"
             value={city}
@@ -147,7 +147,7 @@ function LeoDirectionPanel() {
       </div>
 
       {result && (
-        <div className={`text-[10px] px-3 py-2 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+        <div className={`text-xs px-3 py-2 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
           {result.message}
         </div>
       )}
@@ -238,7 +238,7 @@ function PhoneProspection() {
   return (
     <div className="mt-4">
       <SectionTitle>{isEn ? '📞 Phone prospecting — your call list' : '📞 Prospection téléphonique — ta liste à appeler'}</SectionTitle>
-      <p className="text-[11px] text-white/50 mb-2">{isEn ? 'Pick a sector/zone, Léo stacks the prospects to call (with a recommended action). Mark each result — the fiche updates and feeds the strategy.' : 'Choisis un secteur/zone, Léo empile les prospects à appeler (avec l\'action recommandée). Marque chaque résultat — la fiche se met à jour et nourrit la stratégie.'}</p>
+      <p className="text-xs text-white/50 mb-2">{isEn ? 'Pick a sector/zone, Léo stacks the prospects to call (with a recommended action). Mark each result — the fiche updates and feeds the strategy.' : 'Choisis un secteur/zone, Léo empile les prospects à appeler (avec l\'action recommandée). Marque chaque résultat — la fiche se met à jour et nourrit la stratégie.'}</p>
       <div className="flex flex-col sm:flex-row gap-2 mb-2">
         <input value={sector} onChange={e => setSector(e.target.value)} placeholder={isEn ? 'Activity / domain (e.g. beauty)' : 'Activité / domaine (ex : institut)'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
         <input value={city} onChange={e => setCity(e.target.value)} placeholder={isEn ? 'Region / city' : 'Région / ville'} className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
@@ -254,11 +254,11 @@ function PhoneProspection() {
           { k: 'warm', l: '🌤️ ' + (isEn ? 'Warm' : 'Tièdes') },
           { k: 'cold', l: '❄️ ' + (isEn ? 'Cold' : 'Froids') },
         ].map(f => (
-          <button key={f.k} onClick={() => { setTemp(f.k); }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${temp === f.k ? 'bg-orange-500/30 text-orange-100 border border-orange-400/40' : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'}`}>
+          <button key={f.k} onClick={() => { setTemp(f.k); }} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${temp === f.k ? 'bg-orange-500/30 text-orange-100 border border-orange-400/40' : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'}`}>
             {f.l}
           </button>
         ))}
-        <span className="text-[10px] text-white/30 ml-1">{isEn ? '(reload to apply)' : '(recharge pour appliquer)'}</span>
+        <span className="text-xs text-white/30 ml-1">{isEn ? '(reload to apply)' : '(recharge pour appliquer)'}</span>
       </div>
 
       {list && list.length === 0 && (
@@ -273,17 +273,17 @@ function PhoneProspection() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-white break-words [overflow-wrap:anywhere]">{p.name}</span>
                   {p.company && <span className="text-xs text-white/50 break-words [overflow-wrap:anywhere]">· {p.company}</span>}
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${TEMP[p.temperature] || TEMP.cold}`}>{p.temperature}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${TEMP[p.temperature] || TEMP.cold}`}>{p.temperature}</span>
                 </div>
-                <div className="text-[11px] text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>
+                <div className="text-xs text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>
               </div>
               <a href={`tel:${p.phone}`} className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 text-sm font-semibold whitespace-nowrap active:scale-95">📞 {p.phone}</a>
             </div>
-            <div className="mt-2 text-[11px] text-orange-200 bg-orange-500/10 border border-orange-500/15 rounded-lg px-2 py-1.5">
+            <div className="mt-2 text-xs text-orange-200 bg-orange-500/10 border border-orange-500/15 rounded-lg px-2 py-1.5">
               <strong>{isEn ? 'Action:' : 'Action :'}</strong> {p.recommended_action}
             </div>
             {(p.fiche?.notes || p.fiche?.summary) && (
-              <p className="mt-1.5 text-[11px] text-white/50 line-clamp-2">{p.fiche.summary || p.fiche.notes}</p>
+              <p className="mt-1.5 text-xs text-white/50 line-clamp-2">{p.fiche.summary || p.fiche.notes}</p>
             )}
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {[
@@ -293,7 +293,7 @@ function PhoneProspection() {
                 { k: 'reached_not_interested', l: isEn ? '🚫 Not interested' : '🚫 Pas intéressé' },
               ].map(o => (
                 <button key={o.k} onClick={() => mark(p.id, o.k)} disabled={busy === p.id}
-                  className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-[11px] font-medium disabled:opacity-40 active:scale-95 transition-all">
+                  className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-xs font-medium disabled:opacity-40 active:scale-95 transition-all">
                   {o.l}
                 </button>
               ))}
@@ -302,7 +302,7 @@ function PhoneProspection() {
             {/* Édition fiche INLINE (founder 12/07) — commentaire + statut/température
                 sans ouvrir le CRM. Le commentaire est lu par tous les agents (Hugo…). */}
             <button onClick={() => setOpenEdit(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
-              className="mt-2 text-[11px] text-orange-300 hover:text-orange-200 font-medium">
+              className="mt-2 text-xs text-orange-300 hover:text-orange-200 font-medium">
               {openEdit[p.id] ? (isEn ? '▾ Close fiche' : '▾ Fermer la fiche') : (isEn ? '✏️ Edit fiche (note, status)' : '✏️ Modifier la fiche (note, statut)')}
             </button>
             {openEdit[p.id] && (
@@ -316,7 +316,7 @@ function PhoneProspection() {
                 />
                 <div className="flex items-center gap-2 flex-wrap">
                   <select value={p.status || 'identifie'} onChange={e => saveFiche(p.id, { status: e.target.value })}
-                    className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/80 text-[11px]">
+                    className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/80 text-xs">
                     {[
                       { v: 'identifie', l: isEn ? 'Identified' : 'Identifié' },
                       { v: 'contacte', l: isEn ? 'Contacted' : 'Contacté' },
@@ -337,7 +337,7 @@ function PhoneProspection() {
                   </div>
                   <button onClick={() => saveFiche(p.id, { comment: (noteDraft[p.id] || '').trim() })}
                     disabled={busy === p.id || !(noteDraft[p.id] || '').trim()}
-                    className="ml-auto px-3 py-1.5 rounded-lg bg-orange-500/80 hover:bg-orange-500 text-white text-[11px] font-semibold disabled:opacity-40 active:scale-95">
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-orange-500/80 hover:bg-orange-500 text-white text-xs font-semibold disabled:opacity-40 active:scale-95">
                     {busy === p.id ? '…' : savedId === p.id ? (isEn ? '✓ Saved' : '✓ Enregistré') : (isEn ? '💾 Save note' : '💾 Enregistrer')}
                   </button>
                 </div>
@@ -393,7 +393,7 @@ function LaunchProspectionButton() {
         </button>
       </div>
       {result && (
-        <div className={`text-[10px] px-2 py-1 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+        <div className={`text-xs px-2 py-1 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
           {result.message}
         </div>
       )}
@@ -435,15 +435,15 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2 sm:p-3 text-center">
           <div className="text-lg sm:text-xl font-bold text-white">{today}</div>
-          <div className="text-[10px] text-white/50">{p.commercialLabelToday}</div>
+          <div className="text-xs text-white/50">{p.commercialLabelToday}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2 sm:p-3 text-center">
           <div className="text-lg sm:text-xl font-bold text-white">{thisWeek}</div>
-          <div className="text-[10px] text-white/50">{p.commercialLabelThisWeek}</div>
+          <div className="text-xs text-white/50">{p.commercialLabelThisWeek}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2 sm:p-3 text-center">
           <div className="text-lg sm:text-xl font-bold text-white">{thisMonth}</div>
-          <div className="text-[10px] text-white/50">{p.commercialLabelThisMonth}</div>
+          <div className="text-xs text-white/50">{p.commercialLabelThisMonth}</div>
         </div>
       </div>
 
@@ -455,21 +455,21 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.withEmail || 0}</div>
-          <div className="text-[10px] text-blue-400/60">{p.commercialWithEmail}</div>
-          <div className="text-[10px] text-blue-300/60">{stats.emailNotStarted || 0} à contacter</div>
+          <div className="text-xs text-blue-400/60">{p.commercialWithEmail}</div>
+          <div className="text-xs text-blue-300/60">{stats.emailNotStarted || 0} à contacter</div>
         </div>
         <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-2 text-center">
           <div className="text-lg font-bold text-pink-400">{stats.withInstagram || 0}</div>
-          <div className="text-[10px] text-pink-400/60">{p.commercialWithInstagram}</div>
-          <div className="text-[10px] text-pink-300/60">{stats.dmNotStarted || 0} à DM</div>
+          <div className="text-xs text-pink-400/60">{p.commercialWithInstagram}</div>
+          <div className="text-xs text-pink-300/60">{stats.dmNotStarted || 0} à DM</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{stats.withTiktok || 0}</div>
-          <div className="text-[10px] text-purple-400/60">{p.commercialWithTiktok}</div>
+          <div className="text-xs text-purple-400/60">{p.commercialWithTiktok}</div>
         </div>
         <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-2 text-center">
           <div className="text-lg font-bold text-cyan-400">{stats.withLinkedin || 0}</div>
-          <div className="text-[10px] text-cyan-400/60">{p.commercialWithLinkedin}</div>
+          <div className="text-xs text-cyan-400/60">{p.commercialWithLinkedin}</div>
         </div>
       </div>
 
@@ -477,15 +477,15 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.total}</div>
-          <div className="text-[10px] text-blue-400/60">{p.commercialLabelIdentified}</div>
+          <div className="text-xs text-blue-400/60">{p.commercialLabelIdentified}</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{contactes}</div>
-          <div className="text-[10px] text-purple-400/60">{p.commercialLabelContacted}</div>
+          <div className="text-xs text-purple-400/60">{p.commercialLabelContacted}</div>
         </div>
         <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
           <div className="text-lg font-bold text-emerald-400">{qualifies}</div>
-          <div className="text-[10px] text-emerald-400/60">{p.commercialLabelQualified}</div>
+          <div className="text-xs text-emerald-400/60">{p.commercialLabelQualified}</div>
         </div>
       </div>
 
@@ -497,11 +497,11 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
           const color = PIPELINE_COLORS[status] || '#6b7280';
           return (
             <div key={status} className="flex items-center gap-2">
-              <span className="text-[10px] text-white/50 w-16 text-right capitalize">{status.replace(/_/g, ' ')}</span>
+              <span className="text-xs text-white/50 w-16 text-right capitalize">{status.replace(/_/g, ' ')}</span>
               <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
               </div>
-              <span className="text-[10px] text-white/40 w-12">{count} ({pct}%)</span>
+              <span className="text-xs text-white/40 w-12">{count} ({pct}%)</span>
             </div>
           );
         })}
@@ -517,7 +517,7 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
         <div className="rounded-xl border border-amber-500/20 bg-amber-900/5 p-4 text-center">
           <div className="text-2xl mb-1">{'⏳'}</div>
           <p className="text-xs text-amber-300 font-bold">Aucun prospect pour le moment</p>
-          <p className="text-[10px] text-white/40 mt-1">Léo prospecte automatiquement toutes les 6h. Lance une recherche ciblée ci-dessus pour démarrer immédiatement.</p>
+          <p className="text-xs text-white/40 mt-1">Léo prospecte automatiquement toutes les 6h. Lance une recherche ciblée ci-dessus pour démarrer immédiatement.</p>
         </div>
       ) : (
         <>
@@ -530,15 +530,15 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                 <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
                   <div className="text-lg font-bold text-emerald-400">{avgCompleteness}%</div>
-                  <div className="text-[10px] text-emerald-400/60">Complétude moyenne</div>
+                  <div className="text-xs text-emerald-400/60">Complétude moyenne</div>
                 </div>
                 <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
                   <div className="text-lg font-bold text-blue-400">{exhaustive}/{Math.min(50, prospects.length)}</div>
-                  <div className="text-[10px] text-blue-400/60">Fiches exhaustives (70%+)</div>
+                  <div className="text-xs text-blue-400/60">Fiches exhaustives (70%+)</div>
                 </div>
                 <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center col-span-2 sm:col-span-1">
                   <div className="text-lg font-bold text-purple-400">{today}</div>
-                  <div className="text-[10px] text-purple-400/60">Ajoutés aujourd'hui</div>
+                  <div className="text-xs text-purple-400/60">Ajoutés aujourd'hui</div>
                 </div>
               </div>
             );
@@ -555,15 +555,15 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: `${tempColor}22`, color: tempColor }}
                     >
                       {pr.temperature || 'unscored'}
                     </span>
                     <span className="text-sm font-bold text-white truncate flex-1">{pr.company || '(sans nom)'}</span>
-                    <span className="text-[10px] text-white/30 shrink-0">{fmtDate(pr.created_at)}</span>
+                    <span className="text-xs text-white/30 shrink-0">{fmtDate(pr.created_at)}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/50">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">
                     {pr.type && <span className="px-1.5 py-0.5 rounded bg-white/5">{pr.type}</span>}
                     {pr.email && <span>{'📧'}</span>}
                     {pr.instagram && pr.instagram !== 'A_VERIFIER' && <span>{'📷'}</span>}
@@ -579,11 +579,11 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
                           }}
                         />
                       </div>
-                      <span className="text-[10px] text-white/40">{comp.pct}%</span>
+                      <span className="text-xs text-white/40">{comp.pct}%</span>
                     </span>
                   </div>
                   {comp.missing.length > 0 && comp.pct < 70 && (
-                    <div className="text-[10px] text-white/30 mt-1">
+                    <div className="text-xs text-white/30 mt-1">
                       Manque : {comp.missing.slice(0, 3).join(', ')}{comp.missing.length > 3 ? `, +${comp.missing.length - 3}` : ''}
                     </div>
                   )}
@@ -611,8 +611,8 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
             {((data as any).activities || []).slice(0, 5).map((a: any, i: number) => (
               <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03]">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                <span className="text-[10px] text-white/60 flex-1 truncate">{a.description || a.type}</span>
-                <span className="text-[10px] text-white/50">{fmtDate(a.created_at)}</span>
+                <span className="text-xs text-white/60 flex-1 truncate">{a.description || a.type}</span>
+                <span className="text-xs text-white/50">{fmtDate(a.created_at)}</span>
               </div>
             ))}
           </div>

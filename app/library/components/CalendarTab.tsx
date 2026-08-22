@@ -408,7 +408,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                             <p className="text-xs font-semibold text-neutral-900 flex items-center gap-1.5 mb-1">
                               {getPlatformEmoji(post.platform)} {post.platform}
                               {(post as any).auteur && (post as any).auteur !== 'Vous' && (
-                                <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 text-[9px] font-bold">
+                                <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 text-xs font-bold">
                                   par {(post as any).auteur}
                                 </span>
                               )}

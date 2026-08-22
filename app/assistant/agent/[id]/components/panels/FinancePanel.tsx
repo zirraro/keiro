@@ -83,15 +83,15 @@ export function FinancePanel({ data, agentName, gradientFrom, gradientTo }: Pane
         return (
           <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.05] p-3 sm:p-4">
             <div className="text-sm font-semibold text-white/90 mb-1">{isEn ? '📁 Documents Louis generates' : '📁 Les documents que Louis génère'}</div>
-            <p className="text-[11px] text-white/45 mb-3">{isEn ? 'Pick one — Louis builds it in the chat, exports to Excel / PowerPoint, ready in your brand (logo + colors).' : 'Choisis-en un — Louis le construit dans le chat, l’exporte en Excel / PowerPoint, prêt à ta marque (logo + couleurs).'}</p>
+            <p className="text-xs text-white/45 mb-3">{isEn ? 'Pick one — Louis builds it in the chat, exports to Excel / PowerPoint, ready in your brand (logo + colors).' : 'Choisis-en un — Louis le construit dans le chat, l’exporte en Excel / PowerPoint, prêt à ta marque (logo + couleurs).'}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {docs.map((d, i) => (
                 <button key={i} type="button" onClick={() => askLouis(d.ask)} className="text-left rounded-lg border border-white/10 bg-white/[0.03] p-2.5 hover:border-cyan-400/40 hover:bg-cyan-500/[0.06] transition">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
                     <span className="text-[12px] font-semibold text-white/85">{d.icon} {d.title}</span>
-                    <span className="text-[9px] uppercase tracking-wide text-cyan-300/70 shrink-0">{d.fmt}</span>
+                    <span className="text-xs uppercase tracking-wide text-cyan-300/70 shrink-0">{d.fmt}</span>
                   </div>
-                  <div className="text-[10px] italic text-cyan-200/70 leading-relaxed">{d.ex}</div>
+                  <div className="text-xs italic text-cyan-200/70 leading-relaxed">{d.ex}</div>
                 </button>
               ))}
             </div>
@@ -113,8 +113,8 @@ export function FinancePanel({ data, agentName, gradientFrom, gradientTo }: Pane
             <div className="space-y-2">
               {qa.map((x, i) => (
                 <button key={i} type="button" onClick={() => askLouis(x.q)} className="w-full text-left rounded-lg border border-white/10 bg-white/[0.03] p-2.5 hover:border-white/20 transition">
-                  <div className="text-[11px] font-medium text-white/85">💰 {x.q}</div>
-                  <div className="text-[10px] text-white/45 leading-relaxed mt-0.5">{x.a}</div>
+                  <div className="text-xs font-medium text-white/85">💰 {x.q}</div>
+                  <div className="text-xs text-white/45 leading-relaxed mt-0.5">{x.a}</div>
                 </button>
               ))}
             </div>

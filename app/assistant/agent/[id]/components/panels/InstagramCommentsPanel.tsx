@@ -98,7 +98,7 @@ export function InstagramCommentsPanel({ data, agentName, gradientFrom, gradient
           {(comments.length === 0 ? DEMO_IG_COMMENTS : comments).slice(0, 10).map(c => (
             <div key={c.comment_id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
               <div className="p-3 flex items-start gap-3">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${c.replied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${c.replied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
                   {c.replied ? '\u2713' : p.igCommentsNewBadge}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -106,7 +106,7 @@ export function InstagramCommentsPanel({ data, agentName, gradientFrom, gradient
                   <p className="text-sm text-white/80 mt-0.5 break-words [overflow-wrap:anywhere]">{c.text}</p>
                 </div>
                 {!c.replied && (
-                  <button onClick={() => setReplying(replying === c.comment_id ? null : c.comment_id)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
+                  <button onClick={() => setReplying(replying === c.comment_id ? null : c.comment_id)} className="text-xs px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
                     {p.reply}
                   </button>
                 )}

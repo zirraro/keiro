@@ -67,7 +67,7 @@ export function KpiCard({
     <div className="rounded-xl border border-white/10 p-3 sm:p-4 flex flex-col gap-1 sm:gap-1.5 relative overflow-hidden min-h-[76px]">
       {/* Subtle gradient background */}
       <div className="absolute inset-0 opacity-[0.07]" style={{ background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }} />
-      <span className="relative text-[10px] sm:text-[10px] text-white/60 uppercase tracking-wider font-semibold leading-tight">{label}</span>
+      <span className="relative text-xs sm:text-xs text-white/60 uppercase tracking-wider font-semibold leading-tight">{label}</span>
       <span
         className="relative text-xl sm:text-2xl font-bold bg-clip-text text-transparent leading-none"
         style={{ backgroundImage: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }}
@@ -82,7 +82,7 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mt-5 sm:mt-8 mb-3 sm:mb-4">
       <div className="h-px flex-1 bg-white/10" />
-      <h3 className="text-[11px] sm:text-xs font-semibold text-white/70 uppercase tracking-wider px-2 whitespace-nowrap">{children}</h3>
+      <h3 className="text-xs sm:text-xs font-semibold text-white/70 uppercase tracking-wider px-2 whitespace-nowrap">{children}</h3>
       <div className="h-px flex-1 bg-white/10" />
     </div>
   );
@@ -162,13 +162,13 @@ export function DonutChart({ segments, size = 100, label }: {
             />
           );
         })}
-        {label && <text x="50" y="50" textAnchor="middle" dy="0.35em" className="fill-white text-[10px] font-bold">{label}</text>}
+        {label && <text x="50" y="50" textAnchor="middle" dy="0.35em" className="fill-white text-xs font-bold">{label}</text>}
       </svg>
       <div className="flex flex-wrap justify-center gap-2">
         {segments.filter(s => s.value > 0).map((seg, i) => (
           <div key={i} className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
-            <span className="text-[10px] text-white/50">{seg.label} ({seg.value})</span>
+            <span className="text-xs text-white/50">{seg.label} ({seg.value})</span>
           </div>
         ))}
       </div>
@@ -180,7 +180,7 @@ export function ProgressBar({ value, max, color, label }: { value: number; max: 
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-[10px]">
+      <div className="flex items-center justify-between text-xs">
         <span className="text-white/50">{label}</span>
         <span className="text-white/70 font-bold">{value}/{max}</span>
       </div>

@@ -141,7 +141,7 @@ export default function DesignImportPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold">Import manuel depuis Claude Design</h3>
-              <p className="text-[11px] text-white/50 mt-0.5">
+              <p className="text-xs text-white/50 mt-0.5">
                 Tu as déjà un design externe dans <a href="https://claude.ai/design" target="_blank" rel="noopener" className="text-purple-400 hover:text-purple-300">claude.ai/design</a> ou ailleurs ? Colle son HTML.
               </p>
             </div>
@@ -218,7 +218,7 @@ export default function DesignImportPage() {
                     title={t.name}
                   />
                   <div className="absolute top-1.5 right-1.5 flex gap-1">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${t.source === 'auto_generated' ? 'bg-purple-500/80 text-white' : 'bg-blue-500/80 text-white'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${t.source === 'auto_generated' ? 'bg-purple-500/80 text-white' : 'bg-blue-500/80 text-white'}`}>
                       {t.source === 'auto_generated' ? 'Auto' : 'Import'}
                     </span>
                   </div>
@@ -228,7 +228,7 @@ export default function DesignImportPage() {
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold text-sm truncate">{t.name}</h3>
-                      <p className="text-[10px] text-white/50 capitalize">{t.category}</p>
+                      <p className="text-xs text-white/50 capitalize">{t.category}</p>
                     </div>
                   </div>
                   {t.palette.length > 0 && (
@@ -241,13 +241,13 @@ export default function DesignImportPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setPreviewId(previewId === t.id ? null : t.id)}
-                      className="flex-1 py-1.5 text-[11px] bg-white/5 hover:bg-white/10 rounded-lg transition"
+                      className="flex-1 py-1.5 text-xs bg-white/5 hover:bg-white/10 rounded-lg transition"
                     >
                       {previewId === t.id ? 'Fermer' : 'Plein écran'}
                     </button>
                     <button
                       onClick={() => deleteTemplate(t.id)}
-                      className="py-1.5 px-2.5 text-[11px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition"
+                      className="py-1.5 px-2.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition"
                     >
                       Supprimer
                     </button>

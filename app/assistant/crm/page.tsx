@@ -87,9 +87,9 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
           <div>
             <h2 className="text-white font-bold text-base">{prospect.company || `${prospect.first_name || ''} ${prospect.last_name || ''}`}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`px-2 py-0.5 rounded text-[10px] ${statusCfg?.color || 'bg-white/10'} text-white font-medium`}>{statusCfg?.label || prospect.status}</span>
-              {tempCfg && <span className={`${tempCfg.color} text-[11px]`}>{tempCfg.icon} {tempCfg.label}</span>}
-              {prospect.score > 0 && <span className="text-[10px] text-white/40">Score: {prospect.score}</span>}
+              <span className={`px-2 py-0.5 rounded text-xs ${statusCfg?.color || 'bg-white/10'} text-white font-medium`}>{statusCfg?.label || prospect.status}</span>
+              {tempCfg && <span className={`${tempCfg.color} text-xs`}>{tempCfg.icon} {tempCfg.label}</span>}
+              {prospect.score > 0 && <span className="text-xs text-white/40">Score: {prospect.score}</span>}
             </div>
           </div>
           <button onClick={onClose} className="text-white/30 hover:text-white/60 p-2">
@@ -112,7 +112,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
           {/* Score bar */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-white/40">Score de qualification</span>
+              <span className="text-xs text-white/40">Score de qualification</span>
               <span className="text-xs font-bold text-white">{prospect.score}/100</span>
             </div>
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
@@ -122,10 +122,10 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
 
           {/* Quick actions */}
           <div>
-            <h3 className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Avancer dans le pipeline</h3>
+            <h3 className="text-xs text-white/30 uppercase tracking-wider mb-2">Avancer dans le pipeline</h3>
             <div className="flex flex-wrap gap-1.5">
               {STATUSES.filter(s => s.id !== prospect.status).slice(0, 4).map(s => (
-                <button key={s.id} onClick={() => updateStatus(s.id)} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium ${s.color} text-white hover:opacity-80 transition`}>
+                <button key={s.id} onClick={() => updateStatus(s.id)} className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${s.color} text-white hover:opacity-80 transition`}>
                   {s.icon} {s.label}
                 </button>
               ))}
@@ -134,10 +134,10 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
 
           {/* Temperature */}
           <div>
-            <h3 className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Temperature</h3>
+            <h3 className="text-xs text-white/30 uppercase tracking-wider mb-2">Temperature</h3>
             <div className="flex gap-1.5">
               {TEMPS.map(t => (
-                <button key={t.id} onClick={() => updateTemp(t.id)} className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition ${prospect.temperature === t.id ? `${t.bg} ${t.color} ring-1 ring-current` : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+                <button key={t.id} onClick={() => updateTemp(t.id)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${prospect.temperature === t.id ? `${t.bg} ${t.color} ring-1 ring-current` : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
                   {t.icon} {t.label}
                 </button>
               ))}
@@ -146,7 +146,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
 
           {/* Add note */}
           <div>
-            <h3 className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Ajouter une note</h3>
+            <h3 className="text-xs text-white/30 uppercase tracking-wider mb-2">Ajouter une note</h3>
             <div className="flex gap-2">
               <input type="text" value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Note, suivi, remarque..." className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50" onKeyDown={e => { if (e.key === 'Enter') addNote(); }} />
               <button onClick={addNote} disabled={saving || !newNote.trim()} className="px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-40">{saving ? '...' : '+'}</button>
@@ -156,7 +156,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
           {/* Notes */}
           {prospect.notes && (
             <div className="rounded-lg bg-white/[0.03] border border-white/10 p-3">
-              <h3 className="text-[10px] text-white/30 uppercase tracking-wider mb-1">Notes</h3>
+              <h3 className="text-xs text-white/30 uppercase tracking-wider mb-1">Notes</h3>
               <p className="text-xs text-white/60 whitespace-pre-wrap">{prospect.notes}</p>
             </div>
           )}
@@ -164,12 +164,12 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
           {/* Channels & pipeline stage */}
           {prospectActivities.length > 0 && (
             <div>
-              <h3 className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Canaux de contact</h3>
+              <h3 className="text-xs text-white/30 uppercase tracking-wider mb-2">Canaux de contact</h3>
               <div className="flex flex-wrap gap-1.5">
                 {[...new Set(prospectActivities.map(a => a.type))].map(type => {
                   const CHANNEL_ICONS: Record<string, string> = { email: '\uD83D\uDCE7', email_opened: '\uD83D\uDCEC', email_clicked: '\uD83D\uDD17', email_replied: '\uD83D\uDCAC', dm_instagram: '\uD83D\uDCF8', prospect_discovered: '\uD83D\uDD0D', commercial_enrichment: '\uD83E\uDD16', note: '\uD83D\uDCDD' };
                   return (
-                    <span key={type} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] text-white/50">
+                    <span key={type} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
                       {CHANNEL_ICONS[type] || '\u2022'} {type.replace(/_/g, ' ')}
                     </span>
                   );
@@ -181,14 +181,14 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
           {/* Activity timeline */}
           {prospectActivities.length > 0 && (
             <div>
-              <h3 className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Historique ({prospectActivities.length})</h3>
+              <h3 className="text-xs text-white/30 uppercase tracking-wider mb-2">Historique ({prospectActivities.length})</h3>
               <div className="space-y-2">
                 {prospectActivities.slice(0, 20).map(a => (
                   <div key={a.id} className="flex items-start gap-2 px-2 py-1.5 rounded-lg bg-white/[0.02]">
                     <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[11px] text-white/70">{a.description || a.type}</div>
-                      <div className="text-[10px] text-white/50 mt-0.5">{new Date(a.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="text-xs text-white/70">{a.description || a.type}</div>
+                      <div className="text-xs text-white/50 mt-0.5">{new Date(a.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
                   </div>
                 ))}
@@ -197,7 +197,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
           )}
 
           {/* Meta info */}
-          <div className="text-[10px] text-white/40 pt-2 border-t border-white/5">
+          <div className="text-xs text-white/40 pt-2 border-t border-white/5">
             Cree le {new Date(prospect.created_at).toLocaleDateString('fr-FR')} | Source: {prospect.source?.replace(/_/g, ' ') || '?'}
           </div>
         </div>
@@ -316,16 +316,16 @@ export default function ClientCRM() {
           <div className="flex items-center gap-3">
             <a href="/assistant" className="text-white/30 hover:text-white/60 transition">{'\u2190'}</a>
             <div>
-              <h1 className="text-base font-bold flex items-center gap-2">Mon CRM <span className="text-[10px] bg-gradient-to-r from-purple-600 to-blue-600 px-2 py-0.5 rounded-full font-medium">PRO</span></h1>
-              <p className="text-white/30 text-[10px]">{stats.total} prospects | {stats.hot} chauds | {stats.clients} clients | +{stats.thisWeek} cette semaine</p>
+              <h1 className="text-base font-bold flex items-center gap-2">Mon CRM <span className="text-xs bg-gradient-to-r from-purple-600 to-blue-600 px-2 py-0.5 rounded-full font-medium">PRO</span></h1>
+              <p className="text-white/30 text-xs">{stats.total} prospects | {stats.hot} chauds | {stats.clients} clients | +{stats.thisWeek} cette semaine</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+            <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50">
               {importing ? '...' : '\u{1F4E5} Importer'}
             </button>
             <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => handleImport(e.target.files)} />
-            <a href="/api/crm/export?format=csv" className="px-3 py-1.5 bg-white/10 text-white text-[10px] font-medium rounded-lg hover:bg-white/20">{'\u{1F4E4}'}</a>
+            <a href="/api/crm/export?format=csv" className="px-3 py-1.5 bg-white/10 text-white text-xs font-medium rounded-lg hover:bg-white/20">{'\u{1F4E4}'}</a>
           </div>
         </div>
       </div>
@@ -367,7 +367,7 @@ export default function ClientCRM() {
                 <button key={kpi.label} onClick={() => { if (kpi.click) { setFilterStatus(kpi.click); setTab('liste'); } }} className={`rounded-xl bg-gradient-to-br ${kpi.color} p-4 text-left hover:scale-[1.02] transition-transform`}>
                   <p className="text-2xl font-bold">{kpi.value}</p>
                   <p className="text-xs text-white/80 font-medium">{kpi.label}</p>
-                  <p className="text-[10px] text-white/50 mt-0.5">{kpi.sub}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{kpi.sub}</p>
                 </button>
               ))}
             </div>
@@ -386,13 +386,13 @@ export default function ClientCRM() {
                   const pct = Math.round((step.count / maxCount) * 100);
                   return (
                     <div key={step.label} className="flex items-center gap-3">
-                      <span className="text-[10px] text-white/50 w-20 text-right">{step.label}</span>
+                      <span className="text-xs text-white/50 w-20 text-right">{step.label}</span>
                       <div className="flex-1 h-6 bg-white/5 rounded-lg overflow-hidden relative">
                         <div className="h-full rounded-lg transition-all flex items-center px-2" style={{ width: `${Math.max(pct, 3)}%`, backgroundColor: step.color }}>
-                          <span className="text-[10px] text-white font-bold">{step.count}</span>
+                          <span className="text-xs text-white font-bold">{step.count}</span>
                         </div>
                       </div>
-                      <span className="text-[10px] text-white/30 w-10">{pct}%</span>
+                      <span className="text-xs text-white/30 w-10">{pct}%</span>
                     </div>
                   );
                 })}
@@ -430,10 +430,10 @@ export default function ClientCRM() {
                     <button key={p.id} onClick={() => setSelectedProspect(p)} className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition text-left">
                       <div>
                         <span className="text-xs font-medium text-white">{p.company || p.first_name || '?'}</span>
-                        <span className="text-[10px] text-white/30 ml-2">{p.type || ''} {p.quartier ? `- ${p.quartier}` : ''}</span>
+                        <span className="text-xs text-white/30 ml-2">{p.type || ''} {p.quartier ? `- ${p.quartier}` : ''}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-amber-400">{'\u2B50'} {p.score}</span>
+                        <span className="text-xs text-amber-400">{'\u2B50'} {p.score}</span>
                         <span className="text-white/45">{'\u203A'}</span>
                       </div>
                     </button>
@@ -469,14 +469,14 @@ export default function ClientCRM() {
                     <div className="border-t border-white/5 px-3 py-2 space-y-1">
                       {stProspects.slice(0, 10).map(p => (
                         <button key={p.id} onClick={() => setSelectedProspect(p)} className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition text-left">
-                          <span className="text-[11px] text-white/70">{p.company || p.first_name || '?'}</span>
+                          <span className="text-xs text-white/70">{p.company || p.first_name || '?'}</span>
                           <div className="flex items-center gap-2">
-                            {p.temperature && <span className="text-[10px]">{TEMPS.find(t => t.id === p.temperature)?.icon}</span>}
-                            <span className="text-[10px] text-white/30">{p.score}</span>
+                            {p.temperature && <span className="text-xs">{TEMPS.find(t => t.id === p.temperature)?.icon}</span>}
+                            <span className="text-xs text-white/30">{p.score}</span>
                           </div>
                         </button>
                       ))}
-                      {stProspects.length > 10 && <p className="text-[10px] text-white/45 text-center">+{stProspects.length - 10} autres</p>}
+                      {stProspects.length > 10 && <p className="text-xs text-white/45 text-center">+{stProspects.length - 10} autres</p>}
                     </div>
                   )}
                 </div>
@@ -498,7 +498,7 @@ export default function ClientCRM() {
                 <option value="">{nn.crmAllTemps || 'Toutes temp.'}</option>
                 {TEMPS.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
               </select>
-              <span className="text-[10px] text-white/30">{filtered.length} {nn.crmResults || 'résultats'}</span>
+              <span className="text-xs text-white/30">{filtered.length} {nn.crmResults || 'résultats'}</span>
             </div>
 
             <div className="space-y-1">
@@ -508,19 +508,19 @@ export default function ClientCRM() {
                 return (
                   <button key={p.id} onClick={() => setSelectedProspect(p)} className="w-full rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/15 hover:bg-white/[0.04] transition px-4 py-3 flex items-center gap-3 text-left">
                     {/* Score circle */}
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: `conic-gradient(${statusCfg?.hex || '#6b7280'} ${(p.score || 0)}%, transparent 0)`, padding: '2px' }}>
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style={{ background: `conic-gradient(${statusCfg?.hex || '#6b7280'} ${(p.score || 0)}%, transparent 0)`, padding: '2px' }}>
                       <div className="w-full h-full rounded-full bg-[#060b18] flex items-center justify-center">{p.score || 0}</div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-white truncate">{p.company || `${p.first_name || ''} ${p.last_name || ''}`}</span>
-                        {tempCfg && <span className="text-[10px]">{tempCfg.icon}</span>}
+                        {tempCfg && <span className="text-xs">{tempCfg.icon}</span>}
                       </div>
-                      <div className="text-[10px] text-white/30 truncate mt-0.5">
+                      <div className="text-xs text-white/30 truncate mt-0.5">
                         {p.type || ''}{p.quartier ? ` - ${p.quartier}` : ''}{p.email ? ` | ${p.email}` : ''}
                       </div>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-[10px] ${statusCfg?.color || 'bg-white/10'} text-white font-medium flex-shrink-0`}>{statusCfg?.label || p.status}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs ${statusCfg?.color || 'bg-white/10'} text-white font-medium flex-shrink-0`}>{statusCfg?.label || p.status}</span>
                     <span className="text-white/40 flex-shrink-0">{'\u203A'}</span>
                   </button>
                 );

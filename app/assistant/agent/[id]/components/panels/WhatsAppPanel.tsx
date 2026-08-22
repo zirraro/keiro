@@ -58,13 +58,13 @@ function ConnectWhatsAppButton({ en }: { en: boolean }) {
         {en ? 'Connect my WhatsApp number' : 'Connecter mon numéro WhatsApp'}
       </button>
       {blocked && (
-        <span className="text-[10px] text-amber-300 leading-snug">
+        <span className="text-xs text-amber-300 leading-snug">
           {en
             ? 'Your browser (Firefox/Brave) blocks Facebook. Use Chrome, or click the button — we\'ll open the Facebook page directly.'
             : 'Ton navigateur (Firefox/Brave) bloque Facebook. Utilise Chrome, ou clique le bouton — on ouvre la page Facebook directement.'}
         </span>
       )}
-      {msg && <span className="text-[10px] text-amber-300 leading-snug">{msg}</span>}
+      {msg && <span className="text-xs text-amber-300 leading-snug">{msg}</span>}
     </div>
   );
 }
@@ -162,7 +162,7 @@ function StellaConversations({ en }: { en: boolean }) {
     <div className="rounded-xl border border-[#25D366]/25 bg-[#0b141a]/40 overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
         <span className="text-sm font-semibold text-white/90">{en ? 'Stella — conversations' : 'Stella — conversations'}</span>
-        <button onClick={loadList} className="text-[11px] text-white/40 hover:text-white/70">↻ {en ? 'Refresh' : 'Actualiser'}</button>
+        <button onClick={loadList} className="text-xs text-white/40 hover:text-white/70">↻ {en ? 'Refresh' : 'Actualiser'}</button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] min-h-[340px]">
         {/* Liste */}
@@ -176,9 +176,9 @@ function StellaConversations({ en }: { en: boolean }) {
               className={`w-full text-left px-3 py-2.5 border-b border-white/5 hover:bg-white/[0.04] transition ${sel === c.phone ? 'bg-white/[0.06]' : ''}`}>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[13px] font-semibold text-white/90 truncate">{c.name}</span>
-                <span className="text-[9px] text-white/30 shrink-0">{new Date(c.last_at).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}</span>
+                <span className="text-xs text-white/30 shrink-0">{new Date(c.last_at).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}</span>
               </div>
-              <div className="text-[11px] text-white/45 truncate">{c.last_role !== 'user' ? '↩ ' : ''}{c.last}</div>
+              <div className="text-xs text-white/45 truncate">{c.last_role !== 'user' ? '↩ ' : ''}{c.last}</div>
             </button>
           ))}
         </div>
@@ -194,7 +194,7 @@ function StellaConversations({ en }: { en: boolean }) {
                 {/* Toggle Stella ON/OFF (activer/désactiver) — ON = Stella répond auto,
                     OFF = tu as repris la main. On garde les phrases à côté. */}
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[10px] font-semibold ${human ? 'text-sky-300' : 'text-[#34d399]'}`}>
+                  <span className={`text-xs font-semibold ${human ? 'text-sky-300' : 'text-[#34d399]'}`}>
                     {human ? (en ? 'You' : 'Toi') : 'Stella'}
                   </span>
                   <button
@@ -208,8 +208,8 @@ function StellaConversations({ en }: { en: boolean }) {
                     <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${!human ? 'left-[18px]' : 'left-0.5'}`} />
                   </button>
                   {human
-                    ? <button disabled={busy} onClick={() => toggleTakeover('resume')} className="text-[10px] px-2 py-1 rounded-full bg-[#25D366]/20 text-[#34d399] font-semibold">{en ? 'Give back to Stella' : 'Rendre à Stella'}</button>
-                    : <button disabled={busy} onClick={() => toggleTakeover('takeover')} className="text-[10px] px-2 py-1 rounded-full bg-sky-500/20 text-sky-300 font-semibold">{en ? 'Take over' : 'Reprendre la main'}</button>}
+                    ? <button disabled={busy} onClick={() => toggleTakeover('resume')} className="text-xs px-2 py-1 rounded-full bg-[#25D366]/20 text-[#34d399] font-semibold">{en ? 'Give back to Stella' : 'Rendre à Stella'}</button>
+                    : <button disabled={busy} onClick={() => toggleTakeover('takeover')} className="text-xs px-2 py-1 rounded-full bg-sky-500/20 text-sky-300 font-semibold">{en ? 'Take over' : 'Reprendre la main'}</button>}
                 </div>
               </div>
               <div ref={listRef} className="flex-1 max-h-[300px] overflow-y-auto p-3 flex flex-col gap-2" style={{ overflowAnchor: 'none' }}>
@@ -218,7 +218,7 @@ function StellaConversations({ en }: { en: boolean }) {
                   const validDt = dt && !isNaN(dt.getTime());
                   return (
                     <div key={i} className={`max-w-[80%] px-3 py-2 ${bubbleStyle(m.role)}`}>
-                      {roleLabel(m.role) && <div className="text-[9px] font-bold opacity-60 mb-0.5">{roleLabel(m.role)}</div>}
+                      {roleLabel(m.role) && <div className="text-xs font-bold opacity-60 mb-0.5">{roleLabel(m.role)}</div>}
                       <div className="text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-snug">{m.message}</div>
                       {validDt && (
                         <div className="text-[8px] opacity-50 mt-1 text-right">
@@ -237,8 +237,8 @@ function StellaConversations({ en }: { en: boolean }) {
                   <button disabled={busy || !reply.trim()} onClick={sendReply} className="px-3 py-2 rounded-lg bg-[#25D366] text-[#0b141a] text-[12px] font-bold disabled:opacity-40">{en ? 'Send' : 'Envoyer'}</button>
                 </div>
               )}
-              {!human && <div className="px-3 pb-2 text-[10px] text-white/30 italic">{en ? 'Stella is handling this conversation. Take over to reply yourself.' : 'Stella gère cette conversation. Reprends la main pour répondre toi-même.'}</div>}
-              {err && <div className="px-3 pb-2 text-[10px] text-red-400">{err}</div>}
+              {!human && <div className="px-3 pb-2 text-xs text-white/30 italic">{en ? 'Stella is handling this conversation. Take over to reply yourself.' : 'Stella gère cette conversation. Reprends la main pour répondre toi-même.'}</div>}
+              {err && <div className="px-3 pb-2 text-xs text-red-400">{err}</div>}
             </>
           )}
         </div>
@@ -287,7 +287,7 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
         <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border border-[#25D366]/30 bg-[#25D366]/[0.06] p-3">
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-white/90">{en ? 'Connect your WhatsApp Business number' : 'Connecte ton numéro WhatsApp Business'}</div>
-            <div className="text-[11px] text-white/50 leading-relaxed">{en ? 'One click — pick your number and Stella starts replying automatically.' : 'En un clic — choisis ton numéro et Stella répond automatiquement.'}</div>
+            <div className="text-xs text-white/50 leading-relaxed">{en ? 'One click — pick your number and Stella starts replying automatically.' : 'En un clic — choisis ton numéro et Stella répond automatiquement.'}</div>
           </div>
           <ConnectWhatsAppButton en={en} />
         </div>
@@ -300,7 +300,7 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
       <div className="rounded-xl border border-[#25D366]/25 bg-[#25D366]/[0.05] p-3 sm:p-4">
         <div className="flex items-center justify-between gap-2 mb-3">
           <span className="text-sm font-semibold text-white/90">{en ? '💚 What Stella does for you' : '💚 Ce que Stella fait pour toi'}</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${connected ? 'bg-[#25D366]/20 text-[#34d399]' : 'bg-amber-500/15 text-amber-300'}`}>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${connected ? 'bg-[#25D366]/20 text-[#34d399]' : 'bg-amber-500/15 text-amber-300'}`}>
             {connected ? (en ? 'Connected — live data' : 'Connecté — données réelles') : (en ? 'Preview — examples' : 'Aperçu — exemples')}
           </span>
         </div>
@@ -308,14 +308,14 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
           {capabilities.map((c, i) => (
             <div key={i} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
               <div className="text-[12px] font-semibold text-white/85 mb-0.5">{c.icon} {c.title}</div>
-              <div className="text-[10px] text-white/45 leading-relaxed mb-1.5">{c.desc}</div>
-              <div className="text-[10px] italic text-[#34d399]/80 leading-relaxed border-l-2 border-[#25D366]/30 pl-2">{c.ex}</div>
+              <div className="text-xs text-white/45 leading-relaxed mb-1.5">{c.desc}</div>
+              <div className="text-xs italic text-[#34d399]/80 leading-relaxed border-l-2 border-[#25D366]/30 pl-2">{c.ex}</div>
             </div>
           ))}
         </div>
         {!connected && (
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-2.5">
-            <span className="text-[11px] text-amber-100/80 flex-1">
+            <span className="text-xs text-amber-100/80 flex-1">
               {en
                 ? 'Connect a WhatsApp Business number to turn these on for real. Included in Business, or +19€/mo add-on.'
                 : 'Connecte un numéro WhatsApp Business pour les activer pour de vrai. Inclus dans Business, ou add-on +19€/mois.'}
@@ -329,7 +329,7 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
                   if (d?.url) window.location.href = d.url;
                 } catch { /* noop */ }
               }}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-[#25D366] text-[#0b141a] text-[11px] font-bold hover:opacity-90 transition text-center"
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-[#25D366] text-[#0b141a] text-xs font-bold hover:opacity-90 transition text-center"
             >
               {en ? 'Activate Stella — €19/mo' : 'Activer Stella — 19€/mois'}
             </button>
@@ -379,7 +379,7 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[conv.status] || '#6b7280' }} />
-                <span className="text-[10px] text-white/40">{new Date(conv.date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}</span>
+                <span className="text-xs text-white/40">{new Date(conv.date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}</span>
               </div>
             </div>
           ))}

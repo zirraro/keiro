@@ -105,7 +105,7 @@ export default async function PageApercu({ params }: { params: Promise<{ jeton: 
           Voir comment ça marche
         </a>
 
-        <p className="text-white/35 text-[11px] mt-5 leading-relaxed">
+        <p className="text-white/35 text-xs mt-5 leading-relaxed">
           Visuel généré à partir d&apos;informations publiques sur votre établissement.
           Il illustre un rendu possible et ne représente pas votre commerce.
         </p>

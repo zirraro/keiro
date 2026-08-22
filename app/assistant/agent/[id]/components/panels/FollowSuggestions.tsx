@@ -83,20 +83,20 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between text-left">
         <span className="text-xs font-semibold text-white/80">
           {en ? '👥 Accounts to follow — activate your account' : '👥 Comptes à suivre — active ton compte'}
-          {recommended > 0 && <span className="ml-2 text-[10px] text-emerald-300/80">{doneCount}/{recommended} {en ? 'followed' : 'suivis'} ✓</span>}
+          {recommended > 0 && <span className="ml-2 text-xs text-emerald-300/80">{doneCount}/{recommended} {en ? 'followed' : 'suivis'} ✓</span>}
         </span>
         <span className="text-white/40 text-xs">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="mt-2 space-y-3">
-          <p className="text-[10px] text-white/40">{data.note}</p>
+          <p className="text-xs text-white/40">{data.note}</p>
 
           {Array.isArray(data.warmingSteps) && data.warmingSteps.length > 0 && (
             <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-2.5">
-              <div className="text-[11px] font-semibold text-amber-200 mb-1">{en ? '🔥 Warm up your account (max reach)' : '🔥 Réchauffe ton compte (portée max)'}</div>
+              <div className="text-xs font-semibold text-amber-200 mb-1">{en ? '🔥 Warm up your account (max reach)' : '🔥 Réchauffe ton compte (portée max)'}</div>
               <ul className="space-y-1">
                 {data.warmingSteps.map((s: string, i: number) => (
-                  <li key={i} className="text-[11px] leading-relaxed text-white/60 flex gap-1.5"><span className="text-amber-300">{i + 1}.</span><span>{s}</span></li>
+                  <li key={i} className="text-xs leading-relaxed text-white/60 flex gap-1.5"><span className="text-amber-300">{i + 1}.</span><span>{s}</span></li>
                 ))}
               </ul>
             </div>
@@ -104,25 +104,25 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
 
           {recommended > 0 && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Peers / local — follow then mark done' : 'Confrères / locaux — suis puis marque "Fait"'} ({data.sector})</div>
+              <div className="text-xs uppercase tracking-wide text-white/40 mb-1">{en ? 'Peers / local — follow then mark done' : 'Confrères / locaux — suis puis marque "Fait"'} ({data.sector})</div>
               <div className="space-y-1.5">
                 {data.realHandles.filter((h: any) => !removed.has(h.handle.toLowerCase())).map((h: any) => {
                   const isDone = done.has(h.handle.toLowerCase());
                   return (
                     <div key={h.handle} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${isDone ? 'border-emerald-500/40 bg-emerald-500/[0.07]' : 'border-white/10 bg-white/[0.03]'}`}>
-                      <a href={profileUrl(h.handle)} target="_blank" rel="noopener noreferrer" title={h.company} className="flex-1 min-w-0 text-[11px] font-medium text-white/80 hover:text-emerald-300 truncate">@{h.handle} <span className="text-[10px] text-white/30">↗</span></a>
+                      <a href={profileUrl(h.handle)} target="_blank" rel="noopener noreferrer" title={h.company} className="flex-1 min-w-0 text-xs font-medium text-white/80 hover:text-emerald-300 truncate">@{h.handle} <span className="text-xs text-white/30">↗</span></a>
                       <button
                         type="button"
                         onClick={() => copyDM({ handle: h.handle, company: h.company })}
                         title={en ? 'Copy a DM opener + open profile' : 'Copier un message + ouvrir le profil'}
-                        className="shrink-0 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold border border-white/15 text-white/60 hover:border-sky-500/50 hover:text-sky-300 transition"
+                        className="shrink-0 text-xs px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold border border-white/15 text-white/60 hover:border-sky-500/50 hover:text-sky-300 transition"
                       >
                         {copiedH === h.handle.toLowerCase() ? (en ? '✓ Copied' : '✓ Copié') : (en ? '📋 DM' : '📋 DM')}
                       </button>
                       <button
                         type="button" disabled={busy === h.handle.toLowerCase()}
                         onClick={() => toggleDone(h.handle, h.prospectId || null)}
-                        className={`shrink-0 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold transition disabled:opacity-50 ${isDone ? 'bg-emerald-600 text-white' : 'border border-white/15 text-white/60 hover:border-emerald-500/50 hover:text-emerald-300'}`}
+                        className={`shrink-0 text-xs px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold transition disabled:opacity-50 ${isDone ? 'bg-emerald-600 text-white' : 'border border-white/15 text-white/60 hover:border-emerald-500/50 hover:text-emerald-300'}`}
                       >
                         {isDone ? (en ? '✓ Done' : '✓ Fait') : (en ? 'Follow' : 'Suivre')}
                       </button>
@@ -130,7 +130,7 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
                         type="button"
                         onClick={() => markDead({ handle: h.handle, prospectId: h.prospectId || null })}
                         title={en ? 'Dead link — remove permanently' : 'Lien mort — retirer définitivement'}
-                        className="shrink-0 text-[11px] w-7 h-[34px] rounded-md text-white/30 hover:text-red-400 hover:bg-red-500/10 transition"
+                        className="shrink-0 text-xs w-7 h-[34px] rounded-md text-white/30 hover:text-red-400 hover:bg-red-500/10 transition"
                       >✕</button>
                     </div>
                   );
@@ -141,12 +141,12 @@ export default function FollowSuggestions({ platform }: { platform: string }) {
 
           {Array.isArray(data.categories) && data.categories.length > 0 && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{en ? 'Explore & follow' : 'À explorer & suivre'}</div>
+              <div className="text-xs uppercase tracking-wide text-white/40 mb-1">{en ? 'Explore & follow' : 'À explorer & suivre'}</div>
               <div className="space-y-1.5">
                 {data.categories.map((c: any, i: number) => (
                   <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="min-h-[44px] flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 hover:border-emerald-500/40">
-                    <div className="text-[11px] font-medium text-white/80">{c.label} ↗</div>
-                    <div className="text-[10px] text-white/40">{c.why}</div>
+                    <div className="text-xs font-medium text-white/80">{c.label} ↗</div>
+                    <div className="text-xs text-white/40">{c.why}</div>
                   </a>
                 ))}
               </div>

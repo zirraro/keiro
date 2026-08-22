@@ -304,7 +304,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
                 </div>
                 <div className="text-center flex-shrink-0">
                   <div className="text-2xl font-bold text-red-600">{CURATED_VIDEOS.length}</div>
-                  <div className="text-[10px] text-neutral-500 font-medium">videos selectionnees</div>
+                  <div className="text-xs text-neutral-500 font-medium">videos selectionnees</div>
                 </div>
               </div>
             </div>
@@ -363,14 +363,14 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
 
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex gap-1.5">
-                      <span className="bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
+                      <span className="bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
                         {video.category}
                       </span>
-                      <span className="bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
+                      <span className="bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
                         {video.level}
                       </span>
                     </div>
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm">
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-0.5 rounded backdrop-blur-sm">
                       {video.duration}
                     </div>
                   </div>
@@ -384,7 +384,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {video.tags.map((tag) => (
-                        <span key={tag} className="bg-purple-50 text-purple-600 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                        <span key={tag} className="bg-purple-50 text-purple-600 text-xs font-medium px-2 py-0.5 rounded-full">
                           {tag}
                         </span>
                       ))}

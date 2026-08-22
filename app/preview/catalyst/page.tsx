@@ -12,7 +12,7 @@ export default function CatalystPreview() {
 
   const price = (m:number, a:number) => annual ? a : m;
   const badge = (txt:string) => (
-    <span className="ml-2 text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#0c1a3a]/15 border border-[#0c1a3a]/30 text-[#0c1a3a] align-middle">
+    <span className="ml-2 text-xs uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#0c1a3a]/15 border border-[#0c1a3a]/30 text-[#0c1a3a] align-middle">
       {txt}
     </span>
   );

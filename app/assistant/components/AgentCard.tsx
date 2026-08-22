@@ -75,7 +75,7 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
             <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
               <span className="text-2xl">{'✨'}</span>
               <span className="text-white/90 text-xs font-semibold text-center">Disponible sous peu</span>
-              <span className="text-white/40 text-[10px] text-center">Arrive d&apos;ici quelques jours — 1 mois max</span>
+              <span className="text-white/40 text-xs text-center">Arrive d&apos;ici quelques jours — 1 mois max</span>
             </div>
           );
         }
@@ -87,13 +87,13 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
             <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <span className="text-white/85 text-[11px] font-semibold text-center leading-tight">
+            <span className="text-white/85 text-xs font-semibold text-center leading-tight">
               Plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
             </span>
             <a
               href={planAnchor}
               onClick={(e) => e.stopPropagation()}
-              className="w-full px-2.5 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all text-center"
+              className="w-full px-2.5 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition-all text-center"
             >
               {'⚡'} Passer {PLAN_SHORT[agent.minPlan] || agent.minPlan}
             </a>
@@ -101,7 +101,7 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
               <a
                 href={addonAnchor}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full px-2.5 py-1 bg-white/10 hover:bg-white/15 text-white/80 text-[10px] font-medium rounded-lg transition-all text-center border border-white/15"
+                className="w-full px-2.5 py-1 bg-white/10 hover:bg-white/15 text-white/80 text-xs font-medium rounded-lg transition-all text-center border border-white/15"
               >
                 Ou ajouter seul · {addonPrice}€/mois
               </a>
@@ -113,21 +113,21 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
       {/* Status badge */}
       {isComingSoon ? (
         <div className="absolute top-3 right-3 z-30 flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 backdrop-blur-sm rounded-full border border-cyan-500/20">
-          <span className="text-[10px] text-cyan-300 font-medium">A venir</span>
+          <span className="text-xs text-cyan-300 font-medium">A venir</span>
         </div>
       ) : isLocked && !isComingSoon ? (
         <div className="absolute top-3 right-3 z-30 flex items-center gap-1 px-2 py-0.5 bg-amber-500/30 backdrop-blur-sm rounded-full">
           <svg className="w-2.5 h-2.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <span className="text-[10px] text-amber-200 font-medium">{agent.minPlan === 'pro' ? 'Pro' : agent.minPlan === 'business' ? 'Business' : 'Premium'}</span>
+          <span className="text-xs text-amber-200 font-medium">{agent.minPlan === 'pro' ? 'Pro' : agent.minPlan === 'business' ? 'Business' : 'Premium'}</span>
         </div>
       ) : !presence ? (
         // Pas de donnée de présence réelle → neutre « Actif » (JAMAIS de fausse
         // activité : on ne prétend pas « travaille… » sans preuve dans les logs).
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 bg-green-500/15 backdrop-blur-sm rounded-full border border-green-500/20">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] text-green-300 font-medium">Actif</span>
+          <span className="text-xs text-green-300 font-medium">Actif</span>
         </div>
       ) : (() => {
         // Badge de présence VÉRIDIQUE (design §13.1) — reflète l'activité réelle.
@@ -141,7 +141,7 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
         return (
           <div className={`absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 backdrop-blur-sm rounded-full border ${cfg.wrap}`}>
             <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-            <span className={`text-[10px] font-medium ${cfg.text}`}>{cfg.label}</span>
+            <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
           </div>
         );
       })()}
@@ -158,7 +158,7 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
           {/* Notification badge */}
           {badgeCount > 0 && !isLocked && (
             <div className="absolute -top-1 -right-1 z-30 min-w-[20px] h-5 px-1 rounded-full bg-red-500 border-2 border-gray-900 flex items-center justify-center animate-pulse">
-              <span className="text-[10px] font-bold text-white">{badgeCount > 9 ? '9+' : badgeCount}</span>
+              <span className="text-xs font-bold text-white">{badgeCount > 9 ? '9+' : badgeCount}</span>
             </div>
           )}
           <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
@@ -186,11 +186,11 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
           >
             {agent.title}
           </p>
-          <p className="text-gray-400 text-[11px] leading-snug mt-1.5 line-clamp-2">{agent.description}</p>
+          <p className="text-gray-400 text-xs leading-snug mt-1.5 line-clamp-2">{agent.description}</p>
           {agent.integrations && agent.integrations.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {agent.integrations.map(integ => (
-                <span key={integ} className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] text-white/40">
+                <span key={integ} className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-xs text-white/40">
                   {integ}
                 </span>
               ))}

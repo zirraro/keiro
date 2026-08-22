@@ -47,18 +47,18 @@ function EmailCard({ email }: { email: { prospect: string; type: string; status:
   return (
     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
       <div className="p-3 sm:p-4 flex items-center gap-3">
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: `${statusColors[email.status] ?? '#60a5fa'}22`, color: statusColors[email.status] ?? '#60a5fa' }}>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: `${statusColors[email.status] ?? '#60a5fa'}22`, color: statusColors[email.status] ?? '#60a5fa' }}>
           {email.status}
         </span>
         <span className="text-sm text-white/80 truncate flex-1">{email.prospect}</span>
-        <span className="text-[10px] text-white/30 shrink-0">{email.type?.replace('step_', 'Etape ')}</span>
-        {email.provider && <span className="text-[10px] text-white/45 shrink-0">via {email.provider}</span>}
-        <button onClick={() => setShowReply(!showReply)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
+        <span className="text-xs text-white/30 shrink-0">{email.type?.replace('step_', 'Etape ')}</span>
+        {email.provider && <span className="text-xs text-white/45 shrink-0">via {email.provider}</span>}
+        <button onClick={() => setShowReply(!showReply)} className="text-xs px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
           {showReply ? 'Fermer' : 'Repondre'}
         </button>
       </div>
-      {email.subject && <div className="px-3 sm:px-4 pb-1 text-[11px] text-white/60 font-medium truncate">{email.subject}</div>}
-      {email.message && <div className="px-3 sm:px-4 pb-2 text-[10px] text-white/30 line-clamp-2">{email.message.replace(/<[^>]+>/g, '').substring(0, 200)}</div>}
+      {email.subject && <div className="px-3 sm:px-4 pb-1 text-xs text-white/60 font-medium truncate">{email.subject}</div>}
+      {email.message && <div className="px-3 sm:px-4 pb-2 text-xs text-white/30 line-clamp-2">{email.message.replace(/<[^>]+>/g, '').substring(0, 200)}</div>}
       {showReply && (
         <div className="px-3 sm:px-4 pb-3 border-t border-white/5 pt-2 flex gap-2">
           <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder={((t as any).notif?.emailReplyPlaceholder) || 'Repondre par email...'} className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50" onKeyDown={e => { if (e.key === 'Enter') handleReply(); }} />
@@ -103,16 +103,16 @@ function ReplyModeToggle({ onMode }: { onMode?: (m: 'auto_send' | 'draft') => vo
     >
       <div className="flex items-center gap-1.5">
         <span className="text-sm">{icon}</span>
-        <span className={`text-[11px] sm:text-xs font-bold ${mode === val ? 'text-cyan-200' : 'text-white/70'}`}>{title}</span>
-        {mode === val && <span className="ml-auto text-cyan-300 text-[10px]">{'✓'}</span>}
+        <span className={`text-xs sm:text-xs font-bold ${mode === val ? 'text-cyan-200' : 'text-white/70'}`}>{title}</span>
+        {mode === val && <span className="ml-auto text-cyan-300 text-xs">{'✓'}</span>}
       </div>
-      <div className="text-[10px] text-white/40 mt-0.5">{desc}</div>
+      <div className="text-xs text-white/40 mt-0.5">{desc}</div>
     </button>
   );
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 mb-3">
-      <div className="text-[11px] sm:text-xs font-medium text-white/80 mb-2">Réponses aux emails reçus</div>
+      <div className="text-xs sm:text-xs font-medium text-white/80 mb-2">Réponses aux emails reçus</div>
       <div className="flex gap-2">
         {opt('auto_send', '\u{1F916}', 'Envoi auto', 'Hugo répond et envoie tout seul')}
         {opt('draft', '✍️', 'Brouillon', 'Hugo prépare, tu relis et envoies')}
@@ -158,31 +158,31 @@ function DraftsCard() {
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4 mt-3">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs sm:text-sm font-bold text-white">{'✍️'} Brouillons ({drafts.length})</h3>
-        <button onClick={load} className="text-[10px] text-white/40 hover:text-white/70" aria-label="Rafraîchir">{'↻'}</button>
+        <button onClick={load} className="text-xs text-white/40 hover:text-white/70" aria-label="Rafraîchir">{'↻'}</button>
       </div>
-      <p className="text-[10px] text-white/40 mb-2.5">Hugo peut les améliorer (orthographe, forme, ton) ou les envoyer pour toi.</p>
+      <p className="text-xs text-white/40 mb-2.5">Hugo peut les améliorer (orthographe, forme, ton) ou les envoyer pour toi.</p>
       <div className="space-y-2 max-h-72 overflow-y-auto">
         {drafts.map(d => (
           <div key={d.id} className="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-semibold text-white/85 truncate">{d.subject || '(sans objet)'}</div>
-                {d.to && <div className="text-[10px] text-white/40 truncate">{'→'} {d.to}</div>}
+                <div className="text-xs font-semibold text-white/85 truncate">{d.subject || '(sans objet)'}</div>
+                {d.to && <div className="text-xs text-white/40 truncate">{'→'} {d.to}</div>}
               </div>
             </div>
-            {d.preview && <div className="text-[10px] text-white/45 line-clamp-2 mt-1">{d.preview}</div>}
+            {d.preview && <div className="text-xs text-white/45 line-clamp-2 mt-1">{d.preview}</div>}
             <div className="flex gap-1.5 mt-2">
               <button
                 onClick={() => act(d.id, 'improve', d.provider)}
                 disabled={!!busy}
-                className="px-2.5 py-1.5 text-[10px] font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
+                className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
               >
                 {busy === d.id + 'improve' ? '...' : '✨ Améliorer'}
               </button>
               <button
                 onClick={() => act(d.id, 'send', d.provider)}
                 disabled={!!busy}
-                className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 disabled:opacity-40"
+                className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 disabled:opacity-40"
               >
                 {busy === d.id + 'send' ? '...' : '\u{1F680} Envoyer'}
               </button>
@@ -314,11 +314,11 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 
       {/* Custom domain — discrete option */}
       <details className="mt-3 rounded-xl border border-white/5 bg-white/[0.01]">
-        <summary className="px-4 py-2.5 text-[10px] text-white/30 cursor-pointer hover:text-white/50 flex items-center gap-2">
+        <summary className="px-4 py-2.5 text-xs text-white/30 cursor-pointer hover:text-white/50 flex items-center gap-2">
           <span>{'\u2699\uFE0F'}</span> Send from your own domain
         </summary>
         <div className="px-4 pb-4 space-y-3">
-          <p className="text-[11px] text-white/50">
+          <p className="text-xs text-white/50">
             By default, Hugo sends from <span className="text-white/70 font-medium">contact@keiroai.com</span>.
             You can connect your own domain to send from <span className="text-white/70 font-medium">contact@yourcompany.com</span>.
           </p>
@@ -328,19 +328,19 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
               ça nommait notre prestataire, et faire circuler une clé API par
               message est une mauvaise pratique. On s'en charge. */}
           <div className="rounded-lg bg-white/[0.03] border border-white/10 p-3 space-y-2">
-            <h4 className="text-[11px] text-white/70 font-semibold">How it works:</h4>
-            <ol className="text-[10px] text-white/40 space-y-1.5 list-decimal pl-4">
+            <h4 className="text-xs text-white/70 font-semibold">How it works:</h4>
+            <ol className="text-xs text-white/40 space-y-1.5 list-decimal pl-4">
               <li>Tell us the address you want to send from — for example contact@yourcompany.com</li>
               <li>We give you two DNS records to paste into your domain provider</li>
               <li>We handle the rest and confirm once your domain is authenticated</li>
             </ol>
-            <p className="text-[10px] text-white/30">No account to create anywhere, and never share an API key by message.</p>
+            <p className="text-xs text-white/30">No account to create anywhere, and never share an API key by message.</p>
           </div>
           <div className="flex items-center gap-3">
-            <a href="https://cal.com" target="_blank" rel="noopener" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-xl hover:shadow-lg transition min-h-[44px] flex items-center gap-1">
+            <a href="https://cal.com" target="_blank" rel="noopener" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[44px] flex items-center gap-1">
               {'\uD83D\uDCC5'} Book an onboarding call
             </a>
-            <span className="text-[10px] text-white/45">15 min, we configure it together</span>
+            <span className="text-xs text-white/45">15 min, we configure it together</span>
           </div>
         </div>
       </details>
@@ -387,7 +387,7 @@ function CampaignCreator() {
       <div id="campaign-modal" className="rounded-xl border border-emerald-500/20 bg-emerald-900/10 p-4 mb-3 text-center">
         <span className="text-lg">{'\u2705'}</span>
         <p className="text-xs text-emerald-400 font-bold mt-1">Campagne planifiee !</p>
-        <button onClick={() => { setSent(false); setOpen(false); setStep(0); setSubject(''); setBody(''); }} className="text-[10px] text-white/40 mt-2 hover:text-white/60">Fermer</button>
+        <button onClick={() => { setSent(false); setOpen(false); setStep(0); setSubject(''); setBody(''); }} className="text-xs text-white/40 mt-2 hover:text-white/60">Fermer</button>
       </div>
     );
   }
@@ -409,14 +409,14 @@ function CampaignCreator() {
 
       {step === 0 && (
         <div className="space-y-2">
-          <label className="text-[10px] text-white/50">Cible</label>
+          <label className="text-xs text-white/50">Cible</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {[
               { key: 'all_prospects', label: 'Tous', icon: '\u{1F465}' },
               { key: 'hot', label: 'Prospects chauds', icon: '\u{1F525}' },
               { key: 'new', label: 'Nouveaux', icon: '\u2728' },
             ].map(t => (
-              <button key={t.key} onClick={() => setTarget(t.key)} className={`p-2 rounded-lg text-[10px] font-medium text-center transition-all ${target === t.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+              <button key={t.key} onClick={() => setTarget(t.key)} className={`p-2 rounded-lg text-xs font-medium text-center transition-all ${target === t.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
                 <div className="text-base mb-0.5">{t.icon}</div>{t.label}
               </button>
             ))}
@@ -428,11 +428,11 @@ function CampaignCreator() {
       {step === 1 && (
         <div className="space-y-2">
           <div>
-            <label className="text-[10px] text-white/50">Objet</label>
+            <label className="text-xs text-white/50">Objet</label>
             <input value={subject} onChange={e => setSubject(e.target.value)} placeholder={generating ? 'Generation IA...' : 'Objet de l\'email'} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 mt-1" />
           </div>
           <div>
-            <label className="text-[10px] text-white/50">Corps</label>
+            <label className="text-xs text-white/50">Corps</label>
             <textarea value={body} onChange={e => setBody(e.target.value)} placeholder={generating ? 'Generation IA en cours...' : 'Corps de l\'email'} rows={4} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 mt-1 resize-none" />
           </div>
           <div className="flex gap-2">
@@ -599,14 +599,14 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
           <button
             key={tab.key}
             onClick={() => setInboxFilter(tab.key as any)}
-            className={`px-3 py-1.5 text-[10px] sm:text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 text-xs sm:text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
               inboxFilter === tab.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'
             }`}
           >
             {tab.label}
           </button>
         ))}
-        <span className="text-[10px] text-white/45 ml-auto">{'\u{1F4E7}'} Campagne: voir ci-dessous</span>
+        <span className="text-xs text-white/45 ml-auto">{'\u{1F4E7}'} Campagne: voir ci-dessous</span>
       </div>
 
     {/* Campaign creation */}
@@ -617,7 +617,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
         {/* Email list */}
         <div className={`${selectedId ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/5 overflow-y-auto`}>
           <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02]">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">{(isDemo ? reProspectList : prospectList).length} conversations</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-white/30">{(isDemo ? reProspectList : prospectList).length} conversations</span>
           </div>
           {(isDemo ? reProspectList : prospectList).map(p => (
             <button
@@ -629,20 +629,20 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                 {p.hasIncoming && <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />}
                 <span className="text-xs font-medium text-white truncate">{p.name}</span>
               </div>
-              {p.email && <div className="text-[10px] text-white/45 truncate mt-0.5">{p.email}</div>}
-              {p.latest.subject && <div className="text-[10px] text-white/50 truncate mt-0.5 font-medium">{p.latest.subject}</div>}
-              <div className="text-[10px] text-white/30 truncate mt-0.5">
+              {p.email && <div className="text-xs text-white/45 truncate mt-0.5">{p.email}</div>}
+              {p.latest.subject && <div className="text-xs text-white/50 truncate mt-0.5 font-medium">{p.latest.subject}</div>}
+              <div className="text-xs text-white/30 truncate mt-0.5">
                 {p.latest.direction === 'incoming' ? '\u2709\uFE0F ' : ''}{p.latest.message?.substring(0, 80) || p.latest.type}
               </div>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
                   p.latest.status === 'repondu' ? 'bg-emerald-400/15 text-emerald-400' :
                   p.latest.status === 'ouvert' ? 'bg-amber-400/15 text-amber-400' :
                   p.latest.status === 'clique' ? 'bg-purple-400/15 text-purple-400' :
                   'bg-blue-400/15 text-blue-400'
                 }`}>{p.latest.status}</span>
                 {p.latest.direction === 'outgoing' && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
                     p.latest.auto || p.latest.type?.includes('auto') || p.latest.type?.includes('step_')
                       ? 'bg-emerald-500/15 text-emerald-300'
                       : 'bg-amber-500/15 text-amber-300'
@@ -650,7 +650,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                     {p.latest.auto || p.latest.type?.includes('auto') || p.latest.type?.includes('step_') ? '\u{1F916} IA' : '\u270D\uFE0F Toi'}
                   </span>
                 )}
-                <span className="text-[10px] text-white/40 ml-auto">{new Date(p.latest.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
+                <span className="text-xs text-white/40 ml-auto">{new Date(p.latest.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
               </div>
             </button>
           ))}
@@ -661,15 +661,15 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
           <div className="flex-1 flex flex-col">
             <div className="px-3 py-2.5 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
               <button onClick={() => { setSelectedId(null); setThread([]); setThreadProspect(null); }} className="sm:hidden text-white/40 hover:text-white/60 text-sm">{'\u2190'}</button>
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] text-white font-bold">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-xs text-white font-bold">
                 {(threadProspect?.company || threadProspect?.first_name || '?')[0]?.toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-xs font-bold text-white">{threadProspect?.company || threadProspect?.first_name || 'Prospect'}</span>
-                {threadProspect?.email && <div className="text-[10px] text-white/30 truncate">{threadProspect.email}</div>}
+                {threadProspect?.email && <div className="text-xs text-white/30 truncate">{threadProspect.email}</div>}
               </div>
               {threadProspect?.temperature && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                   threadProspect.temperature === 'hot' ? 'bg-red-400/15 text-red-400' :
                   threadProspect.temperature === 'warm' ? 'bg-amber-400/15 text-amber-400' :
                   'bg-blue-400/15 text-blue-400'
@@ -705,16 +705,16 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                             : 'bg-gradient-to-r from-amber-700 to-amber-600 text-white rounded-br-md')
                           : 'bg-white/10 text-white/80 rounded-bl-md'
                       }`}>
-                        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold mb-1 ${badgeLabel.cls}`}>
+                        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-bold mb-1 ${badgeLabel.cls}`}>
                           {badgeLabel.text}
                         </div>
-                        {msg.subject && <div className="font-semibold text-[11px] mb-1 opacity-90">{msg.subject}</div>}
+                        {msg.subject && <div className="font-semibold text-xs mb-1 opacity-90">{msg.subject}</div>}
                         <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
-                        <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${isOutgoing ? 'text-white/60' : 'text-white/45'}`}>
+                        <div className={`text-xs mt-1 flex items-center gap-1.5 ${isOutgoing ? 'text-white/60' : 'text-white/45'}`}>
                           {msg.date ? new Date(msg.date).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                           {msg.step && <span>· Etape {msg.step}</span>}
                           {msg.action_taken && (msg.action_taken === 'blacklisted' || msg.action_taken === 'stopped') && (
-                            <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 text-xs">
                               {msg.action_taken === 'blacklisted' ? '\u{1F6AB} Désabonné' : '\u23F8 Stoppé'}
                             </span>
                           )}
@@ -990,7 +990,7 @@ function FullInbox({ onReplyMode, metriques }: {
             onClick={() => { setSelected(it); setReplyText(''); }}
             className={`w-full text-left ${compact ? 'px-2.5 py-2' : 'px-3 py-2.5'} hover:bg-white/5 transition flex items-center gap-2 ${selected?.id === it.id ? 'bg-cyan-500/10' : ''}`}
           >
-            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : it.direction === 'draft' ? 'bg-white/10 text-white/60' : it.direction === 'trash' ? 'bg-red-500/15 text-red-300/70' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
+            <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : it.direction === 'draft' ? 'bg-white/10 text-white/60' : it.direction === 'trash' ? 'bg-red-500/15 text-red-300/70' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
               {it.direction === 'inbox' ? '✉' : it.direction === 'draft' ? '✍️' : it.direction === 'trash' ? '🗑' : (it.auto ? '🤖' : '✍')}
             </span>
             <div className="min-w-0 flex-1">
@@ -998,12 +998,12 @@ function FullInbox({ onReplyMode, metriques }: {
                 <span className="text-xs font-semibold text-white truncate">
                   {(it.direction === 'inbox' || it.direction === 'trash') ? (it.from_name || it.from_email) : it.to_email}
                 </span>
-                {it.blacklisted && <span className="text-[10px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">BL</span>}
-                {it.classification === 'unsubscribe' && <span className="text-[10px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">{en ? 'unsub' : 'désabo'}</span>}
+                {it.blacklisted && <span className="text-xs px-1 rounded bg-red-500/20 text-red-300 shrink-0">BL</span>}
+                {it.classification === 'unsubscribe' && <span className="text-xs px-1 rounded bg-red-500/20 text-red-300 shrink-0">{en ? 'unsub' : 'désabo'}</span>}
               </div>
-              <div className="text-[10px] text-white/60 truncate">{it.subject || '(sans objet)'}</div>
+              <div className="text-xs text-white/60 truncate">{it.subject || '(sans objet)'}</div>
             </div>
-            <span className="shrink-0 text-[10px] text-white/30">{new Date(it.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
+            <span className="shrink-0 text-xs text-white/30">{new Date(it.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
           </button>
         ))
       )}
@@ -1019,7 +1019,7 @@ function FullInbox({ onReplyMode, metriques }: {
       {modeApercu && !loading && (
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 flex items-start gap-2">
           <span className="text-sm">{'ℹ️'}</span>
-          <p className="text-[11px] text-amber-200/80 leading-snug">{en
+          <p className="text-xs text-amber-200/80 leading-snug">{en
             ? <><strong>Preview</strong> — connect a mailbox (Gmail, Outlook or your own domain) and your real messages replace these examples.</>
             : <><strong>Aperçu</strong> — connecte une boîte (Gmail, Outlook ou ton nom de domaine) et tes vrais messages remplacent ces exemples.</>}</p>
         </div>
@@ -1034,7 +1034,7 @@ function FullInbox({ onReplyMode, metriques }: {
           pour une information qui se lit en une phrase, et qui obligeait à
           remonter pour la voir. */}
       {metriques && ((metriques.firstSends24h ?? 0) + (metriques.followUps24h ?? 0) + (metriques.inboundsTotal24h ?? 0) > 0) && (
-        <p className="text-[11px] text-white/50 px-1 leading-snug">
+        <p className="text-xs text-white/50 px-1 leading-snug">
           {en ? 'Last 24h:' : 'Dernières 24 h :'}{' '}
           <span className="text-white/80 font-medium tabular-nums">{metriques.firstSends24h ?? 0}</span> {en ? 'first sends' : 'premiers envois'},{' '}
           <span className="text-white/80 font-medium tabular-nums">{metriques.followUps24h ?? 0}</span> {en ? 'follow-ups' : 'relances'}
@@ -1054,26 +1054,26 @@ function FullInbox({ onReplyMode, metriques }: {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h3 className="text-sm font-bold text-white">{en ? 'Mailbox' : 'Boîte mail'}</h3>
-          <p className="text-[10px] text-white/40">{en ? 'Received, sent, drafts and trash — all in one place' : 'Reçus, envoyés, brouillons et corbeille — tout au même endroit'}</p>
+          <p className="text-xs text-white/40">{en ? 'Received, sent, drafts and trash — all in one place' : 'Reçus, envoyés, brouillons et corbeille — tout au même endroit'}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setComposeOpen(true)}
-            className="px-3 py-2 min-h-[40px] text-[11px] font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 transition flex items-center gap-1.5"
+            className="px-3 py-2 min-h-[40px] text-xs font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 transition flex items-center gap-1.5"
           >
             ✏️ {en ? 'New email' : 'Nouveau mail'}
           </button>
           <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10">
             <button
               onClick={() => setView('list')}
-              className={`px-2.5 py-1.5 min-h-[36px] text-[10px] font-medium rounded transition ${view === 'list' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
+              className={`px-2.5 py-1.5 min-h-[36px] text-xs font-medium rounded transition ${view === 'list' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
               title={en ? 'List view' : 'Vue liste'}
             >
               ☰ {en ? 'Liste' : 'Liste'}
             </button>
             <button
               onClick={() => setView('split')}
-              className={`px-2.5 py-1.5 min-h-[36px] text-[10px] font-medium rounded transition ${view === 'split' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
+              className={`px-2.5 py-1.5 min-h-[36px] text-xs font-medium rounded transition ${view === 'split' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
               title={en ? 'Split-pane view' : 'Vue boîte mail'}
             >
               ☐ {en ? 'Boîte' : 'Boîte'}
@@ -1110,18 +1110,18 @@ function FullInbox({ onReplyMode, metriques }: {
               />
               {/* Pièces jointes (Gmail) */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 text-white/70 text-[11px] font-medium hover:bg-white/15 cursor-pointer">
+                <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 text-white/70 text-xs font-medium hover:bg-white/15 cursor-pointer">
                   📎 {en ? 'Attach' : 'Joindre'}
                   <input type="file" multiple className="hidden" onChange={(e) => { onPickFiles(e.target.files); e.currentTarget.value = ''; }} />
                 </label>
                 {cFiles.map((f, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/15 text-cyan-200 text-[10px] max-w-[160px]">
+                  <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/15 text-cyan-200 text-xs max-w-[160px]">
                     <span className="truncate">{f.filename}</span>
                     <button onClick={() => setCFiles(prev => prev.filter((_, j) => j !== i))} className="text-cyan-300/70 hover:text-white shrink-0">✕</button>
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] text-white/40">{en ? 'Sent from your connected mailbox (Gmail / Outlook / your domain). Attachments: Gmail.' : 'Envoyé depuis ta boîte connectée (Gmail / Outlook / ton domaine). Pièces jointes : Gmail.'}</p>
+              <p className="text-xs text-white/40">{en ? 'Sent from your connected mailbox (Gmail / Outlook / your domain). Attachments: Gmail.' : 'Envoyé depuis ta boîte connectée (Gmail / Outlook / ton domaine). Pièces jointes : Gmail.'}</p>
             </div>
             <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between gap-2 sticky bottom-0 bg-gray-900">
               {cDone ? (
@@ -1151,7 +1151,7 @@ function FullInbox({ onReplyMode, metriques }: {
       {/* Compact inline counters — removed the big 4-card banner since
           the funnel above already shows Sent / Opened / etc. We keep
           ONLY what the funnel doesn't carry: who-sent and unsub. */}
-      <div className="flex items-center gap-3 text-[10px] text-white/50 flex-wrap">
+      <div className="flex items-center gap-3 text-xs text-white/50 flex-wrap">
         <span>{en ? 'Received' : 'Reçus'} <strong className="text-cyan-300">{inboxCount}</strong></span>
         <span className="text-white/45">·</span>
         <span>{en ? 'AI sent' : 'Hugo IA'} <strong className="text-emerald-300">{aiSentCount}</strong></span>
@@ -1178,7 +1178,7 @@ function FullInbox({ onReplyMode, metriques }: {
             onClick={() => setFilter(t.key as any)}
             className={`px-3 py-2 min-h-[40px] text-xs font-medium rounded-lg transition ${filter === t.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
           >
-            {t.label} <span className="text-[10px] opacity-60 ml-0.5">{t.count}</span>
+            {t.label} <span className="text-xs opacity-60 ml-0.5">{t.count}</span>
           </button>
         ))}
         <button onClick={load} className="ml-auto px-2 py-2 min-h-[40px] text-base text-white/40 hover:text-white/70" title={en ? 'Refresh' : 'Rafraîchir'} aria-label="Refresh">↻</button>
@@ -1189,9 +1189,9 @@ function FullInbox({ onReplyMode, metriques }: {
           réel et ce qui ne l'était pas — c'était le symptôme d'une boîte qui
           mélangeait les deux. Une fois le mélange supprimé, une phrase suffit. */}
       {modeApercu ? (
-        <p className="text-[11px] text-amber-300/80 px-1">{en ? 'ℹ️ Examples, shown until a mailbox is connected.' : 'ℹ️ Exemples, affichés tant qu\'aucune boîte n\'est connectée.'}</p>
+        <p className="text-xs text-amber-300/80 px-1">{en ? 'ℹ️ Examples, shown until a mailbox is connected.' : 'ℹ️ Exemples, affichés tant qu\'aucune boîte n\'est connectée.'}</p>
       ) : (
-        <p className="text-[11px] text-emerald-300/80 px-1">{en ? '✅ Your real mailbox — Gmail, Outlook or your own domain.' : '✅ Ta vraie boîte — Gmail, Outlook ou ton nom de domaine.'}</p>
+        <p className="text-xs text-emerald-300/80 px-1">{en ? '✅ Your real mailbox — Gmail, Outlook or your own domain.' : '✅ Ta vraie boîte — Gmail, Outlook ou ton nom de domaine.'}</p>
       )}
 
       {/* Les emails restés sans réponse, dans l'onglet où on les traite.
@@ -1201,14 +1201,14 @@ function FullInbox({ onReplyMode, metriques }: {
           l'information et l'action sont au même endroit. */}
       {filter === 'inbox' && metriques?.unrepliedInbounds && metriques.unrepliedInbounds.length > 0 && (
         <details className="rounded-lg bg-white/[0.02] border border-yellow-500/20 p-2.5">
-          <summary className="text-[11px] text-yellow-300 cursor-pointer font-medium min-h-[32px] flex items-center">
+          <summary className="text-xs text-yellow-300 cursor-pointer font-medium min-h-[32px] flex items-center">
             {metriques.unrepliedInbounds.length} {en
               ? `email${metriques.unrepliedInbounds.length > 1 ? 's' : ''} without a reply — see why`
               : `email${metriques.unrepliedInbounds.length > 1 ? 's' : ''} sans réponse — voir pourquoi`}
           </summary>
           <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
             {metriques.unrepliedInbounds.map((u, i) => (
-              <div key={i} className="text-[10px] text-white/60 px-2 py-1.5 rounded bg-white/[0.02] border border-white/5">
+              <div key={i} className="text-xs text-white/60 px-2 py-1.5 rounded bg-white/[0.02] border border-white/5">
                 <span className="text-white/80 font-medium break-all">{u.from}</span>
                 {' — '}<span className="text-yellow-300/80">{u.decision}</span> ({u.classification})
                 <span className="text-white/30 ml-1">· {new Date(u.received_at).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}</span>
@@ -1256,10 +1256,10 @@ function FullInbox({ onReplyMode, metriques }: {
           <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <div className="flex items-center gap-2 min-w-0">
-                <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${selected.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (selected.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
+                <span className={`shrink-0 px-2 py-0.5 rounded text-xs font-bold ${selected.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (selected.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
                   {selected.direction === 'inbox' ? (en ? '✉ Received' : '✉ Reçu') : (selected.auto ? '🤖 Hugo IA' : '✍ Toi')}
                 </span>
-                <div className="text-[10px] text-white/60 truncate">
+                <div className="text-xs text-white/60 truncate">
                   {selected.direction === 'inbox' ? `${en ? 'From:' : 'De :'} ${selected.from_name || ''} <${selected.from_email}>` : `${en ? 'To:' : 'À :'} ${selected.to_email}`}
                 </div>
               </div>
@@ -1267,8 +1267,8 @@ function FullInbox({ onReplyMode, metriques }: {
             </div>
             <div className="px-4 py-3 space-y-2 border-b border-white/10">
               <h4 className="text-sm font-bold text-white">{selected.subject || '(sans objet)'}</h4>
-              <div className="text-[10px] text-white/40">{new Date(selected.date).toLocaleString(dateLocale, { dateStyle: 'medium', timeStyle: 'short' })}</div>
-              {selected.classification === 'unsubscribe' && <div className="text-[10px] px-2 py-1 rounded bg-red-500/20 text-red-300 inline-block">🚫 {en ? 'Detected as unsubscribe — sender blacklisted' : 'Détecté comme désabonnement — expéditeur blacklisté'}</div>}
+              <div className="text-xs text-white/40">{new Date(selected.date).toLocaleString(dateLocale, { dateStyle: 'medium', timeStyle: 'short' })}</div>
+              {selected.classification === 'unsubscribe' && <div className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-300 inline-block">🚫 {en ? 'Detected as unsubscribe — sender blacklisted' : 'Détecté comme désabonnement — expéditeur blacklisté'}</div>}
             </div>
             <div className="px-4 py-4 text-xs text-white/80 whitespace-pre-wrap leading-relaxed max-h-[40vh] overflow-y-auto">
               {selected.body || (en ? '(no body)' : '(pas de contenu)')}
@@ -1276,7 +1276,7 @@ function FullInbox({ onReplyMode, metriques }: {
             {/* Reply */}
             {(selected.direction === 'inbox' || selected.to_email) && (
               <div className="border-t border-white/10 px-4 py-3 space-y-2">
-                <div className="text-[10px] text-white/50">{en ? 'Reply to' : 'Répondre à'} <strong className="text-white/80">{selected.direction === 'inbox' ? selected.from_email : selected.to_email}</strong></div>
+                <div className="text-xs text-white/50">{en ? 'Reply to' : 'Répondre à'} <strong className="text-white/80">{selected.direction === 'inbox' ? selected.from_email : selected.to_email}</strong></div>
                 <textarea
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
@@ -1285,7 +1285,7 @@ function FullInbox({ onReplyMode, metriques }: {
                   className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-white/30">{en ? 'Sent from your connected SMTP' : 'Envoyé depuis ton SMTP connecté'}</span>
+                  <span className="text-xs text-white/30">{en ? 'Sent from your connected SMTP' : 'Envoyé depuis ton SMTP connecté'}</span>
                   <button
                     onClick={sendReply}
                     disabled={sending || !replyText.trim()}
@@ -1321,23 +1321,23 @@ function SplitPaneContent({
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-white/10 space-y-1">
         <div className="flex items-center gap-2">
-          <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${selected.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (selected.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
+          <span className={`shrink-0 px-2 py-0.5 rounded text-xs font-bold ${selected.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (selected.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
             {selected.direction === 'inbox' ? (en ? '✉ Reçu' : '✉ Reçu') : (selected.auto ? '🤖 Hugo IA' : '✍ Toi')}
           </span>
-          <div className="text-[10px] text-white/60 truncate">
+          <div className="text-xs text-white/60 truncate">
             {selected.direction === 'inbox' ? `${en ? 'From:' : 'De :'} ${selected.from_name || ''} <${selected.from_email}>` : `${en ? 'To:' : 'À :'} ${selected.to_email}`}
           </div>
         </div>
         <h4 className="text-sm font-bold text-white">{selected.subject || '(sans objet)'}</h4>
-        <div className="text-[10px] text-white/40">{new Date(selected.date).toLocaleString(dateLocale, { dateStyle: 'medium', timeStyle: 'short' })}</div>
-        {selected.classification === 'unsubscribe' && <div className="text-[10px] px-2 py-1 rounded bg-red-500/20 text-red-300 inline-block">🚫 {en ? 'Detected as unsubscribe — sender blacklisted' : 'Détecté comme désabonnement — expéditeur blacklisté'}</div>}
+        <div className="text-xs text-white/40">{new Date(selected.date).toLocaleString(dateLocale, { dateStyle: 'medium', timeStyle: 'short' })}</div>
+        {selected.classification === 'unsubscribe' && <div className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-300 inline-block">🚫 {en ? 'Detected as unsubscribe — sender blacklisted' : 'Détecté comme désabonnement — expéditeur blacklisté'}</div>}
       </div>
       <div className="flex-1 px-4 py-4 text-xs text-white/80 whitespace-pre-wrap leading-relaxed overflow-y-auto">
         {selected.body || (en ? '(no body)' : '(pas de contenu)')}
       </div>
       {(selected.direction === 'inbox' || selected.to_email) && (
         <div className="border-t border-white/10 px-4 py-3 space-y-2">
-          <div className="text-[10px] text-white/50">{en ? 'Reply to' : 'Répondre à'} <strong className="text-white/80">{selected.direction === 'inbox' ? selected.from_email : selected.to_email}</strong></div>
+          <div className="text-xs text-white/50">{en ? 'Reply to' : 'Répondre à'} <strong className="text-white/80">{selected.direction === 'inbox' ? selected.from_email : selected.to_email}</strong></div>
           <textarea
             value={replyText}
             onChange={e => setReplyText(e.target.value)}

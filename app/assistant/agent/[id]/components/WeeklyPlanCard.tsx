@@ -56,7 +56,7 @@ export default function WeeklyPlanCard() {
           <div className="text-2xl">📅</div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-white">{en ? 'Plan ahead' : 'Planning à l’avance'}</div>
-            <div className="text-[11px] text-white/50">{en ? 'Generate 1 to 4 weeks of posts — edit/delete each post before its date' : 'Génère 1 à 4 semaines de posts — modifie/supprime chaque post avant sa date'}</div>
+            <div className="text-xs text-white/50">{en ? 'Generate 1 to 4 weeks of posts — edit/delete each post before its date' : 'Génère 1 à 4 semaines de posts — modifie/supprime chaque post avant sa date'}</div>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -83,12 +83,12 @@ export default function WeeklyPlanCard() {
                 {isLoading ? (
                   <>
                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-1" />
-                    <div className="text-[9px] text-white/70">{en ? 'working…' : 'en cours…'}</div>
+                    <div className="text-xs text-white/70">{en ? 'working…' : 'en cours…'}</div>
                   </>
                 ) : (
                   <>
                     <div>✨ {opt.label}</div>
-                    <div className="text-[9px] text-white/40 mt-0.5">{opt.sub}</div>
+                    <div className="text-xs text-white/40 mt-0.5">{opt.sub}</div>
                   </>
                 )}
               </button>
@@ -173,10 +173,10 @@ function TikTokPublishModeToggle() {
     >
       <div className="flex items-center gap-1.5">
         <span className="text-sm">{icon}</span>
-        <span className={`text-[11px] font-bold ${mode === val ? 'text-cyan-200' : 'text-white/70'}`}>{title}</span>
-        {mode === val && <span className="ml-auto text-cyan-300 text-[10px]">✓</span>}
+        <span className={`text-xs font-bold ${mode === val ? 'text-cyan-200' : 'text-white/70'}`}>{title}</span>
+        {mode === val && <span className="ml-auto text-cyan-300 text-xs">✓</span>}
       </div>
-      <div className="text-[10px] text-white/40 mt-0.5">{desc}</div>
+      <div className="text-xs text-white/40 mt-0.5">{desc}</div>
     </button>
   );
 
@@ -190,7 +190,7 @@ function TikTokPublishModeToggle() {
         {opt('auto', '⚡', en ? 'Auto (recommended)' : 'Auto (recommandé)', en ? 'Léna publishes directly, nothing to do on your side.' : 'Léna publie directement, sans rien à faire de ta part.')}
         {opt('manual', '🎵', en ? 'Boost with a trending sound' : 'Booster son tendance', en ? 'Optional: Léna drops the reel as a draft in your TikTok app so you can add a trending sound (30s) before publishing.' : 'Optionnel : Léna dépose le reel en brouillon dans ton app TikTok pour que tu y colles un son tendance (30s) avant de publier.')}
       </div>
-      <p className="text-[10px] text-white/35 mt-1.5">{en ? 'Auto publishes your reels on its own. Boost mode is just an option if you want to add a trending sound by hand.' : 'L’auto publie tes reels tout seul. Le mode booster est juste une option si tu veux ajouter un son tendance à la main.'}</p>
+      <p className="text-xs text-white/35 mt-1.5">{en ? 'Auto publishes your reels on its own. Boost mode is just an option if you want to add a trending sound by hand.' : 'L’auto publie tes reels tout seul. Le mode booster est juste une option si tu veux ajouter un son tendance à la main.'}</p>
     </div>
   );
 }
@@ -267,7 +267,7 @@ function ValidatePublicationsToggle() {
       <div className="text-2xl">{validateMode ? '✋' : '⚡'}</div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-bold text-white">{en ? 'Approve each post' : 'Valider chaque publication'}</div>
-        <div className="text-[11px] text-white/50">
+        <div className="text-xs text-white/50">
           {validateMode
             ? (en ? 'Léna prepares the posts in the planning. YOU approve each post manually before it goes live.' : 'Léna prépare les posts dans le planning. TU valides chaque post manuellement avant publication.')
             : (en ? 'Léna publishes automatically at the scheduled times. No manual approval.' : 'Léna publie automatiquement aux horaires planifiés. Pas de validation manuelle.')}

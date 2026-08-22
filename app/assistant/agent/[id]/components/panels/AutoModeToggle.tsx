@@ -52,7 +52,7 @@ export function AutoModeToggle({ agentId, autoLabel, manualLabel, autoDesc, manu
         <span className="text-base sm:text-lg">{auto ? '\u{1F916}' : '\u{270D}\uFE0F'}</span>
         <div className="min-w-0">
           <div className="text-xs sm:text-sm font-medium text-white/80">{auto ? autoLabel : manualLabel}</div>
-          <div className="text-[10px] text-white/40">{auto ? autoDesc : manualDesc}</div>
+          <div className="text-xs text-white/40">{auto ? autoDesc : manualDesc}</div>
         </div>
       </div>
       <button
@@ -156,7 +156,7 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div>
           <h4 className="text-xs sm:text-sm font-bold text-white/90">{en ? 'Social networks' : 'Réseaux sociaux'}</h4>
-          <p className="text-[10px] text-white/40">{en ? 'Connect your accounts — enable auto-publishing per network' : 'Connecte tes comptes — active la publication auto par réseau'}</p>
+          <p className="text-xs text-white/40">{en ? 'Connect your accounts — enable auto-publishing per network' : 'Connecte tes comptes — active la publication auto par réseau'}</p>
         </div>
       </div>
       <div className="space-y-2">
@@ -171,9 +171,9 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs sm:text-sm font-bold text-white truncate">{n.label}</span>
-                  {isConnected && <span className="text-[10px] text-emerald-400 font-bold">{'\u2713'}</span>}
+                  {isConnected && <span className="text-xs text-emerald-400 font-bold">{'\u2713'}</span>}
                 </div>
-                <div className="text-[10px] text-white/45 truncate">
+                <div className="text-xs text-white/45 truncate">
                   {!isConnected
                     ? (en ? 'Not connected' : 'Non connecté')
                     : auto ? (en ? 'Auto-publishing on' : 'Publication auto activée') : (en ? 'Manual publishing' : 'Publication manuelle')}
@@ -182,7 +182,7 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
               {!isConnected ? (
                 <a
                   href={n.oauth}
-                  className={`px-3 py-2 min-h-[36px] text-[11px] font-bold text-white rounded-lg bg-gradient-to-r ${n.gradient} hover:opacity-90 transition flex items-center gap-1`}
+                  className={`px-3 py-2 min-h-[36px] text-xs font-bold text-white rounded-lg bg-gradient-to-r ${n.gradient} hover:opacity-90 transition flex items-center gap-1`}
                 >
                   {en ? 'Connect' : 'Connecter'}
                 </a>
@@ -199,7 +199,7 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
                   </button>
                   <button
                     onClick={() => handleDisconnect(n.key)}
-                    className="text-[10px] text-white/35 hover:text-red-400 px-1 transition flex-shrink-0"
+                    className="text-xs text-white/35 hover:text-red-400 px-1 transition flex-shrink-0"
                     title={`Déconnecter ${n.label}`}
                   >
                     ✕
@@ -277,7 +277,7 @@ export function NetworkAutoModeToggles({ agentId }: { agentId: string }) {
           <div key={n.key} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03]">
             <div className="flex items-center gap-2">
               <span className="text-sm">{n.icon}</span>
-              <span className="text-[11px] text-white/70">{n.label}</span>
+              <span className="text-xs text-white/70">{n.label}</span>
             </div>
             <button
               onClick={() => toggleNetwork(n.key)}
@@ -289,7 +289,7 @@ export function NetworkAutoModeToggles({ agentId }: { agentId: string }) {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-white/50 mt-2">{en ? 'Enable/disable automatic publishing per network' : 'Active/desactive la publication automatique par reseau'}</p>
+      <p className="text-xs text-white/50 mt-2">{en ? 'Enable/disable automatic publishing per network' : 'Active/desactive la publication automatique par reseau'}</p>
     </div>
   );
 }

@@ -153,7 +153,7 @@ export default function StrategiePanel({ en = false, replie = false }: { en?: bo
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {enregistre && <span className="text-emerald-400 text-[11px] font-semibold">Pris en compte</span>}
+          {enregistre && <span className="text-emerald-400 text-xs font-semibold">Pris en compte</span>}
           <span className="text-white/40 text-lg leading-none">{ouvert ? '−' : '+'}</span>
         </div>
       </button>
@@ -221,7 +221,7 @@ export default function StrategiePanel({ en = false, replie = false }: { en?: bo
 
       {/* ── Ce qu'il veut pousser, ou éviter ── */}
       <div>
-        <label htmlFor="consigne-strategie" className="block text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-2">
+        <label htmlFor="consigne-strategie" className="block text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">
           Ce que tu veux mettre en avant, ou éviter
         </label>
         <textarea

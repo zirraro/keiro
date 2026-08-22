@@ -502,7 +502,7 @@ function MonComptePage() {
                         Upgrader mon plan
                       </Link>
                     </div>
-                    <p className="text-[10px] text-purple-500 mt-2 text-center">
+                    <p className="text-xs text-purple-500 mt-2 text-center">
                       Ou <Link href="/pricing" className="underline hover:text-purple-700">changez de plan</Link> pour des quotas plus élevés
                     </p>
                   </div>
@@ -828,7 +828,7 @@ function MonComptePage() {
                       else alert(data.error || 'Erreur');
                     } catch { alert('Erreur réseau'); }
                   }}
-                  className="text-[11px] text-neutral-400 hover:text-neutral-500 underline-offset-2 hover:underline transition-colors"
+                  className="text-xs text-neutral-400 hover:text-neutral-500 underline-offset-2 hover:underline transition-colors"
                 >
                   Annuler mon abonnement
                 </button>
@@ -854,7 +854,7 @@ function MonComptePage() {
                     {profile?.instagram_username ? (
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-neutral-600">@{profile.instagram_username}</span>
-                        <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-medium rounded-full">Connecté</span>
+                        <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded-full">Connecté</span>
                       </div>
                     ) : (
                       <span className="text-sm text-neutral-400">Non connecté</span>
@@ -887,7 +887,7 @@ function MonComptePage() {
                     {profile?.tiktok_username ? (
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-neutral-600">@{profile.tiktok_username}</span>
-                        <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-medium rounded-full">Connecté</span>
+                        <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded-full">Connecté</span>
                       </div>
                     ) : (
                       <span className="text-sm text-neutral-400">Non connecté</span>
@@ -920,7 +920,7 @@ function MonComptePage() {
                     {profile?.linkedin_username ? (
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-neutral-600">@{profile.linkedin_username}</span>
-                        <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-medium rounded-full">Connecté</span>
+                        <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded-full">Connecté</span>
                       </div>
                     ) : (
                       <span className="text-sm text-neutral-400">Non connecté</span>
@@ -981,7 +981,7 @@ function MonComptePage() {
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
                               req.status === 'resolved' ? 'bg-green-100 text-green-700' :
                               req.status === 'in_progress' ? 'bg-orange-100 text-orange-700' :
                               'bg-red-100 text-red-700'
@@ -989,7 +989,7 @@ function MonComptePage() {
                               {req.status === 'resolved' ? 'Résolu' : req.status === 'in_progress' ? 'En cours' : 'Nouveau'}
                             </span>
                             {hasAdminReply && (
-                              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0c1a3a]/10 text-[#0c1a3a]">
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-[#0c1a3a]/10 text-[#0c1a3a]">
                                 Réponse
                               </span>
                             )}
@@ -1009,7 +1009,7 @@ function MonComptePage() {
                       <div className="flex flex-col h-[500px]">
                         <div className="p-4 border-b border-neutral-200 bg-neutral-50 rounded-t-xl">
                           <h3 className="font-semibold text-neutral-900">{selectedMyRequest.subject}</h3>
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold mt-1 ${
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold mt-1 ${
                             selectedMyRequest.status === 'resolved' ? 'bg-green-100 text-green-700' :
                             selectedMyRequest.status === 'in_progress' ? 'bg-orange-100 text-orange-700' :
                             'bg-red-100 text-red-700'
@@ -1033,7 +1033,7 @@ function MonComptePage() {
                                 {msg.image && (
                                   <img src={msg.image} alt="Piece jointe" className="mt-2 max-w-full max-h-48 rounded-lg border cursor-pointer" onClick={() => window.open(msg.image, '_blank')} />
                                 )}
-                                <p className="text-[10px] text-neutral-400 mt-1">
+                                <p className="text-xs text-neutral-400 mt-1">
                                   {msg.at ? new Date(msg.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
                                 </p>
                               </div>

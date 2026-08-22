@@ -231,7 +231,7 @@ export default function AgentUploadsPanel({
           <h3 className="text-white font-bold text-sm flex items-center gap-1.5">
             {'\u{1F4C1}'} {title || defaultTitle}
           </h3>
-          <p className="text-[11px] text-white/50 mt-0.5 leading-relaxed max-w-xl">
+          <p className="text-xs text-white/50 mt-0.5 leading-relaxed max-w-xl">
             {hint || defaultHint}
           </p>
         </div>
@@ -240,13 +240,13 @@ export default function AgentUploadsPanel({
             <button
               type="button"
               onClick={() => setShowPolicy(true)}
-              className="text-[10px] text-white/50 hover:text-white/80 underline underline-offset-2"
+              className="text-xs text-white/50 hover:text-white/80 underline underline-offset-2"
               title={en ? 'How may we use your files?' : 'Que peut-on faire de tes fichiers ?'}
             >
               {'⚙️'} {en ? 'Usage rights' : 'Utilisation'}{policy ? ' ✓' : ''}
             </button>
           )}
-          <span className="text-[10px] text-white/40">
+          <span className="text-xs text-white/40">
             {uploads.length} / {limit}
           </span>
         </div>
@@ -288,20 +288,20 @@ export default function AgentUploadsPanel({
             <div className="mt-2 mx-auto max-w-xs h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div className="h-full bg-emerald-400 transition-all" style={{ width: `${Math.round((progress.done / Math.max(progress.total, 1)) * 100)}%` }} />
             </div>
-            <p className="text-[10px] text-white/40 mt-1">{en ? 'Analysing each file…' : 'Analyse de chaque fichier…'}</p>
+            <p className="text-xs text-white/40 mt-1">{en ? 'Analysing each file…' : 'Analyse de chaque fichier…'}</p>
           </>
         ) : (
           <>
             <p className="text-sm text-white/70">
               {en ? 'Drop files or folders here, or click to select' : 'Dépose fichiers ou dossiers ici, ou clique pour sélectionner'}
             </p>
-            <p className="text-[10px] text-white/40 mt-1">
+            <p className="text-xs text-white/40 mt-1">
               {en ? 'Images · videos · PDF/docs — folders keep their structure' : 'Images · vidéos · PDF/docs — les dossiers gardent leur structure'}
             </p>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
-              className="mt-2 text-[11px] text-emerald-300/80 hover:text-emerald-200 underline underline-offset-2"
+              className="mt-2 text-xs text-emerald-300/80 hover:text-emerald-200 underline underline-offset-2"
             >
               {en ? '📂 Import a whole folder' : '📂 Importer un dossier entier'}
             </button>
@@ -311,14 +311,14 @@ export default function AgentUploadsPanel({
 
       {/* Confirmation compteur après upload */}
       {summaryLabel && (
-        <div className="mt-2 px-3 py-2 rounded bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-200">
+        <div className="mt-2 px-3 py-2 rounded bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200">
           {summaryLabel}
         </div>
       )}
 
       {/* Suggestion OPTIONNELLE de rangement quand dépôt en vrac */}
       {organizeHint && (
-        <div className="mt-2 px-3 py-2 rounded bg-white/[0.04] border border-white/10 text-[11px] text-white/60 flex items-center justify-between gap-2">
+        <div className="mt-2 px-3 py-2 rounded bg-white/[0.04] border border-white/10 text-xs text-white/60 flex items-center justify-between gap-2">
           <span>{en
             ? 'Tip: import your files inside folders to keep them organised (optional).'
             : 'Astuce : importe tes fichiers dans des dossiers pour garder ton classement (optionnel).'}</span>
@@ -327,7 +327,7 @@ export default function AgentUploadsPanel({
       )}
 
       {error && (
-        <div className="mt-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-[11px] text-red-300">
+        <div className="mt-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-300">
           {error}
         </div>
       )}
@@ -338,7 +338,7 @@ export default function AgentUploadsPanel({
           {groupKeys.map((gk) => (
             <div key={gk}>
               {gk !== '__root__' && (
-                <div className="text-[11px] font-semibold text-white/60 mb-1.5 flex items-center gap-1 break-all">
+                <div className="text-xs font-semibold text-white/60 mb-1.5 flex items-center gap-1 break-all">
                   {'\u{1F4C2}'} {gk}
                 </div>
               )}
@@ -370,14 +370,14 @@ export default function AgentUploadsPanel({
                             ))}
                           </div>
                         )}
-                        <p className="text-[10px] text-white/60 line-clamp-2">
+                        <p className="text-xs text-white/60 line-clamp-2">
                           {analysis.summary || analysis.ambiance || u.file_name || (en ? 'Awaiting analysis…' : 'Analyse en attente…')}
                         </p>
                         <div className="flex items-center justify-between mt-1.5">
-                          <a href={u.file_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-white/30 hover:text-white/60">
+                          <a href={u.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-white/30 hover:text-white/60">
                             {en ? 'Open' : 'Ouvrir'}
                           </a>
-                          <button onClick={() => remove(u.id)} className="text-[10px] text-white/30 hover:text-red-400/70">
+                          <button onClick={() => remove(u.id)} className="text-xs text-white/30 hover:text-red-400/70">
                             {en ? 'Remove' : 'Supprimer'}
                           </button>
                         </div>
@@ -421,7 +421,7 @@ function AssetPolicyModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#0e1526] p-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="text-white font-bold text-sm mb-1">{en ? 'How may we use your files?' : 'Que peut-on faire de tes fichiers ?'}</h3>
-        <p className="text-[11px] text-white/50 mb-4 leading-relaxed">
+        <p className="text-xs text-white/50 mb-4 leading-relaxed">
           {en ? 'Your instructions are followed strictly by every agent for all your photos & videos.' : 'Tes consignes sont suivies strictement par tous les agents pour toutes tes photos & vidéos.'}
         </p>
 
@@ -437,7 +437,7 @@ function AssetPolicyModal({
                 <span className={`w-3.5 h-3.5 rounded-full border ${mode === m.key ? 'border-emerald-400 bg-emerald-400' : 'border-white/30'}`} />
                 <span className="text-[13px] font-semibold text-white/90">{m.title}</span>
               </div>
-              <p className="text-[11px] text-white/50 mt-0.5 ml-5">{m.desc}</p>
+              <p className="text-xs text-white/50 mt-0.5 ml-5">{m.desc}</p>
             </button>
           ))}
         </div>

@@ -74,7 +74,7 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
                 <p className="text-white/50 text-xs">{pack.blurb}</p>
               </div>
               {isUnlocked ? (
-                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-semibold rounded-full flex-shrink-0 border border-green-500/20">
+                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full flex-shrink-0 border border-green-500/20">
                   Inclus
                 </span>
               ) : (
@@ -114,7 +114,7 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
                   </div>
                   <div className="min-w-0">
                     <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-                    <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
+                    <div className="text-gray-400 text-xs truncate">{agent.title}</div>
                   </div>
                 </div>
               ))}

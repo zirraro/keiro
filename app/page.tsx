@@ -117,13 +117,13 @@ function HomeKeiroInner() {
                     <h3 className="font-bold text-white text-base">
                       {locale === 'fr' ? 'Ce que ton équipe IA produit chaque mois' : 'What your AI team delivers each month'}
                     </h3>
-                    <p className="text-[11px] text-white/50 mt-0.5">
+                    <p className="text-xs text-white/50 mt-0.5">
                       {locale === 'fr' ? 'Objectifs de production par plan (exemple illustratif)' : 'Production targets per plan (illustrative example)'}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 rounded-full flex-shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-green-400 text-[10px] font-bold">24/7</span>
+                    <span className="text-green-400 text-xs font-bold">24/7</span>
                   </div>
                 </div>
 
@@ -136,44 +136,44 @@ function HomeKeiroInner() {
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
                     <div className="text-2xl font-black text-emerald-300">60 → 300+</div>
-                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                    <div className="text-xs font-semibold text-white/90 mt-0.5">
                       {locale === 'fr' ? 'prospects qualifiés /mois' : 'qualified prospects/month'}
                     </div>
-                    <div className="text-[10px] text-white/40 mt-0.5">
+                    <div className="text-xs text-white/40 mt-0.5">
                       {locale === 'fr' ? 'Léo · Créateur 60 → Pro 180 → Business 300' : 'Leo · Creator 60 → Pro 180 → Business 300'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
                     <div className="text-2xl font-black text-purple-300">60 → 150+</div>
-                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                    <div className="text-xs font-semibold text-white/90 mt-0.5">
                       {locale === 'fr' ? 'posts & reels publiés /mois' : 'posts & reels published/month'}
                     </div>
-                    <div className="text-[10px] text-white/40 mt-0.5">
+                    <div className="text-xs text-white/40 mt-0.5">
                       {locale === 'fr' ? 'Léna · Créateur 60 → Pro 120 → Business 150' : 'Léna · Creator 60 → Pro 120 → Business 150'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
                     <div className="text-2xl font-black text-cyan-300">{'< 2 min'}</div>
-                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                    <div className="text-xs font-semibold text-white/90 mt-0.5">
                       {locale === 'fr' ? 'temps de réponse DM' : 'DM response time'}
                     </div>
-                    <div className="text-[10px] text-white/40 mt-0.5">
+                    <div className="text-xs text-white/40 mt-0.5">
                       {locale === 'fr' ? 'Jade · sur tous les plans' : 'Jade · on every plan'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
                     <div className="text-2xl font-black text-amber-300">~40h</div>
-                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                    <div className="text-xs font-semibold text-white/90 mt-0.5">
                       {locale === 'fr' ? 'récupérées /mois' : 'reclaimed/month'}
                     </div>
-                    <div className="text-[10px] text-white/40 mt-0.5">
+                    <div className="text-xs text-white/40 mt-0.5">
                       {locale === 'fr' ? 'Tu fais ton métier, on fait le marketing' : 'You run your business, we run the marketing'}
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-start gap-2 text-[11px]">
+                  <div className="flex items-start gap-2 text-xs">
                     <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 font-semibold flex-shrink-0">
                       {locale === 'fr' ? 'Acquisition' : 'Acquisition'}
                     </span>
@@ -181,7 +181,7 @@ function HomeKeiroInner() {
                       {locale === 'fr' ? 'Léo prospecte · Hugo envoie les emails · Jade gère les DM · Théo capte les avis Google' : 'Leo prospects · Hugo emails · Jade DMs · Theo Google reviews'}
                     </span>
                   </div>
-                  <div className="flex items-start gap-2 text-[11px]">
+                  <div className="flex items-start gap-2 text-xs">
                     <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-semibold flex-shrink-0">
                       {locale === 'fr' ? 'Contenu' : 'Content'}
                     </span>
@@ -189,7 +189,7 @@ function HomeKeiroInner() {
                       {locale === 'fr' ? 'Léna publie sur Instagram, TikTok et LinkedIn' : 'Léna publishes on Instagram, TikTok and LinkedIn'}
                     </span>
                   </div>
-                  <div className="flex items-start gap-2 text-[11px]">
+                  <div className="flex items-start gap-2 text-xs">
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-semibold flex-shrink-0">
                       {locale === 'fr' ? 'Pilotage' : 'Operations'}
                     </span>
@@ -218,7 +218,7 @@ function HomeKeiroInner() {
                           </div>
                         ))}
                       </div>
-                      <span className="text-[10px] text-white/40 ml-2">
+                      <span className="text-xs text-white/40 ml-2">
                         {locale === 'fr' ? 'Ton équipe IA complète' : 'Your full AI team'}
                       </span>
                     </div>
@@ -279,7 +279,7 @@ function HomeKeiroInner() {
               <KeiroIcon name="sparkle" className="w-5 h-5 sm:w-6 sm:h-6 text-purple-300" />
               <div>
                 <p className="font-semibold text-sm sm:text-base">{t.home.freeTrialTitle || (locale === 'fr' ? 'Essai gratuit 7 jours' : '7-day free trial')}</p>
-                <p className="text-[10px] sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || (locale === 'fr' ? 'Carte requise, aucun débit. Annulation en 1 clic à tout moment.' : 'Card required, no charge. Cancel in 1 click anytime.')}</p>
+                <p className="text-xs sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || (locale === 'fr' ? 'Carte requise, aucun débit. Annulation en 1 clic à tout moment.' : 'Card required, no charge. Cancel in 1 click anytime.')}</p>
               </div>
             </div>
             <Link href="/essai?plan=createur" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
@@ -431,17 +431,17 @@ function HomeKeiroInner() {
               <div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
                 <KeiroIcon name="bolt" className="w-5 h-5 mb-1 text-purple-600" />
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard1Title}</div>
-                <div className="text-[10px] text-neutral-600">{t.home.videoCard1Desc}</div>
+                <div className="text-xs text-neutral-600">{t.home.videoCard1Desc}</div>
               </div>
               <div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
                 <KeiroIcon name="target" className="w-5 h-5 mb-1 text-purple-600" />
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard2Title}</div>
-                <div className="text-[10px] text-neutral-600">{t.home.videoCard2Desc}</div>
+                <div className="text-xs text-neutral-600">{t.home.videoCard2Desc}</div>
               </div>
               <div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
                 <KeiroIcon name="chart" className="w-5 h-5 mb-1 text-purple-600" />
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard3Title}</div>
-                <div className="text-[10px] text-neutral-600">{t.home.videoCard3Desc}</div>
+                <div className="text-xs text-neutral-600">{t.home.videoCard3Desc}</div>
               </div>
             </div>
           </div>
@@ -476,7 +476,7 @@ function HomeKeiroInner() {
           cas clients viendront ici dès les premiers retours mesurés. */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-10">
-          <span className="inline-block mb-3 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
+          <span className="inline-block mb-3 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
             {locale === 'fr' ? 'PROGRAMME PILOTE' : 'PILOT PROGRAM'}
           </span>
           <h2 className="text-2xl sm:text-3xl font-bold mb-2">
@@ -666,7 +666,7 @@ function HomeKeiroInner() {
               <div className="flex-1 text-center sm:text-left">
                 <p className="text-sm font-bold text-neutral-900 dark:text-white">🎁 {t.home.freeTrialTitle || (locale === 'fr' ? 'Essai gratuit 7 jours' : '7-day free trial')}</p>
                 <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5">{t.home.freeTrialPricingDesc || (locale === 'fr' ? 'Tous les agents débloqués — carte requise, 0€ débité' : 'All agents unlocked — card required, €0 charged')}</p>
-                <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || (locale === 'fr' ? '0€ pendant 7 jours • Carte requise • Annulation à tout moment' : '€0 for 7 days • Card required • Cancel anytime')}</p>
+                <p className="text-xs text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || (locale === 'fr' ? '0€ pendant 7 jours • Carte requise • Annulation à tout moment' : '€0 for 7 days • Card required • Cancel anytime')}</p>
               </div>
               <Link
                 href="/essai?plan=createur"
@@ -683,7 +683,7 @@ function HomeKeiroInner() {
               auto-publication of social posts which is the headline value. */}
           <div id="tarifs" className="max-w-6xl mx-auto mb-8 sm:mb-10 px-1 sm:px-0">
             <div className="text-center mb-4 sm:mb-5">
-              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
+              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs sm:text-xs font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
               <h3 className="text-lg sm:text-2xl font-black text-neutral-900 mb-1 leading-tight">
                 {locale === 'fr' ? 'Voilà ton équipe — et ce que chacun fait' : 'Meet your team — and what each one does'}
               </h3>
@@ -696,23 +696,23 @@ function HomeKeiroInner() {
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
               {/* Léna — the headline value */}
               <div className="rounded-2xl border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50 p-4 shadow-md hover:shadow-lg transition relative overflow-hidden">
-                <span className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded uppercase tracking-wide">{locale === 'fr' ? '⭐ Star' : '⭐ Top'}</span>
+                <span className="absolute top-2 right-2 text-xs font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded uppercase tracking-wide">{locale === 'fr' ? '⭐ Star' : '⭐ Top'}</span>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-[2px] flex-shrink-0">
                     <img src="/avatars-3d/content.png" alt="Léna" className="w-full h-full rounded-full object-cover" style={{ objectPosition: 'center 18%' }} />
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Léna</div>
-                    <div className="text-[10px] text-purple-700 font-semibold">{locale === 'fr' ? 'Contenu social' : 'Social content'}</div>
+                    <div className="text-xs text-purple-700 font-semibold">{locale === 'fr' ? 'Contenu social' : 'Social content'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-purple-700 bg-white/70 border border-purple-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
+                  <span className="ml-auto text-xs font-bold text-purple-700 bg-white/70 border border-purple-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? 'Génère + publie automatiquement tes posts Instagram, TikTok, LinkedIn. Reels, carrousels, stories.'
                     : 'Generates + auto-publishes your Instagram, TikTok, LinkedIn posts. Reels, carousels, stories.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ {locale === 'fr' ? '~18 publications/semaine sur Instagram et TikTok, aux meilleures heures' : '~18 posts/week across Instagram and TikTok, at peak hours'}</li>
                   <li>✓ <strong>{locale === 'fr' ? 'Dépose tes propres photos' : 'Drop in your own photos'}</strong> {locale === 'fr' ? '— elle les retouche, les mixe entre elles… ou les publie BRUTES quand c\'est plus authentique' : '— she retouches them, mixes them… or posts them RAW when that feels more authentic'}</li>
                   <li>✓ {locale === 'fr' ? 'Surfe sur les vrais événements (dates réelles, jamais après coup)' : 'Rides real events (real dates, never after the fact)'}</li>
@@ -729,16 +729,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Hugo</div>
-                    <div className="text-[10px] text-cyan-700 font-semibold">{locale === 'fr' ? 'Emails & boîte mail' : 'Emails & inbox'}</div>
+                    <div className="text-xs text-cyan-700 font-semibold">{locale === 'fr' ? 'Emails & boîte mail' : 'Emails & inbox'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro' : 'From Pro'}</span>
+                  <span className="ml-auto text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro' : 'From Pro'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? "Envoie tes emails depuis TON adresse, et gère ta boîte de A à Z à ta place."
                     : 'Sends emails from YOUR address, and runs your whole inbox for you.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ <strong>{locale === 'fr' ? 'Vide les pubs, range en dossiers' : 'Bins the ads, files everything'}</strong> {locale === 'fr' ? '(Prospects, Clients, Factures) — tu ouvres une boîte propre' : '(Prospects, Clients, Invoices) — you open a clean inbox'}</li>
                   <li>✓ {locale === 'fr' ? 'Répond aux vrais clients : envoi auto ou brouillon, tu choisis' : 'Answers real customers: auto-send or draft, your call'}</li>
                   <li>✓ {locale === 'fr' ? 'Gmail, Outlook ou ton domaine perso (IMAP)' : 'Gmail, Outlook or your own domain (IMAP)'}</li>
@@ -755,16 +755,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Jade</div>
-                    <div className="text-[10px] text-pink-700 font-semibold">{locale === 'fr' ? 'DM, commentaires & comptes à suivre' : 'DMs, comments & follows'}</div>
+                    <div className="text-xs text-pink-700 font-semibold">{locale === 'fr' ? 'DM, commentaires & comptes à suivre' : 'DMs, comments & follows'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-pink-700 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
+                  <span className="ml-auto text-xs font-bold text-pink-700 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? 'Répond à tes DMs et commentaires 24/7 avec ton ton de voix, et repère les comptes pertinents à suivre. Tu reprends quand tu veux.'
                     : 'Replies to your DMs and comments 24/7 in your voice, and spots relevant accounts to follow. Take over anytime.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ {locale === 'fr' ? 'DM & commentaires auto' : 'Auto DMs & comments'}</li>
                   <li>✓ {locale === 'fr' ? 'Comptes pertinents à suivre' : 'Relevant accounts to follow'}</li>
                   <li>✓ {locale === 'fr' ? 'Mode humain en 1 clic' : 'Human mode in 1 click'}</li>
@@ -780,16 +780,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Léo</div>
-                    <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting'}</div>
+                    <div className="text-xs text-emerald-700 font-semibold">{locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro' : 'From Pro'}</span>
+                  <span className="ml-auto text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro' : 'From Pro'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? 'Trouve et qualifie tes prospects locaux, puis passe le relais à Hugo et Jade.'
                     : 'Finds and qualifies your local prospects, then hands off to Hugo and Jade.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ {locale === 'fr' ? 'Filtre par région, métier et activité — tu cibles ta zone' : 'Filter by area, trade and activity — target your patch'}</li>
                   <li>✓ {locale === 'fr' ? 'Score chaud/tiède + CRM et pipeline intégrés' : 'Hot/warm scoring + built-in CRM and pipeline'}</li>
                   <li>✓ <strong>{locale === 'fr' ? 'Tes commentaires sont lus par TOUS les agents' : 'Your notes are read by EVERY agent'}</strong> {locale === 'fr' ? '— ce que tu notes sur un prospect, Hugo et Jade le savent' : '— what you note on a prospect, Hugo and Jade know it'}</li>
@@ -806,16 +806,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Théo</div>
-                    <div className="text-[10px] text-amber-700 font-semibold">{locale === 'fr' ? 'Avis, fiche Google & SEO' : 'Reviews, Google listing & SEO'}</div>
+                    <div className="text-xs text-amber-700 font-semibold">{locale === 'fr' ? 'Avis, fiche Google & SEO' : 'Reviews, Google listing & SEO'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
+                  <span className="ml-auto text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? 'Répond à tes avis Google, optimise ta fiche établissement, te fait trouver en premier.'
                     : 'Answers your Google reviews, optimises your business listing, gets you found first.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ {locale === 'fr' ? 'Répond à chaque avis dans ton ton de voix' : 'Answers every review in your tone of voice'}</li>
                   <li>✓ {locale === 'fr' ? 'Un avis mécontent ? Il te le montre AVANT de répondre' : 'An unhappy review? It shows you BEFORE replying'}</li>
                   <li>✓ <strong>{locale === 'fr' ? 'Répare ta fiche Google' : 'Fixes your Google listing'}</strong> {locale === 'fr' ? ' : horaires, photos, catégories, description — ce que 90% des commerces laissent vide' : ': hours, photos, categories, description — what 90% of shops leave empty'}</li>
@@ -833,16 +833,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Clara</div>
-                    <div className="text-[10px] text-violet-700 font-semibold">{locale === 'fr' ? 'Onboarding' : 'Onboarding'}</div>
+                    <div className="text-xs text-violet-700 font-semibold">{locale === 'fr' ? 'Onboarding' : 'Onboarding'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Tous les plans' : 'All plans'}</span>
+                  <span className="ml-auto text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Tous les plans' : 'All plans'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? "Configure tes agents en 10 min, te guide quand tu bloques, suit ta progression."
                     : 'Sets up your agents in 10 min, helps when stuck, tracks progress.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ {locale === 'fr' ? 'Setup guidé pas à pas' : 'Step-by-step guided setup'}</li>
                   <li>✓ {locale === 'fr' ? 'Analyse de tes uploads' : 'Analyses your uploads'}</li>
                   <li>✓ {locale === 'fr' ? 'Anti-blocage proactif' : 'Proactive anti-blocking'}</li>
@@ -857,16 +857,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Ami</div>
-                    <div className="text-[10px] text-indigo-700 font-semibold">{locale === 'fr' ? 'Stratégie & pilotage' : 'Strategy & steering'}</div>
+                    <div className="text-xs text-indigo-700 font-semibold">{locale === 'fr' ? 'Stratégie & pilotage' : 'Strategy & steering'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Tous les plans' : 'All plans'}</span>
+                  <span className="ml-auto text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Tous les plans' : 'All plans'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? "Analyse tes performances, conseille les agents, calibre tes prochaines campagnes."
                     : 'Analyses your performance, advises agents, calibrates next campaigns.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ {locale === 'fr' ? 'Reporting hebdo' : 'Weekly reporting'}</li>
                   <li>✓ {locale === 'fr' ? 'Best-day analysis' : 'Best-day analysis'}</li>
                   <li>✓ {locale === 'fr' ? 'Coordonne tous les agents' : 'Coordinates all agents'}</li>
@@ -881,16 +881,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Stella</div>
-                    <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'WhatsApp Business' : 'WhatsApp Business'}</div>
+                    <div className="text-xs text-emerald-700 font-semibold">{locale === 'fr' ? 'WhatsApp Business' : 'WhatsApp Business'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro · ou +19€' : 'From Pro · or +€19'}</span>
+                  <span className="ml-auto text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Pro · ou +19€' : 'From Pro · or +€19'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? 'Confirmations de réservation, rappels anti no-show, réponses aux questions clients.'
                     : 'Booking confirmations, no-show reminders, answers to customer questions.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ <strong>{locale === 'fr' ? 'Rappel la veille du RDV' : 'Reminder the day before'}</strong> {locale === 'fr' ? '— le no-show, c\'est du chiffre perdu qui ne revient pas' : '— a no-show is revenue that never comes back'}</li>
                   <li>✓ {locale === 'fr' ? 'Répond dans la langue du client, avec ton dossier business' : 'Answers in the customer\'s language, from your business file'}</li>
                   <li>✓ <strong>{locale === 'fr' ? '70 messages WhatsApp par mois inclus' : '70 WhatsApp messages per month included'}</strong></li>
@@ -908,16 +908,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Sara</div>
-                    <div className="text-[10px] text-slate-600 font-semibold">{locale === 'fr' ? 'RH & Juridique' : 'HR & Legal'}</div>
+                    <div className="text-xs text-slate-600 font-semibold">{locale === 'fr' ? 'RH & Juridique' : 'HR & Legal'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
+                  <span className="ml-auto text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? 'Tes contrats, CGV, mentions légales, RGPD — et une réponse quand tu ne sais pas quoi faire.'
                     : 'Your contracts, T&Cs, legal notices, GDPR — and an answer when you don\'t know what to do.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ <strong>{locale === 'fr' ? 'Tu cliques sur le document voulu' : 'Click the document you need'}</strong> {locale === 'fr' ? ' : CDI, CDD, avenant, rupture conventionnelle, attestation — il sort à ta marque' : ': permanent, fixed-term, amendment, settlement, certificate — branded and ready'}</li>
                   <li>✓ {locale === 'fr' ? 'Première embauche, prud\'hommes, licenciement : tu demandes, elle explique' : 'First hire, tribunal, dismissal: just ask, she explains'}</li>
                   <li>✓ {locale === 'fr' ? 'CGV, RGPD, mentions légales de ton site' : 'T&Cs, GDPR, legal notices for your site'}</li>
@@ -933,16 +933,16 @@ function HomeKeiroInner() {
                   </div>
                   <div>
                     <div className="font-bold text-sm text-neutral-900">Louis</div>
-                    <div className="text-[10px] text-blue-700 font-semibold">{locale === 'fr' ? 'Finance & business plan' : 'Finance & business plan'}</div>
+                    <div className="text-xs text-blue-700 font-semibold">{locale === 'fr' ? 'Finance & business plan' : 'Finance & business plan'}</div>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
+                  <span className="ml-auto text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Dès Créateur' : 'From Creator'}</span>
                 </div>
-                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                <p className="text-xs text-neutral-700 leading-relaxed mb-1.5">
                   {locale === 'fr'
                     ? 'Business plans, prévisionnels et tableaux de bord — au format que ta banque attend.'
                     : 'Business plans, forecasts and dashboards — in the format your bank expects.'}
                 </p>
-                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                <ul className="text-xs text-neutral-600 space-y-0.5">
                   <li>✓ <strong>{locale === 'fr' ? 'Fichiers Excel et PowerPoint réels' : 'Real Excel and PowerPoint files'}</strong> {locale === 'fr' ? '— pas un texte à recopier, un document à envoyer' : '— not text to retype, a document to send'}</li>
                   <li>✓ {locale === 'fr' ? 'Prévisionnel de trésorerie, seuil de rentabilité, marge par produit' : 'Cash-flow forecast, break-even, margin per product'}</li>
                   <li>✓ {locale === 'fr' ? 'Dossier prêt pour une demande de prêt ou une subvention' : 'File ready for a loan or grant application'}</li>
@@ -956,7 +956,7 @@ function HomeKeiroInner() {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-lg">🚀</div>
                   <div className="font-bold text-sm text-emerald-900">{locale === 'fr' ? 'Génération + publication AUTO' : 'AUTO generation + publication'}</div>
                 </div>
-                <p className="text-[11px] text-emerald-900 leading-relaxed">
+                <p className="text-xs text-emerald-900 leading-relaxed">
                   {locale === 'fr'
                     ? 'Tu connectes tes comptes une fois. Léna génère 18 publications/semaine, les programme, les publie aux meilleures heures. Tu valides quand tu veux ou tu laisses tourner en auto.'
                     : 'Connect your accounts once. Léna generates 18 posts/week, schedules them, publishes at peak hours. Approve whenever you want, or let it run on auto.'}
@@ -1220,7 +1220,7 @@ function HomeKeiroInner() {
               >
                 {locale === 'fr' ? 'Non merci, je reste sur Créateur' : 'No thanks, I\u2019ll stay on Creator'}
               </button>
-              <p className="text-center text-[10px] text-neutral-400 mt-2">{locale === 'fr' ? '0\u20AC pendant 7 jours \u00B7 Annulation en 1 clic à tout moment' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click anytime'}</p>
+              <p className="text-center text-xs text-neutral-400 mt-2">{locale === 'fr' ? '0\u20AC pendant 7 jours \u00B7 Annulation en 1 clic à tout moment' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click anytime'}</p>
             </div>
           </div>
         </div>
@@ -1612,7 +1612,7 @@ function Plan({
           {ctaLabel}
         </a>
       )}
-      <p className="text-center text-[10px] text-neutral-400 mt-1.5">{trialNote || '0\u20AC pendant 7j \u00B7 Annulation en 1 clic'}</p>
+      <p className="text-center text-xs text-neutral-400 mt-1.5">{trialNote || '0\u20AC pendant 7j \u00B7 Annulation en 1 clic'}</p>
     </div>
   );
 }

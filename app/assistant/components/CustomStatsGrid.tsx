@@ -103,14 +103,14 @@ export default function CustomStatsGrid() {
           <h3 className="text-white/70 text-xs uppercase tracking-wider font-semibold">
             {en ? 'Your numbers' : 'Tes chiffres'}
           </h3>
-          <p className="text-white/30 text-[10px]">
+          <p className="text-white/30 text-xs">
             {en ? 'Last 30 days' : '30 derniers jours'}
             {businessType ? ` · ${businessType}` : ''}
           </p>
         </div>
         <button
           onClick={() => setMenuOpen(o => !o)}
-          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white/70 text-[11px] font-medium transition-colors flex items-center gap-1.5"
+          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white/70 text-xs font-medium transition-colors flex items-center gap-1.5"
         >
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M4 6h16M7 12h10M10 18h4" />
@@ -123,14 +123,14 @@ export default function CustomStatsGrid() {
       {menuOpen && (
         <div className="mb-4 rounded-xl border border-white/10 bg-[#0c1a3a]/80 backdrop-blur p-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-white/50 text-[11px]">
+            <p className="text-white/50 text-xs">
               {en
                 ? `${selected.length} of ${MAX_SELECTED} selected — untick what you don't care about.`
                 : `${selected.length} sur ${MAX_SELECTED} — décoche ce qui ne t'intéresse pas.`}
             </p>
             <button
               onClick={() => save(defaultStatsFor(businessType))}
-              className="text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2"
+              className="text-xs text-white/40 hover:text-white/70 underline underline-offset-2"
             >
               {en ? 'Reset to my trade' : 'Remettre celles de mon métier'}
             </button>
@@ -142,7 +142,7 @@ export default function CustomStatsGrid() {
               if (!items.length) return null;
               return (
                 <div key={group.key}>
-                  <p className="text-white/40 text-[10px] uppercase tracking-wider font-semibold mb-1.5">
+                  <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-1.5">
                     {en ? group.en : group.fr}
                   </p>
                   <div className="space-y-1">
@@ -166,7 +166,7 @@ export default function CustomStatsGrid() {
                           <span className="leading-tight">
                             {en ? s.label.en : s.label.fr}
                             {!measurable && (
-                              <span className="text-white/25 text-[10px] ml-1">
+                              <span className="text-white/25 text-xs ml-1">
                                 {en ? '(no data yet)' : '(pas encore de donnée)'}
                               </span>
                             )}
@@ -192,13 +192,13 @@ export default function CustomStatsGrid() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {tiles.map(s => (
             <div key={s.id} className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
-              <p className="text-white/40 text-[10px] uppercase tracking-wider font-semibold mb-1.5 leading-tight">
+              <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-1.5 leading-tight">
                 {en ? s.label.en : s.label.fr}
               </p>
               <p className="text-white text-2xl font-bold">
                 {formatValue(metrics[s.id], s.unit, locale)}
               </p>
-              <p className="text-white/30 text-[10px] mt-0.5">{en ? s.hint.en : s.hint.fr}</p>
+              <p className="text-white/30 text-xs mt-0.5">{en ? s.hint.en : s.hint.fr}</p>
             </div>
           ))}
         </div>

@@ -35,7 +35,7 @@ export default function PreviewBanner({ agentName, connectLabel, connectUrl, cla
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-xs font-bold text-emerald-400">Clara</span>
-            <span className="text-[10px] text-white/30">{en ? 'Getting-started guide' : 'Guide de demarrage'}</span>
+            <span className="text-xs text-white/30">{en ? 'Getting-started guide' : 'Guide de demarrage'}</span>
           </div>
           <p className="text-xs sm:text-sm text-white/70 leading-relaxed mb-3">{claraMessage}</p>
 
@@ -49,7 +49,7 @@ export default function PreviewBanner({ agentName, connectLabel, connectUrl, cla
                 {'⚡'} {connectLabel}
               </a>
             )}
-            <span className="text-[10px] text-amber-400/60 flex items-center gap-1">
+            <span className="text-xs text-amber-400/60 flex items-center gap-1">
               {'\u{1F4F8}'} {en ? `This is a preview — connect to activate ${agentName}` : `Ceci est un apercu — connecte-toi pour activer ${agentName}`}
             </span>
           </div>

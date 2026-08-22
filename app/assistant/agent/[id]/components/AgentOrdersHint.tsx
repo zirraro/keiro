@@ -26,7 +26,7 @@ export default function AgentOrdersHint({ agentId, onPickExample, compact = true
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className={`text-[11px] font-medium rounded-full transition-all ${
+        className={`text-xs font-medium rounded-full transition-all ${
           compact
             ? 'px-2 py-1 border border-white/20 bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
             : 'w-full px-3 py-2 bg-white/10 text-white/80 hover:bg-white/15'
@@ -42,7 +42,7 @@ export default function AgentOrdersHint({ agentId, onPickExample, compact = true
           <div className="flex items-start justify-between mb-2">
             <div>
               <h3 className="text-sm font-bold text-white">Ce que tu peux demander à {doc.agentName}</h3>
-              <p className="text-[11px] text-white/50 mt-0.5">{doc.description}</p>
+              <p className="text-xs text-white/50 mt-0.5">{doc.description}</p>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -54,7 +54,7 @@ export default function AgentOrdersHint({ agentId, onPickExample, compact = true
           <ul className="space-y-1.5 max-h-[60vh] overflow-y-auto">
             {doc.orders.map((o, i) => (
               <li key={i} className="rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-0.5">{o.intent}</div>
+                <div className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-0.5">{o.intent}</div>
                 <button
                   type="button"
                   onClick={() => {
@@ -70,7 +70,7 @@ export default function AgentOrdersHint({ agentId, onPickExample, compact = true
             ))}
           </ul>
 
-          <p className="mt-3 text-[10px] text-white/40 text-center">
+          <p className="mt-3 text-xs text-white/40 text-center">
             Tu peux aussi formuler ta demande librement — {doc.agentName} comprendra.
           </p>
         </div>

@@ -40,10 +40,10 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
   const hashtags = Array.isArray(post.hashtags) ? post.hashtags.join(' ') : (post.hashtags || '');
 
   return (
-    <div className={`rounded-lg overflow-hidden border ${isDraft ? 'border-amber-500/30' : isPublished ? 'border-emerald-500/20' : 'border-white/10'} bg-white dark:bg-white/5 ${compact ? 'text-[10px]' : 'max-w-sm'}`}>
+    <div className={`rounded-lg overflow-hidden border ${isDraft ? 'border-amber-500/30' : isPublished ? 'border-emerald-500/20' : 'border-white/10'} bg-white dark:bg-white/5 ${compact ? 'text-xs' : 'max-w-sm'}`}>
       {/* Platform badge */}
       <div className={`flex items-center gap-1.5 ${compact ? 'px-2 py-1' : 'px-3 py-2'} border-b border-neutral-100 dark:border-white/5`}>
-        <div className={`${compact ? 'w-5 h-5 text-[10px]' : 'w-7 h-7 text-[10px]'} rounded-full flex items-center justify-center text-white font-bold ${
+        <div className={`${compact ? 'w-5 h-5 text-xs' : 'w-7 h-7 text-xs'} rounded-full flex items-center justify-center text-white font-bold ${
           isIG ? 'bg-gradient-to-br from-purple-600 to-pink-500' :
           isTT ? 'bg-black' :
           'bg-[#0A66C2]'
@@ -51,14 +51,14 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
           {isIG ? 'IG' : isTT ? 'TT' : 'LI'}
         </div>
         <div className="flex-1 min-w-0">
-          <span className={`${compact ? 'text-[10px]' : 'text-xs'} font-semibold text-neutral-800 dark:text-white`}>Mon business</span>
-          {isStory && <span className="ml-1.5 text-[10px] bg-gradient-to-r from-amber-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Story</span>}
-          {isReel && <span className="ml-1.5 text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
-          {isCarousel && <span className="ml-1.5 text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">Carrousel</span>}
+          <span className={`${compact ? 'text-xs' : 'text-xs'} font-semibold text-neutral-800 dark:text-white`}>Mon business</span>
+          {isStory && <span className="ml-1.5 text-xs bg-gradient-to-r from-amber-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Story</span>}
+          {isReel && <span className="ml-1.5 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
+          {isCarousel && <span className="ml-1.5 text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full">Carrousel</span>}
         </div>
-        {isDraft && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">Brouillon</span>}
-        {isPublished && <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">Publie</span>}
-        {post.status === 'approved' && <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">Programme</span>}
+        {isDraft && <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">Brouillon</span>}
+        {isPublished && <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">Publie</span>}
+        {post.status === 'approved' && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">Programme</span>}
       </div>
 
       {/* Visual */}
@@ -95,7 +95,7 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
 
         {/* Schedule badge */}
         {post.scheduled_date && !isPublished && (
-          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-lg">
+          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg">
             {'\u{1F4C5}'} {post.scheduled_date} {post.scheduled_time || ''}
           </div>
         )}
@@ -105,25 +105,25 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
       <div className={compact ? 'px-2 py-1.5' : 'px-3 py-2.5'}>
         {/* Engagement (published posts) */}
         {isPublished && post.engagement_data && (
-          <div className="flex gap-3 mb-2 text-[10px]">
+          <div className="flex gap-3 mb-2 text-xs">
             {post.engagement_data.likes != null && <span className="text-neutral-500 dark:text-white/40">{'\u2764\uFE0F'} {post.engagement_data.likes}</span>}
             {post.engagement_data.comments != null && <span className="text-neutral-500 dark:text-white/40">{'\u{1F4AC}'} {post.engagement_data.comments}</span>}
             {post.engagement_data.saves != null && <span className="text-neutral-500 dark:text-white/40">{'\u{1F516}'} {post.engagement_data.saves}</span>}
           </div>
         )}
 
-        <p className={`${compact ? 'text-[10px] line-clamp-2' : 'text-xs line-clamp-3'} text-neutral-700 dark:text-white/70 leading-relaxed`}>
+        <p className={`${compact ? 'text-xs line-clamp-2' : 'text-xs line-clamp-3'} text-neutral-700 dark:text-white/70 leading-relaxed`}>
           {post.caption || post.hook || 'Legende en cours de generation...'}
         </p>
-        {hashtags && <p className="text-[10px] text-blue-500 mt-1 break-words">{hashtags}</p>}
+        {hashtags && <p className="text-xs text-blue-500 mt-1 break-words">{hashtags}</p>}
       </div>
 
       {/* Actions (draft posts) */}
       {isDraft && (onApprove || onPublish || onSkip) && (
         <div className="px-3 pb-3 flex gap-2">
-          {onApprove && <button onClick={onApprove} className="flex-1 py-2 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-500 transition">{'\u2705'} Valider</button>}
-          {onPublish && <button onClick={onPublish} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-bold rounded-lg hover:bg-purple-500 transition">{'\u{1F680}'} Publier</button>}
-          {onSkip && <button onClick={onSkip} className="py-2 px-3 bg-white/10 text-white/40 text-[10px] rounded-lg hover:bg-white/15 transition">Ignorer</button>}
+          {onApprove && <button onClick={onApprove} className="flex-1 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-500 transition">{'\u2705'} Valider</button>}
+          {onPublish && <button onClick={onPublish} className="flex-1 py-2 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-500 transition">{'\u{1F680}'} Publier</button>}
+          {onSkip && <button onClick={onSkip} className="py-2 px-3 bg-white/10 text-white/40 text-xs rounded-lg hover:bg-white/15 transition">Ignorer</button>}
         </div>
       )}
     </div>

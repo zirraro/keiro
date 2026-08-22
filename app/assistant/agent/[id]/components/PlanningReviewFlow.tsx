@@ -145,8 +145,8 @@ export default function PlanningReviewFlow() {
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-bold text-white">📖 {en ? 'Browse your planning' : 'Feuilletage du planning'}</h3>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="text-white/40 hover:text-white/70 text-[11px]" aria-label={en ? 'Refresh' : 'Rafraîchir'}>↻</button>
-          <button onClick={() => setOpen(false)} className="text-white/40 hover:text-white text-[11px]">{en ? 'Close ✕' : 'Fermer ✕'}</button>
+          <button onClick={load} className="text-white/40 hover:text-white/70 text-xs" aria-label={en ? 'Refresh' : 'Rafraîchir'}>↻</button>
+          <button onClick={() => setOpen(false)} className="text-white/40 hover:text-white text-xs">{en ? 'Close ✕' : 'Fermer ✕'}</button>
         </div>
       </div>
 
@@ -161,17 +161,17 @@ export default function PlanningReviewFlow() {
             <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
               <div className="h-full bg-cyan-400 transition-all" style={{ width: `${((idx + 1) / posts.length) * 100}%` }} />
             </div>
-            <span className="text-[10px] text-white/40 tabular-nums">{idx + 1}/{posts.length}</span>
+            <span className="text-xs text-white/40 tabular-nums">{idx + 1}/{posts.length}</span>
           </div>
 
           {/* Jour + date prévue */}
           <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-3 py-2 mb-2 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-xs font-bold text-cyan-200 capitalize truncate">{fmtDay(cur.scheduled_date)}</div>
-              <div className="text-[10px] text-white/50">{en ? 'Scheduled' : 'Publication prévue'}{cur.scheduled_time ? ` ${en ? 'at' : 'à'} ${cur.scheduled_time.slice(0, 5)}` : ''}</div>
+              <div className="text-xs text-white/50">{en ? 'Scheduled' : 'Publication prévue'}{cur.scheduled_time ? ` ${en ? 'at' : 'à'} ${cur.scheduled_time.slice(0, 5)}` : ''}</div>
             </div>
             {dayInfo.total > 1 && (
-              <span className="shrink-0 text-[11px] font-bold text-cyan-300 bg-cyan-500/15 px-2 py-1 rounded-full">{en ? `Post ${dayInfo.pos}/${dayInfo.total} of the day` : `Post ${dayInfo.pos}/${dayInfo.total} du jour`}</span>
+              <span className="shrink-0 text-xs font-bold text-cyan-300 bg-cyan-500/15 px-2 py-1 rounded-full">{en ? `Post ${dayInfo.pos}/${dayInfo.total} of the day` : `Post ${dayInfo.pos}/${dayInfo.total} du jour`}</span>
             )}
           </div>
 
@@ -199,9 +199,9 @@ export default function PlanningReviewFlow() {
             )}
             <div className="p-2.5">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 capitalize">{cur.platform || 'instagram'}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">{cur.format || 'post'}</span>
-                {cur.status === 'approved' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">✓ {en ? 'approved' : 'validé'}</span>}
+                <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/60 capitalize">{cur.platform || 'instagram'}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/60">{cur.format || 'post'}</span>
+                {cur.status === 'approved' && <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">✓ {en ? 'approved' : 'validé'}</span>}
               </div>
               {editing ? (
                 <div>
@@ -212,14 +212,14 @@ export default function PlanningReviewFlow() {
                     className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
                   />
                   <div className="flex gap-2 mt-1.5">
-                    <button onClick={saveCaption} disabled={busy === 'update_post'} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-cyan-600 text-white disabled:opacity-40">
+                    <button onClick={saveCaption} disabled={busy === 'update_post'} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-cyan-600 text-white disabled:opacity-40">
                       {busy === 'update_post' ? '...' : (en ? 'Save' : 'Enregistrer')}
                     </button>
-                    <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-[10px] rounded-lg bg-white/10 text-white/60">{en ? 'Cancel' : 'Annuler'}</button>
+                    <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs rounded-lg bg-white/10 text-white/60">{en ? 'Cancel' : 'Annuler'}</button>
                   </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-white/70 whitespace-pre-wrap line-clamp-6">{cur.caption || cur.hook || (en ? '(no caption)' : '(pas de légende)')}</p>
+                <p className="text-xs text-white/70 whitespace-pre-wrap line-clamp-6">{cur.caption || cur.hook || (en ? '(no caption)' : '(pas de légende)')}</p>
               )}
             </div>
           </div>
@@ -252,7 +252,7 @@ export default function PlanningReviewFlow() {
             <button
               onClick={() => { setDraftCaption(cur.caption || cur.hook || ''); setEditing(true); }}
               disabled={!!busy}
-              className="px-2 py-2 min-h-[40px] text-[10px] font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
+              className="px-2 py-2 min-h-[40px] text-xs font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
             >✏️ {en ? 'Edit' : 'Modifier'}</button>
             <button
               onClick={() => {
@@ -267,12 +267,12 @@ export default function PlanningReviewFlow() {
                 act('regenerate_visual');
               }}
               disabled={!!busy}
-              className="px-2 py-2 min-h-[44px] text-[10px] font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
+              className="px-2 py-2 min-h-[44px] text-xs font-medium rounded-lg bg-white/10 text-white/70 hover:bg-white/15 disabled:opacity-40"
             >{busy === 'regenerate_visual' ? '...' : `🔄 ${en ? 'Regenerate' : 'Régénérer'}`}</button>
             <button
               onClick={validateAndNext}
               disabled={!!busy}
-              className="px-2 py-2 min-h-[40px] text-[10px] font-bold rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:opacity-90 disabled:opacity-40"
+              className="px-2 py-2 min-h-[40px] text-xs font-bold rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:opacity-90 disabled:opacity-40"
             >{busy === 'approve' ? '...' : `✓ ${en ? 'Approve' : 'Valider'}`}</button>
           </div>
 

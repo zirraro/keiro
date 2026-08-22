@@ -79,10 +79,10 @@ export default function HistoriqueTheo() {
                       {e.auteur || 'Avis Google'}
                     </span>
                     {e.note != null && (
-                      <span className="text-amber-400 text-[11px]">{'★'.repeat(e.note)}</span>
+                      <span className="text-amber-400 text-xs">{'★'.repeat(e.note)}</span>
                     )}
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                      className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                         e.type === 'escalade'
                           ? 'bg-amber-400/12 text-amber-300 border-amber-400/25'
                           : e.origine === 'manuelle'
@@ -100,7 +100,7 @@ export default function HistoriqueTheo() {
                             ? 'Théo'
                             : 'Origine inconnue'}
                     </span>
-                    <span className="text-white/35 text-[11px] ml-auto">{quand(e.date)}</span>
+                    <span className="text-white/35 text-xs ml-auto">{quand(e.date)}</span>
                   </div>
 
                   {e.texte && (

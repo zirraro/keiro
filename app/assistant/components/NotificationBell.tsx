@@ -105,7 +105,7 @@ export default function NotificationBell() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 animate-pulse">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold px-1 animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -122,7 +122,7 @@ export default function NotificationBell() {
                 Notifications {unreadCount > 0 && <span className="text-red-500">({unreadCount})</span>}
               </h3>
               {unreadCount > 0 && (
-                <button onClick={markAllRead} disabled={loading} className="text-[11px] text-blue-500 hover:underline">
+                <button onClick={markAllRead} disabled={loading} className="text-xs text-blue-500 hover:underline">
                   {loading ? '...' : 'Tout marquer comme lu'}
                 </button>
               )}
@@ -134,7 +134,7 @@ export default function NotificationBell() {
                 <div className="text-center py-8 text-neutral-400 text-sm">
                   <div className="text-2xl mb-2">{'\u2705'}</div>
                   Tout est a jour !
-                  <button onClick={() => {}} className="block mx-auto mt-2 text-[10px] text-blue-400 hover:underline">Voir les anciennes notifications</button>
+                  <button onClick={() => {}} className="block mx-auto mt-2 text-xs text-blue-400 hover:underline">Voir les anciennes notifications</button>
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="text-center py-12 text-neutral-400 text-sm">
@@ -174,14 +174,14 @@ export default function NotificationBell() {
                           </span>
                           {!notif.read && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
                         </div>
-                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-2">{notif.message}</p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-2">{notif.message}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] text-neutral-400">{notif.agent}</span>
-                          <span className="text-[10px] text-neutral-300">·</span>
-                          <span className="text-[10px] text-neutral-400">{timeAgo(notif.created_at)}</span>
-                          {notif.type === 'action' && <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">Action requise</span>}
-                          {notif.type === 'alert' && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Alerte</span>}
-                          {notif.type === 'brief' && <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">Brief CEO</span>}
+                          <span className="text-xs text-neutral-400">{notif.agent}</span>
+                          <span className="text-xs text-neutral-300">·</span>
+                          <span className="text-xs text-neutral-400">{timeAgo(notif.created_at)}</span>
+                          {notif.type === 'action' && <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">Action requise</span>}
+                          {notif.type === 'alert' && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Alerte</span>}
+                          {notif.type === 'brief' && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">Brief CEO</span>}
                         </div>
                       </div>
                     </div>
@@ -204,7 +204,7 @@ export function AgentNotifBadge({ agentId, notifications }: { agentId: string; n
   const count = notifications.filter(n => n.agent === agentId && !n.read).length;
   if (count === 0) return null;
   return (
-    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-0.5 z-10">
+    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold px-0.5 z-10">
       {count}
     </span>
   );

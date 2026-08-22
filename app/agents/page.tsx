@@ -146,7 +146,7 @@ export default function PageAgents() {
                   </div>
                 </div>
                 <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border flex-shrink-0 ${COULEUR_PLAN[a.plan]}`}
+                  className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-full border flex-shrink-0 ${COULEUR_PLAN[a.plan]}`}
                 >
                   {a.plan}
                 </span>

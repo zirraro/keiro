@@ -86,14 +86,14 @@ export function SocialConnectBanners({ agentId, networks, connections }: {
             <div className="w-6 h-6 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: `${net.color}20` }}>
               {net.icon}
             </div>
-            <span className="text-[10px] text-white/60 font-medium">{net.name}</span>
+            <span className="text-xs text-white/60 font-medium">{net.name}</span>
             {isConnected ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-emerald-400 font-bold">{'\u2713'}</span>
-                <button onClick={() => handleDisconnect(key)} className="text-[10px] text-white/40 hover:text-red-400/50 transition">Deconnecter</button>
+                <span className="text-xs text-emerald-400 font-bold">{'\u2713'}</span>
+                <button onClick={() => handleDisconnect(key)} className="text-xs text-white/40 hover:text-red-400/50 transition">Deconnecter</button>
               </div>
             ) : (
-              <a href={net.oauthUrl} className={`px-2 py-0.5 bg-gradient-to-r ${net.gradient} text-white text-[10px] font-bold rounded-md hover:opacity-90 transition`}>
+              <a href={net.oauthUrl} className={`px-2 py-0.5 bg-gradient-to-r ${net.gradient} text-white text-xs font-bold rounded-md hover:opacity-90 transition`}>
                 Connecter
               </a>
             )}
@@ -184,9 +184,9 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
             <span className="text-lg">{'\u2709\uFE0F'}</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-emerald-400">{en ? 'Gmail connected' : 'Gmail connecté'}</p>
-              <p className="text-[10px] text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{gmailEmail}</strong></p>
+              <p className="text-xs text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{gmailEmail}</strong></p>
             </div>
-            <button onClick={handleDisconnectGmail} className="text-[10px] text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
+            <button onClick={handleDisconnectGmail} className="text-xs text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
           </div>
         )}
         {outlookConnected && (
@@ -194,7 +194,7 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
             <span className="text-lg">{'\u{1F310}'}</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-emerald-400">{en ? 'Outlook connected' : 'Outlook connecté'}</p>
-              <p className="text-[10px] text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{outlookEmail}</strong></p>
+              <p className="text-xs text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{outlookEmail}</strong></p>
             </div>
             <button
               onClick={async () => {
@@ -203,7 +203,7 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
                 await fetch('/api/auth/outlook-status', { method: 'DELETE', credentials: 'include' });
                 await refresh();
               }}
-              className="text-[10px] text-white/45 hover:text-red-400/60 transition"
+              className="text-xs text-white/45 hover:text-red-400/60 transition"
             >{en ? 'Disconnect' : 'Déconnecter'}</button>
           </div>
         )}
@@ -212,9 +212,9 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
             <span className="text-lg">{'\u2699\uFE0F'}</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-emerald-400">{en ? 'Custom domain connected' : 'Domaine personnalisé connecté'}</p>
-              <p className="text-[10px] text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{smtpFromEmail}</strong></p>
+              <p className="text-xs text-white/50 break-words">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{smtpFromEmail}</strong></p>
             </div>
-            <button onClick={handleDisconnectSmtp} className="text-[10px] text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
+            <button onClick={handleDisconnectSmtp} className="text-xs text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
           </div>
         )}
       </div>
@@ -230,26 +230,26 @@ export function EmailConnectBanner({ connections, onStatus }: { connections?: Re
           <p className="text-xs font-bold text-white mb-1">
             {en ? 'Connect your email for maximum impact' : 'Connecte ton email pour plus d\'impact'}
           </p>
-          <p className="text-[10px] text-white/50 mb-3 leading-relaxed">
+          <p className="text-xs text-white/50 mb-3 leading-relaxed">
             {en
               ? <>Hugo is sending from contact@keiroai.com for now. Connect your Gmail or your own domain so emails leave from <strong className="text-white/70">your own address</strong> — better open rate, more trust.</>
               : <>Hugo envoie actuellement depuis contact@keiroai.com. Connecte ton Gmail ou ton domaine perso pour que les emails partent de <strong className="text-white/70">ta propre adresse</strong> — meilleur taux d&apos;ouverture et plus de confiance.</>}
           </p>
           <div className="flex flex-wrap gap-2 mb-2">
-            <a href="/api/auth/gmail-oauth" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
+            <a href="/api/auth/gmail-oauth" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-lg transition min-h-[36px]">
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24"><path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"/><path fill="#34A853" d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z"/><path fill="#4A90D9" d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z"/><path fill="#FBBC05" d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z"/></svg>
               {en ? 'Connect Gmail' : 'Connecter Gmail'}
             </a>
-            <a href="/api/auth/outlook-oauth" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
+            <a href="/api/auth/outlook-oauth" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-lg transition min-h-[36px]">
               {'\u{1F310}'} {en ? 'Connect Outlook' : 'Connecter Outlook'}
             </a>
-            <button onClick={() => setShowSmtpForm(v => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
+            <button onClick={() => setShowSmtpForm(v => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-lg transition min-h-[36px]">
               {'\u2699\uFE0F'} {en ? (showSmtpForm ? 'Hide form' : 'My custom domain') : (showSmtpForm ? 'Masquer' : 'Mon domaine personnalisé')}
             </button>
             <a
               href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}
               target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-white/10 hover:border-white/20 text-white/70 text-[10px] font-bold rounded-lg transition min-h-[36px]"
+              className="inline-flex items-center gap-1.5 px-3 py-2 border border-white/10 hover:border-white/20 text-white/70 text-xs font-bold rounded-lg transition min-h-[36px]"
             >
               {'\u{1F4C5}'} {en ? 'Book a setup call (30 min)' : 'Prendre un RDV setup (30 min)'}
             </a>
@@ -319,7 +319,7 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
     <>
     <SmtpFieldStyles />
     <form onSubmit={submit} className="mt-3 p-3 rounded-lg bg-black/20 border border-white/10 space-y-2">
-      <p className="text-[10px] text-white/60">
+      <p className="text-xs text-white/60">
         {en
           ? <>Paste your SMTP credentials — we test the connection live and only save if it works. The password is encrypted at rest (AES-256-GCM).</>
           : <>Colle tes identifiants SMTP — on teste la connexion en direct et on sauvegarde uniquement si ça marche. Le mot de passe est chiffré en base (AES-256-GCM).</>}
@@ -329,7 +329,7 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
           <button
             key={p.label} type="button"
             onClick={() => { setHost(p.host); setPort(String(p.port)); }}
-            className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 text-white/60 rounded"
+            className="px-2 py-1 text-xs bg-white/5 hover:bg-white/10 text-white/60 rounded"
           >
             {p.label}
           </button>
@@ -385,19 +385,19 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
           <input value={fromName} onChange={e => setFromName(e.target.value)} placeholder="Anna - Bistrot du Coin" className="w-full px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" />
         </SmtpField>
       </div>
-      <p className="text-[10px] text-white/40 leading-relaxed">
+      <p className="text-xs text-white/40 leading-relaxed">
         {en
           ? <>Once saved, Hugo also reads your inbox via IMAP (auto-derived host, port 993, SSL). New replies are classified within 10 minutes — unsubscribe requests automatically remove the prospect from your list.</>
           : <>Une fois sauvé, Hugo lit aussi ta boîte via IMAP (host auto-deviné, port 993, SSL). Les nouvelles réponses sont classées en moins de 10 min — les demandes de désabonnement retirent automatiquement le prospect de ta liste.</>}
       </p>
-      {err && <p className="text-[10px] text-red-400">{err}</p>}
+      {err && <p className="text-xs text-red-400">{err}</p>}
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] text-white/40">
+        <p className="text-xs text-white/40">
           {en
             ? <>Need help? <a href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Book a 30-min call</a> and we set it up together.</>
             : <>Besoin d&apos;aide ? <a href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Prends un RDV 30 min</a> et on le fait ensemble.</>}
         </p>
-        <button type="submit" disabled={busy} className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold rounded-lg transition disabled:opacity-50">
+        <button type="submit" disabled={busy} className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-lg transition disabled:opacity-50">
           {busy ? (en ? 'Testing…' : 'Test en cours…') : (en ? 'Test & save' : 'Tester & sauvegarder')}
         </button>
       </div>
@@ -411,7 +411,7 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
 function SmtpField({ label, help, children }: { label: string; help: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <label className="flex items-center gap-1 text-[10px] font-bold text-white/60 uppercase tracking-wide">
+      <label className="flex items-center gap-1 text-xs font-bold text-white/60 uppercase tracking-wide">
         {label}
         <span className="smtp-help" data-help={help} tabIndex={0} aria-label={help}>
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
@@ -527,9 +527,9 @@ export function AgentNotifications({ agentId }: { agentId: string }) {
           <span className="text-lg mt-0.5">{n.type === 'action' ? '\u{1F525}' : '\u{1F514}'}</span>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold text-white">{titleFor(n)}</div>
-            <div className="text-[10px] text-white/50 mt-0.5">{messageFor(n)}</div>
+            <div className="text-xs text-white/50 mt-0.5">{messageFor(n)}</div>
           </div>
-          <button onClick={() => markRead(n.id)} className="text-[10px] text-white/30 hover:text-white/60 px-2 py-1 bg-white/5 rounded-lg flex-shrink-0">OK</button>
+          <button onClick={() => markRead(n.id)} className="text-xs text-white/30 hover:text-white/60 px-2 py-1 bg-white/5 rounded-lg flex-shrink-0">OK</button>
         </div>
       ))}
     </div>
@@ -563,9 +563,9 @@ export function HotProspectsAlert({ source, gradientFrom }: { source?: string; g
             <span className="text-xs text-amber-400">{'\u{1F525}'}</span>
             <div className="flex-1 min-w-0">
               <span className="text-xs font-medium text-white break-words min-w-0">{p.company || p.email}</span>
-              {p.type && <span className="text-[10px] text-white/30 ml-2">{p.type}</span>}
+              {p.type && <span className="text-xs text-white/30 ml-2">{p.type}</span>}
             </div>
-            <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded">{p.status}</span>
+            <span className="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded">{p.status}</span>
           </div>
         ))}
       </div>

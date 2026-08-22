@@ -63,16 +63,16 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
           const dayPosts = posts.filter(p => p.scheduled_date === dateStr || (p.published_at && p.published_at.startsWith(dateStr)));
           return (
             <div key={i} className={`rounded-lg p-1 ${isToday ? 'bg-purple-500/10 border border-purple-500/20' : ''}`}>
-              <div className={`text-center text-[10px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/40'}`}>{dayNames[d.getDay()]}</div>
+              <div className={`text-center text-xs ${isToday ? 'text-purple-400 font-bold' : 'text-white/40'}`}>{dayNames[d.getDay()]}</div>
               <div className={`text-center text-xs font-bold mb-1 ${isToday ? 'text-purple-400' : 'text-white/60'}`}>{d.getDate()}</div>
               <div className="space-y-0.5 max-h-[80px] overflow-y-auto">
                 {dayPosts.slice(0, 3).map((p, j) => (
                   <button key={j} onClick={() => onSelectPost(p)} className="w-full aspect-square rounded overflow-hidden bg-white/5 hover:ring-1 hover:ring-purple-500/50 transition relative">
-                    {p.visual_url ? <img src={p.visual_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-white/40">{p.format === 'reel' ? '\uD83C\uDFAC' : '\uD83D\uDCDD'}</div>}
+                    {p.visual_url ? <img src={p.visual_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-white/40">{p.format === 'reel' ? '\uD83C\uDFAC' : '\uD83D\uDCDD'}</div>}
                     <div className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full ${STATUS_DOT[p.status] || 'bg-gray-500'}`} />
                   </button>
                 ))}
-                {dayPosts.length > 3 && <div className="text-[10px] text-white/40 text-center">+{dayPosts.length - 3}</div>}
+                {dayPosts.length > 3 && <div className="text-xs text-white/40 text-center">+{dayPosts.length - 3}</div>}
               </div>
             </div>
           );
@@ -214,7 +214,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
       <div className="text-center py-8 bg-white/[0.02] rounded-xl border border-white/5">
         <span className="text-2xl">{'\u{1F4F8}'}</span>
         <p className="text-xs text-white/50 mt-2">{p.contentEmptyTitle}</p>
-        <p className="text-[10px] text-white/30 mt-1">{p.contentEmptySubtitle}</p>
+        <p className="text-xs text-white/30 mt-1">{p.contentEmptySubtitle}</p>
       </div>
     );
   }
@@ -225,7 +225,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 
   return (
     <div>
-      {isDemo && <p className="text-[10px] text-amber-400/50 mb-2">{'\u{1F4F8}'} {p.contentDemoHint}</p>}
+      {isDemo && <p className="text-xs text-amber-400/50 mb-2">{'\u{1F4F8}'} {p.contentDemoHint}</p>}
 
       {/* Generation in progress indicator */}
       {generating && (
@@ -248,7 +248,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
           { key: 'linkedin', label: `LI (${platformCounts.linkedin || 0})`, icon: '\u{1F4BC}' },
         ].map(tab => (
           <button key={tab.key} onClick={() => setPlatformFilter(tab.key)}
-            className={`px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-all ${platformFilter === tab.key ? 'bg-white/15 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
+            className={`px-2 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-all ${platformFilter === tab.key ? 'bg-white/15 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
           >{tab.icon} {tab.label}</button>
         ))}
       </div>
@@ -264,7 +264,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
           ...((pCounts.publish_failed || 0) > 0 ? [{ key: 'publish_failed', label: `${p.contentTabFailed} (${pCounts.publish_failed})` }] : []),
         ].map(tab => (
           <button key={tab.key} onClick={() => setFilter(tab.key)}
-            className={`px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+            className={`px-2 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
           >{tab.label}</button>
         ))}
       </div>
@@ -280,18 +280,18 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
               <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/30 to-pink-900/30">
-                <span className="text-[10px] text-white/50 px-1 text-center line-clamp-2">{(post.hook || post.caption || '').substring(0, 40)}</span>
+                <span className="text-xs text-white/50 px-1 text-center line-clamp-2">{(post.hook || post.caption || '').substring(0, 40)}</span>
               </div>
             )}
             {/* Status dot */}
             <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${STATUS_COLORS[post.status] || 'bg-gray-500'}`} />
             {/* Platform badge */}
-            <div className="absolute bottom-0.5 left-0.5 text-[10px] font-bold text-white bg-black/55 px-1.5 py-0.5 rounded">
+            <div className="absolute bottom-0.5 left-0.5 text-xs font-bold text-white bg-black/55 px-1.5 py-0.5 rounded">
               {post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}
             </div>
             {/* Scheduled date for approved posts */}
             {post.status === 'approved' && post.scheduled_date && (
-              <div className="absolute bottom-0.5 right-0.5 text-[10px] text-white/85 bg-black/55 px-1.5 py-0.5 rounded">
+              <div className="absolute bottom-0.5 right-0.5 text-xs text-white/85 bg-black/55 px-1.5 py-0.5 rounded">
                 {post.scheduled_date.substring(5)}{post.scheduled_time ? ` ${post.scheduled_time.slice(0, 5)}` : ''}
               </div>
             )}
@@ -323,7 +323,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
                   } catch {}
                 }}
                 title={post.boost_mode ? (en ? '🚀 Boost ON — manual CML sound in TikTok app' : '🚀 Boost ON — son CML manuel TikTok app') : (en ? 'Enable boost — manual trending CML sound' : 'Active boost — son trending CML manuel')}
-                className={`absolute bottom-0.5 right-0.5 text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-all ${
+                className={`absolute bottom-0.5 right-0.5 text-xs px-1.5 py-0.5 rounded cursor-pointer transition-all ${
                   post.boost_mode
                     ? 'bg-orange-500/90 text-white font-bold ring-1 ring-orange-200'
                     : 'bg-black/40 text-white/60 hover:bg-orange-500/50 hover:text-white'
@@ -338,7 +338,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 
       {/* Voir plus / Voir moins */}
       {(filter === 'all' ? platformFiltered : platformFiltered.filter((post: any) => post.status === filter)).length > 12 && (
-        <button onClick={() => setShowAll(!showAll)} className="w-full mt-2 py-2 text-center text-[10px] text-purple-400 hover:text-purple-300 transition flex items-center justify-center gap-1">
+        <button onClick={() => setShowAll(!showAll)} className="w-full mt-2 py-2 text-center text-xs text-purple-400 hover:text-purple-300 transition flex items-center justify-center gap-1">
           {showAll ? `\u2191 ${p.contentSeeLess}` : `\u2193 ${p.contentSeeMore} (${(filter === 'all' ? platformFiltered : platformFiltered.filter((post: any) => post.status === filter)).length - 12} posts)`}
         </button>
       )}
@@ -496,18 +496,18 @@ function PerNetworkStats({ stats }: { stats: any }) {
           <span className="text-lg">{cur.icon}</span>
           <span className={`text-sm font-bold ${usingSample ? 'text-amber-200' : cur.accent}`}>{cur.label}</span>
           {usingSample ? (
-            <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
               Sample
             </span>
           ) : (
-            <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
               {cur.data?.hasActivity ? 'Live · KeiroAI active' : 'Live · organic'}
             </span>
           )}
           {usingSample && (
             <a
               href={cur.connectUrl}
-              className="min-h-[44px] inline-flex items-center justify-center ml-auto px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold transition"
+              className="min-h-[44px] inline-flex items-center justify-center ml-auto px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-bold transition"
             >
               {en ? 'Connect →' : 'Connecter →'}
             </a>
@@ -517,14 +517,14 @@ function PerNetworkStats({ stats }: { stats: any }) {
         <div className={`grid grid-cols-2 sm:grid-cols-3 gap-2 ${usingSample ? 'opacity-70' : ''}`}>
           {cur.metrics.map(m => (
             <div key={m.label} className="rounded-lg bg-black/20 p-2">
-              <div className="text-[10px] text-white/50">{m.label}</div>
+              <div className="text-xs text-white/50">{m.label}</div>
               <div className="text-sm font-bold text-white mt-0.5">{m.value}</div>
             </div>
           ))}
         </div>
 
         {usingSample && (
-          <div className="mt-3 rounded-lg bg-amber-500/10 border border-amber-400/20 px-3 py-2 text-[11px] text-amber-200/90">
+          <div className="mt-3 rounded-lg bg-amber-500/10 border border-amber-400/20 px-3 py-2 text-xs text-amber-200/90">
             {en
               ? <>Sample data. Connect {cur.label} to see your real numbers updated live (on every connection, post, like, comment).</>
               : <>Données d&apos;exemple. Connecte {cur.label} pour voir tes vrais chiffres mis à jour en live (à chaque connexion, publication, like, commentaire).</>}
@@ -618,14 +618,14 @@ function NetworkPreviewTab({
         <button
           onClick={() => load(active)}
           disabled={cur.loading}
-          className="text-[10px] text-white/50 hover:text-white/80 disabled:opacity-40"
+          className="text-xs text-white/50 hover:text-white/80 disabled:opacity-40"
         >
           {cur.loading ? '...' : (en ? '\u21BB Refresh' : '\u21BB Rafraichir')}
         </button>
       </div>
 
       {cur.error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/5 text-[10px] text-red-300 p-2 mb-2">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 text-xs text-red-300 p-2 mb-2">
           {cur.error}
         </div>
       )}
@@ -671,7 +671,7 @@ function NetworkPreviewTab({
         ))}
       </div>
 
-      <p className="text-[10px] text-white/30 mt-3 text-center">
+      <p className="text-xs text-white/30 mt-3 text-center">
         {en
           ? <>Tap a thumbnail to see the caption, stats and link. To delete a post on Instagram or TikTok, do it directly in the app — we&apos;ll open it for you.</>
           : <>Touche une vignette pour voir la légende, les stats et le lien. Pour supprimer un post sur Instagram ou TikTok, ça se fait directement dans l&apos;app — on t&apos;y emmène.</>}
@@ -714,7 +714,7 @@ function NetworkPreviewTab({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {entries.slice(0, 8).map(([k, v]) => (
                       <div key={k} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-center">
-                        <div className="text-[10px] text-white/40 uppercase tracking-wide">{k}</div>
+                        <div className="text-xs text-white/40 uppercase tracking-wide">{k}</div>
                         <div className="text-xs font-bold text-white">{fmt(Number(v) || 0)}</div>
                       </div>
                     ))}
@@ -722,7 +722,7 @@ function NetworkPreviewTab({
                 );
               })()}
               {lightbox.timestamp && (
-                <p className="text-[10px] text-white/40">
+                <p className="text-xs text-white/40">
                   {en ? 'Published on ' : 'Publié le '}{new Date(lightbox.timestamp).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </p>
               )}
@@ -936,7 +936,7 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
               {isConnected ? (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               ) : (
-                <span className="text-[10px] text-white/30 uppercase">+</span>
+                <span className="text-xs text-white/30 uppercase">+</span>
               )}
             </button>
           );
@@ -1007,7 +1007,7 @@ function NetworkSection({
                 the user understands these are typical numbers, not their
                 own. Switches to the live API + cached counts as soon as
                 the network is connected. */}
-            <div className="flex items-center gap-2 mb-2 text-[10px]">
+            <div className="flex items-center gap-2 mb-2 text-xs">
               <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
               <span className="text-white/40">
                 Typical {meta.label} numbers — replaced by YOUR live stats once you connect.
@@ -1126,7 +1126,7 @@ function ValidatePublicationsToggle() {
         <div className="text-2xl">{validateMode ? '✋' : '⚡'}</div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold text-white">{en ? 'Validate each publication' : 'Valider chaque publication'}</div>
-          <div className="text-[11px] text-white/50">
+          <div className="text-xs text-white/50">
             {validateMode
               ? (en ? 'Léna prepares the posts in the planning. YOU validate each post manually before publishing (IG/TikTok/LinkedIn).' : 'Léna prépare les posts dans le planning. TU valides chaque post manuellement avant publication (IG/TikTok/LinkedIn).')
               : (en ? 'Léna publishes automatically at the scheduled times. No manual validation.' : 'Léna publie automatiquement aux horaires planifiés. Pas de validation manuelle.')}
@@ -1280,7 +1280,7 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
           {identity || meta.label}
         </div>
         {connected ? (
-          <div className="text-[10px] text-emerald-300 flex items-center gap-2">
+          <div className="text-xs text-emerald-300 flex items-center gap-2">
             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected</span>
             {followers !== null && <span className="text-white/50">· {fmt(followers)} followers</span>}
             {network === 'instagram' && profile?.facebook_page_name && (
@@ -1288,13 +1288,13 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
             )}
           </div>
         ) : (
-          <div className="text-[10px] text-white/40">Not connected yet</div>
+          <div className="text-xs text-white/40">Not connected yet</div>
         )}
       </div>
       {!connected ? (
         <a
           href={meta.oauth}
-          className={`px-3 py-2 rounded-lg ${meta.accentBtn} text-white text-[11px] font-bold hover:opacity-90 transition`}
+          className={`px-3 py-2 rounded-lg ${meta.accentBtn} text-white text-xs font-bold hover:opacity-90 transition`}
         >
           ⚡ Connect {meta.label}
         </a>
@@ -1428,7 +1428,7 @@ function NetworkStatsRow({ network, netStats, stats, sample }: { network: LenaNe
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {cells.map(c => (
         <div key={c.label} className="text-center">
-          <div className="text-[10px] uppercase tracking-wider text-white/40">{c.label}</div>
+          <div className="text-xs uppercase tracking-wider text-white/40">{c.label}</div>
           <div className="text-base font-bold text-white">{c.value}</div>
         </div>
       ))}
@@ -1477,7 +1477,7 @@ function NetworkStrategyHints({ network, hasActivity: _hasActivity }: { network:
   if (loading) {
     return (
       <div className="mt-3 pt-3 border-t border-white/5">
-        <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <div className="text-xs text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <span>{'\u{1F4A1}'}</span>
           <span>Léna&apos;s playbook for your sector</span>
         </div>
@@ -1492,7 +1492,7 @@ function NetworkStrategyHints({ network, hasActivity: _hasActivity }: { network:
 
   return (
     <div className="mt-3 pt-3 border-t border-white/5">
-      <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+      <div className="text-xs text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5">
         <span>{'\u{1F4A1}'}</span>
         <span>Léna&apos;s playbook for your sector</span>
       </div>
@@ -1500,19 +1500,19 @@ function NetworkStrategyHints({ network, hasActivity: _hasActivity }: { network:
         {hints.map(h => (
           <div key={h.label} className="rounded-lg bg-white/[0.03] border border-white/5 p-2">
             <div className="flex items-center gap-1 mb-0.5">
-              <div className="text-[10px] text-white/40 uppercase tracking-wider flex-1">{h.label}</div>
+              <div className="text-xs text-white/40 uppercase tracking-wider flex-1">{h.label}</div>
               {h.source === 'your_data' && (
-                <span className="text-[10px] text-emerald-400 font-bold" title="Computed from your real published posts">YOUR</span>
+                <span className="text-xs text-emerald-400 font-bold" title="Computed from your real published posts">YOUR</span>
               )}
               {h.source === 'sector' && (
-                <span className="text-[10px] text-cyan-400 font-bold" title="From cross-client sector data">SECTOR</span>
+                <span className="text-xs text-cyan-400 font-bold" title="From cross-client sector data">SECTOR</span>
               )}
             </div>
-            <div className="text-[11px] text-white font-medium">{h.value}</div>
+            <div className="text-xs text-white font-medium">{h.value}</div>
           </div>
         ))}
       </div>
-      <div className="mt-2 text-[10px] text-white/40">
+      <div className="mt-2 text-xs text-white/40">
         {basedOn || `Defaults from KeiroAI's cross-client knowledge pool. They will adapt to YOUR account once Léna publishes the first post.`}
       </div>
     </div>
@@ -1655,7 +1655,7 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
           <span>{cfg.icon}</span>
           <div>
             <div className="text-xs font-bold text-white">{cfg.label} inspiration</div>
-            <div className="text-[10px] text-white/60">
+            <div className="text-xs text-white/60">
               {brief ? <>Léna draws from <strong className={accentText}>@{brief.handle}</strong></> : `Set a ${cfg.label} reference Léna will quietly draw style and tone from`}
             </div>
           </div>
@@ -1666,7 +1666,7 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
         <div className="px-4 pb-3 space-y-2 border-t border-white/10 pt-3">
           {brief ? (
             <div className="space-y-2">
-              <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-[11px] text-white/80 space-y-1.5">
+              <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-xs text-white/80 space-y-1.5">
                 {brief.visual_style && <div><strong className={accentText}>Style:</strong> {brief.visual_style}</div>}
                 {brief.tone && <div><strong className={accentText}>Tone:</strong> {brief.tone}</div>}
                 {brief.palette_hints?.length > 0 && <div><strong className={accentText}>Palette:</strong> {brief.palette_hints.join(', ')}</div>}
@@ -1674,11 +1674,11 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
                 {brief.ambiance && <div><strong className={accentText}>Ambiance:</strong> {Array.isArray(brief.ambiance) ? brief.ambiance.join(', ') : brief.ambiance}</div>}
                 {brief.domaine && <div><strong className={accentText}>Domaine:</strong> {Array.isArray(brief.domaine) ? brief.domaine.join(', ') : brief.domaine}</div>}
                 {brief.summary && <div className="text-white/70">{brief.summary}</div>}
-                {brief.notes && <div className="text-white/60 text-[10px]">{brief.notes}</div>}
+                {brief.notes && <div className="text-white/60 text-xs">{brief.notes}</div>}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={removeBrief} disabled={busy} className="min-h-[44px] inline-flex items-center justify-center text-[10px] text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Remove</button>
-                <button onClick={() => { setBrief(null); setHandle(''); }} className="text-[10px] text-white/50 hover:text-white px-2 py-1">Change</button>
+                <button onClick={removeBrief} disabled={busy} className="min-h-[44px] inline-flex items-center justify-center text-xs text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Remove</button>
+                <button onClick={() => { setBrief(null); setHandle(''); }} className="text-xs text-white/50 hover:text-white px-2 py-1">Change</button>
               </div>
             </div>
           ) : (
@@ -1696,8 +1696,8 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
                   {busy ? '...' : 'Analyse'}
                 </button>
               </div>
-              {error && <p className="text-[10px] text-amber-400">{error}</p>}
-              <p className="text-[10px] text-white/40">
+              {error && <p className="text-xs text-amber-400">{error}</p>}
+              <p className="text-xs text-white/40">
                 {cfg.supported
                   ? `Léna will analyse 6 recent posts and adopt the palette + tone (without copying).`
                   : `${cfg.label} live analyser arrives soon — saving your reference now means Léna can use it the day the feature ships.`}
@@ -1709,7 +1709,7 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
               The more URLs fed, the smarter Léna's auto hooks get. */}
           {network !== 'linkedin' && (
             <div className="mt-2 pt-3 border-t border-white/10 space-y-2">
-              <div className="text-[10px] font-bold text-white/80">
+              <div className="text-xs font-bold text-white/80">
                 {en ? '🪝 Paste a viral video URL → extract its hook' : '🪝 Colle l\'URL d\'une vidéo virale → extrais son hook'}
               </div>
               <div className="flex gap-2">
@@ -1734,14 +1734,14 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
                   className="w-full bg-black/30 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30"
                 />
               )}
-              {hookErr && <p className="text-[10px] text-amber-400">{hookErr}</p>}
+              {hookErr && <p className="text-xs text-amber-400">{hookErr}</p>}
               {hookRes && (
-                <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-[11px] text-white/80 space-y-1.5">
+                <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-xs text-white/80 space-y-1.5">
                   {hookRes.source_hook && <div><strong className={accentText}>{en ? 'Source hook:' : 'Hook source :'}</strong> "{hookRes.source_hook}"</div>}
                   {hookRes.formula && <div><strong className={accentText}>{en ? 'Formula:' : 'Formule :'}</strong> {hookRes.formula}</div>}
                   {hookRes.why && <div className="text-white/60">{hookRes.why}</div>}
                   {hookRes.adapted_hook && <div className="mt-1 pt-1.5 border-t border-white/10"><strong className={accentText}>{en ? 'For you:' : 'Pour toi :'}</strong> "{hookRes.adapted_hook}"</div>}
-                  <div className="text-[9px] text-white/40">{en ? 'Saved — Léna will draw from it on your next reels.' : 'Enregistré — Léna s\'en inspirera sur tes prochains reels.'}</div>
+                  <div className="text-xs text-white/40">{en ? 'Saved — Léna will draw from it on your next reels.' : 'Enregistré — Léna s\'en inspirera sur tes prochains reels.'}</div>
                 </div>
               )}
             </div>

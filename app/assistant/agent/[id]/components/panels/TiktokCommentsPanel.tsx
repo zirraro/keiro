@@ -38,19 +38,19 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
       <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="font-bold text-sm" style={{ color: gradientFrom }}>{fmt(stats.videosPosted || 0)}</span>
-          <span className="text-white/30 text-[10px]">{p.tiktokKpiVideos}</span>
+          <span className="text-white/30 text-xs">{p.tiktokKpiVideos}</span>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="text-cyan-400 font-bold text-sm">{fmt(stats.totalViews || 0)}</span>
-          <span className="text-white/30 text-[10px]">{p.tiktokKpiViews}</span>
+          <span className="text-white/30 text-xs">{p.tiktokKpiViews}</span>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="text-emerald-400 font-bold text-sm">{(stats.avgEngagement || 0).toFixed(1)}%</span>
-          <span className="text-white/30 text-[10px]">{p.tiktokKpiEngagement}</span>
+          <span className="text-white/30 text-xs">{p.tiktokKpiEngagement}</span>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="text-purple-400 font-bold text-sm">{fmt(stats.followers || 0)}</span>
-          <span className="text-white/30 text-[10px]">{p.tiktokKpiFollowers}</span>
+          <span className="text-white/30 text-xs">{p.tiktokKpiFollowers}</span>
         </div>
       </div>
 
@@ -59,12 +59,12 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
       <div className="space-y-2 max-h-[200px] overflow-y-auto mb-3">
         {(stats.recentComments || DEMO_TIKTOK_STATS.recentComments || []).slice(0, 5).map((c: any, i: number) => (
           <div key={i} className="bg-white/5 rounded-lg border border-white/10 p-3 flex items-start gap-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-black flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-black flex items-center justify-center text-xs text-white font-bold flex-shrink-0">
               {(c.author || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-bold text-white/80 break-words">@{c.author}</span>
-              <p className="text-[10px] text-white/50 mt-0.5 break-words [overflow-wrap:anywhere]">{c.text}</p>
+              <span className="text-xs font-bold text-white/80 break-words">@{c.author}</span>
+              <p className="text-xs text-white/50 mt-0.5 break-words [overflow-wrap:anywhere]">{c.text}</p>
             </div>
           </div>
         ))}
@@ -87,17 +87,17 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
       <SectionTitle>{p.tiktokServicesTitle}</SectionTitle>
       <div className="space-y-2 mb-3">
         <div className="bg-white/5 rounded-lg border border-white/10 p-3">
-          <div className="flex items-center gap-2 text-[11px]"><span>✅</span><span className="text-white/80 font-semibold">{p.tiktokSvcPublishTitle}</span></div>
-          <p className="text-white/45 text-[10px] mt-1">{p.tiktokSvcPublishDesc}</p>
+          <div className="flex items-center gap-2 text-xs"><span>✅</span><span className="text-white/80 font-semibold">{p.tiktokSvcPublishTitle}</span></div>
+          <p className="text-white/45 text-xs mt-1">{p.tiktokSvcPublishDesc}</p>
         </div>
         <div className="bg-white/5 rounded-lg border border-white/10 p-3">
-          <div className="flex items-center gap-2 text-[11px]"><span>✅</span><span className="text-white/80 font-semibold">{p.tiktokSvcCommentsTitle}</span></div>
-          <p className="text-white/45 text-[10px] mt-1">{p.tiktokSvcCommentsDesc}</p>
+          <div className="flex items-center gap-2 text-xs"><span>✅</span><span className="text-white/80 font-semibold">{p.tiktokSvcCommentsTitle}</span></div>
+          <p className="text-white/45 text-xs mt-1">{p.tiktokSvcCommentsDesc}</p>
         </div>
         <div className="bg-white/5 rounded-lg border border-white/10 p-3">
-          <div className="flex items-center gap-2 text-[11px]"><span>✋</span><span className="text-white/80 font-semibold">{p.tiktokSvcFollowTitle}</span></div>
-          <p className="text-white/45 text-[10px] mt-1">{p.tiktokSvcFollowDesc}</p>
-          <a href="/assistant/crm" className="min-h-[44px] inline-flex items-center justify-center mt-2 px-3 py-1.5 bg-white/10 text-white/70 text-[10px] rounded-lg hover:bg-white/15 transition-all">{p.tiktokSvcFollowCta}</a>
+          <div className="flex items-center gap-2 text-xs"><span>✋</span><span className="text-white/80 font-semibold">{p.tiktokSvcFollowTitle}</span></div>
+          <p className="text-white/45 text-xs mt-1">{p.tiktokSvcFollowDesc}</p>
+          <a href="/assistant/crm" className="min-h-[44px] inline-flex items-center justify-center mt-2 px-3 py-1.5 bg-white/10 text-white/70 text-xs rounded-lg hover:bg-white/15 transition-all">{p.tiktokSvcFollowCta}</a>
         </div>
       </div>
 

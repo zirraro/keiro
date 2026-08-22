@@ -434,7 +434,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               {post.keywords_secondary && post.keywords_secondary.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
                   {post.keywords_secondary.map((kw, i) => (
-                    <span key={i} className="text-[11px] bg-neutral-100 text-neutral-500 px-2.5 py-1 rounded-full">
+                    <span key={i} className="text-xs bg-neutral-100 text-neutral-500 px-2.5 py-1 rounded-full">
                       {kw}
                     </span>
                   ))}
@@ -541,7 +541,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                       </div>
                     )}
                     <div className="p-4">
-                      <span className="text-[10px] font-medium text-purple-500 uppercase tracking-wider">
+                      <span className="text-xs font-medium text-purple-500 uppercase tracking-wider">
                         {related.keywords_primary}
                       </span>
                       <h3 className="text-sm font-semibold text-neutral-900 mt-1.5 mb-1.5 leading-snug group-hover:text-purple-700 transition-colors line-clamp-2">

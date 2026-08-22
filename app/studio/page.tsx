@@ -1105,7 +1105,7 @@ function StudioContent() {
                   </svg>
                   {t.studio.tabText}
                   {textOverlayItems.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">{textOverlayItems.length}</span>
+                    <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">{textOverlayItems.length}</span>
                   )}
                 </span>
                 {activeTab === 'text' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />}
@@ -1148,7 +1148,7 @@ function StudioContent() {
                       onChange={(e) => setEditStrength(Number(e.target.value))}
                       className="w-full accent-purple-600"
                     />
-                    <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+                    <div className="flex justify-between text-xs text-neutral-400 mt-1">
                       <span>{t.studio.strengthSubtle}</span>
                       <span>{t.studio.strengthModerate}</span>
                       <span>{t.studio.strengthStrong}</span>
@@ -1773,7 +1773,7 @@ function StudioContent() {
                         {!hookSourceUrl && !hookUploading && (
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-px bg-neutral-200" />
-                            <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold">ou</span>
+                            <span className="text-xs uppercase tracking-wider text-neutral-400 font-bold">ou</span>
                             <div className="flex-1 h-px bg-neutral-200" />
                           </div>
                         )}
@@ -1829,7 +1829,7 @@ function StudioContent() {
                                 {hookStage === 'ready' && 'Aperçu Léna prêt 🎬'}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 text-[10px]">
+                            <div className="flex items-center gap-1 text-xs">
                               {([
                                 { key: 'uploading',  label: '1. Upload' },
                                 { key: 'analyzing',  label: '2. Analyse' },
@@ -1863,7 +1863,7 @@ function StudioContent() {
                             {hookStage !== 'ready' && hookSourceUrl && (
                               <div className="rounded-lg overflow-hidden bg-black border border-violet-200">
                                 <video src={hookSourceUrl} controls autoPlay muted loop className="w-full max-h-64" />
-                                <div className="px-3 py-1.5 bg-black/80 text-white/70 text-[10px] flex items-center gap-1.5">
+                                <div className="px-3 py-1.5 bg-black/80 text-white/70 text-xs flex items-center gap-1.5">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                                   Vidéo originale — Léna prépare la version optimisée…
                                 </div>
@@ -1871,7 +1871,7 @@ function StudioContent() {
                             )}
 
                             {hookStage !== 'ready' && (
-                              <p className="text-[11px] text-violet-700/80">
+                              <p className="text-xs text-violet-700/80">
                                 Léna prépare ta vidéo automatiquement — découpe les meilleurs moments, rédige le hook, et te propose une version optimisée. Aucune action requise.
                               </p>
                             )}
@@ -1939,7 +1939,7 @@ function StudioContent() {
                                     } finally { setScenesBusy(false); }
                                   }}
                                   disabled={!hookSourceUrl || scenesBusy}
-                                  className="text-[10px] font-bold text-violet-700 hover:text-violet-900 disabled:opacity-40"
+                                  className="text-xs font-bold text-violet-700 hover:text-violet-900 disabled:opacity-40"
                                 >
                                   {scenesBusy ? 'Analyse…' : '🔍 Auto-détection'}
                                 </button>
@@ -1973,17 +1973,17 @@ function StudioContent() {
                                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                         </button>
                                       )}
-                                      <div className="absolute bottom-0 left-0 right-0 text-[10px] bg-black/70 text-white py-0.5 text-center pointer-events-none">
+                                      <div className="absolute bottom-0 left-0 right-0 text-xs bg-black/70 text-white py-0.5 text-center pointer-events-none">
                                         {s.timestamp_sec.toFixed(1)}s
                                       </div>
                                       {s.recommended_for === 'hook' && (
-                                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-[10px] px-1 py-0.5 rounded-bl-md font-bold pointer-events-none">HOOK</div>
+                                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-xs px-1 py-0.5 rounded-bl-md font-bold pointer-events-none">HOOK</div>
                                       )}
                                     </div>
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-[10px] text-neutral-500 mb-3">
+                                <p className="text-xs text-neutral-500 mb-3">
                                   Léna analyse ta vidéo et te proposera les meilleurs moments dans quelques secondes.
                                 </p>
                               )}
@@ -2006,7 +2006,7 @@ function StudioContent() {
                                         ? `Ta vidéo finale est prête pour ${hookNetwork === 'instagram' ? 'Instagram' : hookNetwork === 'tiktok' ? 'TikTok' : 'LinkedIn'} 🎬`
                                         : 'Vidéo enregistrée dans Gallery'}
                                     </div>
-                                    <div className="text-[10px] text-emerald-700/90">
+                                    <div className="text-xs text-emerald-700/90">
                                       {recutOutput
                                         ? 'Léna a recoupé ta vidéo, choisi le meilleur hook, et l\'a optimisée pour le réseau cible'
                                         : 'L\'analyse est terminée. Pour générer la version recoupée + hook intégré, clique sur "Modifier les détails".'}
@@ -2034,8 +2034,8 @@ function StudioContent() {
                                 {!recutOutput && recutError && (
                                   <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
                                     <strong>⚠️ Le recut auto n&apos;a pas pu être généré.</strong>
-                                    <div className="mt-1 text-[11px]">{recutError}</div>
-                                    <div className="mt-2 text-[10px] text-amber-700">
+                                    <div className="mt-1 text-xs">{recutError}</div>
+                                    <div className="mt-2 text-xs text-amber-700">
                                       Ta vidéo originale reste accessible. Tu peux retenter en cliquant « Modifier les détails » → « Lancer le recut intelligent ».
                                     </div>
                                   </div>
@@ -2046,7 +2046,7 @@ function StudioContent() {
                                 {recutOutput && (
                                   <div className="rounded-lg bg-black overflow-hidden shadow">
                                     <video src={recutOutput.url} controls autoPlay loop className="w-full max-h-80" />
-                                    <div className="px-3 py-2 text-[10px] text-white/80 bg-black/70 flex items-center justify-between">
+                                    <div className="px-3 py-2 text-xs text-white/80 bg-black/70 flex items-center justify-between">
                                       <span>✂️ Version finale · {recutOutput.durationSec.toFixed(1)}s · {recutOutput.segments.length} segments</span>
                                     </div>
                                   </div>
@@ -2054,7 +2054,7 @@ function StudioContent() {
 
                                 {hookDraftText && (
                                   <div className="rounded-lg bg-white border border-violet-200 px-3 py-2.5">
-                                    <div className="text-[10px] uppercase tracking-wider font-bold text-violet-600 mb-1">Hook intégré par Léna</div>
+                                    <div className="text-xs uppercase tracking-wider font-bold text-violet-600 mb-1">Hook intégré par Léna</div>
                                     <div className="text-base font-bold text-neutral-900 leading-tight">{hookDraftText.primary}</div>
                                     {hookDraftText.secondary && <div className="text-xs text-neutral-600 mt-0.5">{hookDraftText.secondary}</div>}
                                   </div>
@@ -2082,7 +2082,7 @@ function StudioContent() {
                                     Voir dans Gallery
                                   </button>
                                 </div>
-                                <p className="text-[10px] text-emerald-700/80 text-center">
+                                <p className="text-xs text-emerald-700/80 text-center">
                                   ✓ Cette vidéo est déjà enregistrée dans <strong>My Videos</strong> avec le badge violet « Studio édité »
                                 </p>
 
@@ -2119,7 +2119,7 @@ function StudioContent() {
                                     className={`text-left px-3 py-2.5 min-h-[56px] rounded-lg text-xs font-medium transition border ${hookStyle === s.v ? 'bg-violet-50 border-violet-400 text-violet-900 shadow-sm' : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}
                                   >
                                     <div className="font-bold">{s.label}</div>
-                                    <div className="text-[10px] opacity-70">{s.desc}</div>
+                                    <div className="text-xs opacity-70">{s.desc}</div>
                                   </button>
                                 ))}
                               </div>
@@ -2130,12 +2130,12 @@ function StudioContent() {
                                 these via ffmpeg in the same pass that burns the hook,
                                 so one click → one publish-ready output. */}
                             <div className="rounded-lg border border-neutral-200 bg-neutral-50/60 p-3 space-y-3">
-                              <div className="text-[11px] uppercase font-bold text-neutral-600 tracking-wide">Améliorations auto</div>
+                              <div className="text-xs uppercase font-bold text-neutral-600 tracking-wide">Améliorations auto</div>
 
                               <label className="flex items-center justify-between gap-3 cursor-pointer">
                                 <div>
                                   <div className="text-xs font-semibold text-neutral-800">Sous-titres burned-in</div>
-                                  <div className="text-[10px] text-neutral-500">Whisper transcrit, burn sur la vidéo (style {hookNetwork === 'tiktok' ? 'TikTok' : hookNetwork === 'instagram' ? 'Reels' : 'LinkedIn'})</div>
+                                  <div className="text-xs text-neutral-500">Whisper transcrit, burn sur la vidéo (style {hookNetwork === 'tiktok' ? 'TikTok' : hookNetwork === 'instagram' ? 'Reels' : 'LinkedIn'})</div>
                                 </div>
                                 <input
                                   type="checkbox"
@@ -2157,7 +2157,7 @@ function StudioContent() {
                                     <button
                                       key={c.v}
                                       onClick={() => setHookEnhancements(prev => ({ ...prev, crop: c.v }))}
-                                      className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${hookEnhancements.crop === c.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
+                                      className={`px-2 py-1.5 rounded text-xs font-bold transition ${hookEnhancements.crop === c.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
                                     >
                                       {c.label}
                                     </button>
@@ -2172,7 +2172,7 @@ function StudioContent() {
                                     <button
                                       key={s}
                                       onClick={() => setHookEnhancements(prev => ({ ...prev, speed: s }))}
-                                      className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${hookEnhancements.speed === s ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
+                                      className={`px-2 py-1.5 rounded text-xs font-bold transition ${hookEnhancements.speed === s ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
                                     >
                                       {s === 1 ? '1×' : `${s}×`}
                                     </button>
@@ -2191,7 +2191,7 @@ function StudioContent() {
                                     <button
                                       key={l.v}
                                       onClick={() => setHookEnhancements(prev => ({ ...prev, loudness: l.v }))}
-                                      className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${hookEnhancements.loudness === l.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
+                                      className={`px-2 py-1.5 rounded text-xs font-bold transition ${hookEnhancements.loudness === l.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
                                     >
                                       {l.label}
                                     </button>
@@ -2243,7 +2243,7 @@ function StudioContent() {
                                 Différent du hook overlay (qui ajoute juste un
                                 carton de texte) : ici on RE-MONTE la vidéo. */}
                             <div className="rounded-lg border border-neutral-200 bg-neutral-50/60 p-3 space-y-3 mt-3">
-                              <div className="text-[11px] uppercase font-bold text-neutral-600 tracking-wide">✂️ Recut intelligent</div>
+                              <div className="text-xs uppercase font-bold text-neutral-600 tracking-wide">✂️ Recut intelligent</div>
                               <div className="grid grid-cols-3 gap-1.5">
                                 {([
                                   { v: 'hook_escalation_payoff', label: 'Hook → Escalation → Payoff' },
@@ -2253,7 +2253,7 @@ function StudioContent() {
                                   <button
                                     key={s.v}
                                     onClick={() => setRecutStrategy(s.v)}
-                                    className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${recutStrategy === s.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-700'}`}
+                                    className={`px-2 py-1.5 rounded text-xs font-bold transition ${recutStrategy === s.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-700'}`}
                                   >
                                     {s.label}
                                   </button>
@@ -2299,7 +2299,7 @@ function StudioContent() {
                                 {recutBusy ? 'Re-montage en cours…' : '🎬 Lancer le recut intelligent'}
                               </button>
                               {recutError && (
-                                <div className="px-2 py-1.5 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-700">{recutError}</div>
+                                <div className="px-2 py-1.5 rounded bg-rose-50 border border-rose-200 text-xs text-rose-700">{recutError}</div>
                               )}
                               {/* Recut output here is hidden because the Aperçu Léna
                                   card above already shows the recut preview.
@@ -2313,7 +2313,7 @@ function StudioContent() {
 
                             {hookOutput && (
                               <div className="space-y-2 pt-2 border-t border-neutral-100">
-                                <div className="text-[10px] uppercase font-bold text-neutral-500">Hook généré</div>
+                                <div className="text-xs uppercase font-bold text-neutral-500">Hook généré</div>
                                 <div className="px-3 py-2 rounded-lg bg-violet-50 border border-violet-200">
                                   <div className="text-sm font-bold text-violet-900">{hookOutput.primary}</div>
                                   {hookOutput.secondary && <div className="text-xs text-violet-700">{hookOutput.secondary}</div>}
@@ -2454,10 +2454,10 @@ function StudioContent() {
                     >
                       <img src={img.thumbnail_url || img.image_url} alt={img.title || ''} className="w-full h-full object-cover" loading="lazy" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition">
-                        <div className="text-[10px] text-white font-bold truncate">{img.title || 'Image'}</div>
+                        <div className="text-xs text-white font-bold truncate">{img.title || 'Image'}</div>
                       </div>
                       {Array.isArray(img.tags) && img.tags.includes('studio_edit') && (
-                        <div className="absolute top-1 right-1 bg-violet-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">✂️ Studio</div>
+                        <div className="absolute top-1 right-1 bg-violet-600 text-white text-xs font-bold px-1.5 py-0.5 rounded">✂️ Studio</div>
                       )}
                     </button>
                   ))}
@@ -2567,9 +2567,9 @@ function StudioContent() {
                         <video src={v.video_url} muted className="w-full h-full object-cover" />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
-                        <div className="text-[10px] text-white font-bold truncate">{v.title || 'Vidéo'}</div>
+                        <div className="text-xs text-white font-bold truncate">{v.title || 'Vidéo'}</div>
                         {v.source_type === 'studio_edit' && (
-                          <div className="text-[10px] text-violet-300 font-bold mt-0.5">✂️ STUDIO ÉDITÉ</div>
+                          <div className="text-xs text-violet-300 font-bold mt-0.5">✂️ STUDIO ÉDITÉ</div>
                         )}
                       </div>
                       <div className="absolute inset-0 bg-violet-500/0 group-hover:bg-violet-500/10 transition" />
@@ -2660,11 +2660,11 @@ function StudioContent() {
                     <div key={c.id} className="rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50">
                       <video src={c.video_url} controls playsInline className="w-full aspect-[9/16] object-cover bg-black" preload="metadata" />
                       <div className="p-2">
-                        <div className="text-[11px] font-medium text-neutral-700 line-clamp-2">{c.title || "Clip d'inspiration"}</div>
+                        <div className="text-xs font-medium text-neutral-700 line-clamp-2">{c.title || "Clip d'inspiration"}</div>
                         <button
                           type="button"
                           onClick={() => { setHookSourceUrl(c.video_url); setShowTrendPicker(false); }}
-                          className="mt-1.5 w-full text-center px-2 py-1.5 rounded-md bg-violet-600 text-white text-[11px] font-semibold hover:bg-violet-700 transition"
+                          className="mt-1.5 w-full text-center px-2 py-1.5 rounded-md bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition"
                         >
                           Utiliser comme source
                         </button>

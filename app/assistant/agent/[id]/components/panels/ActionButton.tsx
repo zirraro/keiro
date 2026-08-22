@@ -86,7 +86,7 @@ export function ActionButton({
     }
   };
 
-  const pad = size === 'sm' ? 'px-3 py-1.5 text-[11px]' : 'px-4 py-2.5 text-xs';
+  const pad = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5 text-xs';
   const variantCls = state === 'success'
     ? 'bg-emerald-600'
     : state === 'error'

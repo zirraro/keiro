@@ -51,7 +51,7 @@ export function RhPanel({ data, agentName, gradientFrom, gradientTo }: PanelProp
           {(stats.recentDocs || []).slice(0, 5).map((doc: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{
                   backgroundColor: `${docTypeBadge[doc.type] ?? '#a78bfa'}22`,
                   color: docTypeBadge[doc.type] ?? '#a78bfa',
@@ -82,15 +82,15 @@ export function RhPanel({ data, agentName, gradientFrom, gradientTo }: PanelProp
         return (
           <div className="mt-4 rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/[0.05] p-3 sm:p-4">
             <div className="text-sm font-semibold text-white/90 mb-1">{isEn ? '\ud83d\udcc1 Documents Sara generates' : '\ud83d\udcc1 Les documents que Sara g\u00e9n\u00e8re'}</div>
-            <p className="text-[11px] text-white/45 mb-3">{isEn ? 'Pick one \u2014 Sara drafts it in the chat, you brand it (logo + colors) and export to PDF/Word.' : 'Choisis-en un \u2014 Sara le r\u00e9dige dans le chat, tu le mets \u00e0 ta marque (logo + couleurs) et l\u2019exportes en PDF/Word.'}</p>
+            <p className="text-xs text-white/45 mb-3">{isEn ? 'Pick one \u2014 Sara drafts it in the chat, you brand it (logo + colors) and export to PDF/Word.' : 'Choisis-en un \u2014 Sara le r\u00e9dige dans le chat, tu le mets \u00e0 ta marque (logo + couleurs) et l\u2019exportes en PDF/Word.'}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {docs.map((d, i) => (
                 <button key={i} type="button" onClick={() => askSara(d.ask)} className="text-left rounded-lg border border-white/10 bg-white/[0.03] p-2.5 hover:border-fuchsia-400/40 hover:bg-fuchsia-500/[0.06] transition">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
                     <span className="text-[12px] font-semibold text-white/85">{d.icon} {d.title}</span>
-                    <span className="text-[9px] uppercase tracking-wide text-fuchsia-300/70 shrink-0">{d.cat}</span>
+                    <span className="text-xs uppercase tracking-wide text-fuchsia-300/70 shrink-0">{d.cat}</span>
                   </div>
-                  <div className="text-[10px] italic text-fuchsia-200/70 leading-relaxed">{d.ex}</div>
+                  <div className="text-xs italic text-fuchsia-200/70 leading-relaxed">{d.ex}</div>
                 </button>
               ))}
             </div>
@@ -112,8 +112,8 @@ export function RhPanel({ data, agentName, gradientFrom, gradientTo }: PanelProp
             <div className="space-y-2">
               {qa.map((x, i) => (
                 <button key={i} type="button" onClick={() => askSara(x.q)} className="w-full text-left rounded-lg border border-white/10 bg-white/[0.03] p-2.5 hover:border-white/20 transition">
-                  <div className="text-[11px] font-medium text-white/85">{x.cat === 'RH' ? '\ud83d\udc65' : '\u2696\ufe0f'} {x.q}</div>
-                  <div className="text-[10px] text-white/45 leading-relaxed mt-0.5">{x.a}</div>
+                  <div className="text-xs font-medium text-white/85">{x.cat === 'RH' ? '\ud83d\udc65' : '\u2696\ufe0f'} {x.q}</div>
+                  <div className="text-xs text-white/45 leading-relaxed mt-0.5">{x.a}</div>
                 </button>
               ))}
             </div>

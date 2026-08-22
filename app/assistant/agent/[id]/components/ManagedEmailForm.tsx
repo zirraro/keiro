@@ -99,7 +99,7 @@ export default function ManagedEmailForm({ hidden }: ManagedEmailFormProps) {
         </div>
         <div className="space-y-2">
           {dnsRecords.map((rec, i) => (
-            <div key={i} className="rounded-lg bg-black/30 border border-white/10 p-2 text-[11px] text-white/80 font-mono">
+            <div key={i} className="rounded-lg bg-black/30 border border-white/10 p-2 text-xs text-white/80 font-mono">
               <div className="flex justify-between gap-2 mb-1">
                 <span className="text-amber-300 font-semibold">{rec.label}</span>
                 <span className="text-white/40">{rec.type}</span>
@@ -116,7 +116,7 @@ export default function ManagedEmailForm({ hidden }: ManagedEmailFormProps) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
       <h3 className="text-sm font-bold text-white">Connecter ton email professionnel</h3>
-      <p className="text-[11px] text-white/50">
+      <p className="text-xs text-white/50">
         On configure l'envoi depuis ton domaine pour toi. Aucune inscription externe à faire — donne juste les infos ci-dessous et l'équipe s'occupe de la vérification.
       </p>
 
@@ -149,7 +149,7 @@ export default function ManagedEmailForm({ hidden }: ManagedEmailFormProps) {
         />
       </div>
 
-      {error && <div className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/30 rounded px-2 py-1">{error}</div>}
+      {error && <div className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded px-2 py-1">{error}</div>}
 
       <button
         onClick={handleSubmit}

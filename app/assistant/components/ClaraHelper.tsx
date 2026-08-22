@@ -252,17 +252,17 @@ export default function ClaraHelper() {
                     >
                       <span className="text-lg">{(a as any).icon || '\u{1F916}'}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[11px] font-bold text-white">{a.name}</div>
-                        <div className="text-[10px] text-white/40">{a.role}</div>
+                        <div className="text-xs font-bold text-white">{a.name}</div>
+                        <div className="text-xs text-white/40">{a.role}</div>
                       </div>
-                      <span className="text-emerald-400 text-[10px] font-bold">{'\u26A1'}</span>
+                      <span className="text-emerald-400 text-xs font-bold">{'\u26A1'}</span>
                     </button>
                   ))}
                 </div>
                 <button onClick={startWizard} className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[40px] mb-1.5">
                   {'\u26A1'} Activer dans l&apos;ordre recommande
                 </button>
-                <button onClick={dismissAndCooldown} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/30 text-[10px] hover:text-white/50 transition">
+                <button onClick={dismissAndCooldown} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/30 text-xs hover:text-white/50 transition">
                   Plus tard
                 </button>
               </>
@@ -284,13 +284,13 @@ export default function ClaraHelper() {
                     <span className="text-xl">{(currentAgent as any).icon || '\u{1F916}'}</span>
                     <div>
                       <div className="text-sm font-bold text-white">{currentAgent.name}</div>
-                      <div className="text-[10px] text-emerald-400">{currentAgent.role}</div>
+                      <div className="text-xs text-emerald-400">{currentAgent.role}</div>
                     </div>
-                    <span className="ml-auto text-[10px] text-white/30">{currentWizardIndex + 1}/{inactiveAgents.length}</span>
+                    <span className="ml-auto text-xs text-white/30">{currentWizardIndex + 1}/{inactiveAgents.length}</span>
                   </div>
-                  <p className="text-[11px] text-white/60 leading-relaxed mb-2">{(currentAgent as any).desc || ''}</p>
+                  <p className="text-xs text-white/60 leading-relaxed mb-2">{(currentAgent as any).desc || ''}</p>
                   {(currentAgent as any).benefit && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-lg">
                       <span>{'\u{1F680}'}</span>
                       <span>{(currentAgent as any).benefit}</span>
                     </div>
@@ -303,15 +303,15 @@ export default function ClaraHelper() {
                     <a href={currentAgent.connectUrl || '#'} className="block w-full py-2.5 text-center bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition min-h-[40px]">
                       {'\u{1F517}'} {currentAgent.connectLabel}
                     </a>
-                    <button onClick={() => activateAgent(currentAgent)} className="w-full py-1.5 text-white/40 text-[10px] hover:text-white/60 transition">Deja connecte ? Activer directement</button>
-                    <button onClick={skipAgent} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
+                    <button onClick={() => activateAgent(currentAgent)} className="w-full py-1.5 text-white/40 text-xs hover:text-white/60 transition">Deja connecte ? Activer directement</button>
+                    <button onClick={skipAgent} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/50 text-xs hover:text-white/40 transition">Passer cet agent</button>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <button onClick={() => activateAgent(currentAgent)} className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition min-h-[40px]">
                       {'\u26A1'} Activer {currentAgent.name}
                     </button>
-                    <button onClick={skipAgent} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
+                    <button onClick={skipAgent} className="min-h-[44px] inline-flex items-center justify-center w-full py-1.5 text-white/50 text-xs hover:text-white/40 transition">Passer cet agent</button>
                   </div>
                 )}
               </>
@@ -321,7 +321,7 @@ export default function ClaraHelper() {
             {wizardDone && (
               <>
                 <p className="text-xs text-white/80 mb-2">{'\u{1F389}'} Bravo ! Tes agents sont prets a travailler pour toi !</p>
-                <button onClick={dismissAndCooldown} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg min-h-[40px]">
+                <button onClick={dismissAndCooldown} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg min-h-[40px]">
                   C&apos;est parti !
                 </button>
               </>

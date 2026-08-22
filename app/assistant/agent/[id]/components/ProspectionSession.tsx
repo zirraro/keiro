@@ -195,7 +195,7 @@ export default function ProspectionSession() {
   const StatCard = ({ label, value, accent }: { label: string; value: number | string; accent?: string }) => (
     <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 text-center">
       <div className={`text-lg sm:text-xl font-bold ${accent || 'text-white'}`}>{value}</div>
-      <div className="text-[10px] text-white/50">{label}</div>
+      <div className="text-xs text-white/50">{label}</div>
     </div>
   );
 
@@ -205,7 +205,7 @@ export default function ProspectionSession() {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-bold text-white">{en ? '📊 Your prospecting' : '📊 Ton démarchage'}</h3>
-          <button onClick={() => setShowHistory(s => !s)} className="text-[11px] text-orange-300 hover:text-orange-200 font-medium">
+          <button onClick={() => setShowHistory(s => !s)} className="text-xs text-orange-300 hover:text-orange-200 font-medium">
             {showHistory ? (en ? 'Hide history' : "Masquer l'historique") : (en ? 'See history' : "Voir l'historique")}
           </button>
         </div>
@@ -220,9 +220,9 @@ export default function ProspectionSession() {
         {showHistory && (
           <div className="mt-2 rounded-xl bg-black/20 border border-white/10 p-2 max-h-52 overflow-y-auto">
             {(stats?.history || []).length === 0
-              ? <p className="text-[11px] text-white/40 text-center py-3">{en ? 'No call logged yet.' : 'Aucun appel enregistré pour le moment.'}</p>
+              ? <p className="text-xs text-white/40 text-center py-3">{en ? 'No call logged yet.' : 'Aucun appel enregistré pour le moment.'}</p>
               : (stats?.history || []).map((h, i) => (
-                <div key={i} className="flex items-center gap-2 px-2 py-1.5 text-[11px] border-b border-white/5 last:border-0">
+                <div key={i} className="flex items-center gap-2 px-2 py-1.5 text-xs border-b border-white/5 last:border-0">
                   <span className="whitespace-nowrap">{h.label}</span>
                   {h.note && <span className="text-white/50 truncate flex-1">— {h.note}</span>}
                   <span className="text-white/30 ml-auto whitespace-nowrap">{(h.at || '').slice(0, 10)}</span>
@@ -235,14 +235,14 @@ export default function ProspectionSession() {
       {/* ── LANCER UNE SESSION ── */}
       <div className="rounded-xl border border-orange-500/25 bg-orange-500/[0.05] p-3">
         <div className="text-xs font-bold text-orange-200 mb-1">{en ? '🎯 Launch a prospecting session' : '🎯 Lancer une session de démarchage'}</div>
-        <p className="text-[11px] text-white/50 mb-2">{en ? 'One click and let Léo decide, or fine-tune the targeting below.' : 'Un clic et laisse Léo décider, ou affine le ciblage ci-dessous.'}</p>
+        <p className="text-xs text-white/50 mb-2">{en ? 'One click and let Léo decide, or fine-tune the targeting below.' : 'Un clic et laisse Léo décider, ou affine le ciblage ci-dessous.'}</p>
 
         {/* Léo décide — liste prête, sans réflexion (le plus rapide, coût nul) */}
         <button onClick={launchSmart} disabled={loading}
           className="w-full mb-3 py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white text-sm font-extrabold disabled:opacity-50 active:scale-[0.99] transition-all shadow-lg shadow-orange-900/20">
           {loading ? '…' : (en ? '⚡ My list to prospect now (Léo decides)' : '⚡ Ma liste à prospecter maintenant (Léo décide)')}
         </button>
-        <div className="text-[10px] text-white/35 mb-2 text-center">{en ? '— or target it yourself —' : '— ou cible toi-même —'}</div>
+        <div className="text-xs text-white/35 mb-2 text-center">{en ? '— or target it yourself —' : '— ou cible toi-même —'}</div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <input value={sector} onChange={e => setSector(e.target.value)} placeholder={en ? 'Activity (e.g. beauty)' : 'Activité (ex : institut)'} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30" />
@@ -268,18 +268,18 @@ export default function ProspectionSession() {
             {searching ? (en ? '🔍 Searching…' : '🔍 Recherche…') : (en ? '🔍 Search Google (paid)' : '🔍 Rechercher sur Google (payant)')}
           </button>
         </div>
-        <p className="text-[10px] text-white/40 mt-1.5">{en ? 'We prioritize your CRM (free). Google search creates brand-new, pre-filled fiches (name, address, phone, Google rating) and uses ~3 credits per new prospect — use it only when the area isn\'t in your CRM. Capped per run.' : 'On privilégie ton CRM (gratuit). La recherche Google crée de nouvelles fiches déjà remplies (nom, adresse, tél, note Google) et consomme ~3 crédits par nouveau prospect — à utiliser seulement si la zone n\'est pas dans ton CRM. Plafonné par recherche.'}</p>
-        {searchMsg && <p className="text-[11px] text-cyan-200 mt-1.5">{searchMsg}</p>}
+        <p className="text-xs text-white/40 mt-1.5">{en ? 'We prioritize your CRM (free). Google search creates brand-new, pre-filled fiches (name, address, phone, Google rating) and uses ~3 credits per new prospect — use it only when the area isn\'t in your CRM. Capped per run.' : 'On privilégie ton CRM (gratuit). La recherche Google crée de nouvelles fiches déjà remplies (nom, adresse, tél, note Google) et consomme ~3 crédits par nouveau prospect — à utiliser seulement si la zone n\'est pas dans ton CRM. Plafonné par recherche.'}</p>
+        {searchMsg && <p className="text-xs text-cyan-200 mt-1.5">{searchMsg}</p>}
       </div>
 
       {/* ── MINI-ONGLETS : sessions datées ── */}
       {sessions.length > 0 && (
         <div>
-          <div className="text-[10px] text-white/40 uppercase font-bold mb-1.5">{en ? 'Your lists (finish day by day)' : 'Tes listes (à finir jour par jour)'}</div>
+          <div className="text-xs text-white/40 uppercase font-bold mb-1.5">{en ? 'Your lists (finish day by day)' : 'Tes listes (à finir jour par jour)'}</div>
           <div className="flex items-center gap-1.5 flex-wrap">
             {sessions.map((s: any) => (
               <button key={s.id} onClick={() => loadSession(s)}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${activeSession === s.id ? 'bg-orange-500/25 text-orange-100 border-orange-400/40' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'}`}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeSession === s.id ? 'bg-orange-500/25 text-orange-100 border-orange-400/40' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'}`}
                 title={`${s.count} prospects · ${(s.at || '').slice(0, 10)}`}>
                 {s.source === 'google' ? '🔍' : '📋'} {(s.at || '').slice(5, 10).replace('-', '/')} · {s.label} <span className="text-white/40">({s.count})</span>
               </button>
@@ -300,19 +300,19 @@ export default function ProspectionSession() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-white">{p.name}</span>
                   {p.company && <span className="text-xs text-white/50">· {p.company}</span>}
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${TEMP[p.temperature] || TEMP.cold}`}>{p.temperature}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${TEMP[p.temperature] || TEMP.cold}`}>{p.temperature}</span>
                 </div>
-                <div className="text-[11px] text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>
+                <div className="text-xs text-white/40 mt-0.5">{[p.business_type, p.city].filter(Boolean).join(' · ')}</div>
               </div>
               {p.phone
                 ? <a href={`tel:${p.phone}`} className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300 text-sm font-semibold whitespace-nowrap active:scale-95">📞 {p.phone}</a>
-                : <span className="px-3 py-1.5 rounded-lg bg-white/5 text-white/40 text-[11px] whitespace-nowrap">{en ? 'No phone' : 'Pas de tél'}</span>}
+                : <span className="px-3 py-1.5 rounded-lg bg-white/5 text-white/40 text-xs whitespace-nowrap">{en ? 'No phone' : 'Pas de tél'}</span>}
             </div>
-            <div className="mt-2 text-[11px] text-orange-200 bg-orange-500/10 border border-orange-500/15 rounded-lg px-2 py-1.5">
+            <div className="mt-2 text-xs text-orange-200 bg-orange-500/10 border border-orange-500/15 rounded-lg px-2 py-1.5">
               <strong>{en ? 'Action:' : 'Action :'}</strong> {p.recommended_action}
             </div>
             {(p.fiche?.notes || p.fiche?.summary) && (
-              <p className="mt-1.5 text-[11px] text-white/50 line-clamp-2">{p.fiche.summary || p.fiche.notes}</p>
+              <p className="mt-1.5 text-xs text-white/50 line-clamp-2">{p.fiche.summary || p.fiche.notes}</p>
             )}
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {[
@@ -322,13 +322,13 @@ export default function ProspectionSession() {
                 { k: 'reached_not_interested', l: en ? '🚫 Not interested' : '🚫 Pas intéressé' },
               ].map(o => (
                 <button key={o.k} onClick={() => mark(p.id, o.k)} disabled={busy === p.id}
-                  className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-[11px] font-medium disabled:opacity-40 active:scale-95 transition-all">
+                  className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-xs font-medium disabled:opacity-40 active:scale-95 transition-all">
                   {o.l}
                 </button>
               ))}
             </div>
             <button onClick={() => setOpenEdit(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
-              className="mt-2 text-[11px] text-orange-300 hover:text-orange-200 font-medium">
+              className="mt-2 text-xs text-orange-300 hover:text-orange-200 font-medium">
               {openEdit[p.id] ? (en ? '▾ Close fiche' : '▾ Fermer la fiche') : (en ? '✏️ Edit fiche (note, status)' : '✏️ Modifier la fiche (note, statut)')}
             </button>
             {openEdit[p.id] && (
@@ -337,7 +337,7 @@ export default function ProspectionSession() {
                   placeholder={en ? 'Comment (read by all agents: Hugo follow-ups, Léna…)' : 'Commentaire (lu par tous les agents : relances Hugo, Léna…)'}
                   rows={2} className="w-full px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] placeholder-white/30 resize-y focus:outline-none focus:ring-1 focus:ring-orange-500/40" />
                 <div className="flex items-center gap-2 flex-wrap">
-                  <select value={p.status || 'identifie'} onChange={e => saveFiche(p.id, { status: e.target.value })} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/80 text-[11px]">
+                  <select value={p.status || 'identifie'} onChange={e => saveFiche(p.id, { status: e.target.value })} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/80 text-xs">
                     {[
                       { v: 'identifie', l: en ? 'Identified' : 'Identifié' }, { v: 'contacte', l: en ? 'Contacted' : 'Contacté' },
                       { v: 'repondu', l: en ? 'Replied' : 'A répondu' }, { v: 'demo', l: en ? 'Demo' : 'Démo' },
@@ -351,7 +351,7 @@ export default function ProspectionSession() {
                     ))}
                   </div>
                   <button onClick={() => saveFiche(p.id, { comment: (noteDraft[p.id] || '').trim() })} disabled={busy === p.id || !(noteDraft[p.id] || '').trim()}
-                    className="ml-auto px-3 py-1.5 rounded-lg bg-orange-500/80 hover:bg-orange-500 text-white text-[11px] font-semibold disabled:opacity-40 active:scale-95">
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-orange-500/80 hover:bg-orange-500 text-white text-xs font-semibold disabled:opacity-40 active:scale-95">
                     {busy === p.id ? '…' : savedId === p.id ? (en ? '✓ Saved' : '✓ Enregistré') : (en ? '💾 Save note' : '💾 Enregistrer')}
                   </button>
                 </div>

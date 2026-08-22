@@ -219,14 +219,14 @@ export default function MetaAuditPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {entries.map(([perm, counts]) => (
                   <div key={perm} className={`rounded-xl border border-neutral-200 p-3`}>
-                    <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${PERMISSION_COLOR[perm]}`}>
+                    <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${PERMISSION_COLOR[perm]}`}>
                       {PERMISSION_LABEL[perm]}
                     </div>
                     <div className="mt-2 flex items-baseline gap-2">
                       <span className="text-xl font-black text-neutral-900">{counts.reads + counts.writes + counts.webhooks}</span>
-                      <span className="text-[10px] text-neutral-500">total</span>
+                      <span className="text-xs text-neutral-500">total</span>
                     </div>
-                    <div className="mt-1 text-[10px] text-neutral-500 space-x-2">
+                    <div className="mt-1 text-xs text-neutral-500 space-x-2">
                       {counts.writes > 0 && <span><span className="text-rose-700 font-bold">{counts.writes}</span> write</span>}
                       {counts.reads > 0 && <span><span className="text-emerald-700 font-bold">{counts.reads}</span> read</span>}
                       {counts.webhooks > 0 && <span><span className="text-blue-700 font-bold">{counts.webhooks}</span> webhook</span>}
@@ -277,18 +277,18 @@ export default function MetaAuditPage() {
                           })}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${PERMISSION_COLOR[meta.permission]}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${PERMISSION_COLOR[meta.permission]}`}>
                             {PERMISSION_LABEL[meta.permission]}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${METHOD_COLOR[meta.method]}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${METHOD_COLOR[meta.method]}`}>
                             {meta.method}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${
                               row.status === 'success' || row.status === 'ok'
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : row.status === 'error' || row.status === 'failure'
@@ -300,8 +300,8 @@ export default function MetaAuditPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="font-mono text-[11px] text-neutral-900">{row.agent} · {row.action}</div>
-                          <div className="text-neutral-600 text-[11px] mt-0.5">{meta.description}</div>
+                          <div className="font-mono text-xs text-neutral-900">{row.agent} · {row.action}</div>
+                          <div className="text-neutral-600 text-xs mt-0.5">{meta.description}</div>
                         </td>
                       </tr>
                     );

@@ -82,16 +82,16 @@ function LeoDirection() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm font-bold text-blue-300">{'🎯'} {en ? 'Steer Léo' : 'Diriger Léo'}</h3>
         {persisted && (persisted.sector || persisted.city) && (
-          <span className="text-[10px] text-blue-300/60">
+          <span className="text-xs text-blue-300/60">
             {en ? 'Focus:' : 'Focus :'} <strong>{persisted.sector || (en ? 'all sectors' : 'tous secteurs')}</strong>
             {persisted.city && <> · {persisted.city}</>}
           </span>
         )}
       </div>
-      <p className="text-[11px] text-white/50">{en ? 'Focus Léo on a sector and/or a city. Léo will prospect these targets on every run (every 6h).' : 'Concentre Léo sur un secteur et/ou une ville. Léo prospectera ces cibles à chaque passage (toutes les 6h).'}</p>
+      <p className="text-xs text-white/50">{en ? 'Focus Léo on a sector and/or a city. Léo will prospect these targets on every run (every 6h).' : 'Concentre Léo sur un secteur et/ou une ville. Léo prospectera ces cibles à chaque passage (toutes les 6h).'}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">{en ? 'Sector' : 'Secteur'}</label>
+          <label className="text-xs text-white/40 uppercase font-bold mb-1 block">{en ? 'Sector' : 'Secteur'}</label>
           <input
             list="leo-sector-options"
             type="text"
@@ -105,7 +105,7 @@ function LeoDirection() {
           </datalist>
         </div>
         <div>
-          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">{en ? 'City' : 'Ville'}</label>
+          <label className="text-xs text-white/40 uppercase font-bold mb-1 block">{en ? 'City' : 'Ville'}</label>
           <input
             type="text"
             value={city}
@@ -132,7 +132,7 @@ function LeoDirection() {
         </button>
       </div>
       {result && (
-        <div className={`text-[10px] px-3 py-2 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+        <div className={`text-xs px-3 py-2 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
           {result.message}
         </div>
       )}
@@ -487,13 +487,13 @@ function ActivityTimeline({ activities }: { activities: Activity[] }) {
           const icon = ACTIVITY_ICONS[act.type] || '\uD83D\uDCDD';
           return (
             <div key={act.id} className="relative">
-              <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-[#0c1a3a] border-2 border-purple-500/50 flex items-center justify-center text-[10px]">
+              <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-[#0c1a3a] border-2 border-purple-500/50 flex items-center justify-center text-xs">
                 {icon}
               </div>
               <div className="bg-white/5 rounded-lg p-3">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="text-xs font-medium text-white/80 capitalize">{act.type.replace(/_/g, ' ')}</span>
-                  <span className="text-[10px] text-white/40 flex-shrink-0">{formatDateTime(act.date_activite)}</span>
+                  <span className="text-xs text-white/40 flex-shrink-0">{formatDateTime(act.date_activite)}</span>
                 </div>
                 {act.description && (
                   <p className="text-xs text-white/60 leading-relaxed">{act.description}</p>
@@ -502,7 +502,7 @@ function ActivityTimeline({ activities }: { activities: Activity[] }) {
                   <p className="text-xs text-purple-300/80 mt-1">Resultat : {act.resultat}</p>
                 )}
                 {act.date_rappel && (
-                  <p className="text-[10px] text-yellow-400/70 mt-1">Rappel : {formatDate(act.date_rappel)}</p>
+                  <p className="text-xs text-yellow-400/70 mt-1">Rappel : {formatDate(act.date_rappel)}</p>
                 )}
               </div>
             </div>
@@ -574,39 +574,39 @@ function ProspectRow({ prospect, activities, isExpanded, onToggle, lastActivity 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {prospect.phone && (
                 <div>
-                  <div className="text-[10px] text-white/40 uppercase tracking-wider">{en ? 'Phone' : 'Telephone'}</div>
+                  <div className="text-xs text-white/40 uppercase tracking-wider">{en ? 'Phone' : 'Telephone'}</div>
                   <div className="text-sm text-white/80">{prospect.phone}</div>
                 </div>
               )}
               {prospect.instagram && (
                 <div>
-                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Instagram</div>
+                  <div className="text-xs text-white/40 uppercase tracking-wider">Instagram</div>
                   <div className="text-sm text-purple-400">@{prospect.instagram}</div>
                 </div>
               )}
               {prospect.note_google > 0 && (
                 <div>
-                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Google</div>
+                  <div className="text-xs text-white/40 uppercase tracking-wider">Google</div>
                   <div className="text-sm text-white/80">{prospect.note_google}/5 ({prospect.avis_google} avis)</div>
                 </div>
               )}
               {prospect.type && (
                 <div>
-                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Type</div>
+                  <div className="text-xs text-white/40 uppercase tracking-wider">Type</div>
                   <div className="text-sm text-white/80 capitalize">{prospect.type}</div>
                 </div>
               )}
             </div>
             {prospect.notes && (
               <div className="mb-3">
-                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Notes</div>
+                <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Notes</div>
                 <p className="text-xs text-white/60 leading-relaxed bg-white/5 rounded-lg p-2">{prospect.notes}</p>
               </div>
             )}
             {prospect.tags && prospect.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {prospect.tags.map(tag => (
-                  <span key={tag} className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 text-[10px]">{tag}</span>
+                  <span key={tag} className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 text-xs">{tag}</span>
                 ))}
               </div>
             )}
@@ -657,7 +657,7 @@ function ProspectCard({ prospect, activities, isExpanded, onToggle, lastActivity
             <span className="text-xs text-white/40">Score: {prospect.score}</span>
           </div>
           {lastActivity && (
-            <div className="text-[10px] text-white/30 mt-1.5">{timeAgo(lastActivity.date_activite)}</div>
+            <div className="text-xs text-white/30 mt-1.5">{timeAgo(lastActivity.date_activite)}</div>
           )}
         </div>
       </button>
@@ -667,37 +667,37 @@ function ProspectCard({ prospect, activities, isExpanded, onToggle, lastActivity
           <div className="grid grid-cols-2 gap-3 mb-3">
             {prospect.email && (
               <div>
-                <div className="text-[10px] text-white/40 uppercase tracking-wider">Email</div>
+                <div className="text-xs text-white/40 uppercase tracking-wider">Email</div>
                 <div className="text-xs text-white/70 truncate">{prospect.email}</div>
               </div>
             )}
             {prospect.phone && (
               <div>
-                <div className="text-[10px] text-white/40 uppercase tracking-wider">{en ? 'Phone' : 'Telephone'}</div>
+                <div className="text-xs text-white/40 uppercase tracking-wider">{en ? 'Phone' : 'Telephone'}</div>
                 <div className="text-xs text-white/70">{prospect.phone}</div>
               </div>
             )}
             {prospect.instagram && (
               <div>
-                <div className="text-[10px] text-white/40 uppercase tracking-wider">Instagram</div>
+                <div className="text-xs text-white/40 uppercase tracking-wider">Instagram</div>
                 <div className="text-xs text-purple-400">@{prospect.instagram}</div>
               </div>
             )}
             <div>
-              <div className="text-[10px] text-white/40 uppercase tracking-wider">Source</div>
+              <div className="text-xs text-white/40 uppercase tracking-wider">Source</div>
               <div className="text-xs text-white/70 capitalize">{prospect.source || '-'}</div>
             </div>
           </div>
           {prospect.notes && (
             <div className="mb-3">
-              <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Notes</div>
+              <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Notes</div>
               <p className="text-xs text-white/60 bg-white/5 rounded-lg p-2">{prospect.notes}</p>
             </div>
           )}
           {prospect.tags && prospect.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {prospect.tags.map(tag => (
-                <span key={tag} className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 text-[10px]">{tag}</span>
+                <span key={tag} className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 text-xs">{tag}</span>
               ))}
             </div>
           )}
@@ -946,16 +946,16 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-900/5 p-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h3 className="text-sm font-bold text-emerald-300">📋 Complétude des fiches</h3>
-            <span className="text-[10px] text-white/40">{en ? `across the ${completenessStats.sampleSize} most recent records` : `sur les ${completenessStats.sampleSize} fiches les plus récentes`}</span>
+            <span className="text-xs text-white/40">{en ? `across the ${completenessStats.sampleSize} most recent records` : `sur les ${completenessStats.sampleSize} fiches les plus récentes`}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <div className="rounded-lg bg-white/5 p-3 text-center">
               <div className="text-2xl font-bold text-emerald-300">{completenessStats.avg}%</div>
-              <div className="text-[10px] text-white/50">{en ? 'Average completeness' : 'Complétude moyenne'}</div>
+              <div className="text-xs text-white/50">{en ? 'Average completeness' : 'Complétude moyenne'}</div>
             </div>
             <div className="rounded-lg bg-white/5 p-3 text-center">
               <div className="text-2xl font-bold text-blue-300">{completenessStats.exhaustive}/{completenessStats.sampleSize}</div>
-              <div className="text-[10px] text-white/50">Fiches exhaustives (70%+)</div>
+              <div className="text-xs text-white/50">Fiches exhaustives (70%+)</div>
             </div>
             <div className="rounded-lg bg-white/5 p-3 text-center col-span-2 sm:col-span-1">
               <div className="text-2xl font-bold text-purple-300">
@@ -964,7 +964,7 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                   return t > Date.now() - 24 * 60 * 60 * 1000;
                 }).length}
               </div>
-              <div className="text-[10px] text-white/50">Ajouts 24h</div>
+              <div className="text-xs text-white/50">Ajouts 24h</div>
             </div>
           </div>
         </div>
@@ -988,20 +988,20 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: `${tempColor}22`, color: tempColor }}
                     >
                       {pr.temperature || 'unscored'}
                     </span>
                     <span className="text-sm font-bold text-white truncate flex-1">{pr.company || '(sans nom)'}</span>
-                    <span className="text-[10px] text-white/30 shrink-0">
+                    <span className="text-xs text-white/30 shrink-0">
                       {new Date(pr.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </span>
                     <svg className="w-3.5 h-3.5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/50">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">
                     {pr.type && <span className="px-1.5 py-0.5 rounded bg-white/5">{pr.type}</span>}
                     {pr.email && <span title={pr.email}>📧</span>}
                     {pr.instagram && pr.instagram !== 'A_VERIFIER' && <span title={pr.instagram}>📷</span>}
@@ -1019,11 +1019,11 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                           }}
                         />
                       </div>
-                      <span className="text-[10px] text-white/40">{comp.pct}%</span>
+                      <span className="text-xs text-white/40">{comp.pct}%</span>
                     </span>
                   </div>
                   {comp.missing.length > 0 && comp.pct < 70 && (
-                    <div className="text-[10px] text-amber-300/70 mt-1">
+                    <div className="text-xs text-amber-300/70 mt-1">
                       ⚠️ Manque : {comp.missing.slice(0, 4).join(', ')}{comp.missing.length > 4 ? `, +${comp.missing.length - 4}` : ''}
                     </div>
                   )}
@@ -1045,18 +1045,18 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
               <div key={p.id} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2">
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-white">{p.company || `${p.first_name} ${p.last_name}`}</div>
-                  <div className="text-[10px] text-white/40">{p.email || p.phone || p.instagram || 'Pas de contact'}</div>
+                  <div className="text-xs text-white/40">{p.email || p.phone || p.instagram || 'Pas de contact'}</div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">{p.score}/100</span>
+                  <span className="text-xs font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">{p.score}/100</span>
                   {p.email && (
-                    <button onClick={() => { window.location.href = '/assistant/agent/email'; }} className="text-[10px] px-2 py-1 bg-cyan-600/20 text-cyan-400 rounded-lg hover:bg-cyan-600/30">{'\u{1F4E7}'} Email</button>
+                    <button onClick={() => { window.location.href = '/assistant/agent/email'; }} className="text-xs px-2 py-1 bg-cyan-600/20 text-cyan-400 rounded-lg hover:bg-cyan-600/30">{'\u{1F4E7}'} Email</button>
                   )}
                   {p.instagram && (
-                    <button onClick={() => { window.location.href = '/assistant/agent/dm_instagram'; }} className="text-[10px] px-2 py-1 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30">{'\u{1F4AC}'} DM</button>
+                    <button onClick={() => { window.location.href = '/assistant/agent/dm_instagram'; }} className="text-xs px-2 py-1 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30">{'\u{1F4AC}'} DM</button>
                   )}
                   {p.phone && (
-                    <a href={`tel:${p.phone}`} className="text-[10px] px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg hover:bg-emerald-600/30">{'\u{1F4DE}'} Appeler</a>
+                    <a href={`tel:${p.phone}`} className="text-xs px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg hover:bg-emerald-600/30">{'\u{1F4DE}'} Appeler</a>
                   )}
                 </div>
               </div>

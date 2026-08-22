@@ -55,10 +55,10 @@ function ReportFrequencyPicker() {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mt-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">
+        <span className="text-xs text-white/50 uppercase tracking-wider font-bold">
           {locale === 'fr' ? 'Fréquence du rapport Noah' : 'Noah report frequency'}
         </span>
-        {saved && <span className="text-[10px] text-emerald-400">✓</span>}
+        {saved && <span className="text-xs text-emerald-400">✓</span>}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {FREQUENCY_OPTIONS.map(opt => (
@@ -66,7 +66,7 @@ function ReportFrequencyPicker() {
             key={opt.value}
             onClick={() => save(opt.value)}
             disabled={saving}
-            className={`px-2.5 py-1.5 text-[10px] font-medium rounded-lg transition ${
+            className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition ${
               freq === opt.value
                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                 : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'
@@ -122,7 +122,7 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
             <div key={id} className="flex items-center gap-2 bg-white/[0.03] border border-white/10 rounded-xl p-2.5">
               <div className={`w-2 h-2 rounded-full ${status === 'erreur' ? 'bg-red-400' : status === 'actif' ? 'bg-green-400' : 'bg-white/20'}`} />
               <span className="text-xs text-white/70 font-medium">{name}</span>
-              <span className={`text-[10px] ml-auto ${status === 'erreur' ? 'text-red-400' : status === 'actif' ? 'text-green-400' : 'text-white/45'}`}>
+              <span className={`text-xs ml-auto ${status === 'erreur' ? 'text-red-400' : status === 'actif' ? 'text-green-400' : 'text-white/45'}`}>
                 {status === 'erreur' ? p.ceoStatusError : status === 'actif' ? p.ceoStatusActive : p.ceoStatusWaiting}
               </span>
             </div>
@@ -134,19 +134,19 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-pink-400">{fmt(dmsSent)}</div>
-          <div className="text-[10px] text-white/40">{p.ceoStatDmsSent}</div>
+          <div className="text-xs text-white/40">{p.ceoStatDmsSent}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-purple-400">{fmt(publications)}</div>
-          <div className="text-[10px] text-white/40">{p.ceoStatPublications}</div>
+          <div className="text-xs text-white/40">{p.ceoStatPublications}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-cyan-400">{fmt(emailsSent)}</div>
-          <div className="text-[10px] text-white/40">{p.ceoStatEmails}</div>
+          <div className="text-xs text-white/40">{p.ceoStatEmails}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-amber-400">{fmt(hot)}</div>
-          <div className="text-[10px] text-white/40">{p.ceoStatHotProspects}</div>
+          <div className="text-xs text-white/40">{p.ceoStatHotProspects}</div>
         </div>
       </div>
 
@@ -168,7 +168,7 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
           return focuses.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {focuses.map(f => (
-                <span key={f} className="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-[10px] font-medium rounded-lg">{STRAT_NAMES[f] || f}</span>
+                <span key={f} className="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-medium rounded-lg">{STRAT_NAMES[f] || f}</span>
               ))}
             </div>
           ) : (

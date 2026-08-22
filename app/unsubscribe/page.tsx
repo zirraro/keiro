@@ -133,7 +133,7 @@ function UnsubscribeInner() {
               </div>
             )}
 
-            <p className="text-[11px] text-slate-400 mt-6 text-center">
+            <p className="text-xs text-slate-400 mt-6 text-center">
               KeiroAI — <a href="https://keiroai.com" className="underline">keiroai.com</a>
             </p>
           </div>

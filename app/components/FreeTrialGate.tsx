@@ -114,10 +114,10 @@ export default function FreeTrialGate() {
           <a href="/login" className="block w-full text-center text-xs text-neutral-500 hover:text-neutral-700 py-2">
             {en ? 'I already have an account' : 'J\'ai déjà un compte'}
           </a>
-          <button onClick={() => setDismissed(true)} className="block w-full text-center text-[11px] text-neutral-400 hover:text-neutral-600 py-1">
+          <button onClick={() => setDismissed(true)} className="block w-full text-center text-xs text-neutral-400 hover:text-neutral-600 py-1">
             {en ? 'Keep my image — maybe later' : 'Garder mon image — plus tard'}
           </button>
-          <p className="text-[10px] text-neutral-400 text-center mt-2">
+          <p className="text-xs text-neutral-400 text-center mt-2">
             {en ? 'Email only · No card at this step' : 'Email seulement · Pas de carte demandée à cette étape'}
           </p>
         </div>
@@ -171,9 +171,9 @@ export default function FreeTrialGate() {
           <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-3 text-center">
             <div className="text-xs text-purple-700 font-semibold mb-0.5">{en ? '7 DAYS FREE · Créateur plan' : '7 JOURS GRATUITS · Plan Créateur'}</div>
             <div className="text-2xl sm:text-3xl font-black text-purple-900">0€</div>
-            <div className="text-[10px] sm:text-xs text-purple-600">{en ? 'Then €49/mo · Cancel in 1 click' : 'Puis 49€/mois · Annulation 1 clic'}</div>
+            <div className="text-xs sm:text-xs text-purple-600">{en ? 'Then €49/mo · Cancel in 1 click' : 'Puis 49€/mois · Annulation 1 clic'}</div>
           </div>
-          <ul className="text-[11px] sm:text-xs text-neutral-700 space-y-1 mb-4">
+          <ul className="text-xs sm:text-xs text-neutral-700 space-y-1 mb-4">
             <li>✓ <strong>{en ? "7 agents" : "7 agents"}</strong>{en ? " — Léna, Jade, Théo, Sara, Louis, Ami, Clara" : " — Léna, Jade, Théo, Sara, Louis, Ami, Clara"}</li>
             <li>✓ <strong>{en ? "1,000 credits" : "1 000 crédits"}</strong>{en ? "/mo (≈ 60 visuals + 12 videos)" : "/mois (≈ 60 visuels + 12 vidéos)"}</li>
             <li>✓ <strong>{en ? "~18 posts/week" : "~18 publications/semaine"}</strong>{en ? " on Instagram + TikTok, at peak hours" : " sur Instagram et TikTok, aux meilleures heures"}</li>
@@ -188,7 +188,7 @@ export default function FreeTrialGate() {
           <a href="/pricing" className="block w-full text-center text-xs text-neutral-500 hover:text-neutral-700 py-2">
             {en ? 'See all plans' : 'Voir tous les plans'}
           </a>
-          <p className="text-[10px] text-neutral-400 text-center mt-2">
+          <p className="text-xs text-neutral-400 text-center mt-2">
             {en ? 'Card required for the trial · €0 charged for 7 days · Cancel in 1 click' : 'Carte demandée pour l\'essai · 0€ débité pendant 7j · Annulation 1 clic'}
           </p>
         </div>

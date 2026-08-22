@@ -19,9 +19,9 @@ function TikTokPublishFlow({ post, onPublish, onCancel }: { post: any; onPublish
       {step === 1 && (
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-white">{isEn ? 'Publish to TikTok' : 'Publier sur TikTok'}</h3>
-          <p className="text-[11px] text-white/60">{isEn ? 'This content will be published to your TikTok account. By continuing, you agree that KeiroAI publishes this content on your behalf to your TikTok account.' : 'Ce contenu sera publié sur votre compte TikTok. En continuant, vous acceptez que KeiroAI publie ce contenu en votre nom sur votre compte TikTok.'}</p>
+          <p className="text-xs text-white/60">{isEn ? 'This content will be published to your TikTok account. By continuing, you agree that KeiroAI publishes this content on your behalf to your TikTok account.' : 'Ce contenu sera publié sur votre compte TikTok. En continuant, vous acceptez que KeiroAI publie ce contenu en votre nom sur votre compte TikTok.'}</p>
           {post.visual_url && <img src={post.visual_url} alt="" className="w-full max-h-[150px] object-contain rounded-lg" />}
-          <p className="text-[10px] text-white/40">{(post.caption || '').substring(0, 100)}</p>
+          <p className="text-xs text-white/40">{(post.caption || '').substring(0, 100)}</p>
           <button onClick={() => setStep(2)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">{isEn ? 'Continue to settings' : 'Continuer vers les paramètres'}</button>
         </div>
       )}
@@ -64,8 +64,8 @@ function TikTokPublishFlow({ post, onPublish, onCancel }: { post: any; onPublish
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-white">{isEn ? 'Confirm publishing' : 'Confirmer la publication'}</h3>
           {post.visual_url && <img src={post.visual_url} alt="" className="w-full max-h-[150px] object-contain rounded-lg" />}
-          <p className="text-[10px] text-white/50">{post.caption}</p>
-          <div className="space-y-1 text-[10px] text-white/40">
+          <p className="text-xs text-white/50">{post.caption}</p>
+          <div className="space-y-1 text-xs text-white/40">
             <div>{isEn ? 'Visibility:' : 'Visibilité :'} <span className="text-white/70 font-medium">{privacy === 'public' ? (isEn ? 'Everyone' : 'Tout le monde') : privacy === 'friends' ? (isEn ? 'Friends' : 'Amis') : (isEn ? 'Private' : 'Privé')}</span></div>
             <div>{isEn ? 'Comments:' : 'Commentaires :'} <span className="text-white/70">{comments ? (isEn ? 'Yes' : 'Oui') : (isEn ? 'No' : 'Non')}</span> | {isEn ? 'Duet' : 'Duo'}: <span className="text-white/70">{duet ? (isEn ? 'Yes' : 'Oui') : (isEn ? 'No' : 'Non')}</span> | Stitch: <span className="text-white/70">{stitch ? (isEn ? 'Yes' : 'Oui') : (isEn ? 'No' : 'Non')}</span></div>
           </div>
@@ -147,7 +147,7 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
           </div>
           <div className="flex-1">
             <div className="text-sm font-semibold text-white">Mon business</div>
-            <div className="text-[10px] text-white/40">
+            <div className="text-xs text-white/40">
               {isReel && 'Reel'}{isStory && 'Story'}{isCarousel && 'Carrousel'}{!isReel && !isStory && !isCarousel && 'Post'}
               {post.scheduled_date && ` \u2022 ${post.scheduled_date}`}
               {post.status && ` \u2022 ${post.status === 'draft' ? 'Brouillon' : post.status === 'approved' ? 'Programme' : post.status === 'published' ? 'Publie' : post.status}`}
@@ -208,7 +208,7 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
               <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap break-words">{caption || (isEn ? 'Caption being generated...' : 'Legende en cours de generation...')}</p>
               {hashtags && <p className="text-sm text-blue-500 mt-2 break-words">{hashtags}</p>}
               {isEditable && (
-                <button onClick={() => setEditing(true)} className="mt-2 text-[10px] text-purple-400 hover:text-purple-300 transition">
+                <button onClick={() => setEditing(true)} className="mt-2 text-xs text-purple-400 hover:text-purple-300 transition">
                   {'\u270F\uFE0F'} Modifier la legende
                 </button>
               )}
@@ -234,7 +234,7 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
                     body: JSON.stringify({ action: 'regenerate_single', postId: post.id }) });
                   onClose();
                 } catch {}
-              }} className="flex-1 py-2 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-xl hover:bg-amber-600/30 transition min-h-[44px]">
+              }} className="flex-1 py-2 bg-amber-600/20 text-amber-400 text-xs font-medium rounded-xl hover:bg-amber-600/30 transition min-h-[44px]">
                 {'\uD83D\uDD04'} Régénérer
               </button>
               <button onClick={async () => {
@@ -244,7 +244,7 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
                     body: JSON.stringify({ action: 'skip_single', postId: post.id }) });
                   onClose();
                 } catch {}
-              }} className="py-2 px-4 bg-red-600/20 text-red-400 text-[10px] font-medium rounded-xl hover:bg-red-600/30 transition min-h-[44px]">
+              }} className="py-2 px-4 bg-red-600/20 text-red-400 text-xs font-medium rounded-xl hover:bg-red-600/30 transition min-h-[44px]">
                 {'\u{1F5D1}'} Supprimer
               </button>
             </div>

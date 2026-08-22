@@ -64,7 +64,7 @@ export default function TikTokSharePage() {
             <div className="text-center text-white/30">
               <div className="text-4xl mb-2">🎬</div>
               <p className="text-xs">Apercu de la video</p>
-              <p className="text-[10px] text-white/45 mt-1">Le contenu sera affiche ici avant publication</p>
+              <p className="text-xs text-white/45 mt-1">Le contenu sera affiche ici avant publication</p>
             </div>
           </div>
 
@@ -78,7 +78,7 @@ export default function TikTokSharePage() {
             maxLength={2200}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
           />
-          <div className="text-right text-[10px] text-white/30 mt-1">{caption.length}/2200</div>
+          <div className="text-right text-xs text-white/30 mt-1">{caption.length}/2200</div>
         </div>
 
         {/* ═══ STEP 2: Privacy Settings ═══ */}
@@ -108,7 +108,7 @@ export default function TikTokSharePage() {
                 <span className="text-lg">{opt.icon}</span>
                 <div className="flex-1">
                   <div className="text-sm font-medium">{opt.label}</div>
-                  <div className="text-[11px] text-white/40">{opt.desc}</div>
+                  <div className="text-xs text-white/40">{opt.desc}</div>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                   privacyLevel === opt.value ? 'border-cyan-500 bg-cyan-500' : 'border-white/20'
@@ -134,7 +134,7 @@ export default function TikTokSharePage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm">💬 Autoriser les commentaires</div>
-                <div className="text-[11px] text-white/40">Les utilisateurs pourront commenter votre video</div>
+                <div className="text-xs text-white/40">Les utilisateurs pourront commenter votre video</div>
               </div>
               <button
                 onClick={() => setAllowComment(!allowComment)}
@@ -149,7 +149,7 @@ export default function TikTokSharePage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm">🎭 Autoriser les Duets</div>
-                <div className="text-[11px] text-white/40">Les utilisateurs pourront creer des Duets avec votre video</div>
+                <div className="text-xs text-white/40">Les utilisateurs pourront creer des Duets avec votre video</div>
               </div>
               <button
                 onClick={() => setAllowDuet(!allowDuet)}
@@ -164,7 +164,7 @@ export default function TikTokSharePage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm">✂️ Autoriser les Stitches</div>
-                <div className="text-[11px] text-white/40">Les utilisateurs pourront creer des Stitches avec votre video</div>
+                <div className="text-xs text-white/40">Les utilisateurs pourront creer des Stitches avec votre video</div>
               </div>
               <button
                 onClick={() => setAllowStitch(!allowStitch)}
@@ -178,7 +178,7 @@ export default function TikTokSharePage() {
 
           {/* Privacy level impact notice */}
           {privacyLevel !== 'public' && (
-            <div className="mt-3 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 text-[11px] text-amber-400">
+            <div className="mt-3 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 text-xs text-amber-400">
               Les Duets et Stitches ne sont disponibles que pour les videos publiques. Avec le parametre &quot;{privacyLevel === 'friends' ? 'Amis uniquement' : 'Prive'}&quot;, ces options seront desactivees automatiquement.
             </div>
           )}
@@ -194,7 +194,7 @@ export default function TikTokSharePage() {
 
           <div className="bg-white/5 rounded-xl p-3 mb-3 text-xs text-white/60 space-y-2">
             <p>En publiant cette video, vous acceptez que :</p>
-            <ul className="list-disc list-inside space-y-1 text-[11px]">
+            <ul className="list-disc list-inside space-y-1 text-xs">
               <li>Votre contenu sera partage et publie sur <strong className="text-white/80">TikTok</strong> via l&apos;API Content Posting.</li>
               <li>La video sera soumise aux <a href="https://www.tiktok.com/community-guidelines" target="_blank" rel="noopener" className="text-cyan-400 hover:underline">Regles communautaires de TikTok</a> et aux <a href="https://www.tiktok.com/legal/terms-of-service" target="_blank" rel="noopener" className="text-cyan-400 hover:underline">Conditions d&apos;utilisation de TikTok</a>.</li>
               <li>Les parametres de confidentialite et d&apos;interaction que vous avez choisis seront appliques a votre video sur TikTok.</li>
@@ -240,7 +240,7 @@ export default function TikTokSharePage() {
               </button>
 
               {/* Settings summary */}
-              <div className="bg-white/5 rounded-xl p-3 text-[10px] text-white/40 space-y-1">
+              <div className="bg-white/5 rounded-xl p-3 text-xs text-white/40 space-y-1">
                 <div className="font-bold text-white/60 mb-1">Resume des parametres :</div>
                 <div>Confidentialite : <span className="text-white/70">{privacyLevel === 'public' ? '🌍 Public' : privacyLevel === 'friends' ? '👥 Amis' : '🔒 Prive'}</span></div>
                 <div>Commentaires : <span className="text-white/70">{allowComment ? '✅ Autorises' : '❌ Desactives'}</span></div>
@@ -261,7 +261,7 @@ export default function TikTokSharePage() {
         </div>
 
         {/* Footer disclosure */}
-        <div className="text-center text-[10px] text-white/45 pb-8">
+        <div className="text-center text-xs text-white/45 pb-8">
           <p>Propulse par l&apos;API TikTok Content Posting</p>
           <p className="mt-1">
             <a href="https://www.tiktok.com/legal/terms-of-service" target="_blank" rel="noopener" className="hover:text-white/40">Conditions TikTok</a>

@@ -141,7 +141,7 @@ export default function DossierBanner({ claraAvatarUrl }: DossierBannerProps) {
 
         <div className="flex-1 min-w-0 pr-6">
           {restantsEssentiels > 0 && (
-            <p className="text-white/50 text-[11px] font-medium mb-1.5">
+            <p className="text-white/50 text-xs font-medium mb-1.5">
               {restantsEssentiels === 1
                 ? 'Il me reste 1 information essentielle à te demander'
                 : `Il me reste ${restantsEssentiels} informations essentielles à te demander`}
@@ -186,7 +186,7 @@ export default function DossierBanner({ claraAvatarUrl }: DossierBannerProps) {
 
           <a
             href="/assistant/agent/onboarding"
-            className="inline-block mt-2.5 text-white/45 hover:text-white/70 text-[11px] underline underline-offset-2 transition-colors"
+            className="inline-block mt-2.5 text-white/45 hover:text-white/70 text-xs underline underline-offset-2 transition-colors"
           >
             Tout compléter avec Clara, ou déposer un document
           </a>

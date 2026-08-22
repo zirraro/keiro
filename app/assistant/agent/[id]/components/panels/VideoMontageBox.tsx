@@ -90,7 +90,7 @@ export default function VideoMontageBox() {
           <span className="text-base">🎬</span>
           <div>
             <div className="text-xs font-bold text-white">{en ? 'Video montage' : 'Faire un montage vidéo'}</div>
-            <div className="text-[10px] text-white/60">
+            <div className="text-xs text-white/60">
               {en
                 ? `${videoCount} video${videoCount > 1 ? 's' : ''} uploaded — combine into a Reel/TikTok ready clip`
                 : `${videoCount} vidéo${videoCount > 1 ? 's' : ''} uploadée${videoCount > 1 ? 's' : ''} — combine en un Reel/TikTok prêt à publier`}
@@ -103,7 +103,7 @@ export default function VideoMontageBox() {
         <div className="px-4 pb-3 space-y-3 border-t border-cyan-500/10 pt-3">
           {/* Selectable thumbnails */}
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1.5">
+            <div className="text-xs font-bold uppercase tracking-wide text-white/60 mb-1.5">
               {en ? `Pick 2-6 clips (${selected.length} selected)` : `Choisis 2 à 6 clips (${selected.length} sélectionnés)`}
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1.5">
@@ -125,11 +125,11 @@ export default function VideoMontageBox() {
                         ) : (
                           <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/50 to-blue-900/50" />
                         )}
-                        <span className="absolute bottom-1 right-1 text-[10px] px-1 bg-black/60 text-white rounded">▶</span>
+                        <span className="absolute bottom-1 right-1 text-xs px-1 bg-black/60 text-white rounded">▶</span>
                       </>
                     )}
                     {isSelected && (
-                      <span className="absolute top-1 left-1 w-5 h-5 rounded-full bg-cyan-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      <span className="absolute top-1 left-1 w-5 h-5 rounded-full bg-cyan-500 text-white text-xs font-bold flex items-center justify-center">
                         {order}
                       </span>
                     )}
@@ -142,7 +142,7 @@ export default function VideoMontageBox() {
           {/* Options */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1">{en ? 'Transition' : 'Transition'}</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-white/60 mb-1">{en ? 'Transition' : 'Transition'}</div>
               <select value={transition} onChange={e => setTransition(e.target.value as any)} className="w-full bg-black/30 border border-white/10 rounded px-2 py-2 text-xs text-white/90 min-h-[40px]">
                 <option value="crossfade">{en ? 'Crossfade' : 'Crossfade'}</option>
                 <option value="fade">{en ? 'Fade to black' : 'Fade au noir'}</option>
@@ -150,7 +150,7 @@ export default function VideoMontageBox() {
               </select>
             </div>
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1">{en ? 'Format' : 'Format'}</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-white/60 mb-1">{en ? 'Format' : 'Format'}</div>
               <select value={format} onChange={e => setFormat(e.target.value as any)} className="w-full bg-black/30 border border-white/10 rounded px-2 py-2 text-xs text-white/90 min-h-[40px]">
                 <option value="portrait">{en ? 'Portrait (Reel/TikTok)' : 'Portrait (Reel/TikTok)'}</option>
                 <option value="square">{en ? 'Square (Feed)' : 'Carré (Feed)'}</option>
@@ -170,11 +170,11 @@ export default function VideoMontageBox() {
               : <>🎬 {en ? `Build (${selected.length} clips)` : `Lancer le montage (${selected.length} clips)`}</>}
           </button>
 
-          {error && <p className="text-[11px] text-red-400">{error}</p>}
+          {error && <p className="text-xs text-red-400">{error}</p>}
 
           {resultUrl && (
             <div className="space-y-2">
-              <p className="text-[11px] text-emerald-400 font-semibold">{en ? '✓ Montage ready' : '✓ Montage prêt'}</p>
+              <p className="text-xs text-emerald-400 font-semibold">{en ? '✓ Montage ready' : '✓ Montage prêt'}</p>
               <video src={resultUrl} controls playsInline className="w-full rounded-lg max-h-[60vh] bg-black" />
               <div className="flex gap-2 flex-wrap">
                 <a href={resultUrl} target="_blank" rel="noopener" download className="flex-1 text-center px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs rounded-lg">

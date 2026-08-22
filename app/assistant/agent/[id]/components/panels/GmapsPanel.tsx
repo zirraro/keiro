@@ -64,7 +64,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
       <div className="p-4">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/60 shrink-0">
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white/60 shrink-0">
               {review.author?.[0]?.toUpperCase() || '?'}
             </div>
             <span className="text-sm text-white/80 font-medium truncate min-w-0">{review.author}</span>
@@ -78,7 +78,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
           </div>
           <div className="flex items-center gap-2">
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+              className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
               style={{
                 backgroundColor: review.replied ? 'rgba(52,211,153,0.15)' : 'rgba(251,191,36,0.15)',
                 color: review.replied ? '#34d399' : '#fbbf24',
@@ -94,13 +94,13 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
           </div>
         </div>
         <p className="text-xs text-white/60 line-clamp-3">{review.text}</p>
-        <p className="text-[10px] text-white/30 mt-1">{fmtDate(review.date)}</p>
+        <p className="text-xs text-white/30 mt-1">{fmtDate(review.date)}</p>
       </div>
 
       {showReply && (
         <div className="px-4 pb-4 border-t border-white/5 pt-3 space-y-2">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] text-white/40">{replyText && !generating ? 'Modifie ou envoie :' : 'Reponse IA generee :'}</span>
+            <span className="text-xs text-white/40">{replyText && !generating ? 'Modifie ou envoie :' : 'Reponse IA generee :'}</span>
             {generating && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-400" />}
           </div>
           <textarea
@@ -141,7 +141,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
                   } catch {} finally { setSending(false); }
                 }}
                 disabled={sending || !replyText.trim()}
-                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${sent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:opacity-90'} disabled:opacity-40`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${sent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:opacity-90'} disabled:opacity-40`}
               >
                 {sent ? '\u2713 Publie !' : sending ? '...' : '\u{1F4E8} Publier sur Google'}
               </button>
@@ -149,7 +149,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
             <button
               onClick={copyReply}
               disabled={!replyText.trim()}
-              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white hover:opacity-90'} disabled:opacity-40`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white hover:opacity-90'} disabled:opacity-40`}
             >
               {copied ? '\u2713 Copie !' : '\u{1F4CB} Copier'}
             </button>
@@ -157,7 +157,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
               href="https://business.google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 text-[10px] font-medium bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 ml-auto"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 ml-auto"
             >
               Google Business {'\u2197'}
             </a>
@@ -383,7 +383,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
               <p className="text-white/60 text-xs mb-2 leading-relaxed">{p.gmapsNeedsLocationDesc}</p>
               <a
                 href="/api/auth/google-oauth"
-                className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
+                className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
               >
                 {p.gmapsNeedsLocationBtn}
               </a>
@@ -479,7 +479,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           <div data-tour="theo-seo" className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 sm:p-4">
             <div className="flex items-center justify-between gap-2 mb-3">
               <span className="text-sm font-semibold text-white/90">{isEn ? 'Getting found on Google' : 'Être trouvé sur Google'}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${locationFound ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${locationFound ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50'}`}>
                 {locationFound ? (isEn ? 'Active on your profile' : 'Actif sur ta fiche') : (isEn ? 'Preview \u2014 examples' : 'Aper\u00e7u \u2014 exemples')}
               </span>
             </div>
@@ -494,7 +494,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
               ))}
             </div>
             {!locationFound && (
-              <p className="text-[10px] text-white/40 mt-2.5">
+              <p className="text-xs text-white/40 mt-2.5">
                 {isEn
                   ? 'Connect your Google Business profile to run these on your real location.'
                   : 'Connecte ta fiche Google Business pour lancer \u00e7a sur ta vraie localisation.'}

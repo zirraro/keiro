@@ -198,7 +198,7 @@ function PricingPageInner() {
               }`}
             >
               {t.common.annual}
-              <span className="absolute -top-2.5 -right-2 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              <span className="absolute -top-2.5 -right-2 bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                 {t.common.annualDiscount}
               </span>
             </button>
@@ -534,7 +534,7 @@ function PricingPageInner() {
           <h3 className="text-xl sm:text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
           <p className="text-center text-neutral-500 text-sm mb-8">{t.pricing.subtitle}</p>
           <div className="overflow-x-auto -mx-2 sm:mx-0">
-            <table className="w-full text-[10px] sm:text-sm min-w-[480px]">
+            <table className="w-full text-xs sm:text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-2">{locale === 'fr' ? 'Fonctionnalité' : 'Feature'}</th>
@@ -853,7 +853,7 @@ function PricingPageInner() {
                       <>
                         {c.icon}{c.icon && (c.text || c.strong) ? ' ' : ''}
                         {c.strong ? <strong className="text-green-600">{c.strong}</strong> : c.text}
-                        {c.note ? <><br/><span className="text-[10px] text-neutral-400">{c.note}</span></> : null}
+                        {c.note ? <><br/><span className="text-xs text-neutral-400">{c.note}</span></> : null}
                       </>
                     );
                     return (locale === 'fr' ? fr : en).map((row, i) => {
@@ -935,13 +935,13 @@ function PricingPageInner() {
                   <span className="text-2xl">{a.emoji}</span>
                   <div>
                     <p className="font-bold text-neutral-900 dark:text-white leading-tight">{a.name}</p>
-                    <p className="text-[11px] text-neutral-500">{a.role}</p>
+                    <p className="text-xs text-neutral-500">{a.role}</p>
                   </div>
                   <p className="ml-auto text-lg font-bold text-neutral-900 dark:text-white">
-                    {a.price}<span className="text-[11px] font-normal text-neutral-400">{locale === 'fr' ? ' TTC/mois' : '/mo'}</span>
+                    {a.price}<span className="text-xs font-normal text-neutral-400">{locale === 'fr' ? ' TTC/mois' : '/mo'}</span>
                   </p>
                 </div>
-                <p className="text-[11px] text-neutral-500 italic mb-3">{a.for}</p>
+                <p className="text-xs text-neutral-500 italic mb-3">{a.for}</p>
                 <ul className="space-y-1.5 text-[12px] text-neutral-600 dark:text-neutral-300 flex-1">
                   {a.does.map(d => (
                     <li key={d} className="flex gap-2">

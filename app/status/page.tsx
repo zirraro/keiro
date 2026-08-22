@@ -171,25 +171,25 @@ export default async function StatusPage() {
         {/* Platform KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wide text-white/50 mb-1">Runs 24h</div>
+            <div className="text-xs uppercase tracking-wide text-white/50 mb-1">Runs 24h</div>
             <div className="text-2xl font-bold">{platform.total_runs_24h.toLocaleString()}</div>
           </div>
           <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wide text-white/50 mb-1">Taux de succès</div>
+            <div className="text-xs uppercase tracking-wide text-white/50 mb-1">Taux de succès</div>
             <div className="text-2xl font-bold text-emerald-400">
               {(platform.success_rate * 100).toFixed(1)}%
             </div>
           </div>
           <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wide text-white/50 mb-1">Erreurs 24h</div>
+            <div className="text-xs uppercase tracking-wide text-white/50 mb-1">Erreurs 24h</div>
             <div className={`text-2xl font-bold ${platform.errors_24h > 100 ? 'text-amber-400' : 'text-white'}`}>
               {platform.errors_24h}
             </div>
           </div>
           <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wide text-white/50 mb-1">Savoir agents</div>
+            <div className="text-xs uppercase tracking-wide text-white/50 mb-1">Savoir agents</div>
             <div className="text-2xl font-bold">{(platform.rag_entries / 1000).toFixed(1)}k</div>
-            <div className="text-[10px] text-white/40">entrées RAG</div>
+            <div className="text-xs text-white/40">entrées RAG</div>
           </div>
         </div>
 
@@ -207,11 +207,11 @@ export default async function StatusPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{a.label}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border uppercase ${tierBadge(a.tier)}`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full border uppercase ${tierBadge(a.tier)}`}>
                       {a.tier}
                     </span>
                   </div>
-                  <div className="text-[11px] text-white/40 mt-0.5">
+                  <div className="text-xs text-white/40 mt-0.5">
                     Dernier run : {relativeTime(a.last_success_at)}
                     {total > 0 && ` · ${a.successes_24h}/${total} réussis`}
                     {rate !== null && ` (${rate.toFixed(0)}%)`}

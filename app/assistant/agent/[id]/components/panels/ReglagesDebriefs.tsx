@@ -124,7 +124,7 @@ export default function ReglagesDebriefs({ en = false, replie = false }: { en?: 
           </p>
         </button>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {enregistre && <span className="text-emerald-400 text-[11px] font-semibold">Enregistré</span>}
+          {enregistre && <span className="text-emerald-400 text-xs font-semibold">Enregistré</span>}
           <button
             type="button"
             role="switch"
@@ -149,7 +149,7 @@ export default function ReglagesDebriefs({ en = false, replie = false }: { en?: 
       {ouvert && prefs.enabled && (
         <>
           <div className="mt-4">
-            <div className="text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-2">
+            <div className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">
               {en ? 'How often' : 'À quelle fréquence'}
             </div>
             <div className="grid gap-1.5">
@@ -167,7 +167,7 @@ export default function ReglagesDebriefs({ en = false, replie = false }: { en?: 
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${prefs.frequency === f.valeur ? 'bg-emerald-400' : 'bg-white/20'}`} />
                     <span className="text-white text-[13px] font-semibold">{f.libelle}</span>
                     {f.cout && (
-                      <span className="ml-auto text-white/35 text-[11px] font-medium">{f.cout}</span>
+                      <span className="ml-auto text-white/35 text-xs font-medium">{f.cout}</span>
                     )}
                   </div>
                   <p className="text-white/45 text-[12px] leading-snug mt-0.5 pl-4">{f.detail}</p>
@@ -177,7 +177,7 @@ export default function ReglagesDebriefs({ en = false, replie = false }: { en?: 
           </div>
 
           <div className="mt-4">
-            <div className="text-white/40 text-[11px] uppercase tracking-wider font-semibold mb-2">
+            <div className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">
               {en ? 'Where you get it' : 'Où tu le reçois'}
             </div>
             <div className="grid sm:grid-cols-2 gap-1.5">

@@ -60,7 +60,7 @@ export function TableOfContents({ headings }: { headings: ArticleContentProps['h
 
   return (
     <nav className="hidden xl:block fixed right-[max(1rem,calc((100vw-768px)/2-280px))] top-32 w-56 max-h-[calc(100vh-160px)] overflow-y-auto">
-      <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-3">Sommaire</p>
+      <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">Sommaire</p>
       <ul className="space-y-1.5">
         {headings.map(h => (
           <li key={h.id}>

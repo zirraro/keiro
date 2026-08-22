@@ -104,8 +104,8 @@ function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; conne
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 mb-3 flex items-center gap-2.5">
         <span className="text-base">{'\u{1F4CA}'}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-semibold text-white/80">{en ? 'Your Jade stats will appear here' : 'Tes stats Jade apparaitront ici'}</div>
-          <div className="text-[10px] text-white/50">
+          <div className="text-xs font-semibold text-white/80">{en ? 'Your Jade stats will appear here' : 'Tes stats Jade apparaitront ici'}</div>
+          <div className="text-xs text-white/50">
             {en
               ? 'Launch your first campaign (Prepare DMs · Follow · Send queued) and the numbers fill in live.'
               : 'Lance ta première campagne (Prepare DMs · Follow · Send queued) et les chiffres se remplissent en live.'}
@@ -128,7 +128,7 @@ function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; conne
   return (
     <>
       {isSample && (
-        <div className="flex items-center gap-2 mb-2 text-[10px]">
+        <div className="flex items-center gap-2 mb-2 text-xs">
           <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
           <span className="text-white/40">
             {network === 'instagram'
@@ -203,7 +203,7 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
           {network === 'tiktok' && (
             <div className="mb-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.06] p-3">
               <div className="text-xs font-bold text-cyan-200 mb-1">{en ? '💡 Keep your TikTok ALIVE = more reach' : '💡 Garde ton TikTok VIVANT = plus de portée'}</div>
-              <p className="text-[11px] text-white/60 leading-snug">{en
+              <p className="text-xs text-white/60 leading-snug">{en
                 ? 'A TikTok account that follows and likes regularly is far better distributed — and it protects your own posts from being throttled when you\'re inactive. 2 min/day: follow a few niche accounts below AND go like a few of their posts. Views follow activity.'
                 : 'Un compte TikTok qui suit et like régulièrement est bien mieux distribué — et ça protège tes propres posts du throttle quand tu es inactif. 2 min/jour : suis quelques comptes de ta niche ci-dessous ET va liker quelques-uns de leurs posts. Les vues suivent l\'activité.'}</p>
             </div>
@@ -224,9 +224,9 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
           généraux (conversation). */}
       {igFull && tab === 'prospection' && (
         <div data-tour="dm-prospection">
-          <p className="text-[11px] text-white/50 mb-2">{en ? 'Jade prepares a personalised opening DM for each new prospect. Send them manually (Instagram forbids cold auto-DMs) — once sent, the conversation moves to General DMs.' : 'Jade prépare un DM d’accroche personnalisé pour chaque nouveau prospect. Envoie-les à la main (Instagram interdit le DM à froid auto) — une fois envoyé, la conversation passe dans DM généraux.'}</p>
+          <p className="text-xs text-white/50 mb-2">{en ? 'Jade prepares a personalised opening DM for each new prospect. Send them manually (Instagram forbids cold auto-DMs) — once sent, the conversation moves to General DMs.' : 'Jade prépare un DM d’accroche personnalisé pour chaque nouveau prospect. Envoie-les à la main (Instagram interdit le DM à froid auto) — une fois envoyé, la conversation passe dans DM généraux.'}</p>
           <div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-2.5 py-2">
-            <p className="text-[10px] text-amber-200/80 leading-snug">{en ? '⚠️ Some accounts don\'t accept message invitations ("This account can\'t receive your messages"). That\'s an Instagram privacy setting on their side — nothing to fix. Just tap 🚫 to remove them and move to the next.' : '⚠️ Certains comptes n\'acceptent pas les invitations par message (« Ce compte ne peut pas recevoir vos messages »). C\'est un réglage de confidentialité Instagram de LEUR côté — rien à réparer. Clique 🚫 pour le retirer et passe au suivant.'}</p>
+            <p className="text-xs text-amber-200/80 leading-snug">{en ? '⚠️ Some accounts don\'t accept message invitations ("This account can\'t receive your messages"). That\'s an Instagram privacy setting on their side — nothing to fix. Just tap 🚫 to remove them and move to the next.' : '⚠️ Certains comptes n\'acceptent pas les invitations par message (« Ce compte ne peut pas recevoir vos messages »). C\'est un réglage de confidentialité Instagram de LEUR côté — rien à réparer. Clique 🚫 pour le retirer et passe au suivant.'}</p>
           </div>
           <PendingDMQueue gradientFrom="#ec4899" />
         </div>
@@ -242,7 +242,7 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
 
       {/* TikTok — uniquement comptes à suivre (l'API ne permet pas DM/commentaires) */}
       {network === 'tiktok' && (
-        <p className="text-[10px] text-white/30 mt-3">
+        <p className="text-xs text-white/30 mt-3">
           {en
             ? "On TikTok, DMs and comment replies aren't available — so we focus on the accounts to follow to keep your account active and boost your content's reach."
             : "Sur TikTok, les DM et réponses aux commentaires ne sont pas disponibles — on se concentre donc sur les comptes à suivre pour garder ton compte actif et booster la portée de tes contenus."}
@@ -323,9 +323,9 @@ function ManualDMQueue({ network }: { network: 'tiktok' | 'linkedin' }) {
     <div className="mb-3 rounded-xl border border-fuchsia-500/25 bg-fuchsia-500/[0.06] p-3">
       <div className="flex items-center justify-between mb-1">
         <div className="text-xs font-bold text-fuchsia-200">{en ? `🎯 Prospecting DMs ready (${netLabel})` : `🎯 DM de prospection prêts (${netLabel})`}</div>
-        <span className="text-[10px] text-white/40">{queue.length}</span>
+        <span className="text-xs text-white/40">{queue.length}</span>
       </div>
-      <p className="text-[10px] text-white/50 mb-2 leading-snug">{en
+      <p className="text-xs text-white/50 mb-2 leading-snug">{en
         ? `${netLabel} has no DM API — Jade writes a personalised message per prospect, you send it in 1 tap: copy + open profile, paste, then "Sent".`
         : `${netLabel} n'a pas d'API DM — Jade rédige un message personnalisé par prospect, tu l'envoies en 1 geste : copie + ouvre le profil, colle, puis « Envoyé ».`}</p>
       <div className="space-y-1.5">
@@ -334,20 +334,20 @@ function ManualDMQueue({ network }: { network: 'tiktok' | 'linkedin' }) {
           return (
             <div key={dm.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[11px] font-semibold text-white/80 truncate flex-1 min-w-0">@{handle}{dm.company ? <span className="text-white/40 font-normal"> · {dm.company}</span> : null}</span>
+                <span className="text-xs font-semibold text-white/80 truncate flex-1 min-w-0">@{handle}{dm.company ? <span className="text-white/40 font-normal"> · {dm.company}</span> : null}</span>
               </div>
-              <p className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap mb-2">{dm.message}</p>
+              <p className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap mb-2">{dm.message}</p>
               {dm.visual_url && <img src={dm.visual_url} alt="" className="rounded-md max-h-40 mb-2 border border-white/10" />}
               <div className="flex gap-1.5">
                 <button
                   type="button" onClick={() => copyAndOpen({ id: dm.id, handle, message: dm.message })}
-                  className="flex-1 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold border border-white/15 text-white/70 hover:border-fuchsia-400/50 hover:text-fuchsia-200 transition"
+                  className="flex-1 text-xs px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold border border-white/15 text-white/70 hover:border-fuchsia-400/50 hover:text-fuchsia-200 transition"
                 >
                   {copied === dm.id ? (en ? '✓ Copied — profile opened' : '✓ Copié — profil ouvert') : (en ? '📋 Copy + open profile' : '📋 Copier + ouvrir le profil')}
                 </button>
                 <button
                   type="button" disabled={busy === dm.id} onClick={() => markSent(dm.id)}
-                  className="shrink-0 text-[11px] px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold bg-emerald-600/90 text-white hover:bg-emerald-600 disabled:opacity-50 transition"
+                  className="shrink-0 text-xs px-2.5 py-1.5 min-h-[34px] rounded-md font-semibold bg-emerald-600/90 text-white hover:bg-emerald-600 disabled:opacity-50 transition"
                 >
                   {busy === dm.id ? '…' : (en ? '✓ Sent' : '✓ Envoyé')}
                 </button>
@@ -382,19 +382,19 @@ function LinkedInDrafts() {
   if (!data) return null;
   const Section = ({ label, items, kind }: { label: string; items: any[]; kind: string }) => (
     <div className="mb-3">
-      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-white/40 mb-1">{label}</div>
       <div className="space-y-1.5">
         {items.map((it: any, i: number) => {
           const key = `${kind}-${i}`;
           return (
             <div key={key} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[11px] font-semibold text-[#0A66C2] dark:text-sky-300">{it.title}</span>
-                <button type="button" onClick={() => copy(key, it.text)} className="shrink-0 text-[10px] px-2 py-1 rounded-md border border-white/15 text-white/60 hover:border-sky-400/50 hover:text-sky-300 transition">
+                <span className="text-xs font-semibold text-[#0A66C2] dark:text-sky-300">{it.title}</span>
+                <button type="button" onClick={() => copy(key, it.text)} className="shrink-0 text-xs px-2 py-1 rounded-md border border-white/15 text-white/60 hover:border-sky-400/50 hover:text-sky-300 transition">
                   {copied === key ? (en ? '✓ Copied' : '✓ Copié') : (en ? 'Copy' : 'Copier')}
                 </button>
               </div>
-              <p className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap">{it.text}</p>
+              <p className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap">{it.text}</p>
             </div>
           );
         })}
@@ -407,7 +407,7 @@ function LinkedInDrafts() {
       <div className="text-xs font-semibold text-white/90 mb-2">{en ? '✍️ LinkedIn drafts — DMs & comments (Jade)' : '✍️ Brouillons LinkedIn — DM & commentaires (Jade)'}</div>
       <Section label={en ? 'Connection / DM messages' : 'Messages de mise en relation / DM'} items={data.dmDrafts || []} kind="dm" />
       <Section label={en ? 'Post comments' : 'Commentaires de posts'} items={data.commentDrafts || []} kind="cm" />
-      <p className="text-[10px] text-white/40">{data.note}</p>
+      <p className="text-xs text-white/40">{data.note}</p>
     </div>
   );
 }
@@ -631,7 +631,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center leading-relaxed">
           <span className="text-xl">{'\u{1F91D}'}</span>
           <p className="text-xs text-white/60 mt-1">{en ? `No ${netLabel} accounts to follow yet` : `Aucun compte ${netLabel} à suivre pour l'instant`}</p>
-          <p className="text-[11px] text-white/40 mt-1">{en ? `Léo's prospection surfaces accounts with a ${netLabel} handle — they'll appear here to follow in one tap.` : `La prospection de Léo fait remonter les comptes ayant un ${netLabel} — ils apparaîtront ici à suivre en un tap.`}</p>
+          <p className="text-xs text-white/40 mt-1">{en ? `Léo's prospection surfaces accounts with a ${netLabel} handle — they'll appear here to follow in one tap.` : `La prospection de Léo fait remonter les comptes ayant un ${netLabel} — ils apparaîtront ici à suivre en un tap.`}</p>
         </div>
       );
     }
@@ -647,7 +647,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
       ];
       return (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-[11px]">
+          <div className="flex items-center gap-2 text-xs">
             <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
             <span className="text-white/40">
               {en
@@ -660,10 +660,10 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-white">{s.company}</div>
-                  <div className="text-[11px] text-white/40">@{s.instagram} · ⭐ {s.note_google} · {en ? 'score' : 'score'} {s.score}/100</div>
-                  <p className="text-[11px] text-white/60 mt-1 leading-snug">{s.angle_approche}</p>
+                  <div className="text-xs text-white/40">@{s.instagram} · ⭐ {s.note_google} · {en ? 'score' : 'score'} {s.score}/100</div>
+                  <p className="text-xs text-white/60 mt-1 leading-snug">{s.angle_approche}</p>
                 </div>
-                <span className="text-[10px] text-white/30 px-2 py-1 rounded bg-white/5 flex-shrink-0">{en ? 'Example' : 'Exemple'}</span>
+                <span className="text-xs text-white/30 px-2 py-1 rounded bg-white/5 flex-shrink-0">{en ? 'Example' : 'Exemple'}</span>
               </div>
             </div>
           ))}
@@ -685,7 +685,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
                 {en ? 'Léo is preparing your first recommendations…' : 'Léo prépare tes premières recommandations…'}
               </span>
             </div>
-            <p className="text-[11px] text-white/50">
+            <p className="text-xs text-white/50">
               {en
                 ? 'A first batch of qualified accounts should appear within ~30 seconds. From there Jade keeps enriching the queue every morning.'
                 : 'Un premier lot de comptes qualifiés arrive dans ~30 secondes. Jade enrichit ensuite la liste chaque matin.'}
@@ -697,7 +697,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
             <p className="text-xs text-white/60 mt-1">
               {en ? 'No accounts queued right now' : 'Aucun compte en attente'}
             </p>
-            <p className="text-[10px] text-white/40 mt-1">
+            <p className="text-xs text-white/40 mt-1">
               {en
                 ? 'Jade adds new suggestions every morning from Léo\'s qualified prospects.'
                 : 'Jade ajoute des suggestions chaque matin à partir des prospects qualifiés par Léo.'}
@@ -710,7 +710,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
 
   return (
     <div className="space-y-2">
-      <div className="text-[11px] text-white/50 px-1 pb-1 leading-snug">
+      <div className="text-xs text-white/50 px-1 pb-1 leading-snug">
         {en
           ? <>Tap the handle to open {netLabel}{isMobile ? ' in the app' : ''}, tap Follow, then press ✓ here so we know. </>
           : <>Touche le handle pour ouvrir {netLabel}{isMobile ? ' dans l\'appli' : ''}, appuie sur Suivre, puis valide avec ✓ ici. </>}
@@ -726,24 +726,24 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
           <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-center">
             <div className="text-base font-bold text-amber-300">{funnel.queued}</div>
-            <div className="text-[10px] text-amber-300/60">{en ? 'In queue' : 'En attente'}</div>
+            <div className="text-xs text-amber-300/60">{en ? 'In queue' : 'En attente'}</div>
           </div>
           <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
             <div className="text-base font-bold text-blue-300">{funnel.eligible}</div>
-            <div className="text-[10px] text-blue-300/60">{en ? 'Eligible' : 'Éligibles'}</div>
+            <div className="text-xs text-blue-300/60">{en ? 'Eligible' : 'Éligibles'}</div>
           </div>
           <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
             <div className="text-base font-bold text-purple-300">{funnel.followed}</div>
-            <div className="text-[10px] text-purple-300/60">{en ? 'Followed' : 'Suivis'}</div>
+            <div className="text-xs text-purple-300/60">{en ? 'Followed' : 'Suivis'}</div>
           </div>
           <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
             <div className="text-base font-bold text-emerald-300">{funnel.dm_sent}</div>
-            <div className="text-[10px] text-emerald-300/60">{en ? 'DMs sent' : 'DMs envoyés'}</div>
+            <div className="text-xs text-emerald-300/60">{en ? 'DMs sent' : 'DMs envoyés'}</div>
           </div>
         </div>
       )}
       <div className="flex items-center justify-between gap-2 pb-1 flex-wrap">
-        <div className="text-[11px] text-white/60">
+        <div className="text-xs text-white/60">
           {items.length} {en ? 'shown' : 'affichés'}{funnel && funnel.queued > items.length ? ` / ${funnel.queued} ${en ? 'total' : 'total'}` : ''}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -751,7 +751,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
             <button
               disabled={pushBusy}
               onClick={disablePush}
-              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-[11px] text-white/50 hover:text-white/80 border border-white/10 rounded-md transition disabled:opacity-50"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-xs text-white/50 hover:text-white/80 border border-white/10 rounded-md transition disabled:opacity-50"
               title={en ? 'Disable morning reminders' : 'Désactiver les rappels du matin'}
             >
               {'\u{1F514}'} {en ? 'Reminders on' : 'Rappels activés'}
@@ -761,21 +761,21 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
             <button
               disabled={pushBusy}
               onClick={enablePush}
-              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 rounded-md transition disabled:opacity-50"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 rounded-md transition disabled:opacity-50"
               title={en ? 'Enable morning push reminders' : 'Activer les rappels push chaque matin'}
             >
               {'\u{1F514}'} {en ? 'Enable morning reminders' : 'Activer les rappels matin'}
             </button>
           )}
           {pushState === 'denied' && (
-            <span className="text-[10px] text-white/40" title={en ? 'Notifications blocked in browser settings' : 'Notifications bloquées dans les paramètres du navigateur'}>
+            <span className="text-xs text-white/40" title={en ? 'Notifications blocked in browser settings' : 'Notifications bloquées dans les paramètres du navigateur'}>
               {'\u{1F515}'} {en ? 'Notifications blocked' : 'Notifications bloquées'}
             </span>
           )}
           <button
             disabled={batchBusy}
             onClick={handleMarkAllDone}
-            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
+            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
           >
             {batchBusy
               ? (en ? 'Marking…' : 'En cours…')
@@ -799,26 +799,26 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
                   @{handle}
                 </a>
                 {typeof item.score === 'number' && (
-                  <span className="text-[10px] text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
+                  <span className="text-xs text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
                     {en ? 'score' : 'score'} {item.score}
                   </span>
                 )}
                 {typeof rating === 'number' && rating > 0 && (
-                  <span className="text-[10px] text-yellow-300/70">⭐ {rating}</span>
+                  <span className="text-xs text-yellow-300/70">⭐ {rating}</span>
                 )}
               </div>
               {item.company && (
-                <div className="text-[11px] text-white/50 truncate mt-0.5">{item.company}</div>
+                <div className="text-xs text-white/50 truncate mt-0.5">{item.company}</div>
               )}
               {item.angle_approche && (
-                <div className="text-[11px] text-white/40 mt-1 line-clamp-2">{item.angle_approche}</div>
+                <div className="text-xs text-white/40 mt-1 line-clamp-2">{item.angle_approche}</div>
               )}
             </div>
             <div className="flex flex-col gap-1 shrink-0">
               <button
                 disabled={busyId === item.id}
                 onClick={() => handleAction(item.id, 'done')}
-                className="px-2.5 py-1 text-[11px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
+                className="px-2.5 py-1 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
               >
                 {en ? '✓ Followed' : '✓ Fait'}
               </button>
@@ -826,14 +826,14 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
                 disabled={busyId === item.id}
                 onClick={() => handleAction(item.id, 'dead_link')}
                 title={en ? 'The link does not open the profile / account unavailable' : 'Le lien n\'ouvre pas le profil / compte indisponible'}
-                className="px-2.5 py-1 text-[11px] text-amber-300/80 hover:text-amber-200 border border-amber-500/25 hover:border-amber-500/40 rounded-md transition disabled:opacity-50 mt-1"
+                className="px-2.5 py-1 text-xs text-amber-300/80 hover:text-amber-200 border border-amber-500/25 hover:border-amber-500/40 rounded-md transition disabled:opacity-50 mt-1"
               >
                 {en ? '⚠ Bad link' : '⚠ Lien mort'}
               </button>
               <button
                 disabled={busyId === item.id}
                 onClick={() => handleAction(item.id, 'skip')}
-                className="px-2.5 py-1 text-[11px] text-white/40 hover:text-white/70 border border-white/10 rounded-md transition disabled:opacity-50 mt-1"
+                className="px-2.5 py-1 text-xs text-white/40 hover:text-white/70 border border-white/10 rounded-md transition disabled:opacity-50 mt-1"
               >
                 {en ? 'Skip' : 'Passer'}
               </button>
@@ -847,7 +847,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
           the client has descended through the accumulated queue. Visible
           permanently here but naturally requires a scroll to discover. */}
       <div className="pt-3 mt-1 border-t border-white/5 flex items-center justify-between gap-2 flex-wrap">
-        <div className="text-[10px] text-white/40">
+        <div className="text-xs text-white/40">
           {funnel && funnel.queued > items.length
             ? (en ? `+${funnel.queued - items.length} more in queue` : `+${funnel.queued - items.length} encore en attente`)
             : (en ? `End of list (${items.length} accounts)` : `Fin de liste (${items.length} comptes)`)}
@@ -861,7 +861,7 @@ function ManualFollowsList({ platform = 'instagram' }: { platform?: 'instagram' 
               await load(false);
             } finally { setRefreshing(false); }
           }}
-          className="px-3 py-1.5 text-[11px] bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-md transition disabled:opacity-50 min-h-[36px]"
+          className="px-3 py-1.5 text-xs bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-md transition disabled:opacity-50 min-h-[36px]"
           title={en ? 'Run Jade now to enrich the queue' : "Lancer Jade pour enrichir la file maintenant"}
         >
           {refreshing
@@ -1133,7 +1133,7 @@ function DmConversationsLive() {
 
   // Only show the spinner on the very first load; once we have at least one
   // payload, keep the UI stable and let polling update it in the background.
-  if (loading && !apiResponded) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">{p.dmConvsLoading}</div></div>;
+  if (loading && !apiResponded) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-xs mt-2">{p.dmConvsLoading}</div></div>;
 
   // Instagram is considered connected either via the global flag set at
   // page boot OR when the API has explicitly confirmed connected: true.
@@ -1185,7 +1185,7 @@ function DmConversationsLive() {
           gradientFrom="#e11d48"
           gradientTo="#be123c"
         />
-        <div className="flex items-center gap-2 mb-2 text-[10px]">
+        <div className="flex items-center gap-2 mb-2 text-xs">
           <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
           <span className="text-white/40">
             Example conversations. Once Instagram is connected, your real inbound DMs replace this list.
@@ -1197,7 +1197,7 @@ function DmConversationsLive() {
       <div className="text-center py-4 mb-3 bg-white/[0.02] rounded-xl border border-white/5">
         <span className="text-xl">{'\u{1F4AC}'}</span>
         <p className="text-xs text-white/40 mt-1">{p.dmEmptyConversationsTitle}</p>
-        <p className="text-[10px] text-white/50 mt-0.5">{p.dmEmptyConversationsSubtitle}</p>
+        <p className="text-xs text-white/50 mt-0.5">{p.dmEmptyConversationsSubtitle}</p>
       </div>
     )}
     <div className={`rounded-xl border-2 ${isDemo ? 'border-amber-500/20 opacity-90' : 'border-purple-500/20'} bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 max-h-[60vh] md:h-[420px] min-h-[320px] mb-4 lg:mb-0`}>
@@ -1205,11 +1205,11 @@ function DmConversationsLive() {
         {/* Conversation list */}
         <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/10 overflow-y-auto`}>
           <div className="px-3 py-2.5 border-b border-purple-500/20 bg-purple-900/20">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-purple-300/60">{'\u{1F4AC}'} {p.dmConvsSidebarLabel}</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-purple-300/60">{'\u{1F4AC}'} {p.dmConvsSidebarLabel}</span>
             {humanCount > 0 && (
               <button
                 onClick={() => setHumanOnly(v => !v)}
-                className={`mt-1.5 w-full flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border transition-colors ${humanOnly ? 'bg-amber-500/25 border-amber-500/50 text-amber-200' : 'bg-amber-500/10 border-amber-500/25 text-amber-300/80 hover:bg-amber-500/20'}`}
+                className={`mt-1.5 w-full flex items-center justify-center gap-1 px-2 py-1 rounded-md text-xs font-bold border transition-colors ${humanOnly ? 'bg-amber-500/25 border-amber-500/50 text-amber-200' : 'bg-amber-500/10 border-amber-500/25 text-amber-300/80 hover:bg-amber-500/20'}`}
                 title="Conversations hors fenêtre 24h — réponse humaine requise (Jade ne répond pas automatiquement hors 24h)"
               >
                 {'⏳'} {en ? `Awaiting human reply (${humanCount})` : `En attente de réponse humaine (${humanCount})`}
@@ -1217,7 +1217,7 @@ function DmConversationsLive() {
             )}
           </div>
           {shownConvs.length === 0 && humanOnly && (
-            <div className="px-3 py-6 text-center text-[10px] text-white/40">{en ? 'No conversation awaiting a human reply.' : 'Aucune conversation en attente de réponse humaine.'}</div>
+            <div className="px-3 py-6 text-center text-xs text-white/40">{en ? 'No conversation awaiting a human reply.' : 'Aucune conversation en attente de réponse humaine.'}</div>
           )}
           {shownConvs.map(conv => {
             const lastMsg = conv.messages[conv.messages.length - 1];
@@ -1251,18 +1251,18 @@ function DmConversationsLive() {
                       conversations that will need the HUMAN_AGENT tag. */}
                   {outsideWindow && (
                     <span
-                      className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0"
+                      className="ml-auto px-1.5 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0"
                       title="Outside the 24h messaging window — send will use messaging_type=MESSAGE_TAG, tag=HUMAN_AGENT"
                     >
                       &gt;24h
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] text-white/30 truncate mt-0.5 pl-4">
+                <div className="text-xs text-white/30 truncate mt-0.5 pl-4">
                   {lastMsg?.fromMe ? p.dmConvsToMe : ''}{lastMsg?.message?.substring(0, 50) || '...'}
                 </div>
                 {conv.updated_time && (
-                  <div className="text-[10px] text-white/40 mt-0.5 pl-4">
+                  <div className="text-xs text-white/40 mt-0.5 pl-4">
                     {new Date(conv.updated_time).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}
                   </div>
                 )}
@@ -1277,21 +1277,21 @@ function DmConversationsLive() {
             {/* Header */}
             <div className="px-3 py-2.5 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
               <button onClick={() => setSelectedConv(null)} className="sm:hidden text-white/40 hover:text-white/60 text-lg p-1 min-w-[44px] min-h-[44px] flex items-center justify-center">{'\u2190'}</button>
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs text-white font-bold flex-shrink-0">
                 {selected.participant.username[0]?.toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-xs font-bold text-white truncate block">@{selected.participant.username}</span>
-                <div className="text-[10px] text-white/45 truncate">{p.dmConvsMessagesCount.replace('{n}', String(selected.messages.length))}</div>
+                <div className="text-xs text-white/45 truncate">{p.dmConvsMessagesCount.replace('{n}', String(selected.messages.length))}</div>
               </div>
               <div className="ml-auto flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[10px] text-emerald-400 font-medium">{p.dmConvsBadgeAi}</span>
+                  <span className="text-xs text-emerald-400 font-medium">{p.dmConvsBadgeAi}</span>
                 </div>
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/20">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                  <span className="text-[10px] text-blue-400 font-medium">{p.dmConvsBadgeYou}</span>
+                  <span className="text-xs text-blue-400 font-medium">{p.dmConvsBadgeYou}</span>
                 </div>
               </div>
             </div>
@@ -1306,7 +1306,7 @@ function DmConversationsLive() {
               const lastInboundTime = lastInbound?.created_time ? new Date(lastInbound.created_time).getTime() : null;
               if (!lastInbound || !lastInboundTime) {
                 return (
-                  <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02] text-[10px] text-white/40">
+                  <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02] text-xs text-white/40">
                     {'\u{1F4AC}'} No inbound message yet \u2014 auto-reply will trigger as soon as @{selected.participant.username} writes first.
                   </div>
                 );
@@ -1315,14 +1315,14 @@ function DmConversationsLive() {
               const inWindow = hours <= 24;
               const days = Math.floor(hours / 24);
               return inWindow ? (
-                <div className="px-3 py-2 border-b border-white/5 bg-emerald-500/[0.06] flex items-center gap-2 text-[10px] flex-wrap">
+                <div className="px-3 py-2 border-b border-white/5 bg-emerald-500/[0.06] flex items-center gap-2 text-xs flex-wrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                   <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200 font-bold">{en ? 'Auto-reply ON' : 'R\u00e9ponse auto ACTIVE'}</span>
                   <span className="text-emerald-300 font-semibold">{en ? 'In the 24h messaging window' : 'Dans la fen\u00eatre 24h'}</span>
                   <span className="text-white/40">\u00b7 {en ? `Last customer message ${Math.floor(hours)}h ago.` : `Dernier message client il y a ${Math.floor(hours)}h.`}</span>
                 </div>
               ) : (
-                <div className="px-3 py-2 border-b border-white/5 bg-amber-500/[0.08] flex items-center gap-2 text-[10px] flex-wrap">
+                <div className="px-3 py-2 border-b border-white/5 bg-amber-500/[0.08] flex items-center gap-2 text-xs flex-wrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
                   <span className="px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-200 font-bold">{en ? 'Auto-reply OFF' : 'R\u00e9ponse auto D\u00c9SACTIV\u00c9E'}</span>
                   <span className="text-amber-300 font-semibold">{en ? 'Outside 24h \u00b7 human reply required' : 'Hors 24h \u00b7 r\u00e9ponse humaine requise'}</span>
@@ -1349,23 +1349,23 @@ function DmConversationsLive() {
                               <img src={a.url} alt="attachment" className="rounded-lg max-w-full max-h-64 object-cover" />
                             </a>
                           ) : (
-                            <a key={ai} href={a.url} target="_blank" rel="noopener noreferrer" className="underline text-[10px] text-white/60">{a.type || 'file'}</a>
+                            <a key={ai} href={a.url} target="_blank" rel="noopener noreferrer" className="underline text-xs text-white/60">{a.type || 'file'}</a>
                           )
                         ))}
                       </div>
                     )}
                     {msg.message || (msg.attachments?.length ? null : <span className="italic text-white/30">[media]</span>)}
                     <div className={`flex items-center gap-1 mt-0.5 ${msg.fromMe ? 'justify-end' : ''}`}>
-                      <span className={`text-[10px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/45'}`}>
+                      <span className={`text-xs ${msg.fromMe ? 'text-purple-200/60' : 'text-white/45'}`}>
                         {msg.created_time ? new Date(msg.created_time).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
-                      {msg.fromMe && msg.status === 'sending' && <span className="text-[10px] text-yellow-300/60">{p.dmConvsStatusSending}</span>}
-                      {msg.fromMe && msg.status === 'sent' && <span className="text-[10px] text-green-300/60">{'\u2713'}</span>}
-                      {msg.fromMe && msg.status === 'prepared' && <span className="text-[10px] text-amber-300/60">{p.dmConvsStatusPrepared}</span>}
-                      {msg.fromMe && msg.status === 'error' && <span className="text-[10px] text-red-300/60">{p.dmConvsStatusError}</span>}
+                      {msg.fromMe && msg.status === 'sending' && <span className="text-xs text-yellow-300/60">{p.dmConvsStatusSending}</span>}
+                      {msg.fromMe && msg.status === 'sent' && <span className="text-xs text-green-300/60">{'\u2713'}</span>}
+                      {msg.fromMe && msg.status === 'prepared' && <span className="text-xs text-amber-300/60">{p.dmConvsStatusPrepared}</span>}
+                      {msg.fromMe && msg.status === 'error' && <span className="text-xs text-red-300/60">{p.dmConvsStatusError}</span>}
                       {msg.fromMe && (() => {
                         const isManual = msg.from === 'moi' || msg.status === 'sending' || msg.status === 'sent';
-                        return <span className={`text-[10px] px-1 py-0.5 rounded ${isManual ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{isManual ? p.dmConvsOrigVous : p.dmConvsOrigAi}</span>;
+                        return <span className={`text-xs px-1 py-0.5 rounded ${isManual ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{isManual ? p.dmConvsOrigVous : p.dmConvsOrigAi}</span>;
                       })()}
                     </div>
                   </div>
@@ -1377,7 +1377,7 @@ function DmConversationsLive() {
                 client sees the current mode at a glance. Auto-switches to
                 "You" while typing, back to "AI" when idle. */}
             <div className="border-t border-white/5 px-3 pt-2 pb-1 bg-white/[0.02] flex items-center justify-between gap-2">
-              <span className="text-[10px] text-white/40 truncate">
+              <span className="text-xs text-white/40 truncate">
                 {selectedOutside24h
                   ? (en ? '\uD83E\uDDD1 >24h \u2014 human reply only (Jade never auto-replies here)' : "\uD83E\uDDD1 >24h \u2014 r\u00E9ponse humaine seule (Jade n'auto-r\u00E9pond jamais ici)")
                   : (aiActive && !userTyping ? `\u{1F916} ${p.dmConvsBadgeAi}` : `\u270D\uFE0F ${p.dmConvsBadgeYou}`)}
@@ -1446,7 +1446,7 @@ function DmConversationsLive() {
                       <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
                     ) : (
                       <>
-                        {outside && <span className="text-[10px]">⏰</span>}
+                        {outside && <span className="text-xs">⏰</span>}
                         <span className="hidden sm:inline">{outside ? 'Envoyer (>24h)' : 'Envoyer'}</span>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                       </>
@@ -1502,14 +1502,14 @@ function DmCard({ dm, statusColors }: { dm: { target: string; status: string; me
   return (
     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
       <div className="p-3 sm:p-4 flex items-center gap-3">
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: `${statusColors[dm.status] ?? '#a78bfa'}22`, color: statusColors[dm.status] ?? '#a78bfa' }}>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: `${statusColors[dm.status] ?? '#a78bfa'}22`, color: statusColors[dm.status] ?? '#a78bfa' }}>
           {dm.status}
         </span>
         <div className="flex-1 min-w-0">
           <span className="text-sm text-white/80 truncate block">@{dm.target}</span>
-          {dm.message && <span className="text-[10px] text-white/40 truncate block">{dm.message}</span>}
+          {dm.message && <span className="text-xs text-white/40 truncate block">{dm.message}</span>}
         </div>
-        <button onClick={() => setShowReply(!showReply)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
+        <button onClick={() => setShowReply(!showReply)} className="text-xs px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
           {showReply ? p.close : p.reply}
         </button>
       </div>
@@ -1611,16 +1611,16 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-white/30">{mediaBadge}</span>
-              <span className="text-[10px] font-semibold text-white/60 truncate">
+              <span className="text-xs text-white/30">{mediaBadge}</span>
+              <span className="text-xs font-semibold text-white/60 truncate">
                 {postCaption ? postCaption.substring(0, 60) : 'Instagram post'}
               </span>
             </div>
             {postCtx.posted_at && (
-              <div className="text-[10px] text-white/50">Posted {formatWhen(postCtx.posted_at)}</div>
+              <div className="text-xs text-white/50">Posted {formatWhen(postCtx.posted_at)}</div>
             )}
           </div>
-          {postPermalink && <span className="text-[10px] text-purple-400/60">{'\u2197'}</span>}
+          {postPermalink && <span className="text-xs text-purple-400/60">{'\u2197'}</span>}
         </a>
       )}
 
@@ -1647,8 +1647,8 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
             >
               @{c.username || 'instagram_user'}
             </a>
-            {c.timestamp && <span className="text-[10px] text-white/40">· {formatWhen(c.timestamp)}</span>}
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
+            {c.timestamp && <span className="text-xs text-white/40">· {formatWhen(c.timestamp)}</span>}
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
               {c.replied ? p.replied : p.pending}
             </span>
             {/* "Open on Instagram" link — points at the post permalink
@@ -1660,7 +1660,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 href={postPermalink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] text-purple-300/70 hover:text-purple-200 ml-auto"
+                className="text-xs text-purple-300/70 hover:text-purple-200 ml-auto"
                 title="Open the post + comments on Instagram"
               >
                 Open on Instagram ↗
@@ -1675,8 +1675,8 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
       {c.replied && c.reply_text && (
         <div className="px-3 pb-2 ml-9">
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-            <span className="text-[10px] text-emerald-400 font-medium">{p.dmCommentCardReplyShown}</span>
-            <p className="text-[10px] text-white/60 mt-0.5">{c.reply_text}</p>
+            <span className="text-xs text-emerald-400 font-medium">{p.dmCommentCardReplyShown}</span>
+            <p className="text-xs text-white/60 mt-0.5">{c.reply_text}</p>
           </div>
         </div>
       )}
@@ -1700,7 +1700,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 }}
                 disabled={sending}
                 title="Posts a reply via the Graph API (POST /{comment-id}/replies). Permission: instagram_business_manage_comments."
-                className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[10px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50"
+                className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-xs font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50"
               >
                 {sending ? '...' : (p.dmCommentCardReplyAuto || (en ? 'Auto reply' : 'Réponse auto'))}
               </button>
@@ -1708,13 +1708,13 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 onClick={suggestReply}
                 disabled={suggesting}
                 title="Generates a context-aware draft (post + brand voice) you can review and edit before sending."
-                className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px] disabled:opacity-50"
+                className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-xs font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px] disabled:opacity-50"
               >
                 {suggesting ? '…' : `💡 ${en ? 'Suggest' : 'Suggérer'}`}
               </button>
               <button
                 onClick={() => setShowReply(true)}
-                className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[10px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]"
+                className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-xs font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]"
               >
                 ✍️ {en ? 'Write' : 'Écrire'}
               </button>
@@ -1743,7 +1743,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 }}
                 placeholder={p.dmCommentCardPlaceholder || (en ? 'Type your reply…' : 'Tape ta réponse…')}
                 autoFocus
-                className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
               />
               <button
                 onClick={() => {
@@ -1756,7 +1756,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 }}
                 disabled={sending || !replyText.trim()}
                 title="Sends your custom reply to this Instagram comment via the Graph API (POST /{comment-id}/replies)."
-                className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]"
+                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg disabled:opacity-40 min-h-[32px]"
               >
                 {sending ? '...' : (p.sendBtn || (en ? 'Send' : 'Envoyer'))}
               </button>
@@ -1898,7 +1898,7 @@ function LenaCommentsSection() {
     <div className={isDemo ? 'opacity-95' : ''}>
       {/* Sample-data badge — when Instagram is not connected. */}
       {isDemo && (
-        <div className="flex items-center gap-2 mb-3 text-[10px]">
+        <div className="flex items-center gap-2 mb-3 text-xs">
           <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
           <span className="text-white/40">Example comments — connect Instagram to replace them with your real ones.</span>
         </div>
@@ -1919,12 +1919,12 @@ function LenaCommentsSection() {
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoReply ? 'right-0.5' : 'left-0.5'}`} />
           </button>
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-semibold text-white">
+            <div className="text-xs font-semibold text-white">
               {autoReply
                 ? (en ? 'Auto-reply ON — Jade replies on her own' : 'Auto-reply ON — Jade répond seul')
                 : (en ? 'Auto-reply OFF — you validate each reply' : 'Auto-reply OFF — tu valides chaque réponse')}
             </div>
-            <div className="text-[10px] text-white/50 mt-0.5">
+            <div className="text-xs text-white/50 mt-0.5">
               {catchingUp
                 ? (en ? '⏳ Replying to all pending comments now…' : '⏳ Réponse à tous les commentaires en attente en cours…')
                 : autoReply
@@ -1936,7 +1936,7 @@ function LenaCommentsSection() {
       )}
 
       {/* Filter chips — never let an active client lose track of pending vs replied. */}
-      <div className="flex items-center gap-1 mb-2 text-[10px]">
+      <div className="flex items-center gap-1 mb-2 text-xs">
         {(['pending', 'all', 'replied'] as const).map(f => (
           <button
             key={f}
@@ -1957,7 +1957,7 @@ function LenaCommentsSection() {
               if (selected.size === ids.length) setSelected(new Set());
               else setSelected(new Set(ids));
             }}
-            className="ml-auto text-[10px] text-white/40 hover:text-white"
+            className="ml-auto text-xs text-white/40 hover:text-white"
           >
             {selected.size === counts.pending ? (en ? 'Deselect all' : 'Tout désélectionner') : (en ? 'Select all' : 'Tout sélectionner')}
           </button>
@@ -1966,7 +1966,7 @@ function LenaCommentsSection() {
 
       {/* Period filter — only on the Replied tab, filters by reply date. */}
       {filter === 'replied' && counts.replied > 0 && (
-        <div className="flex items-center gap-1 mb-2 text-[9px]">
+        <div className="flex items-center gap-1 mb-2 text-xs">
           <span className="text-white/30 mr-0.5">{en ? 'Period:' : 'Période :'}</span>
           {(['all', '24h', '7d', '30d'] as const).map(per => (
             <button
@@ -1988,15 +1988,15 @@ function LenaCommentsSection() {
       {/* Bulk-reply bar — appears the moment the client has selected at least one pending comment. */}
       {filter === 'pending' && selected.size > 0 && (
         <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2 mb-2 flex items-center gap-2">
-          <span className="text-[11px] text-purple-200 font-semibold flex-1">{selected.size} {en ? 'selected' : 'sélectionné(s)'}</span>
+          <span className="text-xs text-purple-200 font-semibold flex-1">{selected.size} {en ? 'selected' : 'sélectionné(s)'}</span>
           <button
             onClick={replySelected}
             disabled={replyingBatch}
-            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg disabled:opacity-50"
+            className="min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg disabled:opacity-50"
           >
             {replyingBatch ? '...' : (en ? `AI replies to ${selected.size}` : `IA répond aux ${selected.size}`)}
           </button>
-          <button onClick={() => setSelected(new Set())} className="text-[10px] text-white/40 hover:text-white px-2">
+          <button onClick={() => setSelected(new Set())} className="text-xs text-white/40 hover:text-white px-2">
             {en ? 'Cancel' : 'Annuler'}
           </button>
         </div>
@@ -2012,14 +2012,14 @@ function LenaCommentsSection() {
         >
           <span className="text-xl">{'\u{1F4AC}'}</span>
           <p className="text-xs text-white/60 mt-1">{en ? 'No comments yet' : 'Aucun commentaire pour le moment'}</p>
-          <p className="text-[10px] text-white/40 mt-1">{en ? <>Your real Instagram comments will appear here as soon as a visitor leaves one. Fetched live via GET /&lt;media-id&gt;/comments.</> : <>Tes vrais commentaires Instagram apparaitront ici dès qu'un visiteur en laisse un. Fetched live via GET /&lt;media-id&gt;/comments.</>}</p>
-          <p className="text-[10px] text-purple-300 mt-2">{en ? 'See your posts on Instagram ↗' : 'Voir tes posts sur Instagram ↗'}</p>
+          <p className="text-xs text-white/40 mt-1">{en ? <>Your real Instagram comments will appear here as soon as a visitor leaves one. Fetched live via GET /&lt;media-id&gt;/comments.</> : <>Tes vrais commentaires Instagram apparaitront ici dès qu'un visiteur en laisse un. Fetched live via GET /&lt;media-id&gt;/comments.</>}</p>
+          <p className="text-xs text-purple-300 mt-2">{en ? 'See your posts on Instagram ↗' : 'Voir tes posts sur Instagram ↗'}</p>
         </a>
       )}
 
       {/* Empty state within a filter (e.g. all replied) */}
       {!isDemo && counts.all > 0 && visible.length === 0 && (
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center text-[11px] text-white/40">
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center text-xs text-white/40">
           {filter === 'pending' ? (en ? 'All comments handled 👌' : 'Tous les commentaires sont traités 👌') : (en ? 'No replied comments yet.' : 'Aucun commentaire répondu pour le moment.')}
         </div>
       )}
@@ -2096,20 +2096,20 @@ function PostGroup({
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[10px] text-white/40">{mediaBadge}</span>
-              <span className="text-[10px] font-bold text-white/80 truncate">
+              <span className="text-xs text-white/40">{mediaBadge}</span>
+              <span className="text-xs font-bold text-white/80 truncate">
                 {postCaption ? postCaption.substring(0, 80) : (en ? 'Instagram post' : 'Post Instagram')}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-purple-300/70 font-semibold">{comments.length} {en ? `comment${comments.length > 1 ? 's' : ''}` : `commentaire${comments.length > 1 ? 's' : ''}`}</span>
+              <span className="text-xs text-purple-300/70 font-semibold">{comments.length} {en ? `comment${comments.length > 1 ? 's' : ''}` : `commentaire${comments.length > 1 ? 's' : ''}`}</span>
               {post?.posted_at && (
-                <span className="text-[10px] text-white/30">· {en ? 'published' : 'publié'} {new Date(post.posted_at).toLocaleDateString()}</span>
+                <span className="text-xs text-white/30">· {en ? 'published' : 'publié'} {new Date(post.posted_at).toLocaleDateString()}</span>
               )}
             </div>
           </div>
           {postPermalink && !isDemo && (
-            <span className="text-[11px] text-purple-300 font-semibold flex-shrink-0">{en ? 'Open ↗' : 'Ouvrir ↗'}</span>
+            <span className="text-xs text-purple-300 font-semibold flex-shrink-0">{en ? 'Open ↗' : 'Ouvrir ↗'}</span>
           )}
         </a>
       )}
@@ -2131,7 +2131,7 @@ function PostGroup({
                   aria-label={checked ? (en ? 'Deselect' : 'Désélectionner') : (en ? 'Select' : 'Sélectionner')}
                   className={`absolute left-1.5 top-3 w-5 h-5 rounded border-2 ${checked ? 'bg-purple-500 border-purple-500' : 'bg-transparent border-white/30'} flex items-center justify-center`}
                 >
-                  {checked && <span className="text-white text-[10px] font-bold">✓</span>}
+                  {checked && <span className="text-white text-xs font-bold">✓</span>}
                 </button>
               )}
               {/* Inline comment card — without post header (the post is
@@ -2398,7 +2398,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   );
 
   const infoBanner = prepareInfo && (
-    <div className={`mb-2 rounded-lg p-2.5 text-[11px] leading-relaxed border ${preparing ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200' : 'bg-white/[0.04] border-white/10 text-white/70'}`}>
+    <div className={`mb-2 rounded-lg p-2.5 text-xs leading-relaxed border ${preparing ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200' : 'bg-white/[0.04] border-white/10 text-white/70'}`}>
       {preparing && <span className="inline-block w-3 h-3 mr-1.5 rounded-full border-2 border-cyan-300 border-t-transparent animate-spin align-[-2px]" />}
       {prepareInfo}
     </div>
@@ -2424,7 +2424,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-center">
           <div className="text-2xl mb-2">{'\u{1F3AF}'}</div>
           <p className="text-xs text-white/70 mb-1 font-semibold">{en ? 'No prospecting DM ready yet' : 'Aucun DM de prospection prêt pour l\'instant'}</p>
-          <p className="text-[11px] text-white/45 mb-3 max-w-sm mx-auto">{en ? 'Jade analyses your prospects\' Instagram profiles and writes a personalised opening DM with a visual matching their business. Launch it below.' : 'Jade analyse les profils Instagram de tes prospects et rédige un DM d\'accroche personnalisé avec un visuel à l\'image de leur business. Lance-le ci-dessous.'}</p>
+          <p className="text-xs text-white/45 mb-3 max-w-sm mx-auto">{en ? 'Jade analyses your prospects\' Instagram profiles and writes a personalised opening DM with a visual matching their business. Launch it below.' : 'Jade analyse les profils Instagram de tes prospects et rédige un DM d\'accroche personnalisé avec un visuel à l\'image de leur business. Lance-le ci-dessous.'}</p>
           <div className="flex justify-center">{prepareBtn}</div>
         </div>
       </div>
@@ -2437,11 +2437,11 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
       {/* Header + campaign actions */}
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <span className="text-xs font-bold text-white flex items-center gap-1.5">
-          {'\u{1F4AC}'} {p.dmReadyHeader} <span className="text-[10px] text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded-full">{total}</span>
+          {'\u{1F4AC}'} {p.dmReadyHeader} <span className="text-xs text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded-full">{total}</span>
         </span>
         <div className="flex items-center gap-1.5">
           {!showAll && queue.length > 10 && (
-            <button onClick={() => setShowAll(true)} className="text-[10px] text-cyan-400 hover:text-cyan-300 transition">
+            <button onClick={() => setShowAll(true)} className="text-xs text-cyan-400 hover:text-cyan-300 transition">
               {p.seeAll} ({total})
             </button>
           )}
@@ -2460,11 +2460,11 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-xs font-semibold text-white">@{cleanHandle}</span>
               {isVerified && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">
                   {'\u2705'} {p.verified}
                 </span>
               )}
-              {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
+              {dm.company && <span className="text-xs text-white/40">{dm.company}</span>}
             </div>
             {/* Visuel de prospection à l'image du business. Optionnel : le client
                 choisit de le générer (bouton) ; s'il existe déjà, on l'affiche. */}
@@ -2474,7 +2474,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               <a href={(dm as any).visual_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mb-2 group" title={en ? 'Open full size' : 'Ouvrir en grand'}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={(dm as any).visual_url} alt={en ? 'Prospecting visual' : 'Visuel de prospection'} className="w-20 h-20 object-cover rounded-lg border border-white/10 group-hover:opacity-90 transition" loading="lazy" />
-                <span className="text-[10px] text-white/40">{en ? 'Visual attached · tap to enlarge' : 'Visuel joint · appuie pour agrandir'}</span>
+                <span className="text-xs text-white/40">{en ? 'Visual attached · tap to enlarge' : 'Visuel joint · appuie pour agrandir'}</span>
               </a>
             ) : (
               <button
@@ -2487,15 +2487,15 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
                   : (en ? '🎨 Generate a visual for this prospect' : '🎨 Générer un visuel pour ce prospect')}
               </button>
             )}
-            <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
+            <p className="text-xs text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
             {(dm as any).personalization_detail && (
-              <p className="text-[10px] text-white/35 italic mb-2 line-clamp-2">{'\u{1F50E}'} {(dm as any).personalization_detail}</p>
+              <p className="text-xs text-white/35 italic mb-2 line-clamp-2">{'\u{1F50E}'} {(dm as any).personalization_detail}</p>
             )}
 
             {/* Pre-flight status banner — shown inline after "Envoyer" click */}
             {status && (
               <div
-                className={`mb-2 rounded-lg p-2.5 text-[11px] leading-relaxed border ${
+                className={`mb-2 rounded-lg p-2.5 text-xs leading-relaxed border ${
                   status.kind === 'invalid'
                     ? 'bg-red-500/10 border-red-500/30 text-red-200'
                     : status.kind === 'warning'
@@ -2505,7 +2505,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               >
                 <div>{status.text}</div>
                 {status.snapshot && (
-                  <div className="mt-1 text-[10px] text-white/60">
+                  <div className="mt-1 text-xs text-white/60">
                     {typeof status.snapshot.followers_count === 'number' && `${status.snapshot.followers_count} ${en ? 'followers' : 'abonnés'} · `}
                     {typeof status.snapshot.media_count === 'number' && `${status.snapshot.media_count} posts`}
                     {status.snapshot.biography && (
@@ -2645,13 +2645,13 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
             <span className="text-2xl">{config.icon}</span>
             <h2 className="text-white font-bold text-base">{config.confirmTitle}</h2>
           </div>
-          <p className="text-[11px] text-white/60 leading-relaxed">{config.confirmIntro}</p>
+          <p className="text-xs text-white/60 leading-relaxed">{config.confirmIntro}</p>
         </div>
 
         <div className="p-5 space-y-4">
           {config.fields.map(field => (
             <div key={field.key}>
-              <label className="text-[11px] font-semibold text-white/80 block mb-1.5">{field.label}</label>
+              <label className="text-xs font-semibold text-white/80 block mb-1.5">{field.label}</label>
               {field.type === 'number' && (
                 <div className="flex items-center gap-2">
                   <input
@@ -2685,7 +2685,7 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
                 </button>
               )}
               {field.help && (
-                <p className="text-[10px] text-white/40 mt-1">{field.help}</p>
+                <p className="text-xs text-white/40 mt-1">{field.help}</p>
               )}
             </div>
           ))}
@@ -2693,7 +2693,7 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
 
         {busy && (
           <div className="px-5 pb-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200 text-[11px]">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200 text-xs">
               <div className="w-3 h-3 rounded-full border-2 border-purple-300/30 border-t-purple-300 animate-spin" />
               <span>{en ? 'Action in progress… Jade is processing the conversations, this usually takes 5-30s' : 'Action en cours… Jade traite les conversations, ça prend généralement 5-30s'}</span>
             </div>
@@ -2903,13 +2903,13 @@ function JadeCampaignActions({ p }: { p: any }) {
             className={`flex flex-col items-center gap-1 p-3 border rounded-xl transition text-center disabled:opacity-50 ${a.classes}`}
           >
             <span className="text-lg">{a.icon}</span>
-            <span className="text-[10px] font-bold">{a.label}</span>
-            <span className="text-[10px] text-white/30 leading-tight">{a.desc}</span>
+            <span className="text-xs font-bold">{a.label}</span>
+            <span className="text-xs text-white/30 leading-tight">{a.desc}</span>
           </button>
         ))}
       </div>
       {toast && (
-        <div className={`mb-3 px-3 py-2 rounded-lg text-[11px] border ${toast.kind === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-rose-500/10 border-rose-500/20 text-rose-300'}`}>
+        <div className={`mb-3 px-3 py-2 rounded-lg text-xs border ${toast.kind === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-rose-500/10 border-rose-500/20 text-rose-300'}`}>
           {toast.kind === 'ok' ? '✓ ' : '⚠ '}{toast.text}
         </div>
       )}
@@ -2978,19 +2978,19 @@ function JadeHeader({ connected, p }: { connected: boolean; p: any }) {
             {connected && profile?.ig ? `@${profile.ig}` : 'Instagram'}
           </div>
           {connected ? (
-            <div className="text-[10px] text-emerald-300 flex items-center gap-2 flex-wrap">
+            <div className="text-xs text-emerald-300 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected</span>
               {typeof profile?.followers === 'number' && <span className="text-white/50">· {fmt(profile.followers)} followers</span>}
               {profile?.pageName && <span className="text-white/40 truncate">· FB {profile.pageName}</span>}
             </div>
           ) : (
-            <div className="text-[10px] text-white/40">No Instagram Business account connected</div>
+            <div className="text-xs text-white/40">No Instagram Business account connected</div>
           )}
         </div>
         {!connected ? (
           <a
             href="/api/auth/instagram-oauth"
-            className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[11px] font-bold hover:opacity-90 transition flex-shrink-0"
+            className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold hover:opacity-90 transition flex-shrink-0"
             title="Standard Meta OAuth flow — select your Page and IG Business account, grant permissions, return here."
           >
             ⚡ Connect
@@ -3000,10 +3000,10 @@ function JadeHeader({ connected, p }: { connected: boolean; p: any }) {
 
       {/* Row 2 — Human Agent Protocol (kept compact) */}
       <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2">
-        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">{'\u{1F9D1}'}</div>
+        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">{'\u{1F9D1}'}</div>
         <div className="flex-1">
-          <div className="text-[11px] font-semibold text-blue-300">{p.dmHumanProtocolTitle}</div>
-          <p className="text-[10px] text-white/50 mt-0.5">
+          <div className="text-xs font-semibold text-blue-300">{p.dmHumanProtocolTitle}</div>
+          <p className="text-xs text-white/50 mt-0.5">
             {p.dmHumanProtocolDesc.split('**').map((seg: string, i: number) => i % 2 ? <strong key={i} className="text-white/70">{seg}</strong> : <span key={i}>{seg}</span>)}
           </p>
         </div>
@@ -3076,7 +3076,7 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
             }}>{network === 'tiktok' ? '\u{1F3B5}' : '\u{1F4BC}'}</div>
             <div className="flex-1 min-w-0">
               <div className="text-white font-bold text-sm">{networkLabel}</div>
-              <div className="text-[10px] text-white/50 mt-0.5">
+              <div className="text-xs text-white/50 mt-0.5">
                 {networkConnected
                   ? (en ? `${networkLabel} connected — DMs, comments, engagement managed from Jade` : `${networkLabel} connecté — DMs, commentaires, engagement gérés depuis Jade`)
                   : (en ? `Connect ${networkLabel} to activate real data and actions on this network` : `Connecte ${networkLabel} pour activer les vraies données et les actions sur ce réseau`)}
@@ -3128,11 +3128,11 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
       {/* Removed redundant Queue + engagement grid (duplicate of KPIs/funnel)
           and the standalone CRM button (kept inline below if there's activity). */}
       {(((stats as any).likesGiven || 0) > 0) && (
-        <div className="flex items-center gap-2 mb-3 text-[11px]">
+        <div className="flex items-center gap-2 mb-3 text-xs">
           <span className="px-2.5 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-300 font-medium flex items-center gap-1.5">
             <span>❤️</span> {fmt((stats as any).likesGiven || 0)} {p.dmStatLikes}
           </span>
-          <a href="/assistant/crm" className="ml-auto text-white/40 hover:text-white text-[11px]">
+          <a href="/assistant/crm" className="ml-auto text-white/40 hover:text-white text-xs">
             📊 CRM →
           </a>
         </div>

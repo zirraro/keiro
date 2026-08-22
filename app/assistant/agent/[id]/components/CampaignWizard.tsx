@@ -341,7 +341,7 @@ QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMod
           <span className="text-2xl">{wizard.icon}</span>
           <div className="flex-1">
             <h3 className="text-white font-bold text-sm">{wizard.title}</h3>
-            <p className="text-white/40 text-[10px]">{wizard.subtitle}</p>
+            <p className="text-white/40 text-xs">{wizard.subtitle}</p>
           </div>
           <button onClick={onClose} className="text-white/45 hover:text-white/50 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -381,7 +381,7 @@ QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMod
                   <select
                     value={values[field.key] ?? field.default}
                     onChange={e => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[150px]"
+                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[150px]"
                   >
                     {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -392,7 +392,7 @@ QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMod
                     type="number"
                     value={values[field.key] ?? field.default}
                     onChange={e => setValues(prev => ({ ...prev, [field.key]: parseInt(e.target.value) || 0 }))}
-                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 w-16 text-center"
+                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 w-16 text-center"
                     min={0}
                   />
                 )}
@@ -402,7 +402,7 @@ QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMod
                     type="time"
                     value={values[field.key] || field.default}
                     onChange={e => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                   />
                 )}
               </div>

@@ -568,7 +568,7 @@ Reponds en JSON strict:
                 i < currentStep ? 'bg-green-500' : i === currentStep ? 'bg-purple-500' : 'bg-white/10'
               }`} />
               <div className={`text-center mt-1 hidden sm:block ${i === currentStep ? 'text-white/70' : 'text-white/45'}`}>
-                <span className="text-[10px]">{step.icon}</span>
+                <span className="text-xs">{step.icon}</span>
               </div>
             </button>
           ))}
@@ -871,7 +871,7 @@ Reponds en JSON strict:
 
         <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-4 mb-4">
           <p className="text-purple-300 text-xs font-semibold mb-1">{'\uD83C\uDFA8'} Pourquoi c&apos;est important ?</p>
-          <p className="text-white/40 text-[11px]">{n.dossierBrandHelper || 'Vos agents utilisent ces informations pour creer du contenu fidele a votre marque : posts Instagram, emails, visuels publicitaires, etc.'}</p>
+          <p className="text-white/40 text-xs">{n.dossierBrandHelper || 'Vos agents utilisent ces informations pour creer du contenu fidele a votre marque : posts Instagram, emails, visuels publicitaires, etc.'}</p>
         </div>
 
         <FormField label="Couleurs de marque (codes hex)">
@@ -931,10 +931,10 @@ Reponds en JSON strict:
               { doc: 'Exemples de posts que vous aimez', priority: 'Bonus', icon: '\u2B50' },
               { doc: 'Temoignages clients', priority: 'Bonus', icon: '\uD83D\uDCAC' },
             ].map(item => (
-              <div key={item.doc} className="flex items-center gap-2 text-[11px]">
+              <div key={item.doc} className="flex items-center gap-2 text-xs">
                 <span>{item.icon}</span>
                 <span className="text-white/70 flex-1">{item.doc}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                   item.priority === 'Essentiel' ? 'bg-red-500/20 text-red-400'
                   : item.priority === 'Recommande' ? 'bg-purple-500/20 text-purple-300'
                   : item.priority === 'Utile' ? 'bg-blue-500/20 text-blue-300'
