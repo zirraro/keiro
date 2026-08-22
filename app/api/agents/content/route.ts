@@ -4122,7 +4122,35 @@ async function GETInterne(request: NextRequest) {
                 // Une réparation qui tombe ne doit pas empêcher la mise en
                 // brouillon : sans ce filet, le post disparaîtrait des deux
                 // côtés à la fois.
+                //
+                // ── Mais elle doit LAISSER UNE TRACE ──
+                //
+                // 2026-08-22 : un reel a été retenu par le juge (thermomètre
+                // aux graduations incohérentes, 6/10) sans aucune trace de
+                // réparation en base — ni succès ni échec. Cause : ce `catch`
+                // ne faisait qu'un console.warn, et l'écriture dans agent_logs
+                // vivait à l'intérieur du `try`, donc jamais atteinte quand la
+                // boucle levait.
+                //
+                // Résultat : impossible de distinguer « la réparation a échoué »
+                // de « la réparation n'a jamais été appelée ». J'ai perdu une
+                // heure sur cette question, et c'est exactement le mode de
+                // panne que je corrige ailleurs depuis deux jours — réintroduit
+                // par moi, dans le correctif censé le supprimer.
                 console.warn('[Content] boucle de réparation indisponible :', e?.message);
+                try {
+                  await supabase.from('agent_logs').insert({
+                    agent: 'content', action: 'qc_reparation_indisponible', status: 'error',
+                    user_id: fullPost.user_id || undefined,
+                    error_message: String(e?.message || '').slice(0, 400),
+                    data: {
+                      post_id: post.id, reseau: fullPost.platform, format: fullPost.format,
+                      diagnostic_initial: verdict.diagnostic,
+                      a_visuel: !!visualUrl, a_video: !!videoUrl,
+                    },
+                    created_at: new Date().toISOString(),
+                  });
+                } catch { /* la trace de l'échec ne doit pas masquer l'échec */ }
               }
               if (repare) continue;
 
