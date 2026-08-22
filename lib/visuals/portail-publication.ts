@@ -45,6 +45,9 @@
  */
 
 export type CodeRefus =
+  // Aucun visuel ni video : le post est vide, il n'y a rien a reparer — il faut
+  // le regenerer. Distinct d'un refus de qualite, et non traitable par la boucle.
+  | 'media_absent'
   | 'claim_invente'
   | 'doublon'
   | 'qc_indisponible'
@@ -93,6 +96,36 @@ export async function controlerAvantPublication(
   // couvre les REELS et VIDÉOS que le contrôle de cohérence ne peut pas juger
   // faute d'image à analyser. C'est par là qu'était partie « Marie, gérante de
   // sa boutique de créateurs », une cliente qui n'existe pas.
+  /**
+   * ── Un post sans aucun média n'est pas « publiable », il est vide ──
+   *
+   * Découvert le 2026-08-22 en testant la réparation d'un reel : le portail a
+   * rendu `publiable: true`, note 0, « aucun défaut nommé » — sur un post dont
+   * la vidéo n'avait jamais été enregistrée.
+   *
+   * La cause est structurelle : le contrôle de cohérence est conditionné à
+   * `if (post.visual_url ...)`. Sans média, TOUS les contrôles visuels sont
+   * sautés, et la fonction tombe sur le retour favorable par défaut. L'absence
+   * de contrôle se lisait donc comme un contrôle réussi — le mode de panne qui
+   * ressemble au succès, celui qui a coûté le plus cher cette semaine.
+   *
+   * Conséquence concrète : un post totalement vide franchissait la porte de
+   * publication. Sur Instagram ou TikTok, publier sans média échoue de toute
+   * façon — mais l'échec arrivait chez le fournisseur, sans motif exploitable,
+   * au lieu d'être nommé ici.
+   *
+   * C'est un refus NON réparable par la boucle : il n'y a rien à corriger, il
+   * y a quelque chose à regénérer. Le diagnostic le dit explicitement pour que
+   * le rattrapage n'essaie pas de réécrire une légende sur du vide.
+   */
+  if (!post.visual_url && !post.video_url) {
+    return {
+      publiable: false,
+      code: 'media_absent',
+      diagnostic: 'media_absent: aucun visuel ni vidéo — rien à publier, le post doit être régénéré',
+    };
+  }
+
   try {
     const { detectInventedClaim } = await import('./caption-claim-guard');
     const claim = detectInventedClaim([post.caption, post.hook].filter(Boolean).join(' — '));
