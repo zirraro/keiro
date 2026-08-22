@@ -105,6 +105,14 @@ export const REALISME_SOCLE = [
   'bubbles vary in size, crumbs vary in shape, steam drifts asymmetrically, and anything that occurs',
   'many times — grains, leaves, bristles — differs from one to the next.',
   '',
+  // Même leçon, appliquée à l'image fixe : un objet produit ce qu'il est fait
+  // pour produire. C'est le defaut le plus visible de tous, parce qu'il ne
+  // demande aucun oeil de photographe pour etre repere.
+  'MECHANICAL LOGIC: what comes out matches what produces it — a spray bottle gives a fine conical',
+  'mist, a watering can a broad soft fall, a tap a thin steady column. The effect appears where the',
+  'mechanism points, liquid wets what it lands on, and nothing happens that the visible tool could',
+  'not cause.',
+  '',
   'COMPOSITION: slightly imperfect framing, as a real photographer working fast would get it.',
   'Off-centre is fine. Objects may be cropped by the frame edge. Avoid perfect symmetry.',
   '',
@@ -350,6 +358,28 @@ export const REALISME_VIDEO = [
   'gesture is visible — the hand, the vessel and the container all in shot.',
   'Keep the surface around it dry and clean.',
   'Frame the drink as part of the scene, at the scale a person sees it from across a table.',
+  '',
+  /**
+   * ── La cohérence mécanique — deuxième leçon du fondateur, 22 août ──
+   *
+   * Sur le reel Veo publié : « il y a un vaporisateur et l'eau coule comme un
+   * tuyau, aucune logique visuelle, ça fait grave IA ». Le juge avait mis 9/10.
+   *
+   * C'est une classe de défaut DIFFÉRENTE de la texture (gouttes trop rondes,
+   * farine irréelle) : là, la matière était mal rendue ; ici, elle est bien
+   * rendue mais elle sort du mauvais objet. Un vaporisateur produit une brume
+   * fine et conique, jamais un jet continu.
+   *
+   * C'est aussi le défaut le plus visible de tous, parce qu'il ne demande
+   * aucun œil de photographe : n'importe qui sait ce que fait un vaporisateur.
+   * Nos consignes couvraient le RENDU, jamais la CAUSALITÉ.
+   */
+  'MECHANICAL LOGIC — what comes out must match what produces it: a spray bottle releases a fine',
+  'conical mist, never a continuous stream; a watering can pours a broad soft fall; a tap runs a',
+  'thin steady column; a piping bag extrudes, a whisk aerates, a knife separates. Every object',
+  'behaves the way that object actually behaves, and the effect appears where the mechanism points.',
+  'Liquid falls where gravity takes it and visibly wets what it lands on. If an action cannot be',
+  'explained by the tool shown producing it, do not show that action.',
 ].join('\n');
 
 /**

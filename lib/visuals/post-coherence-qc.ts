@@ -165,6 +165,21 @@ Examine donc SPÉCIFIQUEMENT, et baisse la note quand c'est présent :
 Un seul de ces défauts bien visible plafonne la note à 6, même si tout le reste
 est excellent : c'est ce que l'œil humain repère en premier.
 
+⚠️ COHÉRENCE MÉCANIQUE — TU L'AS RATÉE DEUX FOIS DE SUITE.
+Sur un reel note 9/10, le fondateur a vu : « il y a un vaporisateur et l'eau
+coule comme un tuyau, aucune logique visuelle, ca fait grave IA ».
+C'est un defaut DIFFERENT de la texture : la matiere est bien rendue, mais elle
+sort du mauvais objet. Verifie donc que CE QUI SORT correspond a CE QUI LE
+PRODUIT :
+- un vaporisateur donne une brume fine et conique, jamais un jet continu ;
+- un arrosoir verse une nappe large, un robinet une colonne fine ;
+- l'effet part de la ou pointe le mecanisme, pas d'ailleurs ;
+- le liquide tombe selon la gravite et mouille ce qu'il touche ;
+- rien ne se produit qu'un outil visible dans le cadre ne pourrait causer.
+Ce defaut-la ne demande aucun oeil de photographe — n'importe qui sait ce que
+fait un vaporisateur. Il est donc le PLUS visible de tous, et il plafonne la
+note a 5.
+
 ⚠️ SUR LA LUMIÈRE SOMBRE — NE SUR-SANCTIONNE PAS.
 Même recalibrage : une image jugée « trop sombre » par les deux juges a été
 trouvée « pas mal » par le fondateur. Une ambiance basse, chaude et intimiste
